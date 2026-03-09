@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { X, Clock, Moon, User, FileText, ChevronDown } from 'lucide-react';
 import { calculateShiftPay, formatTime12h, type PayRates, DEFAULT_RATES } from '@/lib/shiftCalculator';
 import { formatCurrency } from '@/lib/formatUtils';
@@ -16,7 +16,14 @@ interface ShiftFormProps {
 
 const today = () => new Date().toISOString().split('T')[0];
 
-const ShiftForm = ({ clients, rates = DEFAULT_RATES, initialValues, onSubmit, onCancel, title = 'Add Shift' }: ShiftFormProps) => {
+const ShiftForm = ({
+  clients,
+  rates = DEFAULT_RATES,
+  initialValues,
+  onSubmit,
+  onCancel,
+  title = 'Add Shift',
+}: ShiftFormProps) => {
   const [date, setDate] = useState(initialValues?.date ?? today());
   const [startTime, setStartTime] = useState(initialValues?.start_time ?? '09:00');
   const [endTime, setEndTime] = useState(initialValues?.end_time ?? '17:00');
@@ -25,9 +32,16 @@ const ShiftForm = ({ clients, rates = DEFAULT_RATES, initialValues, onSubmit, on
   const [notes, setNotes] = useState(initialValues?.notes ?? '');
   const [submitting, setSubmitting] = useState(false);
 
-  const calc = date && startTime && endTime
-    ? calculateShiftPay(date, startTime, endTime, isSleepover, rates)
-    : null;
+  // Lock body scroll while sheet is open
+  useEffect(() => {
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = ''; };
+  }, []);
+
+  const calc =
+    date && startTime && endTime
+      ? calculateShiftPay(date, startTime, endTime, isSleepover, rates)
+      : null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -44,33 +58,66 @@ const ShiftForm = ({ clients, rates = DEFAULT_RATES, initialValues, onSubmit, on
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-foreground/20 backdrop-blur-sm p-4">
-      <div className="glass-card w-full max-w-md max-h-[90vh] overflow-y-auto">
+    /* Scrim */
+    <div
+      className="fixed inset-0 z-50 flex flex-col justify-end md:items-center md:justify-center"
+      style={{ background: 'hsl(var(--foreground)/0.25)' }}
+      onClick={(e) => { if (e.target === e.currentTarget) onCancel(); }}
+    >
+      {/* Sheet panel */}
+      <div
+        className="w-full md:max-w-md md:mx-auto flex flex-col"
+        style={{
+          background: 'hsl(var(--card))',
+          borderRadius: '24px 24px 0 0',
+          paddingBottom: 'max(env(safe-area-inset-bottom, 16px), 16px)',
+          maxHeight: '92dvh',
+        }}
+        // Prevent tap-outside close when clicking inside the sheet
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Drag handle */}
+        <div className="flex justify-center pt-2.5 pb-1 shrink-0">
+          <div
+            className="rounded-full"
+            style={{ width: 36, height: 4, background: 'hsl(var(--muted-foreground)/0.3)' }}
+          />
+        </div>
+
         {/* Header */}
-        <div className="flex items-center justify-between p-5 border-b border-border">
-          <h2 className="text-lg font-bold text-foreground">{title}</h2>
-          <button onClick={onCancel} className="glass-chip min-h-[36px] min-w-[36px] flex items-center justify-center">
-            <X className="w-4 h-4" />
+        <div className="flex items-center justify-between px-5 py-3 border-b border-border shrink-0">
+          <h2 className="text-base font-bold text-foreground">{title}</h2>
+          <button
+            onClick={onCancel}
+            className="glass-chip w-8 h-8 flex items-center justify-center !p-0"
+            style={{ minHeight: 'unset' }}
+          >
+            <X className="w-3.5 h-3.5" />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-5 space-y-4">
+        {/* Scrollable body */}
+        <form
+          onSubmit={handleSubmit}
+          className="overflow-y-auto overscroll-contain px-5 py-4 space-y-3"
+        >
           {/* Date */}
-          <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Date</label>
+          <div className="space-y-1">
+            <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Date</label>
             <input
               type="date"
               value={date}
               onChange={e => setDate(e.target.value)}
               required
-              className="glass-input w-full text-foreground min-h-[44px]"
+              className="glass-input w-full text-foreground"
+              style={{ minHeight: 42 }}
             />
           </div>
 
-          {/* Times */}
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
+          {/* Times — side by side */}
+          <div className="grid grid-cols-2 gap-2.5">
+            <div className="space-y-1">
+              <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
                 <Clock className="w-3 h-3" /> Start
               </label>
               <input
@@ -78,11 +125,12 @@ const ShiftForm = ({ clients, rates = DEFAULT_RATES, initialValues, onSubmit, on
                 value={startTime}
                 onChange={e => setStartTime(e.target.value)}
                 required
-                className="glass-input w-full text-foreground min-h-[44px]"
+                className="glass-input w-full text-foreground"
+                style={{ minHeight: 42 }}
               />
             </div>
-            <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
+            <div className="space-y-1">
+              <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
                 <Clock className="w-3 h-3" /> End
               </label>
               <input
@@ -90,116 +138,142 @@ const ShiftForm = ({ clients, rates = DEFAULT_RATES, initialValues, onSubmit, on
                 value={endTime}
                 onChange={e => setEndTime(e.target.value)}
                 required
-                className="glass-input w-full text-foreground min-h-[44px]"
+                className="glass-input w-full text-foreground"
+                style={{ minHeight: 42 }}
               />
             </div>
           </div>
 
-          {/* Sleepover toggle */}
+          {/* Sleepover — compact native-style toggle row */}
           <button
             type="button"
             onClick={() => setIsSleepover(p => !p)}
-            className={`w-full flex items-center gap-3 p-4 rounded-2xl border transition-all duration-200 ${
-              isSleepover
-                ? 'border-primary bg-primary/10'
-                : 'border-border bg-transparent'
-            }`}
+            className="w-full flex items-center gap-3 rounded-2xl border transition-all duration-200 px-4"
+            style={{
+              minHeight: 48,
+              borderColor: isSleepover ? 'hsl(var(--primary)/0.5)' : 'hsl(var(--border))',
+              background: isSleepover ? 'hsl(var(--primary)/0.08)' : 'transparent',
+            }}
           >
-            <Moon className={`w-5 h-5 ${isSleepover ? 'text-primary' : 'text-muted-foreground'}`} />
-            <div className="text-left flex-1">
-              <p className={`text-sm font-semibold ${isSleepover ? 'text-primary' : 'text-foreground'}`}>
-                Sleepover
-              </p>
-              <p className="text-xs text-muted-foreground">Flat rate applies</p>
-            </div>
-            <div
-              className={`w-11 h-6 rounded-full transition-all duration-200 relative ${isSleepover ? 'bg-primary' : 'bg-muted'}`}
+            <Moon
+              className="w-4 h-4 shrink-0"
+              style={{ color: isSleepover ? 'hsl(var(--primary))' : 'hsl(var(--muted-foreground))' }}
+            />
+            <span
+              className="text-sm font-semibold flex-1 text-left"
+              style={{ color: isSleepover ? 'hsl(var(--primary))' : 'hsl(var(--foreground))' }}
+            >
+              Sleepover
+            </span>
+            <span className="text-[10px] text-muted-foreground mr-2">Flat rate</span>
+            {/* iOS-style toggle */}
+            <span
+              className="relative shrink-0 rounded-full transition-all duration-200"
+              style={{
+                width: 42,
+                height: 24,
+                background: isSleepover ? 'hsl(var(--primary))' : 'hsl(var(--muted))',
+              }}
             >
               <span
-                className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow-sm transition-all duration-200 ${
-                  isSleepover ? 'left-[22px]' : 'left-0.5'
-                }`}
+                className="absolute top-[3px] rounded-full bg-white shadow-sm transition-all duration-200"
+                style={{
+                  width: 18,
+                  height: 18,
+                  left: isSleepover ? 21 : 3,
+                }}
               />
-            </div>
+            </span>
           </button>
 
-          {/* Client */}
+          {/* Client (only if clients exist) */}
           {clients.length > 0 && (
-            <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
-                <User className="w-3 h-3" /> Client (optional)
+            <div className="space-y-1">
+              <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
+                <User className="w-3 h-3" /> Client
+                <span className="normal-case font-normal text-muted-foreground">(optional)</span>
               </label>
               <div className="relative">
                 <select
                   value={clientId}
                   onChange={e => setClientId(e.target.value)}
-                  className="glass-input w-full text-foreground min-h-[44px] appearance-none pr-8"
+                  className="glass-input w-full text-foreground appearance-none pr-8"
+                  style={{ minHeight: 42 }}
                 >
                   <option value="">No client</option>
                   {clients.filter(c => c.active).map(c => (
                     <option key={c.id} value={c.id}>{c.name}</option>
                   ))}
                 </select>
-                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none" />
               </div>
             </div>
           )}
 
           {/* Notes */}
-          <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
-              <FileText className="w-3 h-3" /> Notes (optional)
+          <div className="space-y-1">
+            <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
+              <FileText className="w-3 h-3" /> Notes
+              <span className="normal-case font-normal text-muted-foreground">(optional)</span>
             </label>
             <textarea
               value={notes}
               onChange={e => setNotes(e.target.value)}
               rows={2}
-              placeholder="Any notes..."
+              placeholder="Any notes…"
               className="glass-input w-full text-foreground resize-none"
             />
           </div>
 
-          {/* Pay preview */}
+          {/* Calculated pay — compact */}
           {calc && (
-            <div className="glass-card-glow p-4 space-y-2">
-              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Calculated Pay</p>
-              <div className="flex items-center justify-between">
+            <div
+              className="rounded-2xl p-3 space-y-1.5"
+              style={{
+                background: 'hsl(var(--primary)/0.08)',
+                border: '1px solid hsl(var(--primary)/0.2)',
+              }}
+            >
+              <div className="flex items-center justify-between gap-2">
                 <div>
-                  <p className="text-2xl font-bold text-foreground">{formatCurrency(calc.grossPay)}</p>
+                  <p className="text-xl font-bold text-foreground leading-none">{formatCurrency(calc.grossPay)}</p>
                   {!isSleepover && (
-                    <p className="text-xs text-muted-foreground mt-0.5">{calc.hoursWorked} hrs</p>
+                    <p className="text-[11px] text-muted-foreground mt-0.5">{calc.hoursWorked}h total</p>
                   )}
                 </div>
-                <div className="text-right space-y-1">
+                <div className="text-right space-y-0.5 min-w-0 flex-1 overflow-hidden">
                   {calc.breakdown.map((b, i) => (
-                    <div key={i} className="text-xs text-muted-foreground">
-                      {b.label}{b.hours ? ` · ${b.hours}h @ $${b.rate}` : ''} = {formatCurrency(b.amount)}
-                    </div>
+                    <p key={i} className="text-[10px] text-muted-foreground truncate">
+                      {b.label}
+                      {b.hours != null ? ` · ${b.hours}h @ $${b.rate}` : ''} = {formatCurrency(b.amount)}
+                    </p>
                   ))}
                 </div>
               </div>
               {!isSleepover && startTime && endTime && (
-                <p className="text-xs text-muted-foreground">
+                <p className="text-[10px] text-muted-foreground border-t border-primary/10 pt-1.5">
                   {formatTime12h(startTime)} – {formatTime12h(endTime)}
                 </p>
               )}
             </div>
           )}
 
-          {/* Actions */}
-          <div className="flex gap-3 pt-2">
+          {/* Action buttons — sticky-ish at end of form */}
+          <div className="flex gap-2.5 pt-1">
             <button
               type="button"
               onClick={onCancel}
-              className="flex-1 glass-chip min-h-[48px] justify-center text-sm font-semibold"
+              className="flex-1 glass-chip justify-center text-sm font-semibold"
+              style={{ minHeight: 46 }}
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={submitting}
-              className="flex-1 min-h-[48px] rounded-2xl text-sm font-bold transition-all duration-200 disabled:opacity-40"
+              className="flex-1 rounded-2xl text-sm font-bold transition-all duration-200 disabled:opacity-40"
               style={{
+                minHeight: 46,
                 background: 'hsl(var(--primary))',
                 color: 'hsl(var(--primary-foreground))',
                 boxShadow: '0 4px 16px hsl(var(--primary)/0.3)',
