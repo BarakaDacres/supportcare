@@ -79,6 +79,14 @@
 
     --tab-bar-bg: 0 0% 4% / 0.85;
     --header-bg: 0 0% 4% / 0.9;
+
+    /* iOS 26 Liquid Glass tokens – dark */
+    --lg-pill-bg: 0 0% 14% / 0.7;
+    --lg-pill-border: 0 0% 100% / 0.1;
+    --lg-pill-shadow-color: 0 0% 0% / 0.4;
+    --lg-active-bg: 211 100% 55% / 0.15;
+    --lg-active-border: 211 100% 55% / 0.3;
+    --lg-specular: 0 0% 100% / 0.06;
   }
 }
 
