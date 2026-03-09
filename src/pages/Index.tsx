@@ -103,6 +103,7 @@ const Index = ({ auth }: IndexProps) => {
               taxRate={store.taxRate}
               locked={locked}
               theme={store.theme}
+              auth={auth}
               onYearChange={(y) => store.update({ year: y })}
               onMonthChange={(m) => store.update({ month: m })}
               onModeChange={(mode) => store.update({ mode })}
