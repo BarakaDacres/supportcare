@@ -103,12 +103,14 @@ const ShiftList = ({
   const handleAdd = async (shift: NewShift) => {
     await onAdd(shift);
     setShowForm(false);
+    openSheet(false);
   };
 
   const handleUpdate = async (shift: NewShift) => {
     if (!editingShift) return;
     await onUpdate(editingShift.id, shift);
     setEditingShift(null);
+    openSheet(false);
   };
 
   const handleDelete = async (id: string) => {
