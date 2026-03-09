@@ -282,7 +282,7 @@ const ShiftList = ({
                       {!shift.is_sleepover && ` · ${Number(shift.hours_worked).toFixed(2)}h`}
                     </p>
                     {shift.notes && (
-                      <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{shift.notes}</p>
+                      <p className="text-xs text-muted-foreground mt-0.5 whitespace-pre-line line-clamp-3">{shift.notes}</p>
                     )}
                   </div>
                   <div className="text-right shrink-0">
