@@ -42,10 +42,12 @@ function getMonday(d: Date): Date {
 
 const ShiftList = ({
   shifts, clients, loading, rates = DEFAULT_RATES, locked = false,
-  onAdd, onUpdate, onDelete, onDuplicate,
+  onAdd, onUpdate, onDelete, onDuplicate, onSheetOpenChange,
 }: ShiftListProps) => {
   const [showForm, setShowForm] = useState(false);
   const [editingShift, setEditingShift] = useState<Shift | null>(null);
+
+  const openSheet = (open: boolean) => onSheetOpenChange?.(open);
   const [filterPeriod, setFilterPeriod] = useState<FilterPeriod>('month');
   const [filterClient, setFilterClient] = useState('');
   const [sortMode, setSortMode] = useState<SortMode>('date-desc');
