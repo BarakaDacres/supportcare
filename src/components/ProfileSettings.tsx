@@ -66,6 +66,9 @@ const ProfileSettings = ({ auth }: ProfileSettingsProps) => {
   const handleSignOut = async () => {
     setSigningOut(true);
     await supabase.auth.signOut();
+    // Dispatch storage event so App.tsx re-syncs theme on auth screen
+    window.dispatchEvent(new Event('storage'));
+    setSigningOut(false);
   };
 
   return (

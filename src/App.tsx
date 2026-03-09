@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -10,8 +11,31 @@ import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
+// Apply saved theme before any render to prevent flash
+const savedRaw = localStorage.getItem('income-ledger-data');
+if (savedRaw) {
+  try {
+    const saved = JSON.parse(savedRaw);
+    if (saved?.theme === 'dark') document.documentElement.classList.add('dark');
+    else document.documentElement.classList.remove('dark');
+  } catch { /* ignore */ }
+}
+
 const AppRoutes = () => {
   const auth = useAuth();
+
+  // Keep dark class in sync with localStorage even when store isn't mounted (e.g. auth screen)
+  useEffect(() => {
+    const syncTheme = () => {
+      try {
+        const raw = localStorage.getItem('income-ledger-data');
+        const saved = raw ? JSON.parse(raw) : {};
+        document.documentElement.classList.toggle('dark', saved?.theme === 'dark');
+      } catch { /* ignore */ }
+    };
+    window.addEventListener('storage', syncTheme);
+    return () => window.removeEventListener('storage', syncTheme);
+  }, []);
 
   if (auth.loading) {
     return (
