@@ -255,16 +255,22 @@ const ShiftList = ({
               <div key={shift.id} className="glass-card p-4 space-y-2">
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2 flex-wrap">
+                    <div className="flex items-center gap-1.5 flex-wrap">
                       <span className="text-sm font-bold text-foreground">{formatDateLabel(shift.date)}</span>
                       {shift.is_sleepover && (
-                        <span
-                          className="glass-chip text-[10px] py-0.5 px-2"
-                          style={{ color: 'hsl(var(--primary))' }}
-                        >
+                        <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold text-white" style={{ background: '#2563EB' }}>
                           <Moon className="w-2.5 h-2.5" /> Sleepover
                         </span>
                       )}
+                      {(() => {
+                        const dow = getDayOfWeek(shift.date); // 0=Sun,6=Sat
+                        const isWeekend = dow === 0 || dow === 6;
+                        return isWeekend ? (
+                          <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold text-white" style={{ background: '#7C3AED' }}>
+                            Weekend
+                          </span>
+                        ) : null;
+                      })()}
                       {shift.client_name && (
                         <span className="glass-chip text-[10px] py-0.5 px-2 text-muted-foreground">
                           <User className="w-2.5 h-2.5" /> {shift.client_name}
