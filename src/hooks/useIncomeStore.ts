@@ -102,9 +102,10 @@ export function useIncomeStore() {
     }
   }, [state, cloudSynced]);
 
-  // Apply theme class
+  // Apply theme class and fire event for cross-component sync
   useEffect(() => {
     document.documentElement.classList.toggle('dark', state.theme === 'dark');
+    window.dispatchEvent(new CustomEvent('theme-sync'));
   }, [state.theme]);
 
   const update = useCallback((partial: Partial<StoreState>) => {
