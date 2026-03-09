@@ -101,7 +101,8 @@ const ShiftList = ({
   const isShiftEditable = (_shift: Shift) => !locked;
 
   const handleAdd = async (shift: NewShift) => {
-    await onAdd(shift);
+    const result = await onAdd(shift);
+    if (!result) throw new Error('Failed to create shift. Please check your details and try again.');
     setShowForm(false);
     openSheet(false);
   };

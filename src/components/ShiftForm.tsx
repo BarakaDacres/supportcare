@@ -49,6 +49,7 @@ const ShiftForm = ({
   );
 
   const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   // Lock body scroll while sheet is open
   useEffect(() => {
@@ -69,11 +70,7 @@ const ShiftForm = ({
   const handleNotesChange = (val: string) => {
     setNotes(val);
     const currentDefault = getDefaultNote(isSleepover);
-    if (val !== currentDefault) {
-      notesCustomised.current = true;
-    } else {
-      notesCustomised.current = false;
-    }
+    notesCustomised.current = val !== currentDefault;
   };
 
   const calc =
@@ -81,40 +78,58 @@ const ShiftForm = ({
       ? calculateShiftPay(date, startTime, endTime, isSleepover, rates)
       : null;
 
+  // ── The single submit handler — always resets in finally ──
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (submitting) return; // guard against double-tap
+    setSubmitError(null);
     setSubmitting(true);
-    await onSubmit({
-      date,
-      start_time: startTime,
-      end_time: endTime,
-      is_sleepover: isSleepover,
-      client_id: clientId || null,
-      notes: notes.trim() || null,
-    });
-    setSubmitting(false);
+    try {
+      await onSubmit({
+        date,
+        start_time: startTime,
+        end_time: endTime,
+        is_sleepover: isSleepover,
+        client_id: clientId || null,
+        notes: notes.trim() || null,
+      });
+      // onSubmit calls onCancel internally (sheet closes) — nothing more needed here
+    } catch (err) {
+      console.error('Failed to save shift:', err);
+      setSubmitError(
+        err instanceof Error ? err.message : 'Failed to save shift. Please try again.'
+      );
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
-    /* Scrim — z-[60] ensures it sits above the tab bar (z-50) */
+    /*
+      Scrim — z-[60] sits above the tab bar (z-50).
+      The ENTIRE sheet is one <form> so type="submit" correctly triggers onSubmit
+      regardless of where in the DOM the button lives.
+    */
     <div
       className="fixed inset-0 z-[60] flex flex-col justify-end md:items-center md:justify-center"
       style={{ background: 'hsl(var(--foreground)/0.4)' }}
       onClick={(e) => { if (e.target === e.currentTarget) onCancel(); }}
     >
       {/*
-        Sheet panel:
-        - flex-col so header / scrollable-body / sticky-footer stack cleanly
-        - max-height uses dvh (safe for Safari) to respect visible viewport
-        - rounded top corners only (bottom is flush to screen edge)
+        Sheet panel: flex-col
+          ├── drag handle       (shrink-0)
+          ├── sticky header     (shrink-0)
+          ├── scrollable body   (flex-1 overflow-y-auto)
+          └── sticky footer     (shrink-0)
+        One <form> wraps the sheet so submit works correctly.
       */}
-      <div
+      <form
+        onSubmit={handleSubmit}
         className="w-full md:max-w-md md:mx-auto flex flex-col"
         style={{
           background: 'hsl(var(--card))',
           borderRadius: '20px 20px 0 0',
           maxHeight: '92dvh',
-          /* Ensure the sheet itself never overlaps the home indicator */
           paddingBottom: 'env(safe-area-inset-bottom, 0px)',
         }}
         onClick={(e) => e.stopPropagation()}
@@ -131,6 +146,7 @@ const ShiftForm = ({
         <div className="flex items-center justify-between px-5 py-3 border-b border-border shrink-0">
           <h2 className="text-base font-bold text-foreground">{title}</h2>
           <button
+            type="button"
             onClick={onCancel}
             className="glass-chip w-8 h-8 flex items-center justify-center !p-0"
             style={{ minHeight: 'unset' }}
@@ -139,15 +155,13 @@ const ShiftForm = ({
           </button>
         </div>
 
-        {/*
-          ── Scrollable body ──
-          flex-1 + overflow-y-auto = fills available space and scrolls independently.
-          The footer is OUTSIDE this element so it never scrolls away.
-        */}
+        {/* ── Scrollable body ── */}
         <div className="flex-1 overflow-y-auto overscroll-contain px-5 py-3 space-y-3">
           {/* Date */}
           <div className="space-y-1">
-            <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Date</label>
+            <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
+              Date
+            </label>
             <input
               type="date"
               value={date}
@@ -158,7 +172,7 @@ const ShiftForm = ({
             />
           </div>
 
-          {/* Times — side by side */}
+          {/* Times */}
           <div className="grid grid-cols-2 gap-2.5">
             <div className="space-y-1">
               <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
@@ -225,7 +239,7 @@ const ShiftForm = ({
             </span>
           </button>
 
-          {/* Client (only if clients exist) */}
+          {/* Client */}
           {clients.length > 0 && (
             <div className="space-y-1">
               <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
@@ -301,14 +315,14 @@ const ShiftForm = ({
           <div className="h-1" />
         </div>
 
-        {/*
-          ── Sticky footer — OUTSIDE the scroll area ──
-          This element is always visible regardless of how far the user has scrolled.
-          It lives above env(safe-area-inset-bottom) which is already handled by
-          the sheet container's paddingBottom.
-        */}
-        <form onSubmit={handleSubmit} className="shrink-0">
-          <div className="px-5 pt-3 pb-4 border-t border-border flex gap-2.5">
+        {/* ── Sticky footer — OUTSIDE the scroll div, INSIDE the form ── */}
+        <div className="shrink-0 border-t border-border px-5 pt-3 pb-4 space-y-2">
+          {/* Error message */}
+          {submitError && (
+            <p className="text-xs text-destructive text-center px-2">{submitError}</p>
+          )}
+
+          <div className="flex gap-2.5">
             <button
               type="button"
               onClick={onCancel}
@@ -320,19 +334,19 @@ const ShiftForm = ({
             <button
               type="submit"
               disabled={submitting}
-              className="flex-1 rounded-2xl text-sm font-bold transition-all duration-200 disabled:opacity-40"
+              className="flex-1 rounded-2xl text-sm font-bold transition-all duration-200 disabled:opacity-50"
               style={{
                 minHeight: 48,
                 background: 'hsl(var(--primary))',
                 color: 'hsl(var(--primary-foreground))',
-                boxShadow: '0 4px 16px hsl(var(--primary)/0.3)',
+                boxShadow: submitting ? 'none' : '0 4px 16px hsl(var(--primary)/0.3)',
               }}
             >
               {submitting ? 'Saving…' : title === 'Add Shift' ? 'Add Shift' : 'Save Changes'}
             </button>
           </div>
-        </form>
-      </div>
+        </div>
+      </form>
     </div>
   );
 };
