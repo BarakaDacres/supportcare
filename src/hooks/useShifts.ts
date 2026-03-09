@@ -32,6 +32,35 @@ export function useShifts(rates: PayRates = DEFAULT_RATES) {
   const [shifts, setShifts] = useState<Shift[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  // Track whether the auth session has been resolved so we don't
+  // fire the initial fetch before auth.uid() is available (which
+  // would cause RLS to return 0 rows on page reload).
+  const [authReady, setAuthReady] = useState(false);
+
+  useEffect(() => {
+    // Resolve the session once, then mark auth as ready
+    supabase.auth.getSession().then(({ data }) => {
+      if (data.session) {
+        setAuthReady(true);
+      } else {
+        // Not logged in — nothing to load
+        setLoading(false);
+      }
+    });
+
+    // Also respond to sign-in events (e.g. user logs in after mount)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session) {
+        setAuthReady(true);
+      } else {
+        setAuthReady(false);
+        setShifts([]);
+        setLoading(false);
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
 
   const fetchShifts = useCallback(async () => {
     setLoading(true);
@@ -58,9 +87,12 @@ export function useShifts(rates: PayRates = DEFAULT_RATES) {
     setLoading(false);
   }, []);
 
+  // Only fetch once auth session is confirmed
   useEffect(() => {
-    fetchShifts();
-  }, [fetchShifts]);
+    if (authReady) {
+      fetchShifts();
+    }
+  }, [authReady, fetchShifts]);
 
   const addShift = useCallback(async (shift: NewShift): Promise<Shift> => {
     const { data: { session } } = await supabase.auth.getSession();
