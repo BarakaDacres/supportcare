@@ -18,6 +18,8 @@ interface ShiftListProps {
   onUpdate: (id: string, shift: Partial<NewShift>) => Promise<void>;
   onDelete: (id: string) => Promise<void>;
   onDuplicate: (id: string) => Promise<void>;
+  /** Called when the add/edit sheet opens (true) or closes (false) */
+  onSheetOpenChange?: (open: boolean) => void;
 }
 
 type FilterPeriod = 'all' | 'week' | 'fortnight' | 'month' | 'year';
