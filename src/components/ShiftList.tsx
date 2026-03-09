@@ -238,7 +238,7 @@ const ShiftList = ({
           <p className="text-muted-foreground text-sm">No shifts found</p>
           {!locked && (
             <button
-              onClick={() => setShowForm(true)}
+              onClick={() => { setShowForm(true); openSheet(true); }}
               className="text-sm font-semibold"
               style={{ color: 'hsl(var(--primary))' }}
             >
