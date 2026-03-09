@@ -1,11 +1,14 @@
 import { Sun, Moon, Printer } from 'lucide-react';
+import UserMenu from '@/components/UserMenu';
+import type { AuthState } from '@/hooks/useAuth';
 
 interface HeaderProps {
   theme: 'light' | 'dark';
   onToggleTheme: () => void;
+  auth: AuthState;
 }
 
-const Header = ({ theme, onToggleTheme }: HeaderProps) => {
+const Header = ({ theme, onToggleTheme, auth }: HeaderProps) => {
   return (
     <header className="no-print flex items-center justify-between py-6">
       <div>
@@ -32,6 +35,7 @@ const Header = ({ theme, onToggleTheme }: HeaderProps) => {
         >
           {theme === 'light' ? <Moon className="w-3.5 h-3.5" /> : <Sun className="w-3.5 h-3.5" />}
         </button>
+        <UserMenu auth={auth} />
       </div>
     </header>
   );

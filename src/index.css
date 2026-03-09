@@ -39,6 +39,14 @@
 
     --tab-bar-bg: 240 6% 97% / 0.82;
     --header-bg: 240 6% 97% / 0.88;
+
+    /* iOS 26 Liquid Glass tokens */
+    --lg-pill-bg: 0 0% 100% / 0.55;
+    --lg-pill-border: 0 0% 100% / 0.7;
+    --lg-pill-shadow-color: 0 0% 0% / 0.08;
+    --lg-active-bg: 211 100% 50% / 0.12;
+    --lg-active-border: 211 100% 50% / 0.25;
+    --lg-specular: 0 0% 100% / 0.6;
   }
 
   .dark {
@@ -71,6 +79,14 @@
 
     --tab-bar-bg: 0 0% 4% / 0.85;
     --header-bg: 0 0% 4% / 0.9;
+
+    /* iOS 26 Liquid Glass tokens – dark */
+    --lg-pill-bg: 0 0% 14% / 0.7;
+    --lg-pill-border: 0 0% 100% / 0.1;
+    --lg-pill-shadow-color: 0 0% 0% / 0.4;
+    --lg-active-bg: 211 100% 55% / 0.15;
+    --lg-active-border: 211 100% 55% / 0.3;
+    --lg-specular: 0 0% 100% / 0.06;
   }
 }
 
@@ -159,12 +175,41 @@
     background: hsl(var(--primary));
   }
 
-  /* iOS-style tab bar */
+  /* iOS-style tab bar – outer scrim */
   .tab-bar-glass {
-    background: hsl(var(--tab-bar-bg));
-    backdrop-filter: blur(40px) saturate(180%);
-    -webkit-backdrop-filter: blur(40px) saturate(180%);
-    border-top: 0.5px solid hsl(var(--glass-border));
+    background: transparent;
+    border-top: none;
+  }
+
+  /* ── iOS 26 Liquid Glass pill ── */
+  .ios26-tab-bar {
+    /* bottom safe area handled by pill margin */
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  .ios26-tab-pill {
+    background: hsl(var(--lg-pill-bg));
+    backdrop-filter: blur(48px) saturate(200%) brightness(1.04);
+    -webkit-backdrop-filter: blur(48px) saturate(200%) brightness(1.04);
+    border: 1px solid hsl(var(--lg-pill-border));
+    box-shadow:
+      0 8px 32px hsl(var(--lg-pill-shadow-color)),
+      inset 0 1px 0 hsl(var(--lg-specular)),
+      inset 0 -0.5px 0 hsl(var(--lg-pill-border));
+  }
+
+  .ios26-tab-active {
+    color: hsl(var(--primary));
+  }
+
+  .ios26-tab-inactive {
+    color: hsl(var(--muted-foreground));
+  }
+
+  .ios26-active-pill {
+    background: hsl(var(--lg-active-bg));
+    border: 1px solid hsl(var(--lg-active-border));
+    box-shadow: inset 0 0.5px 0 hsl(var(--lg-specular));
   }
 
   /* iOS-style header */
