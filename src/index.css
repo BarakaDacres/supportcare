@@ -36,6 +36,9 @@
     --stat-green: 142 71% 45%;
     --stat-amber: 38 92% 50%;
     --stat-red: 0 84% 60%;
+
+    --tab-bar-bg: 240 6% 97% / 0.82;
+    --header-bg: 240 6% 97% / 0.88;
   }
 
   .dark {
@@ -65,6 +68,9 @@
     --glass-blur: 24px;
     --glow-primary: 211 100% 55% / 0.12;
     --surface-elevated: 0 0% 12% / 0.8;
+
+    --tab-bar-bg: 0 0% 4% / 0.85;
+    --header-bg: 0 0% 4% / 0.9;
   }
 }
 
@@ -77,6 +83,7 @@
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    -webkit-text-size-adjust: 100%;
   }
 }
 
@@ -151,6 +158,40 @@
     @apply h-full rounded-full transition-all duration-500 ease-out;
     background: hsl(var(--primary));
   }
+
+  /* iOS-style tab bar */
+  .tab-bar-glass {
+    background: hsl(var(--tab-bar-bg));
+    backdrop-filter: blur(40px) saturate(180%);
+    -webkit-backdrop-filter: blur(40px) saturate(180%);
+    border-top: 0.5px solid hsl(var(--glass-border));
+  }
+
+  /* iOS-style header */
+  .header-glass {
+    background: hsl(var(--header-bg));
+    backdrop-filter: blur(40px) saturate(180%);
+    -webkit-backdrop-filter: blur(40px) saturate(180%);
+    border-bottom: 0.5px solid hsl(var(--glass-border));
+  }
+
+  /* Sticky context bar under header */
+  .context-bar-glass {
+    background: hsl(var(--header-bg));
+    backdrop-filter: blur(40px) saturate(180%);
+    -webkit-backdrop-filter: blur(40px) saturate(180%);
+    border-bottom: 0.5px solid hsl(var(--glass-border));
+  }
+
+  /* Mobile card entry style */
+  .entry-card {
+    @apply glass-card p-4 space-y-2;
+  }
+
+  /* Safe area bottom padding utility */
+  .pb-safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
 }
 
 @media print {
@@ -170,5 +211,8 @@
   }
   .print-break {
     page-break-before: always;
+  }
+  .tab-bar-glass, .header-glass, .context-bar-glass {
+    display: none !important;
   }
 }
