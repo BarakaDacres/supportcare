@@ -3,7 +3,7 @@ import { Plus, Pencil, Trash2, Copy, Moon, User, ChevronDown, SortAsc, Lock } fr
 import type { Shift, NewShift } from '@/hooks/useShifts';
 import type { Client } from '@/hooks/useClients';
 import type { PayRates } from '@/lib/shiftCalculator';
-import { DEFAULT_RATES, formatTime12h } from '@/lib/shiftCalculator';
+import { DEFAULT_RATES, formatTime12h, getDayOfWeek } from '@/lib/shiftCalculator';
 import { formatCurrency } from '@/lib/formatUtils';
 import { MONTH_NAMES } from '@/lib/dateUtils';
 import ShiftForm from './ShiftForm';
@@ -255,16 +255,22 @@ const ShiftList = ({
               <div key={shift.id} className="glass-card p-4 space-y-2">
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2 flex-wrap">
+                    <div className="flex items-center gap-1.5 flex-wrap">
                       <span className="text-sm font-bold text-foreground">{formatDateLabel(shift.date)}</span>
                       {shift.is_sleepover && (
-                        <span
-                          className="glass-chip text-[10px] py-0.5 px-2"
-                          style={{ color: 'hsl(var(--primary))' }}
-                        >
+                        <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold text-white" style={{ background: '#2563EB' }}>
                           <Moon className="w-2.5 h-2.5" /> Sleepover
                         </span>
                       )}
+                      {(() => {
+                        const dow = getDayOfWeek(shift.date); // 0=Sun,6=Sat
+                        const isWeekend = dow === 0 || dow === 6;
+                        return isWeekend ? (
+                          <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold text-white" style={{ background: '#7C3AED' }}>
+                            Weekend
+                          </span>
+                        ) : null;
+                      })()}
                       {shift.client_name && (
                         <span className="glass-chip text-[10px] py-0.5 px-2 text-muted-foreground">
                           <User className="w-2.5 h-2.5" /> {shift.client_name}
@@ -276,7 +282,7 @@ const ShiftList = ({
                       {!shift.is_sleepover && ` · ${Number(shift.hours_worked).toFixed(2)}h`}
                     </p>
                     {shift.notes && (
-                      <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{shift.notes}</p>
+                      <p className="text-xs text-muted-foreground mt-0.5 whitespace-pre-line line-clamp-3">{shift.notes}</p>
                     )}
                   </div>
                   <div className="text-right shrink-0">
