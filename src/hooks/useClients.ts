@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
 export interface Client {
@@ -14,19 +14,75 @@ export interface Client {
 export function useClients() {
   const [clients, setClients] = useState<Client[]>([]);
   const [loading, setLoading] = useState(true);
+  const userIdRef = useRef<string | null>(null);
 
-  const fetchClients = useCallback(async () => {
+  const fetchClients = useCallback(async (userId?: string) => {
+    const uid = userId ?? userIdRef.current;
+    if (!uid) { setLoading(false); return; }
+
     setLoading(true);
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('clients')
       .select('*')
       .order('name');
+
+    if (error) { console.error('fetchClients error:', error); }
     setClients((data ?? []) as Client[]);
     setLoading(false);
   }, []);
 
   useEffect(() => {
-    fetchClients();
+    let realtimeChannel: ReturnType<typeof supabase.channel> | null = null;
+
+    // 1. Restore session from storage first
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) {
+        userIdRef.current = session.user.id;
+        fetchClients(session.user.id);
+      } else {
+        userIdRef.current = null;
+        setClients([]);
+        setLoading(false);
+      }
+    });
+
+    // 2. Listen for subsequent auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session) {
+        if (userIdRef.current !== session.user.id) {
+          userIdRef.current = session.user.id;
+          fetchClients(session.user.id);
+        }
+      } else {
+        userIdRef.current = null;
+        setClients([]);
+        setLoading(false);
+        if (realtimeChannel) {
+          supabase.removeChannel(realtimeChannel);
+          realtimeChannel = null;
+        }
+      }
+    });
+
+    // 3. Realtime for cross-tab sync
+    realtimeChannel = supabase
+      .channel('clients-realtime')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'clients' },
+        () => { if (userIdRef.current) fetchClients(userIdRef.current); }
+      )
+      .subscribe();
+
+    // 4. Refetch on window focus
+    const onFocus = () => { if (userIdRef.current) fetchClients(userIdRef.current); };
+    window.addEventListener('focus', onFocus);
+
+    return () => {
+      subscription.unsubscribe();
+      if (realtimeChannel) supabase.removeChannel(realtimeChannel);
+      window.removeEventListener('focus', onFocus);
+    };
   }, [fetchClients]);
 
   const addClient = useCallback(async (name: string, notes?: string): Promise<Client | null> => {

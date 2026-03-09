@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { calculateShiftPay, DEFAULT_RATES, type PayRates } from '@/lib/shiftCalculator';
 
@@ -32,36 +32,20 @@ export function useShifts(rates: PayRates = DEFAULT_RATES) {
   const [shifts, setShifts] = useState<Shift[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  // Track whether the auth session has been resolved so we don't
-  // fire the initial fetch before auth.uid() is available (which
-  // would cause RLS to return 0 rows on page reload).
-  const [authReady, setAuthReady] = useState(false);
+  const userIdRef = useRef<string | null>(null);
 
-  useEffect(() => {
-    // onAuthStateChange always fires INITIAL_SESSION synchronously from cache,
-    // making it the single reliable signal for auth readiness on page load/reload.
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (session) {
-        setAuthReady(true);
-      } else {
-        setAuthReady(false);
-        setShifts([]);
-        setLoading(false);
-      }
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
-
-  const fetchShifts = useCallback(async () => {
+  const fetchShifts = useCallback(async (userId?: string) => {
+    const uid = userId ?? userIdRef.current;
+    if (!uid) {
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     setError(null);
+
     const { data, error: err } = await supabase
       .from('shifts')
-      .select(`
-        *,
-        clients (name)
-      `)
+      .select(`*, clients (name)`)
       .order('date', { ascending: false })
       .order('start_time', { ascending: false });
 
@@ -70,6 +54,7 @@ export function useShifts(rates: PayRates = DEFAULT_RATES) {
       setLoading(false);
       return;
     }
+
     const mapped: Shift[] = (data ?? []).map((row: Record<string, unknown>) => ({
       ...(row as Omit<Shift, 'client_name'>),
       client_name: (row.clients as { name: string } | null)?.name ?? null,
@@ -78,12 +63,63 @@ export function useShifts(rates: PayRates = DEFAULT_RATES) {
     setLoading(false);
   }, []);
 
-  // Only fetch once auth session is confirmed
   useEffect(() => {
-    if (authReady) {
-      fetchShifts();
-    }
-  }, [authReady, fetchShifts]);
+    let realtimeChannel: ReturnType<typeof supabase.channel> | null = null;
+
+    // 1. Restore session from storage first, then listen for changes
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) {
+        userIdRef.current = session.user.id;
+        fetchShifts(session.user.id);
+      } else {
+        userIdRef.current = null;
+        setShifts([]);
+        setLoading(false);
+      }
+    });
+
+    // 2. Subscribe to subsequent auth changes (login / logout)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session) {
+        if (userIdRef.current !== session.user.id) {
+          userIdRef.current = session.user.id;
+          fetchShifts(session.user.id);
+        }
+      } else {
+        userIdRef.current = null;
+        setShifts([]);
+        setLoading(false);
+        if (realtimeChannel) {
+          supabase.removeChannel(realtimeChannel);
+          realtimeChannel = null;
+        }
+      }
+    });
+
+    // 3. Realtime subscription for cross-tab / cross-session sync
+    realtimeChannel = supabase
+      .channel('shifts-realtime')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'shifts' },
+        () => {
+          if (userIdRef.current) fetchShifts(userIdRef.current);
+        }
+      )
+      .subscribe();
+
+    // 4. Refetch on window focus (handles stale sessions in background tabs)
+    const onFocus = () => {
+      if (userIdRef.current) fetchShifts(userIdRef.current);
+    };
+    window.addEventListener('focus', onFocus);
+
+    return () => {
+      subscription.unsubscribe();
+      if (realtimeChannel) supabase.removeChannel(realtimeChannel);
+      window.removeEventListener('focus', onFocus);
+    };
+  }, [fetchShifts]);
 
   const addShift = useCallback(async (shift: NewShift): Promise<Shift> => {
     const { data: { session } } = await supabase.auth.getSession();
@@ -116,9 +152,10 @@ export function useShifts(rates: PayRates = DEFAULT_RATES) {
       ...(row as Omit<Shift, 'client_name'>),
       client_name: (row.clients as { name: string } | null)?.name ?? null,
     };
+    // Optimistic update — realtime will confirm
     setShifts(prev => [newShift, ...prev]);
     return newShift;
-  }, [rates]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [rates]);
 
   const updateShift = useCallback(async (id: string, shift: Partial<NewShift>): Promise<void> => {
     const existing = shifts.find(s => s.id === id);
@@ -134,11 +171,7 @@ export function useShifts(rates: PayRates = DEFAULT_RATES) {
 
     const { data, error: err } = await supabase
       .from('shifts')
-      .update({
-        ...shift,
-        hours_worked: calc.hoursWorked,
-        gross_pay: calc.grossPay,
-      })
+      .update({ ...shift, hours_worked: calc.hoursWorked, gross_pay: calc.grossPay })
       .eq('id', id)
       .select(`*, clients(name)`)
       .single();
@@ -171,14 +204,5 @@ export function useShifts(rates: PayRates = DEFAULT_RATES) {
     });
   }, [shifts, addShift]);
 
-  return {
-    shifts,
-    loading,
-    error,
-    fetchShifts,
-    addShift,
-    updateShift,
-    deleteShift,
-    duplicateShift,
-  };
+  return { shifts, loading, error, fetchShifts, addShift, updateShift, deleteShift, duplicateShift };
 }
