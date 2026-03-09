@@ -43,6 +43,30 @@ export const DEFAULT_SETTINGS: Omit<UserSettings, 'id' | 'user_id'> = {
 export function useUserSettings() {
   const [settings, setSettings] = useState<UserSettings | null>(null);
   const [loading, setLoading] = useState(true);
+  const [authReady, setAuthReady] = useState(false);
+
+  // Gate fetching until auth session is confirmed (prevents RLS returning 0 rows on reload)
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => {
+      if (data.session) {
+        setAuthReady(true);
+      } else {
+        setLoading(false);
+      }
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session) {
+        setAuthReady(true);
+      } else {
+        setAuthReady(false);
+        setSettings(null);
+        setLoading(false);
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
 
   const fetchSettings = useCallback(async () => {
     setLoading(true);
@@ -63,8 +87,6 @@ export function useUserSettings() {
       }
 
       if (!data) {
-        // Row doesn't exist — create it (the DB trigger should handle this,
-        // but guard here for safety)
         const { data: created, error: insertErr } = await supabase
           .from('user_settings')
           .insert({ user_id: session.user.id })
@@ -72,7 +94,6 @@ export function useUserSettings() {
           .single();
 
         if (insertErr) {
-          // Possibly a race — try a final select
           const { data: retry } = await supabase
             .from('user_settings')
             .select('*')
@@ -93,8 +114,10 @@ export function useUserSettings() {
   }, []);
 
   useEffect(() => {
-    fetchSettings();
-  }, [fetchSettings]);
+    if (authReady) {
+      fetchSettings();
+    }
+  }, [authReady, fetchSettings]);
 
   const updateSettings = useCallback(async (updates: Partial<Omit<UserSettings, 'id' | 'user_id'>>): Promise<void> => {
     const { data: { session } } = await supabase.auth.getSession();
