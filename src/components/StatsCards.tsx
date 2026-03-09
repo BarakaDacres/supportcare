@@ -44,14 +44,20 @@ const StatsCards = ({ monthGross, taxRate, yearGross, onTaxRateChange, locked }:
     <div className="space-y-4">
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         {cards.map((card) => (
-          <div key={card.label} className={card.glow ? 'glass-card-glow p-4' : 'glass-card p-4'}>
-            <div className="flex items-center gap-2 mb-2">
-              <card.icon className="w-4 h-4 text-muted-foreground" />
-              <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+          <div key={card.label} className={card.glow ? 'glass-card-glow p-4 overflow-hidden' : 'glass-card p-4 overflow-hidden'}>
+            <div className="flex items-center gap-1.5 mb-2 min-w-0">
+              <card.icon className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+              <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider truncate">
                 {card.label}
               </span>
             </div>
-            <p className="text-xl font-bold tracking-tight text-foreground sm:text-2xl">
+            <p
+              className="font-bold tracking-tight text-foreground truncate"
+              style={{
+                fontSize: 'clamp(0.9rem, 3.5vw, 1.375rem)',
+                textShadow: card.glow ? '0 0 24px hsl(var(--primary) / 0.45)' : undefined,
+              }}
+            >
               {card.value}
             </p>
           </div>
