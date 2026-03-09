@@ -1,6 +1,8 @@
 import { Sun, Moon, Printer, Lock, LockOpen } from 'lucide-react';
 import type { EntryMode } from '@/hooks/useIncomeStore';
 import { MONTH_NAMES } from '@/lib/dateUtils';
+import ProfileSettings from '@/components/ProfileSettings';
+import type { AuthState } from '@/hooks/useAuth';
 
 interface SettingsPanelProps {
   year: number;
@@ -9,6 +11,7 @@ interface SettingsPanelProps {
   taxRate: number;
   locked: boolean;
   theme: 'light' | 'dark';
+  auth?: AuthState;
   onYearChange: (y: number) => void;
   onMonthChange: (m: number) => void;
   onModeChange: (mode: EntryMode) => void;
@@ -18,7 +21,7 @@ interface SettingsPanelProps {
 }
 
 const SettingsPanel = ({
-  year, month, mode, taxRate, locked, theme,
+  year, month, mode, taxRate, locked, theme, auth,
   onYearChange, onMonthChange, onModeChange, onTaxRateChange, onToggleLock, onToggleTheme,
 }: SettingsPanelProps) => {
   return (
@@ -113,6 +116,9 @@ const SettingsPanel = ({
           <span className="text-sm font-semibold text-foreground">Print Report</span>
         </button>
       </div>
+
+      {/* Profile / Account */}
+      {auth && <ProfileSettings auth={auth} />}
     </div>
   );
 };
