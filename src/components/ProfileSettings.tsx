@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { User, Camera, LogOut, Save, X } from 'lucide-react';
+import { User, Camera, LogOut, Save, Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import type { AuthState } from '@/hooks/useAuth';
 
@@ -9,14 +9,47 @@ interface ProfileSettingsProps {
 
 const ProfileSettings = ({ auth }: ProfileSettingsProps) => {
   const [displayName, setDisplayName] = useState(auth.displayName ?? '');
+  const [avatarUrl, setAvatarUrl] = useState(auth.avatarUrl ?? null);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
   if (!auth.user) return null;
 
   const initial = (auth.displayName ?? auth.user.email ?? '?')[0].toUpperCase();
+
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !auth.user) return;
+
+    setUploading(true);
+    try {
+      const ext = file.name.split('.').pop();
+      const path = `${auth.user.id}/avatar.${ext}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('avatars')
+        .upload(path, file, { upsert: true });
+
+      if (uploadError) throw uploadError;
+
+      const { data } = supabase.storage.from('avatars').getPublicUrl(path);
+      const publicUrl = `${data.publicUrl}?t=${Date.now()}`;
+
+      await supabase
+        .from('profiles')
+        .update({ avatar_url: publicUrl })
+        .eq('user_id', auth.user.id);
+
+      setAvatarUrl(publicUrl);
+    } catch (err) {
+      console.error('Avatar upload failed:', err);
+    } finally {
+      setUploading(false);
+    }
+  };
 
   const handleSave = async () => {
     if (!auth.user) return;
@@ -42,16 +75,22 @@ const ProfileSettings = ({ auth }: ProfileSettingsProps) => {
       {/* Avatar + Name */}
       <div className="glass-card p-5 space-y-4">
         <div className="flex items-center gap-4">
-          <div className="relative shrink-0">
-            {auth.avatarUrl ? (
+          {/* Avatar */}
+          <button
+            className="relative shrink-0 group"
+            onClick={() => fileRef.current?.click()}
+            title="Change photo"
+            disabled={uploading}
+          >
+            {avatarUrl ? (
               <img
-                src={auth.avatarUrl}
+                src={avatarUrl}
                 alt="Avatar"
-                className="w-16 h-16 rounded-full object-cover ring-2 ring-primary/30"
+                className="w-16 h-16 rounded-full object-cover ring-2 ring-primary/30 transition-opacity group-hover:opacity-70"
               />
             ) : (
               <div
-                className="w-16 h-16 rounded-full flex items-center justify-center text-2xl font-bold ring-2 ring-primary/30"
+                className="w-16 h-16 rounded-full flex items-center justify-center text-2xl font-bold ring-2 ring-primary/30 transition-opacity group-hover:opacity-70"
                 style={{
                   background: 'hsl(var(--primary) / 0.15)',
                   color: 'hsl(var(--primary))',
@@ -60,21 +99,48 @@ const ProfileSettings = ({ auth }: ProfileSettingsProps) => {
                 {initial}
               </div>
             )}
-            <button
-              onClick={() => fileRef.current?.click()}
-              className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full flex items-center justify-center"
-              style={{ background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))' }}
-              title="Change photo"
+
+            {/* Overlay */}
+            <div
+              className="absolute inset-0 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+              style={{ background: 'hsl(var(--foreground) / 0.35)' }}
             >
-              <Camera className="w-3.5 h-3.5" />
-            </button>
-            <input ref={fileRef} type="file" accept="image/*" className="hidden" />
-          </div>
+              {uploading ? (
+                <Loader2 className="w-5 h-5 text-white animate-spin" />
+              ) : (
+                <Camera className="w-5 h-5 text-white" />
+              )}
+            </div>
+
+            {/* Badge */}
+            <div
+              className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full flex items-center justify-center shadow-md pointer-events-none"
+              style={{ background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))' }}
+            >
+              {uploading ? (
+                <Loader2 className="w-3 h-3 animate-spin" />
+              ) : (
+                <Camera className="w-3 h-3" />
+              )}
+            </div>
+          </button>
+
+          <input
+            ref={fileRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={handleAvatarChange}
+          />
+
           <div className="min-w-0">
             <p className="text-sm font-semibold text-foreground truncate">
               {auth.displayName ?? auth.user.email?.split('@')[0]}
             </p>
             <p className="text-xs text-muted-foreground truncate">{auth.user.email}</p>
+            <p className="text-xs mt-0.5" style={{ color: 'hsl(var(--primary))' }}>
+              Tap photo to change
+            </p>
           </div>
         </div>
 
@@ -107,15 +173,11 @@ const ProfileSettings = ({ auth }: ProfileSettingsProps) => {
           }}
         >
           {saved ? (
-            <>
-              <span className="w-4 h-4 inline-flex items-center justify-center">✓</span>
-              Saved!
-            </>
+            <>✓ Saved!</>
+          ) : saving ? (
+            <><Loader2 className="w-4 h-4 animate-spin" /> Saving…</>
           ) : (
-            <>
-              <Save className="w-4 h-4" />
-              {saving ? 'Saving…' : 'Save Changes'}
-            </>
+            <><Save className="w-4 h-4" /> Save Changes</>
           )}
         </button>
       </div>
