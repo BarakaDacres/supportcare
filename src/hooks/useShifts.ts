@@ -62,9 +62,9 @@ export function useShifts(rates: PayRates = DEFAULT_RATES) {
     fetchShifts();
   }, [fetchShifts]);
 
-  const addShift = useCallback(async (shift: NewShift): Promise<Shift | null> => {
+  const addShift = useCallback(async (shift: NewShift): Promise<Shift> => {
     const { data: { session } } = await supabase.auth.getSession();
-    if (!session) return null;
+    if (!session) throw new Error('Not logged in. Please sign in and try again.');
 
     const calc = calculateShiftPay(shift.date, shift.start_time, shift.end_time, shift.is_sleepover, rates);
 
@@ -95,7 +95,7 @@ export function useShifts(rates: PayRates = DEFAULT_RATES) {
     };
     setShifts(prev => [newShift, ...prev]);
     return newShift;
-  }, [rates]);
+  }, [rates]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const updateShift = useCallback(async (id: string, shift: Partial<NewShift>): Promise<void> => {
     const existing = shifts.find(s => s.id === id);
