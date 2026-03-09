@@ -183,6 +183,7 @@ const Index = ({ auth }: IndexProps) => {
               onUpdate={updateShift}
               onDelete={deleteShift}
               onDuplicate={duplicateShift}
+              onSheetOpenChange={setSheetOpen}
             />
           )}
 
@@ -201,7 +202,7 @@ const Index = ({ auth }: IndexProps) => {
           {activeTab === 'settings' && renderSettingsContent()}
         </main>
 
-        <BottomTabBar activeTab={activeTab} onTabChange={setActiveTab} />
+        <BottomTabBar activeTab={activeTab} onTabChange={setActiveTab} hidden={sheetOpen} />
       </div>
     );
   }
