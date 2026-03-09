@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { safeNum } from '@/lib/formatUtils';
 import { getWeekRangesForMonth } from '@/lib/dateUtils';
+import { loadCloudData, debouncedSave } from '@/lib/supabaseStore';
+import { supabase } from '@/integrations/supabase/client';
 
 export type EntryMode = 'weekly' | 'fortnightly';
 
@@ -9,25 +11,13 @@ interface StoreState {
   month: number;
   mode: EntryMode;
   taxRate: number;
-  weeklyEntries: Record<string, Record<string, number[]>>; // \"2026\" -> \"3\" -> [w1, w2, ...]
+  weeklyEntries: Record<string, Record<string, number[]>>;
   fortnightlyEntries: Record<string, Record<string, number[]>>;
-  lockedMonths: Record<string, string[]>; // \"2026\" -> ["0","3",...]
+  lockedMonths: Record<string, string[]>;
   theme: 'light' | 'dark';
 }
 
 const STORAGE_KEY = 'income-ledger-data';
-
-function loadState(): StoreState {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) {
-      const parsed = JSON.parse(raw);
-      // Determine default mode: if weekly data exists for current month, default to weekly
-      return { ...defaultState(), ...parsed };
-    }
-  } catch { /* ignore */ }
-  return defaultState();
-}
 
 function defaultState(): StoreState {
   const now = new Date();
@@ -43,26 +33,79 @@ function defaultState(): StoreState {
   };
 }
 
-export function useIncomeStore() {
-  const [state, setState] = useState<StoreState>(loadState);
+function loadLocalState(): StoreState {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) return { ...defaultState(), ...JSON.parse(raw) };
+  } catch { /* ignore */ }
+  return defaultState();
+}
 
-  // Persist on every change
+export function useIncomeStore() {
+  const [state, setState] = useState<StoreState>(loadLocalState);
+  const [cloudSynced, setCloudSynced] = useState(false);
+
+  // On mount: if user is signed in, load cloud data (migrate local if cloud empty)
+  useEffect(() => {
+    let cancelled = false;
+    const init = async () => {
+      const { data: sessionData } = await supabase.auth.getSession();
+      if (!sessionData.session || cancelled) return;
+
+      const cloud = await loadCloudData();
+      if (cancelled) return;
+
+      if (cloud && Object.keys(cloud).length > 0) {
+        // Cloud has data — use it
+        setState(prev => ({ ...prev, ...(cloud as Partial<StoreState>) }));
+      } else {
+        // Cloud is empty — migrate local data up
+        const local = loadLocalState();
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session) debouncedSave(local as unknown as Record<string, unknown>);
+      }
+      setCloudSynced(true);
+    };
+    init();
+    return () => { cancelled = true; };
+  }, []);
+
+  // Re-sync when auth state changes (login/logout)
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === 'SIGNED_IN' && session) {
+        const cloud = await loadCloudData();
+        if (cloud && Object.keys(cloud).length > 0) {
+          setState(prev => ({ ...prev, ...(cloud as Partial<StoreState>) }));
+        } else {
+          // migrate local
+          const local = loadLocalState();
+          debouncedSave(local as unknown as Record<string, unknown>);
+        }
+        setCloudSynced(true);
+      } else if (event === 'SIGNED_OUT') {
+        setCloudSynced(false);
+      }
+    });
+    return () => subscription.unsubscribe();
+  }, []);
+
+  // Persist to localStorage on every change
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
   }, [state]);
+
+  // Persist to cloud (debounced) when synced
+  useEffect(() => {
+    if (cloudSynced) {
+      debouncedSave(state as unknown as Record<string, unknown>);
+    }
+  }, [state, cloudSynced]);
 
   // Apply theme class
   useEffect(() => {
     document.documentElement.classList.toggle('dark', state.theme === 'dark');
   }, [state.theme]);
-
-  // Determine mode on year/month change
-  useEffect(() => {
-    const weeklyData = state.weeklyEntries[state.year]?.[state.month];
-    if (weeklyData && weeklyData.some(v => v > 0)) {
-      // Keep whatever mode user has selected - don't force
-    }
-  }, [state.year, state.month]);
 
   const update = useCallback((partial: Partial<StoreState>) => {
     setState(prev => ({ ...prev, ...partial }));
@@ -115,11 +158,8 @@ export function useIncomeStore() {
     const monthKey = String(month);
     const weekly = state.weeklyEntries[yearKey]?.[monthKey] || [];
     const fortnightly = state.fortnightlyEntries[yearKey]?.[monthKey] || [];
-    
-    // If in fortnightly mode and fortnightly entries exist, use those
-    // Otherwise sum weekly
+
     if (fortnightly.some(v => v > 0)) {
-      // Use fortnightly where explicitly set, else derive from weekly
       const weeks = getWeekRangesForMonth(year, month);
       let total = 0;
       for (let fi = 0; fi < Math.ceil(weeks.length / 2); fi++) {
@@ -134,15 +174,12 @@ export function useIncomeStore() {
       }
       return total;
     }
-
     return weekly.reduce((s, v) => s + safeNum(v), 0);
   }, [state.weeklyEntries, state.fortnightlyEntries]);
 
   const getYearGross = useCallback((year: number): number => {
     let total = 0;
-    for (let m = 0; m < 12; m++) {
-      total += getMonthGross(year, m);
-    }
+    for (let m = 0; m < 12; m++) total += getMonthGross(year, m);
     return total;
   }, [getMonthGross]);
 
@@ -174,6 +211,7 @@ export function useIncomeStore() {
 
   return {
     ...state,
+    cloudSynced,
     update,
     setWeeklyValue,
     setFortnightlyValue,

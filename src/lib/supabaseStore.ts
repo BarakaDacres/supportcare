@@ -29,7 +29,7 @@ export async function saveCloudData(state: Record<string, unknown>): Promise<voi
   const userId = sessionData.session.user.id;
   const { error } = await supabase
     .from('income_data')
-    .upsert({ user_id: userId, data: state }, { onConflict: 'user_id' });
+    .upsert([{ user_id: userId, data: state as Record<string, unknown> }], { onConflict: 'user_id' });
 
   if (error) console.error('[supabaseStore] save error', error);
 }
