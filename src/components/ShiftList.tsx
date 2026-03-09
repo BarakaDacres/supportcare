@@ -288,7 +288,7 @@ const ShiftList = ({
                 {editable ? (
                   <div className="flex gap-2 pt-1">
                     <button
-                      onClick={() => setEditingShift(shift)}
+                      onClick={() => { setEditingShift(shift); openSheet(true); }}
                       className="glass-chip text-xs py-1.5 flex-1 justify-center gap-1.5 min-h-[36px]"
                     >
                       <Pencil className="w-3 h-3" /> Edit
