@@ -350,7 +350,7 @@ const ShiftList = ({
           clients={clients}
           rates={rates}
           onSubmit={handleAdd}
-          onCancel={() => setShowForm(false)}
+          onCancel={() => { setShowForm(false); openSheet(false); }}
         />
       )}
 
