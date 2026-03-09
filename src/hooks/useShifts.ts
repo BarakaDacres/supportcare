@@ -84,7 +84,10 @@ export function useShifts(rates: PayRates = DEFAULT_RATES) {
       .select(`*, clients(name)`)
       .single();
 
-    if (err) { console.error(err); return null; }
+    if (err) {
+      console.error('addShift error:', err);
+      throw new Error(err.message ?? 'Failed to save shift.');
+    }
     const row = data as Record<string, unknown>;
     const newShift: Shift = {
       ...(row as Omit<Shift, 'client_name'>),
