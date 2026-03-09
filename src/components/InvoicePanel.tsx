@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { FileText, Plus, Download, ChevronDown } from 'lucide-react';
+import { FileText, Download, ChevronDown, Printer } from 'lucide-react';
 import { formatCurrency } from '@/lib/formatUtils';
 import { formatTime12h } from '@/lib/shiftCalculator';
 import type { Shift } from '@/hooks/useShifts';
@@ -16,6 +16,7 @@ interface InvoiceData {
   invoiceNumber: string;
   periodStart: string;
   periodEnd: string;
+  fnIndex: number; // 1-based fortnight number for the year
   shifts: Shift[];
   total: number;
   issuerName: string;
@@ -26,34 +27,92 @@ interface InvoiceData {
   invoiceNotes: string;
 }
 
-// Get Monday-aligned fortnights for a given year
-function getFortnightPeriods(year: number): { label: string; start: Date; end: Date }[] {
-  // Anchor: first Monday of the year
+/**
+ * Get Monday-aligned fortnight periods for a given year.
+ * Anchor: The Monday on or before 1 Jan of the year.
+ * FN01 = first fortnight starting in (or just before) the year.
+ * We return only periods whose START falls within the selected year.
+ */
+function getFortnightPeriods(year: number): { label: string; start: Date; end: Date; fnNumber: number }[] {
+  // Find the Monday on or before Jan 1
   const jan1 = new Date(year, 0, 1);
-  const offset = jan1.getDay() === 0 ? 1 : jan1.getDay() === 1 ? 0 : 8 - jan1.getDay() + 1;
-  let monday = new Date(year, 0, 1 + (jan1.getDay() === 1 ? 0 : offset));
+  const dow = jan1.getDay(); // 0=Sun,1=Mon...6=Sat
+  // Days to subtract to get to the most recent Monday
+  const daysToMon = dow === 0 ? 6 : dow - 1;
+  const anchor = new Date(year, 0, 1 - daysToMon);
 
-  const periods: { label: string; start: Date; end: Date }[] = [];
+  const periods: { label: string; start: Date; end: Date; fnNumber: number }[] = [];
   let fn = 1;
+  let cursor = new Date(anchor);
 
-  while (monday.getFullYear() <= year) {
-    const start = new Date(monday);
-    const end = new Date(monday);
+  // Iterate through all fortnights that START within the year
+  while (true) {
+    const start = new Date(cursor);
+    const end = new Date(cursor);
     end.setDate(end.getDate() + 13);
 
-    if (start.getFullYear() <= year) {
+    // Only include fortnights that start in the chosen year
+    if (start.getFullYear() > year) break;
+
+    if (start.getFullYear() === year || (start.getFullYear() < year && end.getFullYear() === year)) {
+      // Include this period if it overlaps the year
       const pad = (n: number) => String(n).padStart(2, '0');
-      const fmt = (d: Date) => `${d.getDate()} ${MONTH_NAMES[d.getMonth()].slice(0, 3)} ${d.getFullYear()}`;
+      const fmt = (d: Date) =>
+        `${d.getDate()} ${MONTH_NAMES[d.getMonth()].slice(0, 3)} ${d.getFullYear()}`;
       periods.push({
+        fnNumber: fn,
         label: `FN${pad(fn)} · ${fmt(start)} – ${fmt(end)}`,
         start,
         end,
       });
       fn++;
+    } else {
+      fn++; // still increment so the numbering is stable
     }
 
-    monday = new Date(monday);
-    monday.setDate(monday.getDate() + 14);
+    cursor = new Date(cursor);
+    cursor.setDate(cursor.getDate() + 14);
+  }
+
+  return periods;
+}
+
+// Rebuild to only include periods starting in the year (cleaner)
+function getFortnightPeriodsForYear(year: number): { label: string; start: Date; end: Date; fnNumber: number }[] {
+  // Anchor: Monday on or before Jan 1
+  const jan1 = new Date(year, 0, 1);
+  const dow = jan1.getDay();
+  const daysToMon = dow === 0 ? 6 : dow - 1;
+  const anchor = new Date(year, 0, 1 - daysToMon);
+
+  const periods: { label: string; start: Date; end: Date; fnNumber: number }[] = [];
+  const pad = (n: number) => String(n).padStart(2, '0');
+  const fmt = (d: Date) =>
+    `${d.getDate()} ${MONTH_NAMES[d.getMonth()].slice(0, 3)} ${d.getFullYear()}`;
+
+  let fn = 1;
+  let cursor = new Date(anchor);
+
+  while (true) {
+    const start = new Date(cursor);
+    const end = new Date(cursor);
+    end.setDate(end.getDate() + 13);
+
+    if (start.getFullYear() > year) break;
+
+    // Include all fortnights anchored to this year's Monday grid
+    periods.push({
+      fnNumber: fn,
+      label: `FN${pad(fn)} · ${fmt(start)} – ${fmt(end)}`,
+      start,
+      end,
+    });
+    fn++;
+
+    cursor = new Date(cursor);
+    cursor.setDate(cursor.getDate() + 14);
+
+    if (cursor.getFullYear() > year) break;
   }
 
   return periods;
@@ -66,37 +125,44 @@ function formatDateISO(d: Date): string {
   return `${y}-${m}-${dd}`;
 }
 
-const InvoicePanel = ({ shifts, settings, onIncrementCounter }: InvoicePanelProps) => {
+const InvoicePanel = ({ shifts, settings, onIncrementCounter: _onIncrementCounter }: InvoicePanelProps) => {
   const currentYear = new Date().getFullYear();
   const [selectedYear, setSelectedYear] = useState(currentYear);
-  const [selectedFn, setSelectedFn] = useState(0);
+  const [selectedFnIdx, setSelectedFnIdx] = useState(0);
   const [generating, setGenerating] = useState(false);
   const [preview, setPreview] = useState<InvoiceData | null>(null);
 
-  const periods = useMemo(() => getFortnightPeriods(selectedYear), [selectedYear]);
+  const periods = useMemo(() => getFortnightPeriodsForYear(selectedYear), [selectedYear]);
+
+  // Auto-select the current fortnight on mount / year change
+  const selectedPeriod = periods[selectedFnIdx] ?? periods[0];
 
   const periodShifts = useMemo(() => {
-    if (!periods[selectedFn]) return [];
-    const { start, end } = periods[selectedFn];
-    return shifts.filter(s => {
-      const d = new Date(s.date + 'T00:00:00');
-      return d >= start && d <= end;
-    }).sort((a, b) => a.date.localeCompare(b.date) || a.start_time.localeCompare(b.start_time));
-  }, [shifts, periods, selectedFn]);
+    if (!selectedPeriod) return [];
+    const { start, end } = selectedPeriod;
+    // Inclusive date range comparison using string comparison (YYYY-MM-DD)
+    const startStr = formatDateISO(start);
+    const endStr = formatDateISO(end);
+    return shifts
+      .filter(s => s.date >= startStr && s.date <= endStr)
+      .sort((a, b) => a.date.localeCompare(b.date) || a.start_time.localeCompare(b.start_time));
+  }, [shifts, selectedPeriod]);
 
   const total = periodShifts.reduce((s, sh) => s + Number(sh.gross_pay), 0);
 
   const generateInvoice = async () => {
+    if (!selectedPeriod) return;
     setGenerating(true);
-    const counter = await onIncrementCounter();
+
+    // Invoice number is deterministic: INV-YYYY-FN##
     const pad = (n: number) => String(n).padStart(2, '0');
-    const invoiceNumber = `INV-${selectedYear}-FN${pad(counter)}`;
-    const { start, end } = periods[selectedFn];
+    const invoiceNumber = `INV-${selectedYear}-FN${pad(selectedPeriod.fnNumber)}`;
 
     const data: InvoiceData = {
       invoiceNumber,
-      periodStart: formatDateISO(start),
-      periodEnd: formatDateISO(end),
+      fnIndex: selectedPeriod.fnNumber,
+      periodStart: formatDateISO(selectedPeriod.start),
+      periodEnd: formatDateISO(selectedPeriod.end),
       shifts: periodShifts,
       total,
       issuerName: settings?.business_name ?? '',
@@ -104,29 +170,29 @@ const InvoicePanel = ({ shifts, settings, onIncrementCounter }: InvoicePanelProp
       bankName: settings?.bank_name ?? '',
       bsb: settings?.bsb ?? '',
       accountNumber: settings?.account_number ?? '',
-      invoiceNotes: settings?.invoice_notes ?? 'GST-free supply – no GST charged.',
+      invoiceNotes: settings?.invoice_notes || 'GST-free supply – no GST charged.',
     };
 
     setPreview(data);
     setGenerating(false);
   };
 
-  const printInvoice = () => {
-    window.print();
+  const formatDateDisplay = (dateStr: string) => {
+    const [y, m, d] = dateStr.split('-').map(Number);
+    const date = new Date(y, m - 1, d);
+    const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    return `${days[date.getDay()]} ${d} ${MONTH_NAMES[m - 1]} ${y}`;
   };
 
-  const formatDateDisplay = (dateStr: string) => {
-    const d = new Date(dateStr + 'T00:00:00');
-    const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-    return `${days[d.getDay()]} ${d.getDate()} ${MONTH_NAMES[d.getMonth()]} ${d.getFullYear()}`;
-  };
+  const today = new Date();
+  const todayStr = formatDateISO(today);
 
   return (
-    <div className="space-y-4">
-      <h2 className="text-lg font-bold text-foreground">Invoice Generator</h2>
+    <div className="space-y-4 no-print-wrapper">
+      <h2 className="text-lg font-bold text-foreground no-print">Invoice Generator</h2>
 
       {/* Period selector */}
-      <div className="glass-card p-4 space-y-3">
+      <div className="glass-card p-4 space-y-3 no-print">
         <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Select Fortnight Period</p>
 
         <div className="flex gap-2 items-center">
@@ -134,8 +200,12 @@ const InvoicePanel = ({ shifts, settings, onIncrementCounter }: InvoicePanelProp
           <div className="relative">
             <select
               value={selectedYear}
-              onChange={e => { setSelectedYear(Number(e.target.value)); setSelectedFn(0); setPreview(null); }}
-              className="glass-input text-foreground min-h-[40px] text-sm appearance-none pr-7"
+              onChange={e => {
+                setSelectedYear(Number(e.target.value));
+                setSelectedFnIdx(0);
+                setPreview(null);
+              }}
+              className="glass-input text-foreground min-h-[40px] text-sm appearance-none pr-8 pl-3"
             >
               {[currentYear - 1, currentYear, currentYear + 1].map(y => (
                 <option key={y} value={y}>{y}</option>
@@ -147,8 +217,8 @@ const InvoicePanel = ({ shifts, settings, onIncrementCounter }: InvoicePanelProp
 
         <div className="relative">
           <select
-            value={selectedFn}
-            onChange={e => { setSelectedFn(Number(e.target.value)); setPreview(null); }}
+            value={selectedFnIdx}
+            onChange={e => { setSelectedFnIdx(Number(e.target.value)); setPreview(null); }}
             className="glass-input w-full text-foreground min-h-[44px] appearance-none pr-8"
           >
             {periods.map((p, i) => (
@@ -160,9 +230,9 @@ const InvoicePanel = ({ shifts, settings, onIncrementCounter }: InvoicePanelProp
 
         {/* Summary */}
         <div className="flex items-center justify-between py-2 border-t border-border">
-          <div>
-            <p className="text-xs text-muted-foreground">{periodShifts.length} shift{periodShifts.length !== 1 ? 's' : ''} in this period</p>
-          </div>
+          <p className="text-xs text-muted-foreground">
+            {periodShifts.length} shift{periodShifts.length !== 1 ? 's' : ''} in this period
+          </p>
           <p className="text-lg font-bold text-foreground">{formatCurrency(total)}</p>
         </div>
 
@@ -170,73 +240,98 @@ const InvoicePanel = ({ shifts, settings, onIncrementCounter }: InvoicePanelProp
           onClick={generateInvoice}
           disabled={generating || periodShifts.length === 0}
           className="w-full flex items-center justify-center gap-2 min-h-[48px] rounded-2xl text-sm font-bold transition-all duration-200 disabled:opacity-40"
-          style={{ background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', boxShadow: '0 4px 16px hsl(var(--primary)/0.3)' }}
+          style={{
+            background: 'hsl(var(--primary))',
+            color: 'hsl(var(--primary-foreground))',
+            boxShadow: '0 4px 16px hsl(var(--primary)/0.3)',
+          }}
         >
           <FileText className="w-4 h-4" />
-          {generating ? 'Generating…' : 'Generate Invoice'}
+          {generating ? 'Generating…' : periodShifts.length === 0 ? 'No shifts in period' : 'Generate Invoice'}
         </button>
       </div>
 
       {/* Preview */}
       {preview && (
         <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <p className="text-sm font-semibold text-foreground">Invoice Preview</p>
+          <div className="flex items-center justify-between no-print">
+            <p className="text-sm font-semibold text-foreground">Preview — {preview.invoiceNumber}</p>
             <button
-              onClick={printInvoice}
+              onClick={() => window.print()}
               className="flex items-center gap-1.5 glass-chip text-xs"
               style={{ color: 'hsl(var(--primary))' }}
             >
-              <Download className="w-3.5 h-3.5" /> Print / Save PDF
+              <Printer className="w-3.5 h-3.5" />
+              Print / Save PDF
             </button>
           </div>
 
-          {/* Invoice Card — print-friendly */}
-          <div id="invoice-preview" className="glass-card p-6 space-y-5 print:shadow-none print:border-0 print:bg-white print:text-black">
-            {/* Header */}
-            <div className="flex items-start justify-between">
+          {/* ── PRINTABLE INVOICE ── */}
+          <div
+            id="invoice-preview"
+            className="invoice-print-area glass-card p-6 space-y-5"
+          >
+            {/* Header row */}
+            <div className="flex items-start justify-between gap-4">
               <div>
-                <h1 className="text-2xl font-bold text-foreground print:text-black">Invoice</h1>
-                <p className="text-sm font-semibold mt-1" style={{ color: 'hsl(var(--primary))' }}>
+                <h1 className="text-2xl font-bold text-foreground">Invoice</h1>
+                <p className="text-sm font-bold mt-1" style={{ color: 'hsl(var(--primary))' }}>
                   {preview.invoiceNumber}
                 </p>
+                <p className="text-xs text-muted-foreground mt-0.5">Date issued: {formatDateDisplay(todayStr)}</p>
               </div>
-              <div className="text-right text-sm text-muted-foreground print:text-gray-600">
-                <p className="font-semibold text-foreground print:text-black">{preview.issuerName || 'Your Name'}</p>
-                {preview.abn && <p>ABN: {preview.abn}</p>}
+              <div className="text-right">
+                <p className="font-bold text-foreground text-sm">{preview.issuerName || 'Your Name'}</p>
+                {preview.abn && (
+                  <p className="text-xs text-muted-foreground">ABN: {preview.abn}</p>
+                )}
               </div>
             </div>
 
-            {/* Period */}
-            <div className="glass-card p-3 space-y-1 print:border print:border-gray-200 print:bg-gray-50">
+            {/* Service period */}
+            <div className="rounded-xl border border-border bg-muted/30 p-3 space-y-0.5">
               <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Service Period</p>
-              <p className="text-sm font-semibold text-foreground print:text-black">
+              <p className="text-sm font-semibold text-foreground">
                 {formatDateDisplay(preview.periodStart)} – {formatDateDisplay(preview.periodEnd)}
               </p>
             </div>
 
-            {/* Line items */}
+            {/* Line items table */}
             <div className="space-y-1">
-              <div className="grid grid-cols-12 gap-2 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider pb-1 border-b border-border">
-                <span className="col-span-5">Date</span>
-                <span className="col-span-3">Time</span>
-                <span className="col-span-2 text-center">Hours</span>
-                <span className="col-span-2 text-right">Amount</span>
+              {/* Table header */}
+              <div className="grid gap-1 pb-1 border-b border-border"
+                style={{ gridTemplateColumns: '1fr 120px 52px 80px' }}>
+                <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Description</span>
+                <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Time</span>
+                <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider text-center">Hrs</span>
+                <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider text-right">Amount</span>
               </div>
+
+              {/* Rows */}
               {preview.shifts.map(shift => (
-                <div key={shift.id} className="grid grid-cols-12 gap-2 text-xs py-1.5 border-b border-border/50">
-                  <span className="col-span-5 text-foreground print:text-black font-medium">
-                    {formatDateDisplay(shift.date)}
-                    {shift.is_sleepover && <span className="ml-1 text-[10px] text-muted-foreground">(Sleepover)</span>}
-                    {shift.client_name && <span className="block text-[10px] text-muted-foreground">{shift.client_name}</span>}
+                <div
+                  key={shift.id}
+                  className="grid gap-1 py-2 border-b border-border/50 items-start"
+                  style={{ gridTemplateColumns: '1fr 120px 52px 80px' }}
+                >
+                  <div>
+                    <span className="text-xs font-medium text-foreground">
+                      {formatDateDisplay(shift.date)}
+                    </span>
+                    {shift.is_sleepover && (
+                      <span className="ml-1.5 text-[10px] text-muted-foreground">(Sleepover)</span>
+                    )}
+                    {shift.client_name && (
+                      <p className="text-[10px] text-muted-foreground mt-0.5">{shift.client_name}</p>
+                    )}
+                  </div>
+                  <span className="text-xs text-muted-foreground">
+                    {formatTime12h(shift.start_time)}–{formatTime12h(shift.end_time)}
                   </span>
-                  <span className="col-span-3 text-muted-foreground print:text-gray-600">
-                    {formatTime12h(shift.start_time)} – {formatTime12h(shift.end_time)}
+                  <span className="text-xs text-muted-foreground text-center">
+                    {shift.is_sleepover ? '—' : `${Number(shift.hours_worked).toFixed(1)}`}
                   </span>
-                  <span className="col-span-2 text-center text-muted-foreground print:text-gray-600">
-                    {shift.is_sleepover ? '—' : `${Number(shift.hours_worked).toFixed(1)}h`}
-                  </span>
-                  <span className="col-span-2 text-right font-semibold text-foreground print:text-black">
+                  <span className="text-xs font-semibold text-foreground text-right">
                     {formatCurrency(Number(shift.gross_pay))}
                   </span>
                 </div>
@@ -244,36 +339,37 @@ const InvoicePanel = ({ shifts, settings, onIncrementCounter }: InvoicePanelProp
             </div>
 
             {/* Totals */}
-            <div className="space-y-1 pt-1">
+            <div className="space-y-1.5 pt-1">
               <div className="flex justify-between text-sm">
                 <span className="text-muted-foreground">Subtotal</span>
-                <span className="font-semibold text-foreground print:text-black">{formatCurrency(preview.total)}</span>
+                <span className="font-semibold text-foreground">{formatCurrency(preview.total)}</span>
               </div>
               <div className="flex justify-between text-sm">
                 <span className="text-muted-foreground">GST</span>
-                <span className="font-semibold text-foreground print:text-black">$0.00</span>
+                <span className="font-semibold text-foreground">$0.00</span>
               </div>
-              <div className="flex justify-between text-base font-bold pt-1 border-t border-border">
-                <span className="text-foreground print:text-black">Total (AUD)</span>
+              <div className="flex justify-between text-base font-bold pt-2 border-t border-border">
+                <span className="text-foreground">Total (AUD)</span>
                 <span style={{ color: 'hsl(var(--primary))' }}>{formatCurrency(preview.total)}</span>
               </div>
             </div>
 
-            {/* Bank + Notes */}
-            {(preview.bankName || preview.invoiceNotes) && (
-              <div className="glass-card p-3 space-y-2 print:border print:border-gray-200 print:bg-gray-50">
-                {preview.bankName && (
-                  <div>
-                    <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Payment Details</p>
-                    <p className="text-sm text-foreground print:text-black">{preview.bankName} · BSB {preview.bsb} · Acc {preview.accountNumber}</p>
-                  </div>
-                )}
-                {preview.invoiceNotes && (
-                  <p className="text-xs text-muted-foreground print:text-gray-600">{preview.invoiceNotes}</p>
-                )}
-              </div>
-            )}
+            {/* Payment + notes */}
+            <div className="rounded-xl border border-border bg-muted/30 p-3 space-y-2">
+              {preview.bankName && (
+                <div>
+                  <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-0.5">Payment Details</p>
+                  <p className="text-xs text-foreground">
+                    {preview.bankName}
+                    {preview.bsb ? ` · BSB ${preview.bsb}` : ''}
+                    {preview.accountNumber ? ` · Acc ${preview.accountNumber}` : ''}
+                  </p>
+                </div>
+              )}
+              <p className="text-xs text-muted-foreground">{preview.invoiceNotes}</p>
+            </div>
           </div>
+          {/* End invoice-print-area */}
         </div>
       )}
     </div>
