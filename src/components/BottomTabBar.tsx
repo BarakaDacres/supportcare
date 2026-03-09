@@ -5,6 +5,7 @@ export type TabId = 'overview' | 'shifts' | 'analytics' | 'invoices' | 'settings
 interface BottomTabBarProps {
   activeTab: TabId;
   onTabChange: (tab: TabId) => void;
+  hidden?: boolean;
 }
 
 const tabs: { id: TabId; label: string; icon: typeof LayoutDashboard }[] = [
@@ -15,19 +16,19 @@ const tabs: { id: TabId; label: string; icon: typeof LayoutDashboard }[] = [
   { id: 'settings',  label: 'Settings',  icon: Settings        },
 ];
 
-const BottomTabBar = ({ activeTab, onTabChange }: BottomTabBarProps) => {
+const BottomTabBar = ({ activeTab, onTabChange, hidden = false }: BottomTabBarProps) => {
   return (
     <nav
       className="fixed bottom-0 inset-x-0 z-50 md:hidden no-print transition-all duration-200"
       style={{
-        // Instantly hidden when a sheet sets --tab-bar-hidden on <html>
-        display: 'var(--tab-bar-hidden, 0)' === '1' ? 'none' : undefined,
-        opacity: getComputedStyle(document.documentElement).getPropertyValue('--tab-bar-hidden').trim() === '1' ? '0' : undefined,
-        pointerEvents: getComputedStyle(document.documentElement).getPropertyValue('--tab-bar-hidden').trim() === '1' ? 'none' : undefined,
+        paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+        opacity: hidden ? 0 : 1,
+        pointerEvents: hidden ? 'none' : 'auto',
+        transform: hidden ? 'translateY(100%)' : 'translateY(0)',
       }}
+      aria-hidden={hidden}
       role="tablist"
       aria-label="Main navigation"
-      style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
     >
       {/* Pill container — sits above the safe area */}
       <div className="mx-3 mb-2 rounded-[26px] ios26-tab-pill">
