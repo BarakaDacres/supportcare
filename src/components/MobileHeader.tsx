@@ -14,7 +14,9 @@ interface MobileHeaderProps {
   onToggleLock: () => void;
 }
 
-const MobileHeader = ({ year, month, mode, theme, locked, onToggleTheme, onToggleLock }: MobileHeaderProps) => {
+const MobileHeader = ({
+  year, month, mode, theme, locked, onToggleTheme, onToggleLock,
+}: MobileHeaderProps) => {
   const [collapsed, setCollapsed] = useState(false);
   const [sheetOpen, setSheetOpen] = useState(false);
   const sentinelRef = useRef<HTMLDivElement>(null);
@@ -35,45 +37,57 @@ const MobileHeader = ({ year, month, mode, theme, locked, onToggleTheme, onToggl
       {/* Scroll sentinel */}
       <div ref={sentinelRef} className="h-0 w-full" aria-hidden="true" />
 
-      {/* Header */}
       <header
         className="sticky top-0 z-40 md:hidden no-print transition-all duration-300"
         style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}
       >
-        <div className={`header-glass px-4 transition-all duration-300 ${collapsed ? 'py-2' : 'pt-3 pb-2'}`}>
-          <div className="flex items-center justify-between">
+        {/* Title row */}
+        <div
+          className={`header-glass px-4 transition-all duration-300 ${
+            collapsed ? 'py-2' : 'pb-2 pt-2.5'
+          }`}
+        >
+          <div className="flex items-center justify-between gap-3">
             <div className="min-w-0">
-              <h1 className={`font-bold text-foreground tracking-tight transition-all duration-300 ${collapsed ? 'text-base' : 'text-2xl'}`}>
+              <h1
+                className="font-bold text-foreground tracking-tight transition-all duration-300 leading-tight"
+                style={{ fontSize: collapsed ? '1rem' : '1.35rem' }}
+              >
                 Income Ledger
               </h1>
               {!collapsed && (
-                <p className="text-xs text-muted-foreground font-medium mt-0.5">
-                  Track your earnings with clarity
+                <p className="text-[11px] text-muted-foreground font-medium mt-0.5 leading-none">
+                  Track your earnings
                 </p>
               )}
             </div>
             <button
               onClick={() => setSheetOpen(true)}
-              className="glass-chip hover:opacity-80 transition-opacity min-h-[44px] min-w-[44px] flex items-center justify-center"
+              className="glass-chip shrink-0 flex items-center justify-center"
+              style={{ minHeight: 36, minWidth: 36, padding: 0 }}
               aria-label="More actions"
             >
-              <Ellipsis className="w-5 h-5" />
+              <Ellipsis className="w-4 h-4" />
             </button>
           </div>
         </div>
 
-        {/* Sticky context row */}
-        <div className="context-bar-glass px-4 py-2 flex items-center gap-2 text-xs font-semibold overflow-x-auto">
-          <span className="glass-chip shrink-0">{year}</span>
-          <span className="glass-chip shrink-0">{MONTH_NAMES[month]}</span>
-          <span className="glass-chip shrink-0 capitalize">{mode}</span>
+        {/* Context chips row */}
+        <div
+          className="context-bar-glass px-4 py-1.5 flex items-center gap-1.5 overflow-x-auto scrollbar-none"
+        >
+          <span className="glass-chip shrink-0 text-[11px] py-1 px-2.5">{year}</span>
+          <span className="glass-chip shrink-0 text-[11px] py-1 px-2.5">{MONTH_NAMES[month]}</span>
+          <span className="glass-chip shrink-0 text-[11px] py-1 px-2.5 capitalize">{mode}</span>
           <span
-            className="glass-chip shrink-0"
+            className="glass-chip shrink-0 text-[11px] py-1 px-2.5"
             style={{ color: locked ? 'hsl(var(--destructive))' : 'hsl(var(--stat-green))' }}
           >
             <span
-              className="w-1.5 h-1.5 rounded-full inline-block mr-1"
-              style={{ background: locked ? 'hsl(var(--destructive))' : 'hsl(var(--stat-green))' }}
+              className="w-1.5 h-1.5 rounded-full inline-block mr-1 shrink-0"
+              style={{
+                background: locked ? 'hsl(var(--destructive))' : 'hsl(var(--stat-green))',
+              }}
             />
             {locked ? 'Locked' : 'Open'}
           </span>
