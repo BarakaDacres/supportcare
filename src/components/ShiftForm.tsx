@@ -16,7 +16,6 @@ interface ShiftFormProps {
 
 const today = () => new Date().toISOString().split('T')[0];
 
-// Auto-generated note defaults keyed by sleepover state
 const DEFAULT_NOTE_NORMAL = 'Assistance with Self-Care Activities';
 const DEFAULT_NOTE_SLEEPOVER = 'Night Sleepover Support - $300 weekday & $350 for weekend';
 
@@ -37,16 +36,12 @@ const ShiftForm = ({
   const [isSleepover, setIsSleepover] = useState(initialValues?.is_sleepover ?? false);
   const [clientId, setClientId] = useState(initialValues?.client_id ?? '');
 
-  // For new shifts, seed the note with the default. For edits, use saved value.
   const isNew = !initialValues?.date;
   const [notes, setNotes] = useState(
     initialValues?.notes ?? getDefaultNote(initialValues?.is_sleepover ?? false)
   );
 
-  // Track whether the user has manually customised the notes field
-  // so we never overwrite their custom text when toggling sleepover.
   const notesCustomised = useRef(
-    // On edit mode, treat existing non-default text as customised
     !isNew &&
       initialValues?.notes != null &&
       initialValues.notes !== DEFAULT_NOTE_NORMAL &&
@@ -61,7 +56,6 @@ const ShiftForm = ({
     return () => { document.body.style.overflow = ''; };
   }, []);
 
-  // When sleepover is toggled, update note only if user hasn't customised it
   const handleSleepoverToggle = () => {
     setIsSleepover(prev => {
       const next = !prev;
@@ -72,14 +66,12 @@ const ShiftForm = ({
     });
   };
 
-  // Mark notes as customised the moment the user edits them away from the default
   const handleNotesChange = (val: string) => {
     setNotes(val);
     const currentDefault = getDefaultNote(isSleepover);
     if (val !== currentDefault) {
       notesCustomised.current = true;
     } else {
-      // They typed it back to exactly the default — treat as un-customised
       notesCustomised.current = false;
     }
   };
@@ -104,23 +96,30 @@ const ShiftForm = ({
   };
 
   return (
-    /* Scrim */
+    /* Scrim — z-[60] ensures it sits above the tab bar (z-50) */
     <div
-      className="fixed inset-0 z-50 flex flex-col justify-end md:items-center md:justify-center"
-      style={{ background: 'hsl(var(--foreground)/0.25)' }}
+      className="fixed inset-0 z-[60] flex flex-col justify-end md:items-center md:justify-center"
+      style={{ background: 'hsl(var(--foreground)/0.4)' }}
       onClick={(e) => { if (e.target === e.currentTarget) onCancel(); }}
     >
-      {/* Sheet panel — flex column with max height so body scrolls */}
+      {/*
+        Sheet panel:
+        - flex-col so header / scrollable-body / sticky-footer stack cleanly
+        - max-height uses dvh (safe for Safari) to respect visible viewport
+        - rounded top corners only (bottom is flush to screen edge)
+      */}
       <div
         className="w-full md:max-w-md md:mx-auto flex flex-col"
         style={{
           background: 'hsl(var(--card))',
-          borderRadius: '24px 24px 0 0',
+          borderRadius: '20px 20px 0 0',
           maxHeight: '92dvh',
+          /* Ensure the sheet itself never overlaps the home indicator */
+          paddingBottom: 'env(safe-area-inset-bottom, 0px)',
         }}
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Drag handle */}
+        {/* ── Drag handle ── */}
         <div className="flex justify-center pt-2.5 pb-1 shrink-0">
           <div
             className="rounded-full"
@@ -128,7 +127,7 @@ const ShiftForm = ({
           />
         </div>
 
-        {/* Header — never scrolls away */}
+        {/* ── Sticky header ── */}
         <div className="flex items-center justify-between px-5 py-3 border-b border-border shrink-0">
           <h2 className="text-base font-bold text-foreground">{title}</h2>
           <button
@@ -140,15 +139,12 @@ const ShiftForm = ({
           </button>
         </div>
 
-        {/* Scrollable body — flex-1 + overflow-y-auto */}
-        <form
-          onSubmit={handleSubmit}
-          className="flex-1 overflow-y-auto overscroll-contain px-5 py-4 space-y-3"
-          style={{
-            /* Bottom padding = safe area + tab bar height so submit button is reachable */
-            paddingBottom: 'max(calc(env(safe-area-inset-bottom, 0px) + 24px), 24px)',
-          }}
-        >
+        {/*
+          ── Scrollable body ──
+          flex-1 + overflow-y-auto = fills available space and scrolls independently.
+          The footer is OUTSIDE this element so it never scrolls away.
+        */}
+        <div className="flex-1 overflow-y-auto overscroll-contain px-5 py-3 space-y-3">
           {/* Date */}
           <div className="space-y-1">
             <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Date</label>
@@ -192,13 +188,13 @@ const ShiftForm = ({
             </div>
           </div>
 
-          {/* Sleepover toggle row */}
+          {/* Sleepover toggle */}
           <button
             type="button"
             onClick={handleSleepoverToggle}
             className="w-full flex items-center gap-3 rounded-2xl border transition-all duration-200 px-4"
             style={{
-              minHeight: 48,
+              minHeight: 46,
               borderColor: isSleepover ? 'hsl(var(--primary)/0.5)' : 'hsl(var(--border))',
               background: isSleepover ? 'hsl(var(--primary)/0.08)' : 'transparent',
             }}
@@ -214,7 +210,6 @@ const ShiftForm = ({
               Sleepover
             </span>
             <span className="text-[10px] text-muted-foreground mr-2">Flat rate</span>
-            {/* iOS-style toggle */}
             <span
               className="relative shrink-0 rounded-full transition-all duration-200"
               style={{
@@ -225,11 +220,7 @@ const ShiftForm = ({
             >
               <span
                 className="absolute top-[3px] rounded-full bg-white shadow-sm transition-all duration-200"
-                style={{
-                  width: 18,
-                  height: 18,
-                  left: isSleepover ? 21 : 3,
-                }}
+                style={{ width: 18, height: 18, left: isSleepover ? 21 : 3 }}
               />
             </span>
           </button>
@@ -273,7 +264,7 @@ const ShiftForm = ({
             />
           </div>
 
-          {/* Calculated pay — compact */}
+          {/* Calculated pay */}
           {calc && (
             <div
               className="rounded-2xl p-3 space-y-1.5"
@@ -306,13 +297,23 @@ const ShiftForm = ({
             </div>
           )}
 
-          {/* Action buttons */}
-          <div className="flex gap-2.5 pt-1">
+          {/* Small spacer so last card doesn't hug the footer divider */}
+          <div className="h-1" />
+        </div>
+
+        {/*
+          ── Sticky footer — OUTSIDE the scroll area ──
+          This element is always visible regardless of how far the user has scrolled.
+          It lives above env(safe-area-inset-bottom) which is already handled by
+          the sheet container's paddingBottom.
+        */}
+        <form onSubmit={handleSubmit} className="shrink-0">
+          <div className="px-5 pt-3 pb-4 border-t border-border flex gap-2.5">
             <button
               type="button"
               onClick={onCancel}
               className="flex-1 glass-chip justify-center text-sm font-semibold"
-              style={{ minHeight: 46 }}
+              style={{ minHeight: 48 }}
             >
               Cancel
             </button>
@@ -321,7 +322,7 @@ const ShiftForm = ({
               disabled={submitting}
               className="flex-1 rounded-2xl text-sm font-bold transition-all duration-200 disabled:opacity-40"
               style={{
-                minHeight: 46,
+                minHeight: 48,
                 background: 'hsl(var(--primary))',
                 color: 'hsl(var(--primary-foreground))',
                 boxShadow: '0 4px 16px hsl(var(--primary)/0.3)',

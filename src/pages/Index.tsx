@@ -29,6 +29,7 @@ const Index = ({ auth }: IndexProps) => {
   const isMobile = useIsMobile();
   const [activeTab, setActiveTab] = useState<TabId>('overview');
   const [settingsSubTab, setSettingsSubTab] = useState<'app' | 'clients' | 'legacy'>('app');
+  const [sheetOpen, setSheetOpen] = useState(false);
 
   const { settings, loading: settingsLoading, updateSettings, incrementInvoiceCounter } = useUserSettings();
   const rates = settings
@@ -182,6 +183,7 @@ const Index = ({ auth }: IndexProps) => {
               onUpdate={updateShift}
               onDelete={deleteShift}
               onDuplicate={duplicateShift}
+              onSheetOpenChange={setSheetOpen}
             />
           )}
 
@@ -200,7 +202,7 @@ const Index = ({ auth }: IndexProps) => {
           {activeTab === 'settings' && renderSettingsContent()}
         </main>
 
-        <BottomTabBar activeTab={activeTab} onTabChange={setActiveTab} />
+        <BottomTabBar activeTab={activeTab} onTabChange={setActiveTab} hidden={sheetOpen} />
       </div>
     );
   }

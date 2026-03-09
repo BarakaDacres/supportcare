@@ -18,6 +18,8 @@ interface ShiftListProps {
   onUpdate: (id: string, shift: Partial<NewShift>) => Promise<void>;
   onDelete: (id: string) => Promise<void>;
   onDuplicate: (id: string) => Promise<void>;
+  /** Called when the add/edit sheet opens (true) or closes (false) */
+  onSheetOpenChange?: (open: boolean) => void;
 }
 
 type FilterPeriod = 'all' | 'week' | 'fortnight' | 'month' | 'year';
@@ -40,10 +42,12 @@ function getMonday(d: Date): Date {
 
 const ShiftList = ({
   shifts, clients, loading, rates = DEFAULT_RATES, locked = false,
-  onAdd, onUpdate, onDelete, onDuplicate,
+  onAdd, onUpdate, onDelete, onDuplicate, onSheetOpenChange,
 }: ShiftListProps) => {
   const [showForm, setShowForm] = useState(false);
   const [editingShift, setEditingShift] = useState<Shift | null>(null);
+
+  const openSheet = (open: boolean) => onSheetOpenChange?.(open);
   const [filterPeriod, setFilterPeriod] = useState<FilterPeriod>('month');
   const [filterClient, setFilterClient] = useState('');
   const [sortMode, setSortMode] = useState<SortMode>('date-desc');
@@ -99,12 +103,14 @@ const ShiftList = ({
   const handleAdd = async (shift: NewShift) => {
     await onAdd(shift);
     setShowForm(false);
+    openSheet(false);
   };
 
   const handleUpdate = async (shift: NewShift) => {
     if (!editingShift) return;
     await onUpdate(editingShift.id, shift);
     setEditingShift(null);
+    openSheet(false);
   };
 
   const handleDelete = async (id: string) => {
@@ -129,7 +135,7 @@ const ShiftList = ({
           </span>
         ) : (
           <button
-            onClick={() => setShowForm(true)}
+            onClick={() => { setShowForm(true); openSheet(true); }}
             className="flex items-center gap-2 rounded-2xl px-4 py-2.5 text-sm font-bold transition-all min-h-[40px]"
             style={{
               background: 'hsl(var(--primary))',
@@ -232,7 +238,7 @@ const ShiftList = ({
           <p className="text-muted-foreground text-sm">No shifts found</p>
           {!locked && (
             <button
-              onClick={() => setShowForm(true)}
+              onClick={() => { setShowForm(true); openSheet(true); }}
               className="text-sm font-semibold"
               style={{ color: 'hsl(var(--primary))' }}
             >
@@ -282,7 +288,7 @@ const ShiftList = ({
                 {editable ? (
                   <div className="flex gap-2 pt-1">
                     <button
-                      onClick={() => setEditingShift(shift)}
+                      onClick={() => { setEditingShift(shift); openSheet(true); }}
                       className="glass-chip text-xs py-1.5 flex-1 justify-center gap-1.5 min-h-[36px]"
                     >
                       <Pencil className="w-3 h-3" /> Edit
@@ -344,7 +350,7 @@ const ShiftList = ({
           clients={clients}
           rates={rates}
           onSubmit={handleAdd}
-          onCancel={() => setShowForm(false)}
+          onCancel={() => { setShowForm(false); openSheet(false); }}
         />
       )}
 
@@ -363,14 +369,14 @@ const ShiftList = ({
             notes: editingShift.notes,
           }}
           onSubmit={handleUpdate}
-          onCancel={() => setEditingShift(null)}
+          onCancel={() => { setEditingShift(null); openSheet(false); }}
         />
       )}
 
       {/* Floating add button — mobile only, visible when not locked */}
       {!locked && !showForm && !editingShift && (
         <button
-          onClick={() => setShowForm(true)}
+          onClick={() => { setShowForm(true); openSheet(true); }}
           aria-label="Add shift"
           className="fixed bottom-28 right-5 z-40 md:hidden w-14 h-14 rounded-full flex items-center justify-center shadow-lg transition-all duration-200 active:scale-95"
           style={{
