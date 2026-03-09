@@ -14,6 +14,36 @@ export type Database = {
   }
   public: {
     Tables: {
+      clients: {
+        Row: {
+          active: boolean
+          created_at: string
+          id: string
+          name: string
+          notes: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          name: string
+          notes?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          name?: string
+          notes?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       income_data: {
         Row: {
           created_at: string
@@ -33,6 +63,93 @@ export type Database = {
           created_at?: string
           data?: Json
           id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      invoice_items: {
+        Row: {
+          amount: number
+          created_at: string
+          description: string
+          hours: number | null
+          id: string
+          invoice_id: string
+          rate: number | null
+          shift_id: string | null
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          description: string
+          hours?: number | null
+          id?: string
+          invoice_id: string
+          rate?: number | null
+          shift_id?: string | null
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          description?: string
+          hours?: number | null
+          id?: string
+          invoice_id?: string
+          rate?: number | null
+          shift_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoice_items_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoice_items_shift_id_fkey"
+            columns: ["shift_id"]
+            isOneToOne: false
+            referencedRelation: "shifts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      invoices: {
+        Row: {
+          created_at: string
+          id: string
+          invoice_number: string
+          notes: string | null
+          period_end: string
+          period_start: string
+          status: string
+          total_amount: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          invoice_number: string
+          notes?: string | null
+          period_end: string
+          period_start: string
+          status?: string
+          total_amount?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          invoice_number?: string
+          notes?: string | null
+          period_end?: string
+          period_start?: string
+          status?: string
+          total_amount?: number
           updated_at?: string
           user_id?: string
         }
@@ -62,6 +179,125 @@ export type Database = {
           id?: string
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      shifts: {
+        Row: {
+          client_id: string | null
+          created_at: string
+          date: string
+          end_time: string
+          gross_pay: number
+          hours_worked: number
+          id: string
+          is_sleepover: boolean
+          notes: string | null
+          start_time: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          client_id?: string | null
+          created_at?: string
+          date: string
+          end_time: string
+          gross_pay?: number
+          hours_worked?: number
+          id?: string
+          is_sleepover?: boolean
+          notes?: string | null
+          start_time: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          client_id?: string | null
+          created_at?: string
+          date?: string
+          end_time?: string
+          gross_pay?: number
+          hours_worked?: number
+          id?: string
+          is_sleepover?: boolean
+          notes?: string | null
+          start_time?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shifts_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_settings: {
+        Row: {
+          abn: string | null
+          account_number: string | null
+          bank_name: string | null
+          bsb: string | null
+          business_name: string | null
+          created_at: string
+          id: string
+          invoice_counter: number
+          invoice_notes: string | null
+          monthly_goal: number | null
+          rate_saturday: number
+          rate_sleepover_weekday: number
+          rate_sleepover_weekend: number
+          rate_sunday: number
+          rate_weekday: number
+          tax_rate: number
+          updated_at: string
+          user_id: string
+          yearly_goal: number | null
+        }
+        Insert: {
+          abn?: string | null
+          account_number?: string | null
+          bank_name?: string | null
+          bsb?: string | null
+          business_name?: string | null
+          created_at?: string
+          id?: string
+          invoice_counter?: number
+          invoice_notes?: string | null
+          monthly_goal?: number | null
+          rate_saturday?: number
+          rate_sleepover_weekday?: number
+          rate_sleepover_weekend?: number
+          rate_sunday?: number
+          rate_weekday?: number
+          tax_rate?: number
+          updated_at?: string
+          user_id: string
+          yearly_goal?: number | null
+        }
+        Update: {
+          abn?: string | null
+          account_number?: string | null
+          bank_name?: string | null
+          bsb?: string | null
+          business_name?: string | null
+          created_at?: string
+          id?: string
+          invoice_counter?: number
+          invoice_notes?: string | null
+          monthly_goal?: number | null
+          rate_saturday?: number
+          rate_sleepover_weekday?: number
+          rate_sleepover_weekend?: number
+          rate_sunday?: number
+          rate_weekday?: number
+          tax_rate?: number
+          updated_at?: string
+          user_id?: string
+          yearly_goal?: number | null
         }
         Relationships: []
       }
