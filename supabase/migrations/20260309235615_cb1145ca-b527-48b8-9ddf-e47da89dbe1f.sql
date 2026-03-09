@@ -1,0 +1,1 @@
+ALTER TABLE public.user_settings ADD COLUMN IF NOT EXISTS rate_public_holiday numeric NOT NULL DEFAULT 150;
