@@ -135,7 +135,7 @@ const ShiftList = ({
           </span>
         ) : (
           <button
-            onClick={() => setShowForm(true)}
+            onClick={() => { setShowForm(true); openSheet(true); }}
             className="flex items-center gap-2 rounded-2xl px-4 py-2.5 text-sm font-bold transition-all min-h-[40px]"
             style={{
               background: 'hsl(var(--primary))',
