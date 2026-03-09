@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import type { PayRates } from '@/lib/shiftCalculator';
 
@@ -43,59 +43,44 @@ export const DEFAULT_SETTINGS: Omit<UserSettings, 'id' | 'user_id'> = {
 export function useUserSettings() {
   const [settings, setSettings] = useState<UserSettings | null>(null);
   const [loading, setLoading] = useState(true);
-  const [authReady, setAuthReady] = useState(false);
+  const userIdRef = useRef<string | null>(null);
 
-  // Gate fetching until auth session is confirmed (prevents RLS returning 0 rows on reload)
-  useEffect(() => {
-    // onAuthStateChange always fires INITIAL_SESSION synchronously from cache,
-    // making it the single reliable signal for auth readiness on page load/reload.
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (session) {
-        setAuthReady(true);
-      } else {
-        setAuthReady(false);
-        setSettings(null);
-        setLoading(false);
-      }
-    });
+  const fetchSettings = useCallback(async (userId?: string) => {
+    const uid = userId ?? userIdRef.current;
+    if (!uid) { setLoading(false); return; }
 
-    return () => subscription.unsubscribe();
-  }, []);
-
-  const fetchSettings = useCallback(async () => {
     setLoading(true);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) { setLoading(false); return; }
-
       const { data, error } = await supabase
         .from('user_settings')
         .select('*')
-        .eq('user_id', session.user.id)
+        .eq('user_id', uid)
         .maybeSingle();
 
       if (error) {
-        console.error('fetchSettings select error:', error);
+        console.error('fetchSettings error:', error);
         setLoading(false);
         return;
       }
 
       if (!data) {
+        // First-time user — create default settings row
         const { data: created, error: insertErr } = await supabase
           .from('user_settings')
-          .insert({ user_id: session.user.id })
+          .insert({ user_id: uid })
           .select()
           .single();
 
         if (insertErr) {
+          // Row may have been created by trigger; retry
           const { data: retry } = await supabase
             .from('user_settings')
             .select('*')
-            .eq('user_id', session.user.id)
+            .eq('user_id', uid)
             .maybeSingle();
           setSettings((retry ?? null) as UserSettings | null);
         } else {
-          setSettings(created as UserSettings | null);
+          setSettings(created as UserSettings);
         }
       } else {
         setSettings(data as UserSettings);
@@ -108,19 +93,52 @@ export function useUserSettings() {
   }, []);
 
   useEffect(() => {
-    if (authReady) {
-      fetchSettings();
-    }
-  }, [authReady, fetchSettings]);
+    // 1. Restore session from storage first
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) {
+        userIdRef.current = session.user.id;
+        fetchSettings(session.user.id);
+      } else {
+        userIdRef.current = null;
+        setSettings(null);
+        setLoading(false);
+      }
+    });
+
+    // 2. Listen for subsequent auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session) {
+        if (userIdRef.current !== session.user.id) {
+          userIdRef.current = session.user.id;
+          fetchSettings(session.user.id);
+        }
+      } else {
+        userIdRef.current = null;
+        setSettings(null);
+        setLoading(false);
+      }
+    });
+
+    // 3. Refetch on window focus
+    const onFocus = () => {
+      if (userIdRef.current) fetchSettings(userIdRef.current);
+    };
+    window.addEventListener('focus', onFocus);
+
+    return () => {
+      subscription.unsubscribe();
+      window.removeEventListener('focus', onFocus);
+    };
+  }, [fetchSettings]);
 
   const updateSettings = useCallback(async (updates: Partial<Omit<UserSettings, 'id' | 'user_id'>>): Promise<void> => {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session || !settings) return;
+    const uid = userIdRef.current;
+    if (!uid || !settings) return;
 
     const { data, error } = await supabase
       .from('user_settings')
       .update(updates)
-      .eq('user_id', session.user.id)
+      .eq('user_id', uid)
       .select()
       .single();
 
@@ -129,22 +147,19 @@ export function useUserSettings() {
   }, [settings]);
 
   const incrementInvoiceCounter = useCallback(async (): Promise<number> => {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session || !settings) return 1;
+    if (!settings) return 1;
     const next = (settings.invoice_counter ?? 0) + 1;
     await updateSettings({ invoice_counter: next });
     return next;
   }, [settings, updateSettings]);
 
-  const getRates = useCallback((): PayRates => {
-    return {
-      rate_weekday: settings?.rate_weekday ?? 60,
-      rate_saturday: settings?.rate_saturday ?? 75,
-      rate_sunday: settings?.rate_sunday ?? 90,
-      rate_sleepover_weekday: settings?.rate_sleepover_weekday ?? 300,
-      rate_sleepover_weekend: settings?.rate_sleepover_weekend ?? 350,
-    };
-  }, [settings]);
+  const getRates = useCallback((): PayRates => ({
+    rate_weekday: settings?.rate_weekday ?? 60,
+    rate_saturday: settings?.rate_saturday ?? 75,
+    rate_sunday: settings?.rate_sunday ?? 90,
+    rate_sleepover_weekday: settings?.rate_sleepover_weekday ?? 300,
+    rate_sleepover_weekend: settings?.rate_sleepover_weekend ?? 350,
+  }), [settings]);
 
   return { settings, loading, fetchSettings, updateSettings, incrementInvoiceCounter, getRates };
 }
