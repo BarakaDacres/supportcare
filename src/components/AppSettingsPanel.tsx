@@ -1,7 +1,6 @@
-import { useState } from 'react';
-import { Save, Loader2, Target, Building2, CreditCard, FileText, Sliders } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Save, Loader2, Target, Building2, CreditCard, FileText, Sliders, AlertCircle } from 'lucide-react';
 import type { UserSettings } from '@/hooks/useUserSettings';
-import { formatCurrency } from '@/lib/formatUtils';
 
 interface AppSettingsPanelProps {
   settings: UserSettings | null;
@@ -13,11 +12,48 @@ const AppSettingsPanel = ({ settings, loading, onSave }: AppSettingsPanelProps) 
   const [form, setForm] = useState<Partial<Omit<UserSettings, 'id' | 'user_id'>>>({});
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  // Track if we've waited long enough to show an error instead of spinner
+  const [timedOut, setTimedOut] = useState(false);
 
-  if (loading || !settings) {
+  useEffect(() => {
+    if (!loading) {
+      setTimedOut(false);
+      return;
+    }
+    const t = setTimeout(() => setTimedOut(true), 8000);
+    return () => clearTimeout(t);
+  }, [loading]);
+
+  // Loading state — only show spinner briefly, then show error if stuck
+  if (loading) {
+    if (timedOut) {
+      return (
+        <div className="flex flex-col items-center justify-center py-12 gap-3 text-center">
+          <AlertCircle className="w-8 h-8 text-muted-foreground" />
+          <p className="text-sm font-semibold text-foreground">Settings unavailable</p>
+          <p className="text-xs text-muted-foreground max-w-[240px]">
+            Could not load your settings. Please check your connection or try refreshing the page.
+          </p>
+        </div>
+      );
+    }
     return (
       <div className="flex items-center justify-center py-12">
         <div className="w-8 h-8 rounded-full border-2 border-primary/30 border-t-primary animate-spin" />
+      </div>
+    );
+  }
+
+  // Settings row doesn't exist yet (shouldn't normally happen — the DB trigger creates it,
+  // but handle gracefully as a fallback)
+  if (!settings) {
+    return (
+      <div className="flex flex-col items-center justify-center py-12 gap-3 text-center">
+        <AlertCircle className="w-8 h-8 text-muted-foreground" />
+        <p className="text-sm font-semibold text-foreground">Settings not found</p>
+        <p className="text-xs text-muted-foreground max-w-[240px]">
+          Your settings profile could not be loaded. Try signing out and back in.
+        </p>
       </div>
     );
   }
