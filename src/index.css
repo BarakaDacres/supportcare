@@ -237,7 +237,6 @@
   .pb-safe-bottom {
     padding-bottom: env(safe-area-inset-bottom, 0px);
   }
-}
 
   /* Scrollbar hide utility */
   .scrollbar-none {
@@ -245,6 +244,11 @@
   }
   .scrollbar-none::-webkit-scrollbar {
     display: none;
+  }
+
+  /* Print — hide non-invoice UI */
+  .no-print {
+    /* removed by print media query */
   }
 }
 
