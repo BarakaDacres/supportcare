@@ -38,17 +38,8 @@ export function useShifts(rates: PayRates = DEFAULT_RATES) {
   const [authReady, setAuthReady] = useState(false);
 
   useEffect(() => {
-    // Resolve the session once, then mark auth as ready
-    supabase.auth.getSession().then(({ data }) => {
-      if (data.session) {
-        setAuthReady(true);
-      } else {
-        // Not logged in — nothing to load
-        setLoading(false);
-      }
-    });
-
-    // Also respond to sign-in events (e.g. user logs in after mount)
+    // onAuthStateChange always fires INITIAL_SESSION synchronously from cache,
+    // making it the single reliable signal for auth readiness on page load/reload.
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       if (session) {
         setAuthReady(true);

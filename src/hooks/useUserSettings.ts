@@ -47,14 +47,8 @@ export function useUserSettings() {
 
   // Gate fetching until auth session is confirmed (prevents RLS returning 0 rows on reload)
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      if (data.session) {
-        setAuthReady(true);
-      } else {
-        setLoading(false);
-      }
-    });
-
+    // onAuthStateChange always fires INITIAL_SESSION synchronously from cache,
+    // making it the single reliable signal for auth readiness on page load/reload.
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       if (session) {
         setAuthReady(true);
