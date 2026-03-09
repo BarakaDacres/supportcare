@@ -239,25 +239,93 @@
   }
 }
 
+  /* Scrollbar hide utility */
+  .scrollbar-none {
+    scrollbar-width: none;
+  }
+  .scrollbar-none::-webkit-scrollbar {
+    display: none;
+  }
+}
+
 @media print {
+  * {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
   body {
     background: white !important;
     color: black !important;
     font-size: 11pt;
+    margin: 0;
+    padding: 0;
   }
-  .no-print {
+
+  /* Hide everything except the invoice */
+  body > * {
     display: none !important;
   }
-  .glass-surface, .glass-card, .glass-card-glow {
+
+  /* Show only the invoice print area */
+  .invoice-print-area,
+  .invoice-print-area * {
+    display: revert !important;
+  }
+
+  .invoice-print-area {
+    display: block !important;
+    position: static !important;
+    margin: 0 !important;
+    padding: 24px !important;
     background: white !important;
+    color: black !important;
     backdrop-filter: none !important;
-    border: 1px solid #ddd !important;
+    border: none !important;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    overflow: visible !important;
+    page-break-inside: avoid;
+  }
+
+  .invoice-print-area .glass-card,
+  .invoice-print-area .glass-surface,
+  .invoice-print-area .glass-card-glow {
+    background: #f9f9f9 !important;
+    backdrop-filter: none !important;
+    border: 1px solid #e0e0e0 !important;
     box-shadow: none !important;
   }
+
+  .invoice-print-area .text-foreground,
+  .invoice-print-area h1,
+  .invoice-print-area p,
+  .invoice-print-area span {
+    color: black !important;
+  }
+
+  .invoice-print-area .text-muted-foreground {
+    color: #555 !important;
+  }
+
+  .invoice-print-area [style*="color: hsl(var(--primary))"] {
+    color: #0071e3 !important;
+  }
+
+  .no-print,
+  nav,
+  header,
+  .ios26-tab-bar,
+  .ios26-tab-pill,
+  .tab-bar-glass,
+  .header-glass,
+  .context-bar-glass {
+    display: none !important;
+  }
+
   .print-break {
     page-break-before: always;
-  }
-  .tab-bar-glass, .header-glass, .context-bar-glass {
-    display: none !important;
   }
 }
