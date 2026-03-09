@@ -50,15 +50,10 @@ const ShiftForm = ({
 
   const [submitting, setSubmitting] = useState(false);
 
-  // Lock body scroll and hide tab bar while sheet is open
+  // Lock body scroll while sheet is open
   useEffect(() => {
     document.body.style.overflow = 'hidden';
-    // Hide the bottom tab bar so it never overlaps the sheet
-    document.documentElement.style.setProperty('--tab-bar-hidden', '1');
-    return () => {
-      document.body.style.overflow = '';
-      document.documentElement.style.removeProperty('--tab-bar-hidden');
-    };
+    return () => { document.body.style.overflow = ''; };
   }, []);
 
   const handleSleepoverToggle = () => {
