@@ -95,7 +95,7 @@ export function useShifts(rates: PayRates = DEFAULT_RATES) {
     };
     setShifts(prev => [newShift, ...prev]);
     return newShift;
-  }, [rates]);
+  }, [rates]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const updateShift = useCallback(async (id: string, shift: Partial<NewShift>): Promise<void> => {
     const existing = shifts.find(s => s.id === id);
