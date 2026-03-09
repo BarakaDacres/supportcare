@@ -24,7 +24,8 @@ if (savedRaw) {
 const AppRoutes = () => {
   const auth = useAuth();
 
-  // Keep dark class in sync with localStorage even when store isn't mounted (e.g. auth screen)
+  // Keep dark class in sync when on the auth screen (store not mounted)
+  // Listens to both same-tab (theme-sync) and cross-tab (storage) changes
   useEffect(() => {
     const syncTheme = () => {
       try {
@@ -34,7 +35,11 @@ const AppRoutes = () => {
       } catch { /* ignore */ }
     };
     window.addEventListener('storage', syncTheme);
-    return () => window.removeEventListener('storage', syncTheme);
+    window.addEventListener('theme-sync', syncTheme);
+    return () => {
+      window.removeEventListener('storage', syncTheme);
+      window.removeEventListener('theme-sync', syncTheme);
+    };
   }, []);
 
   if (auth.loading) {
