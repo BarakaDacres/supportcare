@@ -46,29 +46,50 @@ export function useUserSettings() {
 
   const fetchSettings = useCallback(async () => {
     setLoading(true);
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) { setLoading(false); return; }
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) { setLoading(false); return; }
 
-    const { data, error } = await supabase
-      .from('user_settings')
-      .select('*')
-      .eq('user_id', session.user.id)
-      .maybeSingle();
-
-    if (error) { console.error(error); setLoading(false); return; }
-
-    if (!data) {
-      // Create default settings row
-      const { data: created } = await supabase
+      const { data, error } = await supabase
         .from('user_settings')
-        .insert({ user_id: session.user.id })
-        .select()
-        .single();
-      setSettings(created as UserSettings | null);
-    } else {
-      setSettings(data as UserSettings);
+        .select('*')
+        .eq('user_id', session.user.id)
+        .maybeSingle();
+
+      if (error) {
+        console.error('fetchSettings select error:', error);
+        setLoading(false);
+        return;
+      }
+
+      if (!data) {
+        // Row doesn't exist — create it (the DB trigger should handle this,
+        // but guard here for safety)
+        const { data: created, error: insertErr } = await supabase
+          .from('user_settings')
+          .insert({ user_id: session.user.id })
+          .select()
+          .single();
+
+        if (insertErr) {
+          // Possibly a race — try a final select
+          const { data: retry } = await supabase
+            .from('user_settings')
+            .select('*')
+            .eq('user_id', session.user.id)
+            .maybeSingle();
+          setSettings((retry ?? null) as UserSettings | null);
+        } else {
+          setSettings(created as UserSettings | null);
+        }
+      } else {
+        setSettings(data as UserSettings);
+      }
+    } catch (e) {
+      console.error('fetchSettings unexpected error:', e);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   }, []);
 
   useEffect(() => {

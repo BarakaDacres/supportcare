@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { X, Clock, Moon, User, FileText, ChevronDown } from 'lucide-react';
 import { calculateShiftPay, formatTime12h, type PayRates, DEFAULT_RATES } from '@/lib/shiftCalculator';
 import { formatCurrency } from '@/lib/formatUtils';
@@ -16,6 +16,13 @@ interface ShiftFormProps {
 
 const today = () => new Date().toISOString().split('T')[0];
 
+// Auto-generated note defaults keyed by sleepover state
+const DEFAULT_NOTE_NORMAL = 'Assistance with Self-Care Activities';
+const DEFAULT_NOTE_SLEEPOVER = 'Night Sleepover Support - $300 weekday & $350 for weekend';
+
+const getDefaultNote = (isSleepover: boolean) =>
+  isSleepover ? DEFAULT_NOTE_SLEEPOVER : DEFAULT_NOTE_NORMAL;
+
 const ShiftForm = ({
   clients,
   rates = DEFAULT_RATES,
@@ -29,7 +36,23 @@ const ShiftForm = ({
   const [endTime, setEndTime] = useState(initialValues?.end_time ?? '17:00');
   const [isSleepover, setIsSleepover] = useState(initialValues?.is_sleepover ?? false);
   const [clientId, setClientId] = useState(initialValues?.client_id ?? '');
-  const [notes, setNotes] = useState(initialValues?.notes ?? '');
+
+  // For new shifts, seed the note with the default. For edits, use saved value.
+  const isNew = !initialValues?.date;
+  const [notes, setNotes] = useState(
+    initialValues?.notes ?? getDefaultNote(initialValues?.is_sleepover ?? false)
+  );
+
+  // Track whether the user has manually customised the notes field
+  // so we never overwrite their custom text when toggling sleepover.
+  const notesCustomised = useRef(
+    // On edit mode, treat existing non-default text as customised
+    !isNew &&
+      initialValues?.notes != null &&
+      initialValues.notes !== DEFAULT_NOTE_NORMAL &&
+      initialValues.notes !== DEFAULT_NOTE_SLEEPOVER
+  );
+
   const [submitting, setSubmitting] = useState(false);
 
   // Lock body scroll while sheet is open
@@ -37,6 +60,29 @@ const ShiftForm = ({
     document.body.style.overflow = 'hidden';
     return () => { document.body.style.overflow = ''; };
   }, []);
+
+  // When sleepover is toggled, update note only if user hasn't customised it
+  const handleSleepoverToggle = () => {
+    setIsSleepover(prev => {
+      const next = !prev;
+      if (!notesCustomised.current) {
+        setNotes(getDefaultNote(next));
+      }
+      return next;
+    });
+  };
+
+  // Mark notes as customised the moment the user edits them away from the default
+  const handleNotesChange = (val: string) => {
+    setNotes(val);
+    const currentDefault = getDefaultNote(isSleepover);
+    if (val !== currentDefault) {
+      notesCustomised.current = true;
+    } else {
+      // They typed it back to exactly the default — treat as un-customised
+      notesCustomised.current = false;
+    }
+  };
 
   const calc =
     date && startTime && endTime
@@ -64,16 +110,14 @@ const ShiftForm = ({
       style={{ background: 'hsl(var(--foreground)/0.25)' }}
       onClick={(e) => { if (e.target === e.currentTarget) onCancel(); }}
     >
-      {/* Sheet panel */}
+      {/* Sheet panel — flex column with max height so body scrolls */}
       <div
         className="w-full md:max-w-md md:mx-auto flex flex-col"
         style={{
           background: 'hsl(var(--card))',
           borderRadius: '24px 24px 0 0',
-          paddingBottom: 'max(env(safe-area-inset-bottom, 16px), 16px)',
           maxHeight: '92dvh',
         }}
-        // Prevent tap-outside close when clicking inside the sheet
         onClick={(e) => e.stopPropagation()}
       >
         {/* Drag handle */}
@@ -84,7 +128,7 @@ const ShiftForm = ({
           />
         </div>
 
-        {/* Header */}
+        {/* Header — never scrolls away */}
         <div className="flex items-center justify-between px-5 py-3 border-b border-border shrink-0">
           <h2 className="text-base font-bold text-foreground">{title}</h2>
           <button
@@ -96,10 +140,14 @@ const ShiftForm = ({
           </button>
         </div>
 
-        {/* Scrollable body */}
+        {/* Scrollable body — flex-1 + overflow-y-auto */}
         <form
           onSubmit={handleSubmit}
-          className="overflow-y-auto overscroll-contain px-5 py-4 space-y-3"
+          className="flex-1 overflow-y-auto overscroll-contain px-5 py-4 space-y-3"
+          style={{
+            /* Bottom padding = safe area + tab bar height so submit button is reachable */
+            paddingBottom: 'max(calc(env(safe-area-inset-bottom, 0px) + 24px), 24px)',
+          }}
         >
           {/* Date */}
           <div className="space-y-1">
@@ -144,10 +192,10 @@ const ShiftForm = ({
             </div>
           </div>
 
-          {/* Sleepover — compact native-style toggle row */}
+          {/* Sleepover toggle row */}
           <button
             type="button"
-            onClick={() => setIsSleepover(p => !p)}
+            onClick={handleSleepoverToggle}
             className="w-full flex items-center gap-3 rounded-2xl border transition-all duration-200 px-4"
             style={{
               minHeight: 48,
@@ -218,7 +266,7 @@ const ShiftForm = ({
             </label>
             <textarea
               value={notes}
-              onChange={e => setNotes(e.target.value)}
+              onChange={e => handleNotesChange(e.target.value)}
               rows={2}
               placeholder="Any notes…"
               className="glass-input w-full text-foreground resize-none"
@@ -258,7 +306,7 @@ const ShiftForm = ({
             </div>
           )}
 
-          {/* Action buttons — sticky-ish at end of form */}
+          {/* Action buttons */}
           <div className="flex gap-2.5 pt-1">
             <button
               type="button"
