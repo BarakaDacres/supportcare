@@ -63,6 +63,11 @@ const ShiftForm = ({
       if (!notesCustomised.current) {
         setNotes(getDefaultNote(next));
       }
+      // Auto-fill default sleepover times when toggling ON
+      if (next) {
+        setStartTime('21:30');
+        setEndTime('07:00');
+      }
       return next;
     });
   };
