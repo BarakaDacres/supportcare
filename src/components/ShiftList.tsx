@@ -3,7 +3,7 @@ import { Plus, Pencil, Trash2, Copy, Moon, User, ChevronDown, SortAsc, Lock } fr
 import type { Shift, NewShift } from '@/hooks/useShifts';
 import type { Client } from '@/hooks/useClients';
 import type { PayRates } from '@/lib/shiftCalculator';
-import { DEFAULT_RATES, formatTime12h } from '@/lib/shiftCalculator';
+import { DEFAULT_RATES, formatTime12h, getDayOfWeek } from '@/lib/shiftCalculator';
 import { formatCurrency } from '@/lib/formatUtils';
 import { MONTH_NAMES } from '@/lib/dateUtils';
 import ShiftForm from './ShiftForm';

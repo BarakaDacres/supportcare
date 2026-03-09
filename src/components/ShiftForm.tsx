@@ -17,7 +17,7 @@ interface ShiftFormProps {
 const today = () => new Date().toISOString().split('T')[0];
 
 const DEFAULT_NOTE_NORMAL = 'Assistance with Self-Care Activities';
-const DEFAULT_NOTE_SLEEPOVER = 'Night Sleepover Support - $300 weekday & $350 for weekend';
+const DEFAULT_NOTE_SLEEPOVER = 'Night Sleepover Support\nWeekday $300 • Weekend $350';
 
 const getDefaultNote = (isSleepover: boolean) =>
   isSleepover ? DEFAULT_NOTE_SLEEPOVER : DEFAULT_NOTE_NORMAL;
