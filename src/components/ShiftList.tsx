@@ -369,7 +369,7 @@ const ShiftList = ({
             notes: editingShift.notes,
           }}
           onSubmit={handleUpdate}
-          onCancel={() => setEditingShift(null)}
+          onCancel={() => { setEditingShift(null); openSheet(false); }}
         />
       )}
 
