@@ -1,6 +1,6 @@
-import { LayoutDashboard, PenLine, CalendarDays, Settings } from 'lucide-react';
+import { LayoutDashboard, ClipboardList, BarChart2, FileText, Settings } from 'lucide-react';
 
-export type TabId = 'overview' | 'entries' | 'yearly' | 'settings';
+export type TabId = 'overview' | 'shifts' | 'analytics' | 'invoices' | 'settings';
 
 interface BottomTabBarProps {
   activeTab: TabId;
@@ -8,10 +8,11 @@ interface BottomTabBarProps {
 }
 
 const tabs: { id: TabId; label: string; icon: typeof LayoutDashboard }[] = [
-  { id: 'overview',  label: 'Overview', icon: LayoutDashboard },
-  { id: 'entries',   label: 'Entries',  icon: PenLine        },
-  { id: 'yearly',    label: 'Yearly',   icon: CalendarDays   },
-  { id: 'settings',  label: 'Settings', icon: Settings       },
+  { id: 'overview',   label: 'Overview',  icon: LayoutDashboard },
+  { id: 'shifts',     label: 'Shifts',    icon: ClipboardList   },
+  { id: 'analytics',  label: 'Analytics', icon: BarChart2       },
+  { id: 'invoices',   label: 'Invoices',  icon: FileText        },
+  { id: 'settings',   label: 'Settings',  icon: Settings        },
 ];
 
 const BottomTabBar = ({ activeTab, onTabChange }: BottomTabBarProps) => {
@@ -21,12 +22,11 @@ const BottomTabBar = ({ activeTab, onTabChange }: BottomTabBarProps) => {
       role="tablist"
       aria-label="Main navigation"
     >
-      {/* Liquid glass pill row */}
       <div
-        className="mx-4 mb-3 rounded-[28px] ios26-tab-pill"
+        className="mx-3 mb-3 rounded-[28px] ios26-tab-pill"
         style={{ paddingBottom: 'max(env(safe-area-inset-bottom, 8px), 8px)' }}
       >
-        <div className="flex items-center justify-around h-[56px] px-2">
+        <div className="flex items-center justify-around h-[56px] px-1">
           {tabs.map((tab) => {
             const isActive = activeTab === tab.id;
             return (
@@ -36,25 +36,17 @@ const BottomTabBar = ({ activeTab, onTabChange }: BottomTabBarProps) => {
                 aria-selected={isActive}
                 aria-label={tab.label}
                 onClick={() => onTabChange(tab.id)}
-                className={`relative flex flex-col items-center justify-center gap-[3px] min-h-[44px] min-w-[68px] px-3 rounded-[22px] transition-all duration-300 ease-out select-none
+                className={`relative flex flex-col items-center justify-center gap-[3px] min-h-[44px] min-w-[56px] px-2 rounded-[22px] transition-all duration-300 ease-out select-none
                   ${isActive ? 'ios26-tab-active' : 'ios26-tab-inactive'}`}
               >
-                {/* Active pill background */}
                 {isActive && (
-                  <span
-                    className="absolute inset-0 rounded-[22px] ios26-active-pill"
-                    aria-hidden="true"
-                  />
+                  <span className="absolute inset-0 rounded-[22px] ios26-active-pill" aria-hidden="true" />
                 )}
                 <tab.icon
-                  className={`relative w-[22px] h-[22px] transition-all duration-300 ${isActive ? 'text-primary' : 'text-muted-foreground'}`}
+                  className={`relative w-[20px] h-[20px] transition-all duration-300 ${isActive ? 'text-primary' : 'text-muted-foreground'}`}
                   strokeWidth={isActive ? 2.2 : 1.7}
                 />
-                <span
-                  className={`relative text-[10px] font-semibold leading-none transition-all duration-300 ${
-                    isActive ? 'text-primary' : 'text-muted-foreground'
-                  }`}
-                >
+                <span className={`relative text-[9px] font-semibold leading-none transition-all duration-300 ${isActive ? 'text-primary' : 'text-muted-foreground'}`}>
                   {tab.label}
                 </span>
               </button>
