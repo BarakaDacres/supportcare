@@ -10,8 +10,13 @@ import EntryTable from '@/components/EntryTable';
 import YearlyOverview from '@/components/YearlyOverview';
 import SettingsPanel from '@/components/SettingsPanel';
 import BottomTabBar, { type TabId } from '@/components/BottomTabBar';
+import type { AuthState } from '@/hooks/useAuth';
 
-const Index = () => {
+interface IndexProps {
+  auth: AuthState;
+}
+
+const Index = ({ auth }: IndexProps) => {
   const store = useIncomeStore();
   const isMobile = useIsMobile();
   const [activeTab, setActiveTab] = useState<TabId>('overview');
@@ -44,7 +49,7 @@ const Index = () => {
           onToggleLock={store.toggleMonthLock}
         />
 
-        <main className="px-4 pb-24 space-y-6">
+        <main className="px-4 pb-32 space-y-6 pt-2">
           {activeTab === 'overview' && (
             <>
               <StatsCards
@@ -113,11 +118,11 @@ const Index = () => {
     );
   }
 
-  // Desktop layout (unchanged)
+  // Desktop layout
   return (
     <div className="min-h-screen bg-background px-4 pb-12 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-5xl">
-        <Header theme={store.theme} onToggleTheme={store.toggleTheme} />
+        <Header theme={store.theme} onToggleTheme={store.toggleTheme} auth={auth} />
 
         <div className="space-y-6">
           <StatsCards

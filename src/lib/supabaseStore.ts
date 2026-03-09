@@ -27,9 +27,10 @@ export async function saveCloudData(state: Record<string, unknown>): Promise<voi
   if (!sessionData.session) return;
 
   const userId = sessionData.session.user.id;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { error } = await supabase
     .from('income_data')
-    .upsert([{ user_id: userId, data: state as Record<string, unknown> }], { onConflict: 'user_id' });
+    .upsert([{ user_id: userId, data: state as any }], { onConflict: 'user_id' });
 
   if (error) console.error('[supabaseStore] save error', error);
 }
