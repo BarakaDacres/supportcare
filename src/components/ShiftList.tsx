@@ -14,7 +14,7 @@ interface ShiftListProps {
   loading: boolean;
   rates?: PayRates;
   locked?: boolean;
-  onAdd: (shift: NewShift) => Promise<void>;
+  onAdd: (shift: NewShift) => Promise<unknown>;
   onUpdate: (id: string, shift: Partial<NewShift>) => Promise<void>;
   onDelete: (id: string) => Promise<void>;
   onDuplicate: (id: string) => Promise<void>;
