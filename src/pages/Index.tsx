@@ -31,13 +31,15 @@ const Index = ({ auth }: IndexProps) => {
   const [settingsSubTab, setSettingsSubTab] = useState<'app' | 'clients' | 'legacy'>('app');
 
   const { settings, loading: settingsLoading, updateSettings, incrementInvoiceCounter } = useUserSettings();
-  const rates = settings ? {
-    rate_weekday: settings.rate_weekday,
-    rate_saturday: settings.rate_saturday,
-    rate_sunday: settings.rate_sunday,
-    rate_sleepover_weekday: settings.rate_sleepover_weekday,
-    rate_sleepover_weekend: settings.rate_sleepover_weekend,
-  } : undefined;
+  const rates = settings
+    ? {
+        rate_weekday: settings.rate_weekday,
+        rate_saturday: settings.rate_saturday,
+        rate_sunday: settings.rate_sunday,
+        rate_sleepover_weekday: settings.rate_sleepover_weekday,
+        rate_sleepover_weekend: settings.rate_sleepover_weekend,
+      }
+    : undefined;
 
   const { shifts, loading: shiftsLoading, addShift, updateShift, deleteShift, duplicateShift } = useShifts(rates);
   const { clients, loading: clientsLoading, addClient, updateClient, deleteClient } = useClients();
@@ -47,8 +49,11 @@ const Index = ({ auth }: IndexProps) => {
   const yearGross = store.getYearGross(store.year);
 
   const weeks = getWeekRangesForMonth(store.year, store.month);
-  const weeklyEntries = store.weeklyEntries[String(store.year)]?.[String(store.month)] || new Array(weeks.length).fill(0);
-  const fortnightlyEntries = store.fortnightlyEntries[String(store.year)]?.[String(store.month)] || [];
+  const weeklyEntries =
+    store.weeklyEntries[String(store.year)]?.[String(store.month)] ||
+    new Array(weeks.length).fill(0);
+  const fortnightlyEntries =
+    store.fortnightlyEntries[String(store.year)]?.[String(store.month)] || [];
 
   useEffect(() => {
     if ('serviceWorker' in navigator) {
@@ -64,7 +69,9 @@ const Index = ({ auth }: IndexProps) => {
           <button
             key={t}
             onClick={() => setSettingsSubTab(t)}
-            className={`flex-1 capitalize ${settingsSubTab === t ? 'segmented-button-active' : 'segmented-button'}`}
+            className={`flex-1 capitalize ${
+              settingsSubTab === t ? 'segmented-button-active' : 'segmented-button'
+            }`}
           >
             {t === 'legacy' ? 'Display' : t.charAt(0).toUpperCase() + t.slice(1)}
           </button>
@@ -72,11 +79,7 @@ const Index = ({ auth }: IndexProps) => {
       </div>
 
       {settingsSubTab === 'app' && (
-        <AppSettingsPanel
-          settings={settings}
-          loading={settingsLoading}
-          onSave={updateSettings}
-        />
+        <AppSettingsPanel settings={settings} loading={settingsLoading} onSave={updateSettings} />
       )}
       {settingsSubTab === 'clients' && (
         <ClientsPanel
@@ -96,10 +99,10 @@ const Index = ({ auth }: IndexProps) => {
           locked={locked}
           theme={store.theme}
           auth={auth}
-          onYearChange={(y) => store.update({ year: y })}
-          onMonthChange={(m) => store.update({ month: m })}
-          onModeChange={(mode) => store.update({ mode })}
-          onTaxRateChange={(rate) => store.update({ taxRate: rate })}
+          onYearChange={y => store.update({ year: y })}
+          onMonthChange={m => store.update({ month: m })}
+          onModeChange={mode => store.update({ mode })}
+          onTaxRateChange={rate => store.update({ taxRate: rate })}
           onToggleLock={store.toggleMonthLock}
           onToggleTheme={store.toggleTheme}
         />
@@ -107,10 +110,10 @@ const Index = ({ auth }: IndexProps) => {
     </div>
   );
 
-  // Mobile layout
+  /* ─── Mobile layout ─── */
   if (isMobile) {
     return (
-      <div className="min-h-screen bg-background pb-safe-bottom">
+      <div className="min-h-dvh bg-background">
         <MobileHeader
           year={store.year}
           month={store.month}
@@ -121,14 +124,21 @@ const Index = ({ auth }: IndexProps) => {
           onToggleLock={store.toggleMonthLock}
         />
 
-        <main className="px-4 pb-36 space-y-6 pt-2">
+        {/*
+          pb-[calc(env(safe-area-inset-bottom,0px)+72px)]
+          = tab bar pill height (50px) + pill margin-bottom (8px) + extra breathing room (14px)
+        */}
+        <main
+          className="px-4 space-y-5 pt-3"
+          style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 80px)' }}
+        >
           {activeTab === 'overview' && (
             <>
               <StatsCards
                 monthGross={monthGross}
                 taxRate={store.taxRate}
                 yearGross={yearGross}
-                onTaxRateChange={(rate) => store.update({ taxRate: rate })}
+                onTaxRateChange={rate => store.update({ taxRate: rate })}
                 locked={locked}
               />
               <ControlsBar
@@ -136,9 +146,9 @@ const Index = ({ auth }: IndexProps) => {
                 month={store.month}
                 mode={store.mode}
                 locked={locked}
-                onYearChange={(y) => store.update({ year: y })}
-                onMonthChange={(m) => store.update({ month: m })}
-                onModeChange={(mode) => store.update({ mode })}
+                onYearChange={y => store.update({ year: y })}
+                onMonthChange={m => store.update({ month: m })}
+                onModeChange={mode => store.update({ mode })}
                 onToggleLock={store.toggleMonthLock}
               />
               <EntryTable
@@ -156,7 +166,7 @@ const Index = ({ auth }: IndexProps) => {
                 activeMonth={store.month}
                 getMonthGross={store.getMonthGross}
                 isMonthLocked={store.isMonthLocked}
-                onMonthClick={(m) => store.update({ month: m })}
+                onMonthClick={m => store.update({ month: m })}
               />
             </>
           )}
@@ -195,7 +205,7 @@ const Index = ({ auth }: IndexProps) => {
     );
   }
 
-  // Desktop layout
+  /* ─── Desktop layout ─── */
   return (
     <div className="min-h-screen bg-background px-4 pb-12 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-5xl">
@@ -203,13 +213,15 @@ const Index = ({ auth }: IndexProps) => {
 
         {/* Desktop tab bar */}
         <div className="segmented-control mb-6 no-print">
-          {([
-            { id: 'overview', label: 'Overview' },
-            { id: 'shifts', label: 'Shifts' },
-            { id: 'analytics', label: 'Analytics' },
-            { id: 'invoices', label: 'Invoices' },
-            { id: 'settings', label: 'Settings' },
-          ] as { id: TabId; label: string }[]).map(t => (
+          {(
+            [
+              { id: 'overview', label: 'Overview' },
+              { id: 'shifts', label: 'Shifts' },
+              { id: 'analytics', label: 'Analytics' },
+              { id: 'invoices', label: 'Invoices' },
+              { id: 'settings', label: 'Settings' },
+            ] as { id: TabId; label: string }[]
+          ).map(t => (
             <button
               key={t.id}
               onClick={() => setActiveTab(t.id)}
@@ -227,7 +239,7 @@ const Index = ({ auth }: IndexProps) => {
                 monthGross={monthGross}
                 taxRate={store.taxRate}
                 yearGross={yearGross}
-                onTaxRateChange={(rate) => store.update({ taxRate: rate })}
+                onTaxRateChange={rate => store.update({ taxRate: rate })}
                 locked={locked}
               />
               <ControlsBar
@@ -235,9 +247,9 @@ const Index = ({ auth }: IndexProps) => {
                 month={store.month}
                 mode={store.mode}
                 locked={locked}
-                onYearChange={(y) => store.update({ year: y })}
-                onMonthChange={(m) => store.update({ month: m })}
-                onModeChange={(mode) => store.update({ mode })}
+                onYearChange={y => store.update({ year: y })}
+                onMonthChange={m => store.update({ month: m })}
+                onModeChange={mode => store.update({ mode })}
                 onToggleLock={store.toggleMonthLock}
               />
               <EntryTable
@@ -256,7 +268,7 @@ const Index = ({ auth }: IndexProps) => {
                   activeMonth={store.month}
                   getMonthGross={store.getMonthGross}
                   isMonthLocked={store.isMonthLocked}
-                  onMonthClick={(m) => store.update({ month: m })}
+                  onMonthClick={m => store.update({ month: m })}
                 />
               </div>
             </>

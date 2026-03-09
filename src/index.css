@@ -230,25 +230,33 @@
 
   /* Mobile card entry style */
   .entry-card {
-    @apply glass-card p-4 space-y-2;
+    @apply glass-card p-3 space-y-2;
   }
 
-  /* Safe area bottom padding utility */
+  /* Safe area utilities */
   .pb-safe-bottom {
     padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  .pt-safe-top {
+    padding-top: env(safe-area-inset-top, 0px);
   }
 
   /* Scrollbar hide utility */
   .scrollbar-none {
     scrollbar-width: none;
+    -ms-overflow-style: none;
   }
   .scrollbar-none::-webkit-scrollbar {
     display: none;
   }
 
-  /* Print — hide non-invoice UI */
-  .no-print {
-    /* removed by print media query */
+  /* Compact glass card for mobile — tighter padding */
+  @media (max-width: 767px) {
+    .glass-card,
+    .glass-card-glow {
+      border-radius: 18px;
+    }
   }
 }
 

@@ -10,7 +10,9 @@ interface YearlyOverviewProps {
   onMonthClick: (month: number) => void;
 }
 
-const YearlyOverview = ({ year, activeMonth, getMonthGross, isMonthLocked, onMonthClick }: YearlyOverviewProps) => {
+const YearlyOverview = ({
+  year, activeMonth, getMonthGross, isMonthLocked, onMonthClick,
+}: YearlyOverviewProps) => {
   const monthTotals = Array.from({ length: 12 }, (_, i) => getMonthGross(year, i));
   const yearTotal = monthTotals.reduce((s, v) => s + v, 0);
   const nonZeroMonths = monthTotals.filter(v => v > 0);
@@ -20,39 +22,35 @@ const YearlyOverview = ({ year, activeMonth, getMonthGross, isMonthLocked, onMon
   const maxForBar = bestMonthValue || 1;
 
   return (
-    <div className="space-y-4">
-      <h2 className="text-lg font-bold text-foreground">
-        {year} Overview
-      </h2>
+    <div className="space-y-3">
+      <h2 className="text-base font-bold text-foreground">{year} Overview</h2>
 
-      {/* KPI cards */}
-      <div className="grid grid-cols-3 gap-3">
-        <div className="glass-card-glow p-4 text-center">
-          <TrendingUp className="w-5 h-5 mx-auto text-primary mb-1" />
-          <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Year Total</p>
-          <p className="text-lg font-bold text-foreground mt-0.5">{formatCurrency(yearTotal)}</p>
-        </div>
-        <div className="glass-card p-4 text-center">
-          <BarChart3 className="w-5 h-5 mx-auto text-muted-foreground mb-1" />
-          <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Avg Month</p>
-          <p className="text-lg font-bold text-foreground mt-0.5">{formatCurrency(avgMonth)}</p>
-        </div>
-        <div className="glass-card p-4 text-center">
-          <Award className="w-5 h-5 mx-auto text-muted-foreground mb-1" />
-          <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Best Month</p>
-          <p className="text-lg font-bold text-foreground mt-0.5">
-            {bestMonthValue > 0 ? MONTH_SHORT[bestMonthIndex] : '—'}
-          </p>
-        </div>
+      {/* KPI cards — compact on mobile */}
+      <div className="grid grid-cols-3 gap-2">
+        {[
+          { Icon: TrendingUp, label: 'Year Total', value: formatCurrency(yearTotal), glow: true },
+          { Icon: BarChart3,  label: 'Avg Month',  value: formatCurrency(avgMonth),  glow: false },
+          { Icon: Award,      label: 'Best Month', value: bestMonthValue > 0 ? MONTH_SHORT[bestMonthIndex] : '—', glow: false },
+        ].map(({ Icon, label, value, glow }) => (
+          <div
+            key={label}
+            className={glow ? 'glass-card-glow text-center' : 'glass-card text-center'}
+            style={{ padding: '10px 8px' }}
+          >
+            <Icon className="w-4 h-4 mx-auto mb-1" style={{ color: glow ? 'hsl(var(--primary))' : 'hsl(var(--muted-foreground))' }} />
+            <p className="text-[9px] font-semibold text-muted-foreground uppercase tracking-wider leading-none mb-1">{label}</p>
+            <p className="text-sm font-bold text-foreground leading-tight">{value}</p>
+          </div>
+        ))}
       </div>
 
       {/* Month grid */}
       <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 lg:grid-cols-6">
         {MONTH_SHORT.map((name, i) => {
           const total = monthTotals[i];
-          const pct = yearTotal > 0 ? ((total / yearTotal) * 100) : 0;
+          const pct = yearTotal > 0 ? (total / yearTotal) * 100 : 0;
           const barWidth = (total / maxForBar) * 100;
-          const locked = isMonthLocked(year, i);
+          const isLocked = isMonthLocked(year, i);
           const isActive = i === activeMonth;
 
           return (
@@ -60,23 +58,24 @@ const YearlyOverview = ({ year, activeMonth, getMonthGross, isMonthLocked, onMon
               key={name}
               onClick={() => onMonthClick(i)}
               className={isActive ? 'month-card-active' : 'month-card'}
+              style={{ padding: '10px 10px 8px' }}
             >
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-bold text-foreground">{name}</span>
-                {locked ? (
-                  <Lock className="w-3 h-3 text-muted-foreground" />
+              <div className="flex items-center justify-between mb-1.5">
+                <span className="text-xs font-bold text-foreground">{name}</span>
+                {isLocked ? (
+                  <Lock className="w-2.5 h-2.5 text-muted-foreground" />
                 ) : (
-                  <Unlock className="w-3 h-3 text-muted-foreground opacity-40" />
+                  <Unlock className="w-2.5 h-2.5 text-muted-foreground opacity-30" />
                 )}
               </div>
-              <p className="text-sm font-semibold text-foreground mb-1.5">
+              <p className="text-xs font-semibold text-foreground mb-1.5 leading-none">
                 {formatCurrency(total)}
               </p>
-              <div className="progress-bar">
+              <div className="progress-bar" style={{ height: 3 }}>
                 <div className="progress-fill" style={{ width: `${barWidth}%` }} />
               </div>
-              <p className="text-[10px] text-muted-foreground mt-1.5 font-medium">
-                {pct.toFixed(1)}% of year
+              <p className="text-[9px] text-muted-foreground mt-1 font-medium leading-none">
+                {pct.toFixed(0)}%
               </p>
             </button>
           );
