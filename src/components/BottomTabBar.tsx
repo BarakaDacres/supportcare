@@ -18,7 +18,13 @@ const tabs: { id: TabId; label: string; icon: typeof LayoutDashboard }[] = [
 const BottomTabBar = ({ activeTab, onTabChange }: BottomTabBarProps) => {
   return (
     <nav
-      className="fixed bottom-0 inset-x-0 z-50 md:hidden no-print"
+      className="fixed bottom-0 inset-x-0 z-50 md:hidden no-print transition-all duration-200"
+      style={{
+        // Instantly hidden when a sheet sets --tab-bar-hidden on <html>
+        display: 'var(--tab-bar-hidden, 0)' === '1' ? 'none' : undefined,
+        opacity: getComputedStyle(document.documentElement).getPropertyValue('--tab-bar-hidden').trim() === '1' ? '0' : undefined,
+        pointerEvents: getComputedStyle(document.documentElement).getPropertyValue('--tab-bar-hidden').trim() === '1' ? 'none' : undefined,
+      }}
       role="tablist"
       aria-label="Main navigation"
       style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
