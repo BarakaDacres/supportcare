@@ -19,6 +19,7 @@ export interface UserSettings {
   rate_sunday: number;
   rate_sleepover_weekday: number;
   rate_sleepover_weekend: number;
+  rate_public_holiday: number;
   invoice_counter: number;
 }
 
@@ -37,6 +38,7 @@ export const DEFAULT_SETTINGS: Omit<UserSettings, 'id' | 'user_id'> = {
   rate_sunday: 90,
   rate_sleepover_weekday: 300,
   rate_sleepover_weekend: 350,
+  rate_public_holiday: 150,
   invoice_counter: 0,
 };
 
@@ -64,7 +66,6 @@ export function useUserSettings() {
       }
 
       if (!data) {
-        // First-time user — create default settings row
         const { data: created, error: insertErr } = await supabase
           .from('user_settings')
           .insert({ user_id: uid })
@@ -72,7 +73,6 @@ export function useUserSettings() {
           .single();
 
         if (insertErr) {
-          // Row may have been created by trigger; retry
           const { data: retry } = await supabase
             .from('user_settings')
             .select('*')
@@ -159,6 +159,7 @@ export function useUserSettings() {
     rate_sunday: settings?.rate_sunday ?? 90,
     rate_sleepover_weekday: settings?.rate_sleepover_weekday ?? 300,
     rate_sleepover_weekend: settings?.rate_sleepover_weekend ?? 350,
+    rate_public_holiday: settings?.rate_public_holiday ?? 150,
   }), [settings]);
 
   return { settings, loading, fetchSettings, updateSettings, incrementInvoiceCounter, getRates };

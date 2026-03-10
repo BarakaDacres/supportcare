@@ -247,6 +247,7 @@ export type Database = {
           invoice_counter: number
           invoice_notes: string | null
           monthly_goal: number | null
+          rate_public_holiday: number
           rate_saturday: number
           rate_sleepover_weekday: number
           rate_sleepover_weekend: number
@@ -268,6 +269,7 @@ export type Database = {
           invoice_counter?: number
           invoice_notes?: string | null
           monthly_goal?: number | null
+          rate_public_holiday?: number
           rate_saturday?: number
           rate_sleepover_weekday?: number
           rate_sleepover_weekend?: number
@@ -289,6 +291,7 @@ export type Database = {
           invoice_counter?: number
           invoice_notes?: string | null
           monthly_goal?: number | null
+          rate_public_holiday?: number
           rate_saturday?: number
           rate_sleepover_weekday?: number
           rate_sleepover_weekend?: number

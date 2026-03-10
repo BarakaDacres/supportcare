@@ -36,6 +36,8 @@
     --stat-green: 142 71% 45%;
     --stat-amber: 38 92% 50%;
     --stat-red: 0 84% 60%;
+    --money-green: 145 63% 40%;
+    --money-green-fg: 145 63% 20%;
 
     --tab-bar-bg: 240 6% 97% / 0.82;
     --header-bg: 240 6% 97% / 0.88;
@@ -79,6 +81,8 @@
 
     --tab-bar-bg: 0 0% 4% / 0.85;
     --header-bg: 0 0% 4% / 0.9;
+    --money-green: 145 58% 52%;
+    --money-green-fg: 0 0% 98%;
 
     /* iOS 26 Liquid Glass tokens – dark */
     --lg-pill-bg: 0 0% 14% / 0.7;
@@ -258,6 +262,11 @@
       border-radius: 18px;
     }
   }
+
+  /* ── Money green accent for all currency values ── */
+  .money-text {
+    color: hsl(var(--money-green));
+  }
 }
 
 @media print {
@@ -313,8 +322,10 @@
 
   .invoice-print-area .text-foreground,
   .invoice-print-area h1,
+  .invoice-print-area h2,
   .invoice-print-area p,
-  .invoice-print-area span {
+  .invoice-print-area span,
+  .invoice-print-area div {
     color: black !important;
   }
 
@@ -322,8 +333,27 @@
     color: #555 !important;
   }
 
+  /* Money-green prints as a readable dark green */
+  .invoice-print-area .money-text {
+    color: #1a7a3a !important;
+  }
+
   .invoice-print-area [style*="color: hsl(var(--primary))"] {
     color: #0071e3 !important;
+  }
+
+  /* Striped rows print legibly */
+  .invoice-print-area [style*="hsl(var(--muted)/0.2)"] {
+    background: #f5f5f5 !important;
+  }
+
+  .invoice-print-area [style*="hsl(var(--money-green)/0.1)"] {
+    background: #eafaf0 !important;
+    border-color: #a3ddb6 !important;
+  }
+
+  .invoice-print-area [style*="hsl(var(--primary)/0.1)"] {
+    background: #e8f2ff !important;
   }
 
   .no-print,

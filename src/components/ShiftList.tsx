@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Plus, Pencil, Trash2, Copy, Moon, User, ChevronDown, SortAsc, Lock } from 'lucide-react';
+import { Plus, Pencil, Trash2, Copy, Moon, User, ChevronDown, SortAsc, Lock, Sun } from 'lucide-react';
 import type { Shift, NewShift } from '@/hooks/useShifts';
 import type { Client } from '@/hooks/useClients';
 import type { PayRates } from '@/lib/shiftCalculator';
@@ -18,26 +18,33 @@ interface ShiftListProps {
   onUpdate: (id: string, shift: Partial<NewShift>) => Promise<void>;
   onDelete: (id: string) => Promise<void>;
   onDuplicate: (id: string) => Promise<void>;
-  /** Called when the add/edit sheet opens (true) or closes (false) */
   onSheetOpenChange?: (open: boolean) => void;
 }
 
 type FilterPeriod = 'all' | 'week' | 'fortnight' | 'month' | 'year';
 type SortMode = 'date-desc' | 'date-asc' | 'pay-desc';
 
-/** Parse YYYY-MM-DD safely without timezone shift */
 function parseLocalDate(dateStr: string): Date {
   const [y, m, d] = dateStr.split('-').map(Number);
   return new Date(y, m - 1, d);
 }
 
-/** Get Monday of week containing date */
 function getMonday(d: Date): Date {
   const result = new Date(d);
   const dow = d.getDay();
   result.setDate(d.getDate() - (dow === 0 ? 6 : dow - 1));
   result.setHours(0, 0, 0, 0);
   return result;
+}
+
+/** Badge type helpers */
+function getShiftBadges(shift: Shift) {
+  const dow = getDayOfWeek(shift.date); // 0=Sun,6=Sat
+  const isWeekend = dow === 0 || dow === 6; // Sat or Sun
+  const isWeekday = !isWeekend; // Mon–Fri (including Friday)
+  const isSleepover = shift.is_sleepover;
+
+  return { isSleepover, isWeekend, isWeekday };
 }
 
 const ShiftList = ({
@@ -94,10 +101,6 @@ const ShiftList = ({
   const totalHours = filtered.filter(s => !s.is_sleepover).reduce((s, sh) => s + Number(sh.hours_worked), 0);
   const sleepovers = filtered.filter(s => s.is_sleepover).length;
 
-  /** Check whether a shift falls in a locked month (uses store.isMonthLocked via `locked` prop) */
-  // Note: `locked` prop here reflects the *currently selected* month lock.
-  // We do a best-effort check: if user hasn't selected a month, we just use the `locked` prop
-  // For per-shift locking we'd need store access — for now `locked` protects the whole tab
   const isShiftEditable = (_shift: Shift) => !locked;
 
   const handleAdd = async (shift: NewShift) => {
@@ -150,7 +153,6 @@ const ShiftList = ({
 
       {/* Filters */}
       <div className="glass-card p-3 space-y-3">
-        {/* Period filter — scrollable on tiny screens */}
         <div className="flex gap-0.5 overflow-x-auto scrollbar-none glass-surface rounded-xl p-1">
           {(['week', 'fortnight', 'month', 'year', 'all'] as FilterPeriod[]).map(p => (
             <button
@@ -172,7 +174,6 @@ const ShiftList = ({
         </div>
 
         <div className="flex gap-2">
-          {/* Client filter */}
           {clients.length > 0 && (
             <div className="relative flex-1 min-w-0">
               <User className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none" />
@@ -190,7 +191,6 @@ const ShiftList = ({
             </div>
           )}
 
-          {/* Sort */}
           <div className="relative shrink-0">
             <SortAsc className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none" />
             <select
@@ -210,7 +210,7 @@ const ShiftList = ({
       {/* Summary chips */}
       <div className="flex flex-wrap gap-2">
         <span className="glass-chip">
-          <span className="font-bold" style={{ color: 'hsl(var(--primary))' }}>{formatCurrency(totalGross)}</span>
+          <span className="font-bold money-text">{formatCurrency(totalGross)}</span>
           <span className="text-muted-foreground text-[10px]"> gross</span>
         </span>
         <span className="glass-chip text-muted-foreground">
@@ -250,26 +250,36 @@ const ShiftList = ({
         <div className="space-y-2">
           {filtered.map(shift => {
             const editable = isShiftEditable(shift);
+            const { isSleepover, isWeekend, isWeekday } = getShiftBadges(shift);
             return (
               <div key={shift.id} className="glass-card p-4 space-y-2">
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-1.5 flex-wrap">
                       <span className="text-sm font-bold text-foreground">{formatDateLabel(shift.date)}</span>
-                      {shift.is_sleepover && (
+
+                      {/* Sleepover badge — blue pill */}
+                      {isSleepover && (
                         <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold text-white" style={{ background: '#2563EB' }}>
                           <Moon className="w-2.5 h-2.5" /> Sleepover
                         </span>
                       )}
-                      {(() => {
-                        const dow = getDayOfWeek(shift.date); // 0=Sun,6=Sat
-                        const isWeekend = dow === 0 || dow === 6;
-                        return isWeekend ? (
-                          <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold text-white" style={{ background: '#7C3AED' }}>
-                            Weekend
-                          </span>
-                        ) : null;
-                      })()}
+
+                      {/* Weekend badge — purple pill (Sat/Sun only, not Friday) */}
+                      {isWeekend && (
+                        <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold text-white" style={{ background: '#7C3AED' }}>
+                          <Sun className="w-2.5 h-2.5" /> Weekend
+                        </span>
+                      )}
+
+                      {/* Weekday badge — subtle grey pill for non-sleepover Mon–Fri shifts */}
+                      {isWeekday && !isSleepover && (
+                        <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold"
+                          style={{ background: 'hsl(var(--muted))', color: 'hsl(var(--muted-foreground))' }}>
+                          Weekday
+                        </span>
+                      )}
+
                       {shift.client_name && (
                         <span className="glass-chip text-[10px] py-0.5 px-2 text-muted-foreground">
                           <User className="w-2.5 h-2.5" /> {shift.client_name}
@@ -285,7 +295,7 @@ const ShiftList = ({
                     )}
                   </div>
                   <div className="text-right shrink-0">
-                    <p className="text-base font-bold text-foreground">
+                    <p className="text-base font-bold money-text">
                       {formatCurrency(Number(shift.gross_pay))}
                     </p>
                   </div>
@@ -379,7 +389,7 @@ const ShiftList = ({
         />
       )}
 
-      {/* Floating add button — mobile only, visible when not locked */}
+      {/* Floating add button — mobile only */}
       {!locked && !showForm && !editingShift && (
         <button
           onClick={() => { setShowForm(true); openSheet(true); }}

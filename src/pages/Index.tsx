@@ -6,7 +6,6 @@ import { useClients } from '@/hooks/useClients';
 import { useUserSettings } from '@/hooks/useUserSettings';
 import Header from '@/components/Header';
 import MobileHeader from '@/components/MobileHeader';
-import StatsCards from '@/components/StatsCards';
 import ControlsBar from '@/components/ControlsBar';
 import EntryTable from '@/components/EntryTable';
 import YearlyOverview from '@/components/YearlyOverview';
@@ -17,6 +16,7 @@ import AnalyticsPanel from '@/components/AnalyticsPanel';
 import InvoicePanel from '@/components/InvoicePanel';
 import AppSettingsPanel from '@/components/AppSettingsPanel';
 import ClientsPanel from '@/components/ClientsPanel';
+import OverviewPanel from '@/components/OverviewPanel';
 import { getWeekRangesForMonth } from '@/lib/dateUtils';
 import type { AuthState } from '@/hooks/useAuth';
 
@@ -39,6 +39,7 @@ const Index = ({ auth }: IndexProps) => {
         rate_sunday: settings.rate_sunday,
         rate_sleepover_weekday: settings.rate_sleepover_weekday,
         rate_sleepover_weekend: settings.rate_sleepover_weekend,
+        rate_public_holiday: settings.rate_public_holiday,
       }
     : undefined;
 
@@ -46,8 +47,6 @@ const Index = ({ auth }: IndexProps) => {
   const { clients, loading: clientsLoading, addClient, updateClient, deleteClient } = useClients();
 
   const locked = store.isMonthLocked(store.year, store.month);
-  const monthGross = store.getMonthGross(store.year, store.month);
-  const yearGross = store.getYearGross(store.year);
 
   const weeks = getWeekRangesForMonth(store.year, store.month);
   const weeklyEntries =
@@ -92,21 +91,50 @@ const Index = ({ auth }: IndexProps) => {
         />
       )}
       {settingsSubTab === 'legacy' && (
-        <SettingsPanel
-          year={store.year}
-          month={store.month}
-          mode={store.mode}
-          taxRate={store.taxRate}
-          locked={locked}
-          theme={store.theme}
-          auth={auth}
-          onYearChange={y => store.update({ year: y })}
-          onMonthChange={m => store.update({ month: m })}
-          onModeChange={mode => store.update({ mode })}
-          onTaxRateChange={rate => store.update({ taxRate: rate })}
-          onToggleLock={store.toggleMonthLock}
-          onToggleTheme={store.toggleTheme}
-        />
+        <div className="space-y-4">
+          <ControlsBar
+            year={store.year}
+            month={store.month}
+            mode={store.mode}
+            locked={locked}
+            onYearChange={y => store.update({ year: y })}
+            onMonthChange={m => store.update({ month: m })}
+            onModeChange={mode => store.update({ mode })}
+            onToggleLock={store.toggleMonthLock}
+          />
+          <EntryTable
+            year={store.year}
+            month={store.month}
+            mode={store.mode}
+            weeklyEntries={weeklyEntries}
+            fortnightlyEntries={fortnightlyEntries}
+            locked={locked}
+            onWeeklyChange={store.setWeeklyValue}
+            onFortnightlyChange={store.setFortnightlyValue}
+          />
+          <YearlyOverview
+            year={store.year}
+            activeMonth={store.month}
+            getMonthGross={store.getMonthGross}
+            isMonthLocked={store.isMonthLocked}
+            onMonthClick={m => store.update({ month: m })}
+          />
+          <SettingsPanel
+            year={store.year}
+            month={store.month}
+            mode={store.mode}
+            taxRate={store.taxRate}
+            locked={locked}
+            theme={store.theme}
+            auth={auth}
+            onYearChange={y => store.update({ year: y })}
+            onMonthChange={m => store.update({ month: m })}
+            onModeChange={mode => store.update({ mode })}
+            onTaxRateChange={rate => store.update({ taxRate: rate })}
+            onToggleLock={store.toggleMonthLock}
+            onToggleTheme={store.toggleTheme}
+          />
+        </div>
       )}
     </div>
   );
@@ -125,51 +153,12 @@ const Index = ({ auth }: IndexProps) => {
           onToggleLock={store.toggleMonthLock}
         />
 
-        {/*
-          pb-[calc(env(safe-area-inset-bottom,0px)+72px)]
-          = tab bar pill height (50px) + pill margin-bottom (8px) + extra breathing room (14px)
-        */}
         <main
           className="px-4 space-y-5 pt-3"
           style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 80px)' }}
         >
           {activeTab === 'overview' && (
-            <>
-              <StatsCards
-                monthGross={monthGross}
-                taxRate={store.taxRate}
-                yearGross={yearGross}
-                onTaxRateChange={rate => store.update({ taxRate: rate })}
-                locked={locked}
-              />
-              <ControlsBar
-                year={store.year}
-                month={store.month}
-                mode={store.mode}
-                locked={locked}
-                onYearChange={y => store.update({ year: y })}
-                onMonthChange={m => store.update({ month: m })}
-                onModeChange={mode => store.update({ mode })}
-                onToggleLock={store.toggleMonthLock}
-              />
-              <EntryTable
-                year={store.year}
-                month={store.month}
-                mode={store.mode}
-                weeklyEntries={weeklyEntries}
-                fortnightlyEntries={fortnightlyEntries}
-                locked={locked}
-                onWeeklyChange={store.setWeeklyValue}
-                onFortnightlyChange={store.setFortnightlyValue}
-              />
-              <YearlyOverview
-                year={store.year}
-                activeMonth={store.month}
-                getMonthGross={store.getMonthGross}
-                isMonthLocked={store.isMonthLocked}
-                onMonthClick={m => store.update({ month: m })}
-              />
-            </>
+            <OverviewPanel shifts={shifts} settings={settings} />
           )}
 
           {activeTab === 'shifts' && (
@@ -236,44 +225,7 @@ const Index = ({ auth }: IndexProps) => {
 
         <div className="space-y-6">
           {activeTab === 'overview' && (
-            <>
-              <StatsCards
-                monthGross={monthGross}
-                taxRate={store.taxRate}
-                yearGross={yearGross}
-                onTaxRateChange={rate => store.update({ taxRate: rate })}
-                locked={locked}
-              />
-              <ControlsBar
-                year={store.year}
-                month={store.month}
-                mode={store.mode}
-                locked={locked}
-                onYearChange={y => store.update({ year: y })}
-                onMonthChange={m => store.update({ month: m })}
-                onModeChange={mode => store.update({ mode })}
-                onToggleLock={store.toggleMonthLock}
-              />
-              <EntryTable
-                year={store.year}
-                month={store.month}
-                mode={store.mode}
-                weeklyEntries={weeklyEntries}
-                fortnightlyEntries={fortnightlyEntries}
-                locked={locked}
-                onWeeklyChange={store.setWeeklyValue}
-                onFortnightlyChange={store.setFortnightlyValue}
-              />
-              <div className="print-break">
-                <YearlyOverview
-                  year={store.year}
-                  activeMonth={store.month}
-                  getMonthGross={store.getMonthGross}
-                  isMonthLocked={store.isMonthLocked}
-                  onMonthClick={m => store.update({ month: m })}
-                />
-              </div>
-            </>
+            <OverviewPanel shifts={shifts} settings={settings} />
           )}
 
           {activeTab === 'shifts' && (

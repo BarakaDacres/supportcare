@@ -52,6 +52,9 @@ export default {
           amber: "hsl(var(--stat-amber))",
           red: "hsl(var(--stat-red))",
         },
+        money: {
+          green: "hsl(var(--money-green))",
+        },
       },
       borderRadius: {
         lg: "var(--radius)",

@@ -5,8 +5,9 @@
  *  Mon–Fri daytime  $60/hr
  *  Saturday         $75/hr
  *  Sunday           $90/hr
- *  Weekday sleepover flat $300
- *  Weekend sleepover flat $350  (Fri/Sat/Sun nights)
+ *  Public Holiday   $150/hr
+ *  Weekday sleepover flat $300  (Mon–Fri nights)
+ *  Weekend sleepover flat $350  (Sat/Sun nights only — Friday is weekday)
  *
  * Shifts that cross midnight are split across days automatically.
  */
@@ -15,8 +16,9 @@ export interface PayRates {
   rate_weekday: number;           // Mon–Fri hourly
   rate_saturday: number;          // Saturday hourly
   rate_sunday: number;            // Sunday hourly
-  rate_sleepover_weekday: number; // flat per night Mon–Thu
-  rate_sleepover_weekend: number; // flat per night Fri–Sun
+  rate_sleepover_weekday: number; // flat per night Mon–Fri
+  rate_sleepover_weekend: number; // flat per night Sat–Sun
+  rate_public_holiday?: number;   // Public holiday hourly (optional, future use)
 }
 
 export const DEFAULT_RATES: PayRates = {
@@ -25,6 +27,7 @@ export const DEFAULT_RATES: PayRates = {
   rate_sunday: 90,
   rate_sleepover_weekday: 300,
   rate_sleepover_weekend: 350,
+  rate_public_holiday: 150,
 };
 
 /**
@@ -46,12 +49,13 @@ export function hourlyRate(dayOfWeek: number, rates: PayRates): number {
 
 /**
  * Is a night a "weekend sleepover" night?
- * Weekend sleepover = the night of Friday, Saturday, or Sunday (i.e., you sleep through into Sat, Sun, Mon morning).
+ * Weekend sleepover = ONLY Saturday night or Sunday night.
+ * Friday is treated as a WEEKDAY night ($300).
  * dayOfWeek is the day the shift STARTS (the "night" day).
  */
 export function isWeekendSleeperNight(dayOfWeek: number): boolean {
-  // Fri=5, Sat=6, Sun=0
-  return dayOfWeek === 5 || dayOfWeek === 6 || dayOfWeek === 0;
+  // Sat=6, Sun=0 only. Friday=5 is weekday.
+  return dayOfWeek === 6 || dayOfWeek === 0;
 }
 
 interface DaySegment {
@@ -135,6 +139,7 @@ export function calculateShiftPay(
 
   if (isSleepover) {
     // Sleepover: flat rate based on the day the shift starts (the "night")
+    // Weekend = Sat(6) or Sun(0) only. Fri(5) is WEEKDAY.
     const dayOfWeek = getDayOfWeek(dateStr);
     const rate = isWeekendSleeperNight(dayOfWeek)
       ? rates.rate_sleepover_weekend

@@ -12,7 +12,6 @@ const AppSettingsPanel = ({ settings, loading, onSave }: AppSettingsPanelProps) 
   const [form, setForm] = useState<Partial<Omit<UserSettings, 'id' | 'user_id'>>>({});
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
-  // Track if we've waited long enough to show an error instead of spinner
   const [timedOut, setTimedOut] = useState(false);
 
   useEffect(() => {
@@ -24,7 +23,6 @@ const AppSettingsPanel = ({ settings, loading, onSave }: AppSettingsPanelProps) 
     return () => clearTimeout(t);
   }, [loading]);
 
-  // Loading state — only show spinner briefly, then show error if stuck
   if (loading) {
     if (timedOut) {
       return (
@@ -44,8 +42,6 @@ const AppSettingsPanel = ({ settings, loading, onSave }: AppSettingsPanelProps) 
     );
   }
 
-  // Settings row doesn't exist yet (shouldn't normally happen — the DB trigger creates it,
-  // but handle gracefully as a fallback)
   if (!settings) {
     return (
       <div className="flex flex-col items-center justify-center py-12 gap-3 text-center">
@@ -87,6 +83,7 @@ const AppSettingsPanel = ({ settings, loading, onSave }: AppSettingsPanelProps) 
             { label: 'Mon–Fri ($/hr)', key: 'rate_weekday' as const },
             { label: 'Saturday ($/hr)', key: 'rate_saturday' as const },
             { label: 'Sunday ($/hr)', key: 'rate_sunday' as const },
+            { label: 'Public Holiday ($/hr)', key: 'rate_public_holiday' as const },
           ].map(({ label, key }) => (
             <div key={key} className="space-y-1">
               <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">{label}</label>
@@ -104,27 +101,41 @@ const AppSettingsPanel = ({ settings, loading, onSave }: AppSettingsPanelProps) 
             </div>
           ))}
           <div className="col-span-2 grid grid-cols-2 gap-3">
-            {[
-              { label: 'Weekday Sleepover (flat)', key: 'rate_sleepover_weekday' as const },
-              { label: 'Weekend Sleepover (flat)', key: 'rate_sleepover_weekend' as const },
-            ].map(({ label, key }) => (
-              <div key={key} className="space-y-1">
-                <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">{label}</label>
-                <div className="flex items-center gap-1">
-                  <span className="text-sm text-muted-foreground">$</span>
-                  <input
-                    type="number"
-                    min={0}
-                    step={1}
-                    value={val(key, settings[key]) as number}
-                    onChange={e => set(key, parseFloat(e.target.value) || 0)}
-                    className="glass-input flex-1 text-foreground min-h-[40px] text-sm"
-                  />
-                </div>
+            <div className="space-y-1">
+              <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Weekday Sleepover (flat)</label>
+              <p className="text-[9px] text-muted-foreground">Mon – Fri nights</p>
+              <div className="flex items-center gap-1">
+                <span className="text-sm text-muted-foreground">$</span>
+                <input
+                  type="number"
+                  min={0}
+                  step={1}
+                  value={val('rate_sleepover_weekday', settings.rate_sleepover_weekday) as number}
+                  onChange={e => set('rate_sleepover_weekday', parseFloat(e.target.value) || 0)}
+                  className="glass-input flex-1 text-foreground min-h-[40px] text-sm"
+                />
               </div>
-            ))}
+            </div>
+            <div className="space-y-1">
+              <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Weekend Sleepover (flat)</label>
+              <p className="text-[9px] text-muted-foreground">Sat & Sun nights only</p>
+              <div className="flex items-center gap-1">
+                <span className="text-sm text-muted-foreground">$</span>
+                <input
+                  type="number"
+                  min={0}
+                  step={1}
+                  value={val('rate_sleepover_weekend', settings.rate_sleepover_weekend) as number}
+                  onChange={e => set('rate_sleepover_weekend', parseFloat(e.target.value) || 0)}
+                  className="glass-input flex-1 text-foreground min-h-[40px] text-sm"
+                />
+              </div>
+            </div>
           </div>
         </div>
+        <p className="text-[10px] text-muted-foreground border-t border-border pt-2">
+          Friday sleepovers use the weekday flat rate. Weekend rate applies to Saturday &amp; Sunday nights only.
+        </p>
       </div>
 
       {/* Tax Estimate */}
@@ -240,9 +251,9 @@ const AppSettingsPanel = ({ settings, loading, onSave }: AppSettingsPanelProps) 
         disabled={saving || Object.keys(form).length === 0}
         className="w-full flex items-center justify-center gap-2 min-h-[48px] rounded-2xl text-sm font-bold transition-all duration-200 disabled:opacity-40"
         style={{
-          background: saved ? 'hsl(var(--stat-green)/0.15)' : 'hsl(var(--primary))',
-          color: saved ? 'hsl(var(--stat-green))' : 'hsl(var(--primary-foreground))',
-          boxShadow: saved ? '0 0 20px hsl(var(--stat-green)/0.25)' : '0 4px 16px hsl(var(--primary)/0.35)',
+          background: saved ? 'hsl(var(--money-green)/0.15)' : 'hsl(var(--primary))',
+          color: saved ? 'hsl(var(--money-green))' : 'hsl(var(--primary-foreground))',
+          boxShadow: saved ? '0 0 20px hsl(var(--money-green)/0.25)' : '0 4px 16px hsl(var(--primary)/0.35)',
         }}
       >
         {saved ? '✓ Saved!' : saving ? <><Loader2 className="w-4 h-4 animate-spin" /> Saving…</> : <><Save className="w-4 h-4" /> Save Settings</>}

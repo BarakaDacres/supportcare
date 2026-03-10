@@ -14,10 +14,10 @@ const StatsCards = ({ monthGross, taxRate, yearGross, onTaxRateChange, locked }:
   const yearNet = yearGross - yearGross * (taxRate / 100);
 
   const cards = [
-    { label: 'Month Gross',   value: formatCurrency(monthGross), icon: DollarSign,  glow: true  },
-    { label: 'Month Tax',     value: formatCurrency(monthTax),   icon: Calculator,  glow: false },
-    { label: 'Year Gross',    value: formatCurrency(yearGross),  icon: TrendingUp,  glow: true  },
-    { label: 'Year Net Est.', value: formatCurrency(yearNet),    icon: Wallet,      glow: false },
+    { label: 'Month Gross',   value: formatCurrency(monthGross), icon: DollarSign,  money: true,  glow: true  },
+    { label: 'Month Tax',     value: formatCurrency(monthTax),   icon: Calculator,  money: false, glow: false },
+    { label: 'Year Gross',    value: formatCurrency(yearGross),  icon: TrendingUp,  money: true,  glow: true  },
+    { label: 'Year Net Est.', value: formatCurrency(yearNet),    icon: Wallet,      money: true,  glow: false },
   ];
 
   return (
@@ -36,11 +36,8 @@ const StatsCards = ({ monthGross, taxRate, yearGross, onTaxRateChange, locked }:
               </span>
             </div>
             <p
-              className="font-bold tracking-tight text-foreground truncate"
-              style={{
-                fontSize: 'clamp(0.85rem, 3.2vw, 1.25rem)',
-                textShadow: card.glow ? '0 0 20px hsl(var(--primary) / 0.4)' : undefined,
-              }}
+              className={`font-bold tracking-tight truncate ${card.money ? 'money-text' : 'text-foreground'}`}
+              style={{ fontSize: 'clamp(0.85rem, 3.2vw, 1.25rem)' }}
             >
               {card.value}
             </p>
@@ -48,7 +45,7 @@ const StatsCards = ({ monthGross, taxRate, yearGross, onTaxRateChange, locked }:
         ))}
       </div>
 
-      {/* Tax rate row — compact */}
+      {/* Tax rate row */}
       <div className="flex items-center gap-2.5 no-print">
         <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider whitespace-nowrap">
           Tax Rate
