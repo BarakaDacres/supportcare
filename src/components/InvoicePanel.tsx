@@ -82,24 +82,30 @@ function formatDateShort(dateStr: string): string {
   return `${d} ${MONTH_NAMES[m - 1].slice(0, 3)} ${y}`;
 }
 
-const InvoicePanel = ({ shifts, settings, onIncrementCounter: _onIncrementCounter }: InvoicePanelProps) => {
+const InvoicePanel = ({ shifts, clients, settings, onIncrementCounter: _onIncrementCounter }: InvoicePanelProps) => {
   const currentYear = new Date().getFullYear();
   const [selectedYear, setSelectedYear] = useState(currentYear);
   const [selectedFnIdx, setSelectedFnIdx] = useState(0);
+  const [selectedClientId, setSelectedClientId] = useState('');
   const [generating, setGenerating] = useState(false);
   const [preview, setPreview] = useState<InvoiceData | null>(null);
 
   const periods = useMemo(() => getFortnightPeriodsForYear(selectedYear), [selectedYear]);
   const selectedPeriod = periods[selectedFnIdx] ?? periods[0];
+  const selectedClient = clients.find(c => c.id === selectedClientId) ?? null;
 
   const periodShifts = useMemo(() => {
     if (!selectedPeriod) return [];
     const startStr = formatDateISO(selectedPeriod.start);
     const endStr = formatDateISO(selectedPeriod.end);
     return shifts
-      .filter(s => s.date >= startStr && s.date <= endStr)
+      .filter(s => {
+        if (s.date < startStr || s.date > endStr) return false;
+        if (selectedClientId && s.client_id !== selectedClientId) return false;
+        return true;
+      })
       .sort((a, b) => a.date.localeCompare(b.date) || a.start_time.localeCompare(b.start_time));
-  }, [shifts, selectedPeriod]);
+  }, [shifts, selectedPeriod, selectedClientId]);
 
   const total = periodShifts.reduce((s, sh) => s + effectiveGrossPay(sh), 0);
 
@@ -108,8 +114,12 @@ const InvoicePanel = ({ shifts, settings, onIncrementCounter: _onIncrementCounte
     setGenerating(true);
 
     const pad = (n: number) => String(n).padStart(2, '0');
-    const invoiceNumber = `INV-${selectedYear}-FN${pad(selectedPeriod.fnNumber)}`;
+    const clientSuffix = selectedClient ? `-${selectedClient.name.replace(/\s+/g, '').slice(0, 8).toUpperCase()}` : '';
+    const invoiceNumber = `INV-${selectedYear}-FN${pad(selectedPeriod.fnNumber)}${clientSuffix}`;
     const today = new Date();
+
+    // Use client-specific invoice notes if available, else fall back to settings
+    const clientInvoiceNotes = selectedClient?.invoice_notes ?? null;
 
     const data: InvoiceData = {
       invoiceNumber,
@@ -124,7 +134,7 @@ const InvoicePanel = ({ shifts, settings, onIncrementCounter: _onIncrementCounte
       bankName: settings?.bank_name ?? '',
       bsb: settings?.bsb ?? '',
       accountNumber: settings?.account_number ?? '',
-      invoiceNotes: settings?.invoice_notes || 'GST-free supply – no GST charged. Payment due within 14 days.',
+      invoiceNotes: clientInvoiceNotes || settings?.invoice_notes || 'GST-free supply – no GST charged. Payment due within 14 days.',
     };
 
     setPreview(data);
