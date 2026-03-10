@@ -43,7 +43,8 @@ function getShiftBadges(shift: Shift) {
   const isWeekend = dow === 0 || dow === 6;
   const isWeekday = !isWeekend;
   const isSleepover = shift.is_sleepover;
-  return { isSleepover, isWeekend, isWeekday };
+  const isPublicHoliday = shift.is_public_holiday;
+  return { isSleepover, isWeekend, isWeekday, isPublicHoliday };
 }
 
 const ShiftList = ({
