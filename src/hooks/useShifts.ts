@@ -28,11 +28,19 @@ export interface NewShift {
   notes?: string | null;
 }
 
+function mapShiftRow(row: Record<string, unknown>): Shift {
+  return {
+    ...(row as Omit<Shift, 'client_name'>),
+    client_name: (row.clients as { name: string } | null)?.name ?? null,
+  };
+}
+
 export function useShifts(rates: PayRates = DEFAULT_RATES) {
   const [shifts, setShifts] = useState<Shift[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const userIdRef = useRef<string | null>(null);
+  const initializedRef = useRef(false);
 
   const fetchShifts = useCallback(async (userId?: string) => {
     const uid = userId ?? userIdRef.current;
@@ -43,33 +51,34 @@ export function useShifts(rates: PayRates = DEFAULT_RATES) {
     setLoading(true);
     setError(null);
 
-    const { data, error: err } = await supabase
-      .from('shifts')
-      .select(`*, clients (name)`)
-      .order('date', { ascending: false })
-      .order('start_time', { ascending: false });
+    try {
+      const { data, error: err } = await supabase
+        .from('shifts')
+        .select(`*, clients (name)`)
+        .order('date', { ascending: false })
+        .order('start_time', { ascending: false });
 
-    if (err) {
-      setError(err.message);
+      if (err) {
+        setError(err.message);
+        return;
+      }
+
+      setShifts((data ?? []).map(row => mapShiftRow(row as Record<string, unknown>)));
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Failed to load shifts.');
+    } finally {
       setLoading(false);
-      return;
     }
-
-    const mapped: Shift[] = (data ?? []).map((row: Record<string, unknown>) => ({
-      ...(row as Omit<Shift, 'client_name'>),
-      client_name: (row.clients as { name: string } | null)?.name ?? null,
-    }));
-    setShifts(mapped);
-    setLoading(false);
   }, []);
 
   useEffect(() => {
     let realtimeChannel: ReturnType<typeof supabase.channel> | null = null;
 
-    // 1. Restore session from storage first, then listen for changes
+    // 1. Restore session from storage first — always triggers a fresh fetch
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) {
         userIdRef.current = session.user.id;
+        initializedRef.current = true;
         fetchShifts(session.user.id);
       } else {
         userIdRef.current = null;
@@ -78,15 +87,19 @@ export function useShifts(rates: PayRates = DEFAULT_RATES) {
       }
     });
 
-    // 2. Subscribe to subsequent auth changes (login / logout)
+    // 2. Subscribe to subsequent auth changes (login / logout / token refresh)
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       if (session) {
-        if (userIdRef.current !== session.user.id) {
-          userIdRef.current = session.user.id;
-          fetchShifts(session.user.id);
+        const uid = session.user.id;
+        // Always refetch on user change; also fetch if not yet initialized by getSession
+        if (userIdRef.current !== uid || !initializedRef.current) {
+          userIdRef.current = uid;
+          initializedRef.current = true;
+          fetchShifts(uid);
         }
       } else {
         userIdRef.current = null;
+        initializedRef.current = false;
         setShifts([]);
         setLoading(false);
         if (realtimeChannel) {
@@ -147,11 +160,7 @@ export function useShifts(rates: PayRates = DEFAULT_RATES) {
       console.error('addShift error:', err);
       throw new Error(err.message ?? 'Failed to save shift.');
     }
-    const row = data as Record<string, unknown>;
-    const newShift: Shift = {
-      ...(row as Omit<Shift, 'client_name'>),
-      client_name: (row.clients as { name: string } | null)?.name ?? null,
-    };
+    const newShift = mapShiftRow(data as Record<string, unknown>);
     // Optimistic update — realtime will confirm
     setShifts(prev => [newShift, ...prev]);
     return newShift;
@@ -177,12 +186,7 @@ export function useShifts(rates: PayRates = DEFAULT_RATES) {
       .single();
 
     if (err) { console.error(err); return; }
-    const row = data as Record<string, unknown>;
-    const updated: Shift = {
-      ...(row as Omit<Shift, 'client_name'>),
-      client_name: (row.clients as { name: string } | null)?.name ?? null,
-    };
-    setShifts(prev => prev.map(s => s.id === id ? updated : s));
+    setShifts(prev => prev.map(s => s.id === id ? mapShiftRow(data as Record<string, unknown>) : s));
   }, [shifts, rates]);
 
   const deleteShift = useCallback(async (id: string): Promise<void> => {
