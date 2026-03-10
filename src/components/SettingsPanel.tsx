@@ -9,7 +9,6 @@ interface SettingsPanelProps {
   taxRate: number;
   locked: boolean;
   theme: 'light' | 'dark';
-  auth?: AuthState;
   onYearChange: (y: number) => void;
   onMonthChange: (m: number) => void;
   onModeChange: (mode: EntryMode) => void;
@@ -19,7 +18,7 @@ interface SettingsPanelProps {
 }
 
 const SettingsPanel = ({
-  year, month, mode, taxRate, locked, theme, auth,
+  year, month, mode, taxRate, locked, theme,
   onYearChange, onMonthChange, onModeChange, onTaxRateChange, onToggleLock, onToggleTheme,
 }: SettingsPanelProps) => {
   return (
