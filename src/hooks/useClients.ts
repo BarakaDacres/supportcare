@@ -5,10 +5,22 @@ export interface Client {
   id: string;
   user_id: string;
   name: string;
+  display_name: string | null;
   notes: string | null;
   active: boolean;
   created_at: string;
   updated_at: string;
+  // Shift defaults
+  default_service_note: string | null;
+  default_start_time: string | null;
+  default_end_time: string | null;
+  default_is_sleepover: boolean;
+  // Billing defaults
+  invoice_label: string | null;
+  invoice_notes: string | null;
+  participant_number: string | null;
+  phone: string | null;
+  address: string | null;
 }
 
 export function useClients() {
@@ -34,7 +46,6 @@ export function useClients() {
   useEffect(() => {
     let realtimeChannel: ReturnType<typeof supabase.channel> | null = null;
 
-    // 1. Restore session from storage first
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) {
         userIdRef.current = session.user.id;
@@ -46,7 +57,6 @@ export function useClients() {
       }
     });
 
-    // 2. Listen for subsequent auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       if (session) {
         if (userIdRef.current !== session.user.id) {
@@ -64,7 +74,6 @@ export function useClients() {
       }
     });
 
-    // 3. Realtime for cross-tab sync
     realtimeChannel = supabase
       .channel('clients-realtime')
       .on(
@@ -74,7 +83,6 @@ export function useClients() {
       )
       .subscribe();
 
-    // 4. Refetch on window focus
     const onFocus = () => { if (userIdRef.current) fetchClients(userIdRef.current); };
     window.addEventListener('focus', onFocus);
 
@@ -85,12 +93,12 @@ export function useClients() {
     };
   }, [fetchClients]);
 
-  const addClient = useCallback(async (name: string, notes?: string): Promise<Client | null> => {
+  const addClient = useCallback(async (fields: Partial<Omit<Client, 'id' | 'user_id' | 'created_at' | 'updated_at'>> & { name: string }): Promise<Client | null> => {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) return null;
     const { data, error } = await supabase
       .from('clients')
-      .insert({ user_id: session.user.id, name: name.trim(), notes: notes?.trim() || null })
+      .insert({ user_id: session.user.id, ...fields })
       .select()
       .single();
     if (error) { console.error(error); return null; }
@@ -99,7 +107,7 @@ export function useClients() {
     return client;
   }, []);
 
-  const updateClient = useCallback(async (id: string, updates: { name?: string; notes?: string; active?: boolean }): Promise<void> => {
+  const updateClient = useCallback(async (id: string, updates: Partial<Omit<Client, 'id' | 'user_id' | 'created_at' | 'updated_at'>>): Promise<void> => {
     const { data, error } = await supabase
       .from('clients')
       .update(updates)

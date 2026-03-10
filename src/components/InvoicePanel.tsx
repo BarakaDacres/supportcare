@@ -1,14 +1,16 @@
 import { useState, useMemo } from 'react';
-import { FileText, ChevronDown, Printer } from 'lucide-react';
+import { FileText, ChevronDown, Printer, User } from 'lucide-react';
 import { formatCurrency } from '@/lib/formatUtils';
 import { formatTime12h } from '@/lib/shiftCalculator';
 import type { Shift } from '@/hooks/useShifts';
 import { effectiveGrossPay } from '@/hooks/useShifts';
 import type { UserSettings } from '@/hooks/useUserSettings';
+import type { Client } from '@/hooks/useClients';
 import { MONTH_NAMES } from '@/lib/dateUtils';
 
 interface InvoicePanelProps {
   shifts: Shift[];
+  clients: Client[];
   settings: UserSettings | null;
   onIncrementCounter: () => Promise<number>;
 }
@@ -80,24 +82,30 @@ function formatDateShort(dateStr: string): string {
   return `${d} ${MONTH_NAMES[m - 1].slice(0, 3)} ${y}`;
 }
 
-const InvoicePanel = ({ shifts, settings, onIncrementCounter: _onIncrementCounter }: InvoicePanelProps) => {
+const InvoicePanel = ({ shifts, clients, settings, onIncrementCounter: _onIncrementCounter }: InvoicePanelProps) => {
   const currentYear = new Date().getFullYear();
   const [selectedYear, setSelectedYear] = useState(currentYear);
   const [selectedFnIdx, setSelectedFnIdx] = useState(0);
+  const [selectedClientId, setSelectedClientId] = useState('');
   const [generating, setGenerating] = useState(false);
   const [preview, setPreview] = useState<InvoiceData | null>(null);
 
   const periods = useMemo(() => getFortnightPeriodsForYear(selectedYear), [selectedYear]);
   const selectedPeriod = periods[selectedFnIdx] ?? periods[0];
+  const selectedClient = clients.find(c => c.id === selectedClientId) ?? null;
 
   const periodShifts = useMemo(() => {
     if (!selectedPeriod) return [];
     const startStr = formatDateISO(selectedPeriod.start);
     const endStr = formatDateISO(selectedPeriod.end);
     return shifts
-      .filter(s => s.date >= startStr && s.date <= endStr)
+      .filter(s => {
+        if (s.date < startStr || s.date > endStr) return false;
+        if (selectedClientId && s.client_id !== selectedClientId) return false;
+        return true;
+      })
       .sort((a, b) => a.date.localeCompare(b.date) || a.start_time.localeCompare(b.start_time));
-  }, [shifts, selectedPeriod]);
+  }, [shifts, selectedPeriod, selectedClientId]);
 
   const total = periodShifts.reduce((s, sh) => s + effectiveGrossPay(sh), 0);
 
@@ -106,8 +114,12 @@ const InvoicePanel = ({ shifts, settings, onIncrementCounter: _onIncrementCounte
     setGenerating(true);
 
     const pad = (n: number) => String(n).padStart(2, '0');
-    const invoiceNumber = `INV-${selectedYear}-FN${pad(selectedPeriod.fnNumber)}`;
+    const clientSuffix = selectedClient ? `-${selectedClient.name.replace(/\s+/g, '').slice(0, 8).toUpperCase()}` : '';
+    const invoiceNumber = `INV-${selectedYear}-FN${pad(selectedPeriod.fnNumber)}${clientSuffix}`;
     const today = new Date();
+
+    // Use client-specific invoice notes if available, else fall back to settings
+    const clientInvoiceNotes = selectedClient?.invoice_notes ?? null;
 
     const data: InvoiceData = {
       invoiceNumber,
@@ -122,7 +134,7 @@ const InvoicePanel = ({ shifts, settings, onIncrementCounter: _onIncrementCounte
       bankName: settings?.bank_name ?? '',
       bsb: settings?.bsb ?? '',
       accountNumber: settings?.account_number ?? '',
-      invoiceNotes: settings?.invoice_notes || 'GST-free supply – no GST charged. Payment due within 14 days.',
+      invoiceNotes: clientInvoiceNotes || settings?.invoice_notes || 'GST-free supply – no GST charged. Payment due within 14 days.',
     };
 
     setPreview(data);
@@ -136,6 +148,34 @@ const InvoicePanel = ({ shifts, settings, onIncrementCounter: _onIncrementCounte
       {/* Period selector */}
       <div className="glass-card p-4 space-y-3 no-print">
         <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Select Fortnight Period</p>
+
+        {/* Client filter */}
+        {clients.length > 0 && (
+          <div className="space-y-1">
+            <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
+              <User className="w-3 h-3" /> Client Filter
+            </label>
+            <div className="relative">
+              <select
+                value={selectedClientId}
+                onChange={e => { setSelectedClientId(e.target.value); setPreview(null); }}
+                className="glass-input w-full text-foreground min-h-[44px] appearance-none pr-8"
+              >
+                <option value="">All clients</option>
+                {clients.map(c => (
+                  <option key={c.id} value={c.id}>{c.name}</option>
+                ))}
+              </select>
+              <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+            </div>
+            {selectedClient && (
+              <p className="text-[10px] text-muted-foreground">
+                Invoice will only include shifts for <strong>{selectedClient.name}</strong>
+                {selectedClient.participant_number && ` (#{selectedClient.participant_number})`}.
+              </p>
+            )}
+          </div>
+        )}
 
         <div className="flex gap-2 items-center">
           <label className="text-xs text-muted-foreground shrink-0">Year</label>

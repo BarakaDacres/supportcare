@@ -75,6 +75,25 @@ const ShiftForm = ({
     return () => { document.body.style.overflow = ''; };
   }, []);
 
+  // Apply client defaults when a new client is selected (only for new shifts)
+  const handleClientChange = (newClientId: string) => {
+    setClientId(newClientId);
+    if (!isNew) return; // Don't override values when editing
+    const client = clients.find(c => c.id === newClientId);
+    if (!client) return;
+    if (client.default_start_time) setStartTime(client.default_start_time);
+    if (client.default_end_time) setEndTime(client.default_end_time);
+    if (client.default_is_sleepover !== isSleepover) {
+      setIsSleepover(client.default_is_sleepover);
+      if (client.default_is_sleepover && !client.default_start_time) setStartTime('21:30');
+      if (client.default_is_sleepover && !client.default_end_time) setEndTime('07:00');
+    }
+    if (client.default_service_note && !notesCustomised.current) {
+      setNotes(client.default_service_note);
+      notesCustomised.current = true;
+    }
+  };
+
   const handleSleepoverToggle = () => {
     setIsSleepover(prev => {
       const next = !prev;
@@ -338,7 +357,7 @@ const ShiftForm = ({
               <div className="relative">
                 <select
                   value={clientId}
-                  onChange={e => setClientId(e.target.value)}
+                  onChange={e => handleClientChange(e.target.value)}
                   className="glass-input w-full text-foreground appearance-none pr-8"
                   style={{ minHeight: 44 }}
                 >
@@ -349,6 +368,11 @@ const ShiftForm = ({
                 </select>
                 <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none" />
               </div>
+              {isNew && clientId && clients.find(c => c.id === clientId)?.default_service_note && (
+                <p className="text-[10px] text-muted-foreground">
+                  ↑ Client defaults applied. Edit any field as needed.
+                </p>
+              )}
             </div>
           )}
 
