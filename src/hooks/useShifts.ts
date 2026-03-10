@@ -13,6 +13,7 @@ export interface Shift {
   notes: string | null;
   hours_worked: number;
   gross_pay: number;
+  fee_override: number | null;
   created_at: string;
   updated_at: string;
   // joined
@@ -26,13 +27,21 @@ export interface NewShift {
   end_time: string;
   is_sleepover: boolean;
   notes?: string | null;
+  fee_override?: number | null;
 }
 
 function mapShiftRow(row: Record<string, unknown>): Shift {
   return {
     ...(row as Omit<Shift, 'client_name'>),
+    fee_override: row.fee_override != null ? Number(row.fee_override) : null,
     client_name: (row.clients as { name: string } | null)?.name ?? null,
   };
+}
+
+/** Returns the effective gross pay — override takes precedence over calculated */
+export function effectiveGrossPay(shift: Shift): number {
+  if (shift.fee_override != null && shift.fee_override > 0) return shift.fee_override;
+  return Number(shift.gross_pay);
 }
 
 export function useShifts(rates: PayRates = DEFAULT_RATES) {
@@ -74,7 +83,6 @@ export function useShifts(rates: PayRates = DEFAULT_RATES) {
   useEffect(() => {
     let realtimeChannel: ReturnType<typeof supabase.channel> | null = null;
 
-    // 1. Restore session from storage first — always triggers a fresh fetch
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) {
         userIdRef.current = session.user.id;
@@ -87,11 +95,9 @@ export function useShifts(rates: PayRates = DEFAULT_RATES) {
       }
     });
 
-    // 2. Subscribe to subsequent auth changes (login / logout / token refresh)
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       if (session) {
         const uid = session.user.id;
-        // Always refetch on user change; also fetch if not yet initialized by getSession
         if (userIdRef.current !== uid || !initializedRef.current) {
           userIdRef.current = uid;
           initializedRef.current = true;
@@ -109,7 +115,6 @@ export function useShifts(rates: PayRates = DEFAULT_RATES) {
       }
     });
 
-    // 3. Realtime subscription for cross-tab / cross-session sync
     realtimeChannel = supabase
       .channel('shifts-realtime')
       .on(
@@ -121,7 +126,6 @@ export function useShifts(rates: PayRates = DEFAULT_RATES) {
       )
       .subscribe();
 
-    // 4. Refetch on window focus (handles stale sessions in background tabs)
     const onFocus = () => {
       if (userIdRef.current) fetchShifts(userIdRef.current);
     };
@@ -139,6 +143,9 @@ export function useShifts(rates: PayRates = DEFAULT_RATES) {
     if (!session) throw new Error('Not logged in. Please sign in and try again.');
 
     const calc = calculateShiftPay(shift.date, shift.start_time, shift.end_time, shift.is_sleepover, rates);
+    const feeOverride = shift.fee_override != null && shift.fee_override > 0 ? shift.fee_override : null;
+    // When override is set, store it in gross_pay too so totals are always correct
+    const grossPay = feeOverride ?? calc.grossPay;
 
     const { data, error: err } = await supabase
       .from('shifts')
@@ -151,7 +158,8 @@ export function useShifts(rates: PayRates = DEFAULT_RATES) {
         is_sleepover: shift.is_sleepover,
         notes: shift.notes ?? null,
         hours_worked: calc.hoursWorked,
-        gross_pay: calc.grossPay,
+        gross_pay: grossPay,
+        fee_override: feeOverride,
       })
       .select(`*, clients(name)`)
       .single();
@@ -161,7 +169,6 @@ export function useShifts(rates: PayRates = DEFAULT_RATES) {
       throw new Error(err.message ?? 'Failed to save shift.');
     }
     const newShift = mapShiftRow(data as Record<string, unknown>);
-    // Optimistic update — realtime will confirm
     setShifts(prev => [newShift, ...prev]);
     return newShift;
   }, [rates]);
@@ -178,9 +185,21 @@ export function useShifts(rates: PayRates = DEFAULT_RATES) {
     };
     const calc = calculateShiftPay(merged.date, merged.start_time, merged.end_time, merged.is_sleepover, rates);
 
+    // Determine fee_override — explicit null clears it, number sets it
+    const feeOverride = shift.fee_override !== undefined
+      ? (shift.fee_override != null && shift.fee_override > 0 ? shift.fee_override : null)
+      : existing.fee_override;
+
+    const grossPay = feeOverride ?? calc.grossPay;
+
     const { data, error: err } = await supabase
       .from('shifts')
-      .update({ ...shift, hours_worked: calc.hoursWorked, gross_pay: calc.grossPay })
+      .update({
+        ...shift,
+        hours_worked: calc.hoursWorked,
+        gross_pay: grossPay,
+        fee_override: feeOverride,
+      })
       .eq('id', id)
       .select(`*, clients(name)`)
       .single();
@@ -205,6 +224,7 @@ export function useShifts(rates: PayRates = DEFAULT_RATES) {
       end_time: shift.end_time,
       is_sleepover: shift.is_sleepover,
       notes: shift.notes,
+      // Do NOT copy fee_override — duplicates should recalculate fresh
     });
   }, [shifts, addShift]);
 
