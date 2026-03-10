@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Plus, Pencil, Trash2, Copy, Moon, User, ChevronDown, SortAsc, Lock, Sun, AlertCircle } from 'lucide-react';
+import { Plus, Pencil, Trash2, Copy, Moon, User, ChevronDown, SortAsc, Lock, Sun, AlertCircle, Star } from 'lucide-react';
 import type { Shift, NewShift } from '@/hooks/useShifts';
 import { effectiveGrossPay } from '@/hooks/useShifts';
 import type { Client } from '@/hooks/useClients';
