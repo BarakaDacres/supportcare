@@ -97,7 +97,7 @@ const AnalyticsPanel = ({ shifts, settings, selectedYear, selectedMonth }: Analy
     });
     const sleepoversIncome = thisYearShifts
       .filter(s => s.is_sleepover)
-      .reduce((s, sh) => s + Number(sh.gross_pay), 0);
+      .reduce((s, sh) => s + effectiveGrossPay(sh), 0);
 
     return {
       weeklyGross,
