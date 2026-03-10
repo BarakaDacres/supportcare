@@ -262,6 +262,11 @@
       border-radius: 18px;
     }
   }
+
+  /* ── Money green accent for all currency values ── */
+  .money-text {
+    color: hsl(var(--money-green));
+  }
 }
 
 @media print {
