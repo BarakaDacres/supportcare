@@ -4,6 +4,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { useShifts } from '@/hooks/useShifts';
 import { useClients } from '@/hooks/useClients';
 import { useUserSettings } from '@/hooks/useUserSettings';
+import { useInvoices } from '@/hooks/useInvoices';
 import Header from '@/components/Header';
 import MobileHeader from '@/components/MobileHeader';
 import BottomTabBar, { type TabId } from '@/components/BottomTabBar';
@@ -40,6 +41,7 @@ const Index = ({ auth }: IndexProps) => {
     : undefined;
 
   const { shifts, loading: shiftsLoading, addShift, updateShift, deleteShift, duplicateShift } = useShifts(rates);
+  const { invoices } = useInvoices();
   const { clients, loading: clientsLoading, addClient, updateClient, deleteClient } = useClients();
 
   const locked = store.isMonthLocked(store.year, store.month);
@@ -110,6 +112,8 @@ const Index = ({ auth }: IndexProps) => {
           {activeTab === 'overview' && (
             <OverviewPanel
               shifts={shifts}
+              clients={clients}
+              invoices={invoices}
               settings={settings}
               selectedYear={store.year}
               selectedMonth={store.month}
@@ -189,6 +193,8 @@ const Index = ({ auth }: IndexProps) => {
           {activeTab === 'overview' && (
             <OverviewPanel
               shifts={shifts}
+              clients={clients}
+              invoices={invoices}
               settings={settings}
               selectedYear={store.year}
               selectedMonth={store.month}
