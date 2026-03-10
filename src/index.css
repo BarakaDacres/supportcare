@@ -322,8 +322,10 @@
 
   .invoice-print-area .text-foreground,
   .invoice-print-area h1,
+  .invoice-print-area h2,
   .invoice-print-area p,
-  .invoice-print-area span {
+  .invoice-print-area span,
+  .invoice-print-area div {
     color: black !important;
   }
 
@@ -331,8 +333,27 @@
     color: #555 !important;
   }
 
+  /* Money-green prints as a readable dark green */
+  .invoice-print-area .money-text {
+    color: #1a7a3a !important;
+  }
+
   .invoice-print-area [style*="color: hsl(var(--primary))"] {
     color: #0071e3 !important;
+  }
+
+  /* Striped rows print legibly */
+  .invoice-print-area [style*="hsl(var(--muted)/0.2)"] {
+    background: #f5f5f5 !important;
+  }
+
+  .invoice-print-area [style*="hsl(var(--money-green)/0.1)"] {
+    background: #eafaf0 !important;
+    border-color: #a3ddb6 !important;
+  }
+
+  .invoice-print-area [style*="hsl(var(--primary)/0.1)"] {
+    background: #e8f2ff !important;
   }
 
   .no-print,
