@@ -117,8 +117,6 @@ const SettingsPanel = ({
         </button>
       </div>
 
-      {/* Profile / Account */}
-      {auth && <ProfileSettings auth={auth} />}
     </div>
   );
 };

@@ -1,14 +1,16 @@
 import { useState, useMemo } from 'react';
-import { FileText, ChevronDown, Printer } from 'lucide-react';
+import { FileText, ChevronDown, Printer, User } from 'lucide-react';
 import { formatCurrency } from '@/lib/formatUtils';
 import { formatTime12h } from '@/lib/shiftCalculator';
 import type { Shift } from '@/hooks/useShifts';
 import { effectiveGrossPay } from '@/hooks/useShifts';
 import type { UserSettings } from '@/hooks/useUserSettings';
+import type { Client } from '@/hooks/useClients';
 import { MONTH_NAMES } from '@/lib/dateUtils';
 
 interface InvoicePanelProps {
   shifts: Shift[];
+  clients: Client[];
   settings: UserSettings | null;
   onIncrementCounter: () => Promise<number>;
 }
