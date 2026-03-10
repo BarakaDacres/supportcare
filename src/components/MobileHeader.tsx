@@ -53,11 +53,11 @@ const MobileHeader = ({
                 className="font-bold text-foreground tracking-tight transition-all duration-300 leading-tight"
                 style={{ fontSize: collapsed ? '1rem' : '1.35rem' }}
               >
-                Income Ledger
+                Support Care
               </h1>
               {!collapsed && (
                 <p className="text-[11px] text-muted-foreground font-medium mt-0.5 leading-none">
-                  Track your earnings
+                  Track your support shifts
                 </p>
               )}
             </div>
