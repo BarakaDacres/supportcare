@@ -87,7 +87,7 @@ const EarningsCalendarHeatmap = ({
     for (const s of shifts) {
       const d = parseDate(s.date);
       if (d.getFullYear() === year && d.getMonth() === month) {
-        map[s.date] = (map[s.date] ?? 0) + Number(s.gross_pay);
+        map[s.date] = (map[s.date] ?? 0) + effectiveGrossPay(s);
       }
     }
     return map;
