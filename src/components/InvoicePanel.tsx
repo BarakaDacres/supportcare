@@ -99,7 +99,7 @@ const InvoicePanel = ({ shifts, settings, onIncrementCounter: _onIncrementCounte
       .sort((a, b) => a.date.localeCompare(b.date) || a.start_time.localeCompare(b.start_time));
   }, [shifts, selectedPeriod]);
 
-  const total = periodShifts.reduce((s, sh) => s + Number(sh.gross_pay), 0);
+  const total = periodShifts.reduce((s, sh) => s + effectiveGrossPay(sh), 0);
 
   const generateInvoice = async () => {
     if (!selectedPeriod) return;
