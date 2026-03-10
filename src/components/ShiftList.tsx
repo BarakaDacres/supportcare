@@ -392,14 +392,15 @@ const ShiftList = ({
           rates={rates}
           title="Edit Shift"
           initialValues={{
-            date: editingShift.date,
-            start_time: editingShift.start_time,
-            end_time: editingShift.end_time,
-            is_sleepover: editingShift.is_sleepover,
-            client_id: editingShift.client_id,
-            notes: editingShift.notes,
-            fee_override: editingShift.fee_override,
-          }}
+              date: editingShift.date,
+              start_time: editingShift.start_time,
+              end_time: editingShift.end_time,
+              is_sleepover: editingShift.is_sleepover,
+              is_public_holiday: editingShift.is_public_holiday,
+              client_id: editingShift.client_id,
+              notes: editingShift.notes,
+              fee_override: editingShift.fee_override,
+            }}
           onSubmit={handleUpdate}
           onCancel={() => { setEditingShift(null); openSheet(false); }}
         />
