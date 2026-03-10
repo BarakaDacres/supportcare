@@ -323,7 +323,7 @@ const DayHeatmap = ({ shifts }: { shifts: Shift[] }) => {
     for (const s of shifts) {
       const [y, m, d] = s.date.split('-').map(Number);
       const dow = new Date(y, m - 1, d).getDay();
-      totals[dow] += Number(s.gross_pay);
+      totals[dow] += effectiveGrossPay(s);
     }
     return totals;
   }, [shifts]);
