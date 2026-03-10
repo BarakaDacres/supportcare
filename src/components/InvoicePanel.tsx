@@ -3,6 +3,7 @@ import { FileText, ChevronDown, Printer } from 'lucide-react';
 import { formatCurrency } from '@/lib/formatUtils';
 import { formatTime12h } from '@/lib/shiftCalculator';
 import type { Shift } from '@/hooks/useShifts';
+import { effectiveGrossPay } from '@/hooks/useShifts';
 import type { UserSettings } from '@/hooks/useUserSettings';
 import { MONTH_NAMES } from '@/lib/dateUtils';
 
