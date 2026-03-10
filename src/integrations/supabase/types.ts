@@ -274,7 +274,9 @@ export type Database = {
       user_settings: {
         Row: {
           abn: string | null
+          account_name: string | null
           account_number: string | null
+          address: string | null
           bank_name: string | null
           bsb: string | null
           business_name: string | null
@@ -283,6 +285,7 @@ export type Database = {
           invoice_counter: number
           invoice_notes: string | null
           monthly_goal: number | null
+          phone: string | null
           rate_public_holiday: number
           rate_saturday: number
           rate_sleepover_weekday: number
@@ -296,7 +299,9 @@ export type Database = {
         }
         Insert: {
           abn?: string | null
+          account_name?: string | null
           account_number?: string | null
+          address?: string | null
           bank_name?: string | null
           bsb?: string | null
           business_name?: string | null
@@ -305,6 +310,7 @@ export type Database = {
           invoice_counter?: number
           invoice_notes?: string | null
           monthly_goal?: number | null
+          phone?: string | null
           rate_public_holiday?: number
           rate_saturday?: number
           rate_sleepover_weekday?: number
@@ -318,7 +324,9 @@ export type Database = {
         }
         Update: {
           abn?: string | null
+          account_name?: string | null
           account_number?: string | null
+          address?: string | null
           bank_name?: string | null
           bsb?: string | null
           business_name?: string | null
@@ -327,6 +335,7 @@ export type Database = {
           invoice_counter?: number
           invoice_notes?: string | null
           monthly_goal?: number | null
+          phone?: string | null
           rate_public_holiday?: number
           rate_saturday?: number
           rate_sleepover_weekday?: number
