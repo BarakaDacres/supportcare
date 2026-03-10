@@ -50,7 +50,7 @@ const MonthNavigator = ({
   };
 
   return (
-    <div className="glass-card flex items-center gap-1 p-1 self-start">
+    <div className="glass-card flex items-center justify-between p-1">
       <button
         onClick={prev}
         className="p-2 rounded-xl hover:bg-secondary transition-colors"
@@ -58,7 +58,7 @@ const MonthNavigator = ({
       >
         <ChevronLeft className="w-4 h-4 text-foreground" />
       </button>
-      <span className="px-3 text-sm font-bold text-foreground min-w-[140px] text-center">
+      <span className="text-sm font-bold text-foreground">
         {MONTH_NAMES[month]} {year}
       </span>
       <button
