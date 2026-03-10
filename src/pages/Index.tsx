@@ -193,6 +193,8 @@ const Index = ({ auth }: IndexProps) => {
           {activeTab === 'overview' && (
             <OverviewPanel
               shifts={shifts}
+              clients={clients}
+              invoices={invoices}
               settings={settings}
               selectedYear={store.year}
               selectedMonth={store.month}
