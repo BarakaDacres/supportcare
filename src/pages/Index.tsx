@@ -44,7 +44,6 @@ const Index = ({ auth }: IndexProps) => {
 
   const locked = store.isMonthLocked(store.year, store.month);
 
-  // Shared month/year handlers that update the single store state
   const handleYearChange = (y: number) => store.update({ year: y });
   const handleMonthChange = (m: number) => store.update({ month: m });
 
@@ -77,6 +76,7 @@ const Index = ({ auth }: IndexProps) => {
       {settingsSubTab === 'clients' && (
         <ClientsPanel
           clients={clients}
+          shifts={shifts}
           loading={clientsLoading}
           onAdd={addClient}
           onUpdate={updateClient}
@@ -84,7 +84,7 @@ const Index = ({ auth }: IndexProps) => {
         />
       )}
       {settingsSubTab === 'account' && auth && (
-        <ProfileSettings auth={auth} />
+        <ProfileSettings auth={auth} settings={settings} onSaveSettings={updateSettings} />
       )}
     </div>
   );
@@ -145,6 +145,7 @@ const Index = ({ auth }: IndexProps) => {
           {activeTab === 'invoices' && (
             <InvoicePanel
               shifts={shifts}
+              clients={clients}
               settings={settings}
               onIncrementCounter={incrementInvoiceCounter}
             />
@@ -164,7 +165,6 @@ const Index = ({ auth }: IndexProps) => {
       <div className="mx-auto max-w-5xl">
         <Header theme={store.theme} onToggleTheme={store.toggleTheme} auth={auth} />
 
-        {/* Desktop tab bar */}
         <div className="segmented-control mb-6 no-print">
           {(
             [
@@ -223,6 +223,7 @@ const Index = ({ auth }: IndexProps) => {
           {activeTab === 'invoices' && (
             <InvoicePanel
               shifts={shifts}
+              clients={clients}
               settings={settings}
               onIncrementCounter={incrementInvoiceCounter}
             />
