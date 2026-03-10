@@ -3,6 +3,7 @@ import { FileText, ChevronDown, Printer } from 'lucide-react';
 import { formatCurrency } from '@/lib/formatUtils';
 import { formatTime12h } from '@/lib/shiftCalculator';
 import type { Shift } from '@/hooks/useShifts';
+import { effectiveGrossPay } from '@/hooks/useShifts';
 import type { UserSettings } from '@/hooks/useUserSettings';
 import { MONTH_NAMES } from '@/lib/dateUtils';
 
@@ -98,7 +99,7 @@ const InvoicePanel = ({ shifts, settings, onIncrementCounter: _onIncrementCounte
       .sort((a, b) => a.date.localeCompare(b.date) || a.start_time.localeCompare(b.start_time));
   }, [shifts, selectedPeriod]);
 
-  const total = periodShifts.reduce((s, sh) => s + Number(sh.gross_pay), 0);
+  const total = periodShifts.reduce((s, sh) => s + effectiveGrossPay(sh), 0);
 
   const generateInvoice = async () => {
     if (!selectedPeriod) return;
@@ -302,7 +303,7 @@ const InvoicePanel = ({ shifts, settings, onIncrementCounter: _onIncrementCounte
                         {shift.is_sleepover ? '—' : Number(shift.hours_worked).toFixed(1)}
                       </p>
                       <p className="text-xs font-bold money-text text-right">
-                        {formatCurrency(Number(shift.gross_pay))}
+                        {formatCurrency(effectiveGrossPay(shift))}
                       </p>
                     </div>
                   ))}

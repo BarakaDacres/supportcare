@@ -13,10 +13,10 @@ const Header = ({ theme, onToggleTheme, auth }: HeaderProps) => {
     <header className="no-print flex items-center justify-between py-6">
       <div>
         <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
-          Income Ledger
+          Support Care
         </h1>
         <p className="mt-0.5 text-sm text-muted-foreground font-medium">
-          Track your earnings with clarity
+          Track your support shifts
         </p>
       </div>
       <div className="flex items-center gap-2">

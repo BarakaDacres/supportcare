@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { TrendingUp, Clock, Moon, CalendarDays, Zap, Target, ChevronLeft, ChevronRight } from 'lucide-react';
 import { formatCurrency } from '@/lib/formatUtils';
 import type { Shift } from '@/hooks/useShifts';
+import { effectiveGrossPay } from '@/hooks/useShifts';
 import type { UserSettings } from '@/hooks/useUserSettings';
 import { MONTH_NAMES, MONTH_SHORT } from '@/lib/dateUtils';
 
@@ -50,7 +51,7 @@ const MonthNavigator = ({
   };
 
   return (
-    <div className="glass-card flex items-center gap-1 p-1 self-start">
+    <div className="glass-card flex items-center justify-between p-1">
       <button
         onClick={prev}
         className="p-2 rounded-xl hover:bg-secondary transition-colors"
@@ -58,7 +59,7 @@ const MonthNavigator = ({
       >
         <ChevronLeft className="w-4 h-4 text-foreground" />
       </button>
-      <span className="px-3 text-sm font-bold text-foreground min-w-[140px] text-center">
+      <span className="text-sm font-bold text-foreground">
         {MONTH_NAMES[month]} {year}
       </span>
       <button
@@ -86,7 +87,7 @@ const EarningsCalendarHeatmap = ({
     for (const s of shifts) {
       const d = parseDate(s.date);
       if (d.getFullYear() === year && d.getMonth() === month) {
-        map[s.date] = (map[s.date] ?? 0) + Number(s.gross_pay);
+        map[s.date] = (map[s.date] ?? 0) + effectiveGrossPay(s);
       }
     }
     return map;
@@ -186,7 +187,7 @@ const OverviewPanel = ({ shifts, settings, selectedYear, selectedMonth, onYearCh
 
     const thisYearShifts = shifts.filter(s => parseDate(s.date).getFullYear() === selectedYear);
 
-    const gross = (arr: Shift[]) => arr.reduce((s, sh) => s + Number(sh.gross_pay), 0);
+    const gross = (arr: Shift[]) => arr.reduce((s, sh) => s + effectiveGrossPay(sh), 0);
     const hours = (arr: Shift[]) =>
       arr.filter(s => !s.is_sleepover).reduce((s, sh) => s + Number(sh.hours_worked), 0);
 

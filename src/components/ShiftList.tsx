@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
-import { Plus, Pencil, Trash2, Copy, Moon, User, ChevronDown, SortAsc, Lock, Sun } from 'lucide-react';
+import { Plus, Pencil, Trash2, Copy, Moon, User, ChevronDown, SortAsc, Lock, Sun, AlertCircle } from 'lucide-react';
 import type { Shift, NewShift } from '@/hooks/useShifts';
+import { effectiveGrossPay } from '@/hooks/useShifts';
 import type { Client } from '@/hooks/useClients';
 import type { PayRates } from '@/lib/shiftCalculator';
 import { DEFAULT_RATES, formatTime12h, getDayOfWeek } from '@/lib/shiftCalculator';
@@ -37,13 +38,11 @@ function getMonday(d: Date): Date {
   return result;
 }
 
-/** Badge type helpers */
 function getShiftBadges(shift: Shift) {
-  const dow = getDayOfWeek(shift.date); // 0=Sun,6=Sat
-  const isWeekend = dow === 0 || dow === 6; // Sat or Sun
-  const isWeekday = !isWeekend; // Mon–Fri (including Friday)
+  const dow = getDayOfWeek(shift.date);
+  const isWeekend = dow === 0 || dow === 6;
+  const isWeekday = !isWeekend;
   const isSleepover = shift.is_sleepover;
-
   return { isSleepover, isWeekend, isWeekday };
 }
 
@@ -90,18 +89,16 @@ const ShiftList = ({
 
     result.sort((a, b) => {
       if (sortMode === 'date-asc') return a.date.localeCompare(b.date) || a.start_time.localeCompare(b.start_time);
-      if (sortMode === 'pay-desc') return Number(b.gross_pay) - Number(a.gross_pay);
+      if (sortMode === 'pay-desc') return effectiveGrossPay(b) - effectiveGrossPay(a);
       return b.date.localeCompare(a.date) || b.start_time.localeCompare(a.start_time);
     });
 
     return result;
   }, [shifts, filterPeriod, filterClient, sortMode]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const totalGross = filtered.reduce((s, sh) => s + Number(sh.gross_pay), 0);
+  const totalGross = filtered.reduce((s, sh) => s + effectiveGrossPay(sh), 0);
   const totalHours = filtered.filter(s => !s.is_sleepover).reduce((s, sh) => s + Number(sh.hours_worked), 0);
   const sleepovers = filtered.filter(s => s.is_sleepover).length;
-
-  const isShiftEditable = (_shift: Shift) => !locked;
 
   const handleAdd = async (shift: NewShift) => {
     await onAdd(shift);
@@ -152,16 +149,15 @@ const ShiftList = ({
       </div>
 
       {/* Filters */}
-      <div className="glass-card p-3 space-y-3">
-        <div className="flex gap-0.5 overflow-x-auto scrollbar-none glass-surface rounded-xl p-1">
+      <div className="glass-card p-3 space-y-2.5">
+        {/* Period filter — horizontal scroll on mobile */}
+        <div className="flex gap-1 overflow-x-auto scrollbar-none glass-surface rounded-xl p-1">
           {(['week', 'fortnight', 'month', 'year', 'all'] as FilterPeriod[]).map(p => (
             <button
               key={p}
               onClick={() => setFilterPeriod(p)}
               className={`shrink-0 rounded-lg px-3 py-2 text-xs font-semibold transition-all duration-200 whitespace-nowrap ${
-                filterPeriod === p
-                  ? 'text-primary-foreground'
-                  : 'text-muted-foreground'
+                filterPeriod === p ? 'text-primary-foreground' : 'text-muted-foreground'
               }`}
               style={filterPeriod === p ? {
                 background: 'hsl(var(--primary))',
@@ -173,6 +169,7 @@ const ShiftList = ({
           ))}
         </div>
 
+        {/* Client + Sort row */}
         <div className="flex gap-2">
           {clients.length > 0 && (
             <div className="relative flex-1 min-w-0">
@@ -249,8 +246,9 @@ const ShiftList = ({
       ) : (
         <div className="space-y-2">
           {filtered.map(shift => {
-            const editable = isShiftEditable(shift);
             const { isSleepover, isWeekend, isWeekday } = getShiftBadges(shift);
+            const hasOverride = shift.fee_override != null && shift.fee_override > 0;
+            const displayPay = effectiveGrossPay(shift);
             return (
               <div key={shift.id} className="glass-card p-4 space-y-2">
                 <div className="flex items-start justify-between gap-2">
@@ -258,25 +256,29 @@ const ShiftList = ({
                     <div className="flex items-center gap-1.5 flex-wrap">
                       <span className="text-sm font-bold text-foreground">{formatDateLabel(shift.date)}</span>
 
-                      {/* Sleepover badge — blue pill */}
                       {isSleepover && (
                         <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold text-white" style={{ background: '#2563EB' }}>
                           <Moon className="w-2.5 h-2.5" /> Sleepover
                         </span>
                       )}
 
-                      {/* Weekend badge — purple pill (Sat/Sun only, not Friday) */}
                       {isWeekend && (
                         <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold text-white" style={{ background: '#7C3AED' }}>
                           <Sun className="w-2.5 h-2.5" /> Weekend
                         </span>
                       )}
 
-                      {/* Weekday badge — subtle grey pill for non-sleepover Mon–Fri shifts */}
                       {isWeekday && !isSleepover && (
                         <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold"
                           style={{ background: 'hsl(var(--muted))', color: 'hsl(var(--muted-foreground))' }}>
                           Weekday
+                        </span>
+                      )}
+
+                      {hasOverride && (
+                        <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold"
+                          style={{ background: 'hsl(var(--stat-amber)/0.15)', color: 'hsl(var(--stat-amber))' }}>
+                          <AlertCircle className="w-2.5 h-2.5" /> Override
                         </span>
                       )}
 
@@ -296,12 +298,17 @@ const ShiftList = ({
                   </div>
                   <div className="text-right shrink-0">
                     <p className="text-base font-bold money-text">
-                      {formatCurrency(Number(shift.gross_pay))}
+                      {formatCurrency(displayPay)}
                     </p>
+                    {hasOverride && (
+                      <p className="text-[10px] text-muted-foreground line-through">
+                        {formatCurrency(Number(shift.gross_pay))}
+                      </p>
+                    )}
                   </div>
                 </div>
 
-                {editable ? (
+                {!locked ? (
                   <div className="flex gap-2 pt-1">
                     <button
                       onClick={() => { setEditingShift(shift); openSheet(true); }}
@@ -383,6 +390,7 @@ const ShiftList = ({
             is_sleepover: editingShift.is_sleepover,
             client_id: editingShift.client_id,
             notes: editingShift.notes,
+            fee_override: editingShift.fee_override,
           }}
           onSubmit={handleUpdate}
           onCancel={() => { setEditingShift(null); openSheet(false); }}

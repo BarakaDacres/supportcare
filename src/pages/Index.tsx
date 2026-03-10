@@ -92,7 +92,7 @@ const Index = ({ auth }: IndexProps) => {
   /* ─── Mobile layout ─── */
   if (isMobile) {
     return (
-      <div className="min-h-dvh bg-background">
+      <div className="min-h-dvh bg-background overflow-x-hidden">
         <MobileHeader
           year={store.year}
           month={store.month}

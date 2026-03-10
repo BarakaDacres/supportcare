@@ -255,11 +255,25 @@
     display: none;
   }
 
-  /* Compact glass card for mobile — tighter padding */
+  /* ── Mobile overflow containment ── */
   @media (max-width: 767px) {
     .glass-card,
     .glass-card-glow {
       border-radius: 18px;
+      /* Prevent cards from overflowing parent on narrow viewports */
+      max-width: 100%;
+      overflow: hidden;
+    }
+
+    /* Ensure inputs never bleed beyond their card */
+    .glass-input {
+      max-width: 100%;
+      box-sizing: border-box;
+    }
+
+    /* Prevent segmented controls causing horizontal scroll */
+    .segmented-control {
+      width: 100%;
     }
   }
 

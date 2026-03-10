@@ -188,6 +188,7 @@ export type Database = {
           created_at: string
           date: string
           end_time: string
+          fee_override: number | null
           gross_pay: number
           hours_worked: number
           id: string
@@ -202,6 +203,7 @@ export type Database = {
           created_at?: string
           date: string
           end_time: string
+          fee_override?: number | null
           gross_pay?: number
           hours_worked?: number
           id?: string
@@ -216,6 +218,7 @@ export type Database = {
           created_at?: string
           date?: string
           end_time?: string
+          fee_override?: number | null
           gross_pay?: number
           hours_worked?: number
           id?: string

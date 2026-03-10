@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { X, Clock, Moon, User, FileText, ChevronDown } from 'lucide-react';
+import { X, Clock, Moon, User, FileText, ChevronDown, DollarSign } from 'lucide-react';
 import { calculateShiftPay, formatTime12h, type PayRates, DEFAULT_RATES, getDayOfWeek, isWeekendSleeperNight } from '@/lib/shiftCalculator';
 import { formatCurrency } from '@/lib/formatUtils';
 import type { NewShift } from '@/hooks/useShifts';
@@ -8,7 +8,7 @@ import type { Client } from '@/hooks/useClients';
 interface ShiftFormProps {
   clients: Client[];
   rates?: PayRates;
-  initialValues?: Partial<NewShift>;
+  initialValues?: Partial<NewShift & { fee_override?: number | null }>;
   onSubmit: (shift: NewShift) => Promise<void>;
   onCancel: () => void;
   title?: string;
@@ -18,7 +18,6 @@ const today = () => new Date().toISOString().split('T')[0];
 
 const DEFAULT_NOTE_NORMAL = 'Assistance with Self-Care Activities';
 
-/** Build the default sleepover note — reflects the corrected Friday=weekday rule */
 function getSleeoverNote(dateStr?: string, rates?: PayRates): string {
   const weekdayRate = rates?.rate_sleepover_weekday ?? 300;
   const weekendRate = rates?.rate_sleepover_weekend ?? 350;
@@ -49,6 +48,11 @@ const ShiftForm = ({
   const [endTime, setEndTime] = useState(initialValues?.end_time ?? '17:00');
   const [isSleepover, setIsSleepover] = useState(initialValues?.is_sleepover ?? false);
   const [clientId, setClientId] = useState(initialValues?.client_id ?? '');
+  const [feeOverride, setFeeOverride] = useState<string>(
+    initialValues?.fee_override != null && initialValues.fee_override > 0
+      ? String(initialValues.fee_override)
+      : ''
+  );
 
   const isNew = !initialValues?.date;
   const [notes, setNotes] = useState(
@@ -80,11 +84,12 @@ const ShiftForm = ({
         setStartTime('21:30');
         setEndTime('07:00');
       }
+      // Clear fee override when toggling off sleepover
+      if (!next) setFeeOverride('');
       return next;
     });
   };
 
-  // Update sleepover note when date changes (rate type may change)
   const handleDateChange = (val: string) => {
     setDate(val);
     if (isSleepover && !notesCustomised.current) {
@@ -103,6 +108,10 @@ const ShiftForm = ({
       ? calculateShiftPay(date, startTime, endTime, isSleepover, rates)
       : null;
 
+  // Effective pay shown in preview
+  const feeOverrideNum = feeOverride !== '' ? parseFloat(feeOverride) : null;
+  const effectivePay = feeOverrideNum != null && feeOverrideNum > 0 ? feeOverrideNum : calc?.grossPay ?? 0;
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (submitting) return;
@@ -116,6 +125,7 @@ const ShiftForm = ({
         is_sleepover: isSleepover,
         client_id: clientId || null,
         notes: notes.trim() || null,
+        fee_override: feeOverrideNum != null && feeOverrideNum > 0 ? feeOverrideNum : null,
       });
     } catch (err) {
       console.error('Failed to save shift:', err);
@@ -163,9 +173,9 @@ const ShiftForm = ({
         </div>
 
         {/* Scrollable body */}
-        <div className="flex-1 overflow-y-auto overscroll-contain px-5 py-3 space-y-3">
+        <div className="flex-1 overflow-y-auto overscroll-contain px-5 py-4 space-y-4">
           {/* Date */}
-          <div className="space-y-1">
+          <div className="space-y-1.5">
             <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Date</label>
             <input
               type="date"
@@ -173,13 +183,13 @@ const ShiftForm = ({
               onChange={e => handleDateChange(e.target.value)}
               required
               className="glass-input w-full text-foreground"
-              style={{ minHeight: 42 }}
+              style={{ minHeight: 44 }}
             />
           </div>
 
           {/* Times */}
-          <div className="grid grid-cols-2 gap-2.5">
-            <div className="space-y-1">
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
               <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
                 <Clock className="w-3 h-3" /> Start
               </label>
@@ -189,10 +199,10 @@ const ShiftForm = ({
                 onChange={e => setStartTime(e.target.value)}
                 required
                 className="glass-input w-full text-foreground"
-                style={{ minHeight: 42 }}
+                style={{ minHeight: 44 }}
               />
             </div>
-            <div className="space-y-1">
+            <div className="space-y-1.5">
               <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
                 <Clock className="w-3 h-3" /> End
               </label>
@@ -202,7 +212,7 @@ const ShiftForm = ({
                 onChange={e => setEndTime(e.target.value)}
                 required
                 className="glass-input w-full text-foreground"
-                style={{ minHeight: 42 }}
+                style={{ minHeight: 44 }}
               />
             </div>
           </div>
@@ -213,7 +223,7 @@ const ShiftForm = ({
             onClick={handleSleepoverToggle}
             className="w-full flex items-center gap-3 rounded-2xl border transition-all duration-200 px-4"
             style={{
-              minHeight: 46,
+              minHeight: 48,
               borderColor: isSleepover ? 'hsl(var(--primary)/0.5)' : 'hsl(var(--border))',
               background: isSleepover ? 'hsl(var(--primary)/0.08)' : 'transparent',
             }}
@@ -244,9 +254,35 @@ const ShiftForm = ({
             </span>
           </button>
 
+          {/* Fee override — only shown for sleepovers or when editing an existing shift */}
+          {(isSleepover || (!isNew && initialValues?.fee_override != null)) && (
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
+                <DollarSign className="w-3 h-3" /> Override Flat Fee
+                <span className="normal-case font-normal text-muted-foreground">(optional)</span>
+              </label>
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-muted-foreground shrink-0">$</span>
+                <input
+                  type="number"
+                  min={0}
+                  step={0.01}
+                  value={feeOverride}
+                  onChange={e => setFeeOverride(e.target.value)}
+                  placeholder={calc ? String(calc.grossPay) : ''}
+                  className="glass-input flex-1 text-foreground"
+                  style={{ minHeight: 44 }}
+                />
+              </div>
+              <p className="text-[10px] text-muted-foreground">
+                One-off override for this shift only. Leave blank to use the calculated flat rate ({calc ? formatCurrency(calc.grossPay) : '—'}).
+              </p>
+            </div>
+          )}
+
           {/* Client */}
           {clients.length > 0 && (
-            <div className="space-y-1">
+            <div className="space-y-1.5">
               <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
                 <User className="w-3 h-3" /> Client
                 <span className="normal-case font-normal text-muted-foreground">(optional)</span>
@@ -256,7 +292,7 @@ const ShiftForm = ({
                   value={clientId}
                   onChange={e => setClientId(e.target.value)}
                   className="glass-input w-full text-foreground appearance-none pr-8"
-                  style={{ minHeight: 42 }}
+                  style={{ minHeight: 44 }}
                 >
                   <option value="">No client</option>
                   {clients.filter(c => c.active).map(c => (
@@ -269,7 +305,7 @@ const ShiftForm = ({
           )}
 
           {/* Notes */}
-          <div className="space-y-1">
+          <div className="space-y-1.5">
             <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
               <FileText className="w-3 h-3" /> Notes
               <span className="normal-case font-normal text-muted-foreground">(optional)</span>
@@ -283,7 +319,7 @@ const ShiftForm = ({
             />
           </div>
 
-          {/* Calculated pay */}
+          {/* Calculated / effective pay */}
           {calc && (
             <div
               className="rounded-2xl p-3 space-y-1.5"
@@ -294,7 +330,12 @@ const ShiftForm = ({
             >
               <div className="flex items-center justify-between gap-2">
                 <div>
-                  <p className="text-xl font-bold money-text leading-none">{formatCurrency(calc.grossPay)}</p>
+                  <p className="text-xl font-bold money-text leading-none">{formatCurrency(effectivePay)}</p>
+                  {feeOverrideNum != null && feeOverrideNum > 0 && (
+                    <p className="text-[10px] text-muted-foreground mt-0.5">
+                      Override active · calculated was {formatCurrency(calc.grossPay)}
+                    </p>
+                  )}
                   {!isSleepover && (
                     <p className="text-[11px] text-muted-foreground mt-0.5">{calc.hoursWorked}h total</p>
                   )}

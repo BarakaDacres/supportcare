@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { TrendingUp, Moon, Clock, Zap, BarChart3, Award, Target, CalendarDays } from 'lucide-react';
 import { formatCurrency } from '@/lib/formatUtils';
 import type { Shift } from '@/hooks/useShifts';
+import { effectiveGrossPay } from '@/hooks/useShifts';
 import type { UserSettings } from '@/hooks/useUserSettings';
 import { MONTH_SHORT } from '@/lib/dateUtils';
 
@@ -55,7 +56,7 @@ const AnalyticsPanel = ({ shifts, settings, selectedYear, selectedMonth }: Analy
 
     const thisYearShifts = shifts.filter(s => parseDate(s.date).getFullYear() === selectedYear);
 
-    const gross = (arr: Shift[]) => arr.reduce((s, sh) => s + Number(sh.gross_pay), 0);
+    const gross = (arr: Shift[]) => arr.reduce((s, sh) => s + effectiveGrossPay(sh), 0);
     const workedHours = (arr: Shift[]) =>
       arr.filter(s => !s.is_sleepover).reduce((s, sh) => s + Number(sh.hours_worked), 0);
 
@@ -96,7 +97,7 @@ const AnalyticsPanel = ({ shifts, settings, selectedYear, selectedMonth }: Analy
     });
     const sleepoversIncome = thisYearShifts
       .filter(s => s.is_sleepover)
-      .reduce((s, sh) => s + Number(sh.gross_pay), 0);
+      .reduce((s, sh) => s + effectiveGrossPay(sh), 0);
 
     return {
       weeklyGross,
@@ -322,7 +323,7 @@ const DayHeatmap = ({ shifts }: { shifts: Shift[] }) => {
     for (const s of shifts) {
       const [y, m, d] = s.date.split('-').map(Number);
       const dow = new Date(y, m - 1, d).getDay();
-      totals[dow] += Number(s.gross_pay);
+      totals[dow] += effectiveGrossPay(s);
     }
     return totals;
   }, [shifts]);
