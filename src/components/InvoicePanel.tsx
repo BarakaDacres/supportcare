@@ -303,7 +303,7 @@ const InvoicePanel = ({ shifts, settings, onIncrementCounter: _onIncrementCounte
                         {shift.is_sleepover ? '—' : Number(shift.hours_worked).toFixed(1)}
                       </p>
                       <p className="text-xs font-bold money-text text-right">
-                        {formatCurrency(Number(shift.gross_pay))}
+                        {formatCurrency(effectiveGrossPay(shift))}
                       </p>
                     </div>
                   ))}
