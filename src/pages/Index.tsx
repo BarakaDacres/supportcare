@@ -6,10 +6,6 @@ import { useClients } from '@/hooks/useClients';
 import { useUserSettings } from '@/hooks/useUserSettings';
 import Header from '@/components/Header';
 import MobileHeader from '@/components/MobileHeader';
-import ControlsBar from '@/components/ControlsBar';
-import EntryTable from '@/components/EntryTable';
-import YearlyOverview from '@/components/YearlyOverview';
-import SettingsPanel from '@/components/SettingsPanel';
 import BottomTabBar, { type TabId } from '@/components/BottomTabBar';
 import ShiftList from '@/components/ShiftList';
 import AnalyticsPanel from '@/components/AnalyticsPanel';
@@ -17,7 +13,7 @@ import InvoicePanel from '@/components/InvoicePanel';
 import AppSettingsPanel from '@/components/AppSettingsPanel';
 import ClientsPanel from '@/components/ClientsPanel';
 import OverviewPanel from '@/components/OverviewPanel';
-import { getWeekRangesForMonth } from '@/lib/dateUtils';
+import ProfileSettings from '@/components/ProfileSettings';
 import type { AuthState } from '@/hooks/useAuth';
 
 interface IndexProps {
@@ -28,7 +24,7 @@ const Index = ({ auth }: IndexProps) => {
   const store = useIncomeStore();
   const isMobile = useIsMobile();
   const [activeTab, setActiveTab] = useState<TabId>('overview');
-  const [settingsSubTab, setSettingsSubTab] = useState<'app' | 'clients' | 'legacy'>('app');
+  const [settingsSubTab, setSettingsSubTab] = useState<'app' | 'clients' | 'account'>('app');
   const [sheetOpen, setSheetOpen] = useState(false);
 
   const { settings, loading: settingsLoading, updateSettings, incrementInvoiceCounter } = useUserSettings();
@@ -48,12 +44,9 @@ const Index = ({ auth }: IndexProps) => {
 
   const locked = store.isMonthLocked(store.year, store.month);
 
-  const weeks = getWeekRangesForMonth(store.year, store.month);
-  const weeklyEntries =
-    store.weeklyEntries[String(store.year)]?.[String(store.month)] ||
-    new Array(weeks.length).fill(0);
-  const fortnightlyEntries =
-    store.fortnightlyEntries[String(store.year)]?.[String(store.month)] || [];
+  // Shared month/year handlers that update the single store state
+  const handleYearChange = (y: number) => store.update({ year: y });
+  const handleMonthChange = (m: number) => store.update({ month: m });
 
   useEffect(() => {
     if ('serviceWorker' in navigator) {
@@ -65,7 +58,7 @@ const Index = ({ auth }: IndexProps) => {
     <div className="space-y-4">
       {/* Sub-tab toggle */}
       <div className="segmented-control w-full">
-        {(['app', 'clients', 'legacy'] as const).map(t => (
+        {(['app', 'clients', 'account'] as const).map(t => (
           <button
             key={t}
             onClick={() => setSettingsSubTab(t)}
@@ -73,7 +66,7 @@ const Index = ({ auth }: IndexProps) => {
               settingsSubTab === t ? 'segmented-button-active' : 'segmented-button'
             }`}
           >
-            {t === 'legacy' ? 'Display' : t.charAt(0).toUpperCase() + t.slice(1)}
+            {t.charAt(0).toUpperCase() + t.slice(1)}
           </button>
         ))}
       </div>
@@ -90,51 +83,8 @@ const Index = ({ auth }: IndexProps) => {
           onDelete={deleteClient}
         />
       )}
-      {settingsSubTab === 'legacy' && (
-        <div className="space-y-4">
-          <ControlsBar
-            year={store.year}
-            month={store.month}
-            mode={store.mode}
-            locked={locked}
-            onYearChange={y => store.update({ year: y })}
-            onMonthChange={m => store.update({ month: m })}
-            onModeChange={mode => store.update({ mode })}
-            onToggleLock={store.toggleMonthLock}
-          />
-          <EntryTable
-            year={store.year}
-            month={store.month}
-            mode={store.mode}
-            weeklyEntries={weeklyEntries}
-            fortnightlyEntries={fortnightlyEntries}
-            locked={locked}
-            onWeeklyChange={store.setWeeklyValue}
-            onFortnightlyChange={store.setFortnightlyValue}
-          />
-          <YearlyOverview
-            year={store.year}
-            activeMonth={store.month}
-            getMonthGross={store.getMonthGross}
-            isMonthLocked={store.isMonthLocked}
-            onMonthClick={m => store.update({ month: m })}
-          />
-          <SettingsPanel
-            year={store.year}
-            month={store.month}
-            mode={store.mode}
-            taxRate={store.taxRate}
-            locked={locked}
-            theme={store.theme}
-            auth={auth}
-            onYearChange={y => store.update({ year: y })}
-            onMonthChange={m => store.update({ month: m })}
-            onModeChange={mode => store.update({ mode })}
-            onTaxRateChange={rate => store.update({ taxRate: rate })}
-            onToggleLock={store.toggleMonthLock}
-            onToggleTheme={store.toggleTheme}
-          />
-        </div>
+      {settingsSubTab === 'account' && auth && (
+        <ProfileSettings auth={auth} />
       )}
     </div>
   );
@@ -158,7 +108,14 @@ const Index = ({ auth }: IndexProps) => {
           style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 80px)' }}
         >
           {activeTab === 'overview' && (
-            <OverviewPanel shifts={shifts} settings={settings} />
+            <OverviewPanel
+              shifts={shifts}
+              settings={settings}
+              selectedYear={store.year}
+              selectedMonth={store.month}
+              onYearChange={handleYearChange}
+              onMonthChange={handleMonthChange}
+            />
           )}
 
           {activeTab === 'shifts' && (
@@ -177,7 +134,12 @@ const Index = ({ auth }: IndexProps) => {
           )}
 
           {activeTab === 'analytics' && (
-            <AnalyticsPanel shifts={shifts} settings={settings} />
+            <AnalyticsPanel
+              shifts={shifts}
+              settings={settings}
+              selectedYear={store.year}
+              selectedMonth={store.month}
+            />
           )}
 
           {activeTab === 'invoices' && (
@@ -225,7 +187,14 @@ const Index = ({ auth }: IndexProps) => {
 
         <div className="space-y-6">
           {activeTab === 'overview' && (
-            <OverviewPanel shifts={shifts} settings={settings} />
+            <OverviewPanel
+              shifts={shifts}
+              settings={settings}
+              selectedYear={store.year}
+              selectedMonth={store.month}
+              onYearChange={handleYearChange}
+              onMonthChange={handleMonthChange}
+            />
           )}
 
           {activeTab === 'shifts' && (
@@ -243,7 +212,12 @@ const Index = ({ auth }: IndexProps) => {
           )}
 
           {activeTab === 'analytics' && (
-            <AnalyticsPanel shifts={shifts} settings={settings} />
+            <AnalyticsPanel
+              shifts={shifts}
+              settings={settings}
+              selectedYear={store.year}
+              selectedMonth={store.month}
+            />
           )}
 
           {activeTab === 'invoices' && (

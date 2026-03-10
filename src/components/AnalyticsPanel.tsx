@@ -8,6 +8,8 @@ import { MONTH_SHORT } from '@/lib/dateUtils';
 interface AnalyticsPanelProps {
   shifts: Shift[];
   settings: UserSettings | null;
+  selectedYear: number;
+  selectedMonth: number;
 }
 
 function parseDate(dateStr: string): Date {
@@ -24,19 +26,17 @@ function getMondayOf(date: Date): Date {
   return d;
 }
 
-const AnalyticsPanel = ({ shifts, settings }: AnalyticsPanelProps) => {
-  const now = new Date();
-  now.setHours(0, 0, 0, 0);
-  const currentYear = now.getFullYear();
-  const currentMonth = now.getMonth();
+const AnalyticsPanel = ({ shifts, settings, selectedYear, selectedMonth }: AnalyticsPanelProps) => {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
 
   const stats = useMemo(() => {
-    const weekStart = getMondayOf(now);
+    const weekStart = getMondayOf(today);
     const weekEnd = new Date(weekStart);
     weekEnd.setDate(weekEnd.getDate() + 6);
 
-    const fortnightStart = new Date(now);
-    fortnightStart.setDate(now.getDate() - 13);
+    const fortnightStart = new Date(today);
+    fortnightStart.setDate(today.getDate() - 13);
 
     const thisWeekShifts = shifts.filter(s => {
       const d = parseDate(s.date);
@@ -45,15 +45,15 @@ const AnalyticsPanel = ({ shifts, settings }: AnalyticsPanelProps) => {
 
     const thisFortnightShifts = shifts.filter(s => {
       const d = parseDate(s.date);
-      return d >= fortnightStart && d <= now;
+      return d >= fortnightStart && d <= today;
     });
 
     const thisMonthShifts = shifts.filter(s => {
       const d = parseDate(s.date);
-      return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
+      return d.getMonth() === selectedMonth && d.getFullYear() === selectedYear;
     });
 
-    const thisYearShifts = shifts.filter(s => parseDate(s.date).getFullYear() === currentYear);
+    const thisYearShifts = shifts.filter(s => parseDate(s.date).getFullYear() === selectedYear);
 
     const gross = (arr: Shift[]) => arr.reduce((s, sh) => s + Number(sh.gross_pay), 0);
     const workedHours = (arr: Shift[]) =>
@@ -73,26 +73,26 @@ const AnalyticsPanel = ({ shifts, settings }: AnalyticsPanelProps) => {
     });
 
     const maxMonthGross = Math.max(...byMonth.map(b => b.gross), 0);
-    const bestMonth = byMonth.reduce(
-      (a, b) => (b.gross > a.gross ? b : a),
-      byMonth[0]
-    );
+    const bestMonth = byMonth.reduce((a, b) => (b.gross > a.gross ? b : a), byMonth[0]);
 
-    const completedMonths = Math.max(1, currentMonth + 1);
+    const completedMonths = Math.max(1,
+      selectedYear < today.getFullYear()
+        ? 12
+        : selectedYear > today.getFullYear()
+        ? 1
+        : today.getMonth() + 1
+    );
     const projected = (yearGross / completedMonths) * 12;
 
-    // Corrected sleepover classification:
-    // Weekday sleepovers: Mon(1)–Fri(5) — Friday is weekday
-    // Weekend sleepovers: Sat(6), Sun(0) — only these two
     const sleepoversWeekday = thisYearShifts.filter(s => {
       if (!s.is_sleepover) return false;
       const d = parseDate(s.date).getDay();
-      return d >= 1 && d <= 5; // Mon–Fri (includes Friday)
+      return d >= 1 && d <= 5;
     });
     const sleepoversWeekend = thisYearShifts.filter(s => {
       if (!s.is_sleepover) return false;
       const d = parseDate(s.date).getDay();
-      return d === 6 || d === 0; // Sat or Sun only
+      return d === 6 || d === 0;
     });
     const sleepoversIncome = thisYearShifts
       .filter(s => s.is_sleepover)
@@ -114,7 +114,7 @@ const AnalyticsPanel = ({ shifts, settings }: AnalyticsPanelProps) => {
       sleepoversWeekend: sleepoversWeekend.length,
       sleepoversIncome,
     };
-  }, [shifts, currentMonth, currentYear]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [shifts, selectedMonth, selectedYear]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const monthlyGoal = settings?.monthly_goal ?? null;
   const yearlyGoal = settings?.yearly_goal ?? null;
@@ -129,7 +129,7 @@ const AnalyticsPanel = ({ shifts, settings }: AnalyticsPanelProps) => {
           { label: 'This Week', value: stats.weeklyGross, icon: CalendarDays },
           { label: 'This Fortnight', value: stats.fortnightGross, icon: CalendarDays },
           { label: 'This Month', value: stats.monthGross, icon: TrendingUp, glow: true },
-          { label: 'This Year', value: stats.yearGross, icon: BarChart3, glow: true },
+          { label: `${selectedYear} Total`, value: stats.yearGross, icon: BarChart3, glow: true },
         ].map(card => (
           <div key={card.label} className={card.glow ? 'glass-card-glow p-4' : 'glass-card p-4'}>
             <div className="flex items-center gap-1.5 mb-1.5">
@@ -173,7 +173,13 @@ const AnalyticsPanel = ({ shifts, settings }: AnalyticsPanelProps) => {
           <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Projected Year Income</p>
           <p className="text-2xl font-bold money-text">{formatCurrency(stats.projected)}</p>
           <p className="text-xs text-muted-foreground">
-            Based on {Math.max(1, currentMonth + 1)} completed month{currentMonth + 1 !== 1 ? 's' : ''}
+            Based on {Math.max(1,
+              selectedYear < today.getFullYear() ? 12
+              : selectedYear > today.getFullYear() ? 1
+              : today.getMonth() + 1
+            )} completed month{
+              (selectedYear < today.getFullYear() ? 12 : selectedYear > today.getFullYear() ? 1 : today.getMonth() + 1) !== 1 ? 's' : ''
+            }
           </p>
         </div>
       </div>
@@ -240,13 +246,13 @@ const AnalyticsPanel = ({ shifts, settings }: AnalyticsPanelProps) => {
       {/* Monthly bar chart */}
       <div className="glass-card p-4 space-y-3">
         <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-          Monthly Earnings {currentYear}
+          Monthly Earnings {selectedYear}
         </p>
         <div className="flex items-end gap-1" style={{ height: '96px' }}>
           {stats.byMonth.map(({ month, gross }) => {
             const pct = stats.maxMonthGross > 0 ? (gross / stats.maxMonthGross) * 100 : 0;
             const isBest = gross === stats.maxMonthGross && gross > 0;
-            const isCurrent = month === currentMonth;
+            const isSelected = month === selectedMonth;
             return (
               <div key={month} className="flex-1 flex flex-col items-center gap-1 h-full">
                 <div className="w-full flex items-end justify-center flex-1">
@@ -256,7 +262,7 @@ const AnalyticsPanel = ({ shifts, settings }: AnalyticsPanelProps) => {
                       height: `${Math.max(pct, gross > 0 ? 5 : 0)}%`,
                       background: isBest
                         ? 'hsl(var(--money-green))'
-                        : isCurrent
+                        : isSelected
                         ? 'hsl(var(--money-green)/0.55)'
                         : 'hsl(var(--muted-foreground)/0.25)',
                       boxShadow: isBest ? '0 0 12px hsl(var(--money-green)/0.5)' : undefined,
@@ -265,7 +271,7 @@ const AnalyticsPanel = ({ shifts, settings }: AnalyticsPanelProps) => {
                 </div>
                 <span
                   className="text-[8px] font-semibold leading-none"
-                  style={{ color: isCurrent ? 'hsl(var(--money-green))' : 'hsl(var(--muted-foreground))' }}
+                  style={{ color: isSelected ? 'hsl(var(--money-green))' : 'hsl(var(--muted-foreground))' }}
                 >
                   {MONTH_SHORT[month]}
                 </span>
@@ -279,7 +285,7 @@ const AnalyticsPanel = ({ shifts, settings }: AnalyticsPanelProps) => {
       {stats.sleepoversWeekday + stats.sleepoversWeekend > 0 && (
         <div className="glass-card p-4 space-y-3">
           <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
-            <Moon className="w-3.5 h-3.5" /> Sleepover Summary ({currentYear})
+            <Moon className="w-3.5 h-3.5" /> Sleepover Summary ({selectedYear})
           </p>
           <div className="grid grid-cols-3 gap-3">
             <div className="text-center">
@@ -291,9 +297,7 @@ const AnalyticsPanel = ({ shifts, settings }: AnalyticsPanelProps) => {
               <p className="text-[10px] text-muted-foreground">Sat–Sun nights</p>
             </div>
             <div className="text-center">
-              <p className="text-lg font-bold money-text">
-                {formatCurrency(stats.sleepoversIncome)}
-              </p>
+              <p className="text-lg font-bold money-text">{formatCurrency(stats.sleepoversIncome)}</p>
               <p className="text-[10px] text-muted-foreground">Total income</p>
             </div>
           </div>
@@ -304,7 +308,10 @@ const AnalyticsPanel = ({ shifts, settings }: AnalyticsPanelProps) => {
       )}
 
       {/* Earnings heatmap by day of week */}
-      <DayHeatmap shifts={shifts.filter(s => parseDate(s.date).getFullYear() === currentYear)} />
+      <DayHeatmap shifts={shifts.filter(s => {
+        const [y] = s.date.split('-').map(Number);
+        return y === selectedYear;
+      })} />
     </div>
   );
 };
@@ -313,7 +320,8 @@ const DayHeatmap = ({ shifts }: { shifts: Shift[] }) => {
   const dayTotals = useMemo(() => {
     const totals = [0, 0, 0, 0, 0, 0, 0];
     for (const s of shifts) {
-      const dow = parseDate(s.date).getDay();
+      const [y, m, d] = s.date.split('-').map(Number);
+      const dow = new Date(y, m - 1, d).getDay();
       totals[dow] += Number(s.gross_pay);
     }
     return totals;
@@ -333,10 +341,7 @@ const DayHeatmap = ({ shifts }: { shifts: Shift[] }) => {
           return (
             <div key={day} className="flex items-center gap-3">
               <span className="text-xs text-muted-foreground w-7 shrink-0">{day}</span>
-              <div
-                className="flex-1 h-5 rounded-full overflow-hidden"
-                style={{ background: 'hsl(var(--muted))' }}
-              >
+              <div className="flex-1 h-5 rounded-full overflow-hidden" style={{ background: 'hsl(var(--muted))' }}>
                 <div
                   className="h-full rounded-full transition-all duration-700"
                   style={{
