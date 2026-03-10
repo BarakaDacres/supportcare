@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { X, Clock, Moon, User, FileText, ChevronDown, DollarSign } from 'lucide-react';
+import { X, Clock, Moon, User, FileText, ChevronDown, DollarSign, Star } from 'lucide-react';
 import { calculateShiftPay, formatTime12h, type PayRates, DEFAULT_RATES, getDayOfWeek, isWeekendSleeperNight } from '@/lib/shiftCalculator';
 import { formatCurrency } from '@/lib/formatUtils';
 import type { NewShift } from '@/hooks/useShifts';
@@ -47,6 +47,7 @@ const ShiftForm = ({
   const [startTime, setStartTime] = useState(initialValues?.start_time ?? '09:00');
   const [endTime, setEndTime] = useState(initialValues?.end_time ?? '17:00');
   const [isSleepover, setIsSleepover] = useState(initialValues?.is_sleepover ?? false);
+  const [isPublicHoliday, setIsPublicHoliday] = useState(initialValues?.is_public_holiday ?? false);
   const [clientId, setClientId] = useState(initialValues?.client_id ?? '');
   const [feeOverride, setFeeOverride] = useState<string>(
     initialValues?.fee_override != null && initialValues.fee_override > 0
@@ -84,7 +85,6 @@ const ShiftForm = ({
         setStartTime('21:30');
         setEndTime('07:00');
       }
-      // Clear fee override when toggling off sleepover
       if (!next) setFeeOverride('');
       return next;
     });
@@ -103,14 +103,19 @@ const ShiftForm = ({
     notesCustomised.current = val !== currentDefault && val !== DEFAULT_NOTE_NORMAL && val !== DEFAULT_NOTE_SLEEPOVER;
   };
 
+  const phRate = rates.rate_public_holiday ?? 150;
+
   const calc =
     date && startTime && endTime
-      ? calculateShiftPay(date, startTime, endTime, isSleepover, rates)
+      ? calculateShiftPay(date, startTime, endTime, isSleepover, rates, isPublicHoliday)
       : null;
 
   // Effective pay shown in preview
   const feeOverrideNum = feeOverride !== '' ? parseFloat(feeOverride) : null;
   const effectivePay = feeOverrideNum != null && feeOverrideNum > 0 ? feeOverrideNum : calc?.grossPay ?? 0;
+
+  // Public holiday applies to hourly shifts only (not sleepovers)
+  const phActive = isPublicHoliday && !isSleepover;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -123,6 +128,7 @@ const ShiftForm = ({
         start_time: startTime,
         end_time: endTime,
         is_sleepover: isSleepover,
+        is_public_holiday: isPublicHoliday,
         client_id: clientId || null,
         notes: notes.trim() || null,
         fee_override: feeOverrideNum != null && feeOverrideNum > 0 ? feeOverrideNum : null,
@@ -217,42 +223,84 @@ const ShiftForm = ({
             </div>
           </div>
 
-          {/* Sleepover toggle */}
-          <button
-            type="button"
-            onClick={handleSleepoverToggle}
-            className="w-full flex items-center gap-3 rounded-2xl border transition-all duration-200 px-4"
-            style={{
-              minHeight: 48,
-              borderColor: isSleepover ? 'hsl(var(--primary)/0.5)' : 'hsl(var(--border))',
-              background: isSleepover ? 'hsl(var(--primary)/0.08)' : 'transparent',
-            }}
-          >
-            <Moon
-              className="w-4 h-4 shrink-0"
-              style={{ color: isSleepover ? 'hsl(var(--primary))' : 'hsl(var(--muted-foreground))' }}
-            />
-            <span
-              className="text-sm font-semibold flex-1 text-left"
-              style={{ color: isSleepover ? 'hsl(var(--primary))' : 'hsl(var(--foreground))' }}
-            >
-              Sleepover
-            </span>
-            <span className="text-[10px] text-muted-foreground mr-2">Flat rate</span>
-            <span
-              className="relative shrink-0 rounded-full transition-all duration-200"
+          {/* Toggles row — Sleepover + Public Holiday */}
+          <div className="space-y-2.5">
+            {/* Sleepover toggle */}
+            <button
+              type="button"
+              onClick={handleSleepoverToggle}
+              className="w-full flex items-center gap-3 rounded-2xl border transition-all duration-200 px-4"
               style={{
-                width: 42,
-                height: 24,
-                background: isSleepover ? 'hsl(var(--primary))' : 'hsl(var(--muted))',
+                minHeight: 48,
+                borderColor: isSleepover ? 'hsl(var(--primary)/0.5)' : 'hsl(var(--border))',
+                background: isSleepover ? 'hsl(var(--primary)/0.08)' : 'transparent',
               }}
             >
-              <span
-                className="absolute top-[3px] rounded-full bg-white shadow-sm transition-all duration-200"
-                style={{ width: 18, height: 18, left: isSleepover ? 21 : 3 }}
+              <Moon
+                className="w-4 h-4 shrink-0"
+                style={{ color: isSleepover ? 'hsl(var(--primary))' : 'hsl(var(--muted-foreground))' }}
               />
-            </span>
-          </button>
+              <span
+                className="text-sm font-semibold flex-1 text-left"
+                style={{ color: isSleepover ? 'hsl(var(--primary))' : 'hsl(var(--foreground))' }}
+              >
+                Sleepover
+              </span>
+              <span className="text-[10px] text-muted-foreground mr-2">Flat rate</span>
+              <span
+                className="relative shrink-0 rounded-full transition-all duration-200"
+                style={{
+                  width: 42,
+                  height: 24,
+                  background: isSleepover ? 'hsl(var(--primary))' : 'hsl(var(--muted))',
+                }}
+              >
+                <span
+                  className="absolute top-[3px] rounded-full bg-white shadow-sm transition-all duration-200"
+                  style={{ width: 18, height: 18, left: isSleepover ? 21 : 3 }}
+                />
+              </span>
+            </button>
+
+            {/* Public Holiday toggle */}
+            <button
+              type="button"
+              onClick={() => setIsPublicHoliday(prev => !prev)}
+              className="w-full flex items-center gap-3 rounded-2xl border transition-all duration-200 px-4"
+              style={{
+                minHeight: 48,
+                borderColor: isPublicHoliday ? 'hsl(34 97% 52% / 0.5)' : 'hsl(var(--border))',
+                background: isPublicHoliday ? 'hsl(34 97% 52% / 0.08)' : 'transparent',
+              }}
+            >
+              <Star
+                className="w-4 h-4 shrink-0"
+                style={{ color: isPublicHoliday ? 'hsl(34 97% 52%)' : 'hsl(var(--muted-foreground))' }}
+              />
+              <span
+                className="text-sm font-semibold flex-1 text-left"
+                style={{ color: isPublicHoliday ? 'hsl(34 97% 52%)' : 'hsl(var(--foreground))' }}
+              >
+                Public Holiday
+              </span>
+              <span className="text-[10px] text-muted-foreground mr-2">
+                {!isSleepover ? `$${phRate}/hr` : 'No effect on sleepover'}
+              </span>
+              <span
+                className="relative shrink-0 rounded-full transition-all duration-200"
+                style={{
+                  width: 42,
+                  height: 24,
+                  background: isPublicHoliday ? 'hsl(34 97% 52%)' : 'hsl(var(--muted))',
+                }}
+              >
+                <span
+                  className="absolute top-[3px] rounded-full bg-white shadow-sm transition-all duration-200"
+                  style={{ width: 18, height: 18, left: isPublicHoliday ? 21 : 3 }}
+                />
+              </span>
+            </button>
+          </div>
 
           {/* Fee override — only shown for sleepovers or when editing an existing shift */}
           {(isSleepover || (!isNew && initialValues?.fee_override != null)) && (
@@ -319,18 +367,36 @@ const ShiftForm = ({
             />
           </div>
 
-          {/* Calculated / effective pay */}
+          {/* Pay preview */}
           {calc && (
             <div
-              className="rounded-2xl p-3 space-y-1.5"
-              style={{
+              className="rounded-2xl p-3 space-y-1.5 transition-all duration-300"
+              style={phActive ? {
+                background: 'hsl(34 97% 52% / 0.1)',
+                border: '1px solid hsl(34 97% 52% / 0.35)',
+              } : {
                 background: 'hsl(var(--money-green)/0.08)',
                 border: '1px solid hsl(var(--money-green)/0.2)',
               }}
             >
+              {/* PH active label */}
+              {phActive && (
+                <div className="flex items-center gap-1.5 mb-1">
+                  <Star className="w-3 h-3" style={{ color: 'hsl(34 97% 52%)' }} />
+                  <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: 'hsl(34 97% 52%)' }}>
+                    Public Holiday Rate Active — ${phRate}/hr
+                  </span>
+                </div>
+              )}
+
               <div className="flex items-center justify-between gap-2">
                 <div>
-                  <p className="text-xl font-bold money-text leading-none">{formatCurrency(effectivePay)}</p>
+                  <p
+                    className="text-xl font-bold leading-none"
+                    style={{ color: phActive ? 'hsl(34 97% 52%)' : 'hsl(var(--money-green))' }}
+                  >
+                    {formatCurrency(effectivePay)}
+                  </p>
                   {feeOverrideNum != null && feeOverrideNum > 0 && (
                     <p className="text-[10px] text-muted-foreground mt-0.5">
                       Override active · calculated was {formatCurrency(calc.grossPay)}
@@ -350,7 +416,10 @@ const ShiftForm = ({
                 </div>
               </div>
               {!isSleepover && startTime && endTime && (
-                <p className="text-[10px] text-muted-foreground border-t border-primary/10 pt-1.5">
+                <p
+                  className="text-[10px] text-muted-foreground border-t pt-1.5"
+                  style={{ borderColor: phActive ? 'hsl(34 97% 52% / 0.2)' : 'hsl(var(--primary)/0.1)' }}
+                >
                   {formatTime12h(startTime)} – {formatTime12h(endTime)}
                 </p>
               )}

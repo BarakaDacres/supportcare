@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Plus, Pencil, Trash2, Copy, Moon, User, ChevronDown, SortAsc, Lock, Sun, AlertCircle } from 'lucide-react';
+import { Plus, Pencil, Trash2, Copy, Moon, User, ChevronDown, SortAsc, Lock, Sun, AlertCircle, Star } from 'lucide-react';
 import type { Shift, NewShift } from '@/hooks/useShifts';
 import { effectiveGrossPay } from '@/hooks/useShifts';
 import type { Client } from '@/hooks/useClients';
@@ -43,7 +43,8 @@ function getShiftBadges(shift: Shift) {
   const isWeekend = dow === 0 || dow === 6;
   const isWeekday = !isWeekend;
   const isSleepover = shift.is_sleepover;
-  return { isSleepover, isWeekend, isWeekday };
+  const isPublicHoliday = shift.is_public_holiday;
+  return { isSleepover, isWeekend, isWeekday, isPublicHoliday };
 }
 
 const ShiftList = ({
@@ -246,7 +247,7 @@ const ShiftList = ({
       ) : (
         <div className="space-y-2">
           {filtered.map(shift => {
-            const { isSleepover, isWeekend, isWeekday } = getShiftBadges(shift);
+            const { isSleepover, isWeekend, isWeekday, isPublicHoliday } = getShiftBadges(shift);
             const hasOverride = shift.fee_override != null && shift.fee_override > 0;
             const displayPay = effectiveGrossPay(shift);
             return (
@@ -256,19 +257,26 @@ const ShiftList = ({
                     <div className="flex items-center gap-1.5 flex-wrap">
                       <span className="text-sm font-bold text-foreground">{formatDateLabel(shift.date)}</span>
 
+                      {isPublicHoliday && (
+                        <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold"
+                          style={{ background: 'hsl(34 97% 52% / 0.15)', color: 'hsl(34 97% 52%)', border: '1px solid hsl(34 97% 52% / 0.3)' }}>
+                          <Star className="w-2.5 h-2.5" /> Public Holiday
+                        </span>
+                      )}
+
                       {isSleepover && (
                         <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold text-white" style={{ background: '#2563EB' }}>
                           <Moon className="w-2.5 h-2.5" /> Sleepover
                         </span>
                       )}
 
-                      {isWeekend && (
+                      {isWeekend && !isPublicHoliday && (
                         <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold text-white" style={{ background: '#7C3AED' }}>
                           <Sun className="w-2.5 h-2.5" /> Weekend
                         </span>
                       )}
 
-                      {isWeekday && !isSleepover && (
+                      {isWeekday && !isSleepover && !isPublicHoliday && (
                         <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold"
                           style={{ background: 'hsl(var(--muted))', color: 'hsl(var(--muted-foreground))' }}>
                           Weekday
@@ -384,14 +392,15 @@ const ShiftList = ({
           rates={rates}
           title="Edit Shift"
           initialValues={{
-            date: editingShift.date,
-            start_time: editingShift.start_time,
-            end_time: editingShift.end_time,
-            is_sleepover: editingShift.is_sleepover,
-            client_id: editingShift.client_id,
-            notes: editingShift.notes,
-            fee_override: editingShift.fee_override,
-          }}
+              date: editingShift.date,
+              start_time: editingShift.start_time,
+              end_time: editingShift.end_time,
+              is_sleepover: editingShift.is_sleepover,
+              is_public_holiday: editingShift.is_public_holiday,
+              client_id: editingShift.client_id,
+              notes: editingShift.notes,
+              fee_override: editingShift.fee_override,
+            }}
           onSubmit={handleUpdate}
           onCancel={() => { setEditingShift(null); openSheet(false); }}
         />

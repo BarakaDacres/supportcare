@@ -290,10 +290,17 @@ const InvoicePanel = ({ shifts, settings, onIncrementCounter: _onIncrementCounte
                         <p className="text-[10px] text-muted-foreground mt-0.5">
                           {shift.is_sleepover
                             ? 'Night Sleepover Support'
+                            : shift.is_public_holiday
+                            ? 'Public Holiday Support Services'
                             : shift.notes
                             ? shift.notes.split('\n')[0]
                             : 'Support Services'}
                           {shift.client_name ? ` · ${shift.client_name}` : ''}
+                          {shift.is_public_holiday && !shift.is_sleepover && (
+                            <span className="ml-1 text-[9px] font-semibold" style={{ color: 'hsl(34 97% 52%)' }}>
+                              ★ PH Rate
+                            </span>
+                          )}
                         </p>
                       </div>
                       <p className="text-[11px] text-muted-foreground">

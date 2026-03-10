@@ -192,6 +192,7 @@ export type Database = {
           gross_pay: number
           hours_worked: number
           id: string
+          is_public_holiday: boolean
           is_sleepover: boolean
           notes: string | null
           start_time: string
@@ -207,6 +208,7 @@ export type Database = {
           gross_pay?: number
           hours_worked?: number
           id?: string
+          is_public_holiday?: boolean
           is_sleepover?: boolean
           notes?: string | null
           start_time: string
@@ -222,6 +224,7 @@ export type Database = {
           gross_pay?: number
           hours_worked?: number
           id?: string
+          is_public_holiday?: boolean
           is_sleepover?: boolean
           notes?: string | null
           start_time?: string

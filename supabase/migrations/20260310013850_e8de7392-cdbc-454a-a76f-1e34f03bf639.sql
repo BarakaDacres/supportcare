@@ -1,0 +1,2 @@
+ALTER TABLE public.shifts ADD COLUMN IF NOT EXISTS is_public_holiday boolean NOT NULL DEFAULT false;
+COMMENT ON COLUMN public.shifts.is_public_holiday IS 'When true, hourly pay is calculated at the public holiday rate. No effect on sleepover flat-fee.';

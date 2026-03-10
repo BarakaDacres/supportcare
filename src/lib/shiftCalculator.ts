@@ -5,7 +5,7 @@
  *  Mon–Fri daytime  $60/hr
  *  Saturday         $75/hr
  *  Sunday           $90/hr
- *  Public Holiday   $150/hr
+ *  Public Holiday   $150/hr  (overrides all day-of-week rates for hourly shifts)
  *  Weekday sleepover flat $300  (Mon–Fri nights)
  *  Weekend sleepover flat $350  (Sat/Sun nights only — Friday is weekday)
  *
@@ -18,7 +18,7 @@ export interface PayRates {
   rate_sunday: number;            // Sunday hourly
   rate_sleepover_weekday: number; // flat per night Mon–Fri
   rate_sleepover_weekend: number; // flat per night Sat–Sun
-  rate_public_holiday?: number;   // Public holiday hourly (optional, future use)
+  rate_public_holiday?: number;   // Public holiday hourly
 }
 
 export const DEFAULT_RATES: PayRates = {
@@ -114,18 +114,20 @@ export interface ShiftCalculation {
 /**
  * Calculate pay for a single shift.
  *
- * @param dateStr    YYYY-MM-DD (shift start date)
- * @param startTime  HH:MM (24h)
- * @param endTime    HH:MM (24h, may equal start or be earlier = next day)
- * @param isSleepover whether this is a sleepover shift
- * @param rates      pay rates (uses DEFAULT_RATES if omitted)
+ * @param dateStr         YYYY-MM-DD (shift start date)
+ * @param startTime       HH:MM (24h)
+ * @param endTime         HH:MM (24h, may equal start or be earlier = next day)
+ * @param isSleepover     whether this is a sleepover shift
+ * @param rates           pay rates (uses DEFAULT_RATES if omitted)
+ * @param isPublicHoliday when true, use public holiday rate for all hourly segments
  */
 export function calculateShiftPay(
   dateStr: string,
   startTime: string,
   endTime: string,
   isSleepover: boolean,
-  rates: PayRates = DEFAULT_RATES
+  rates: PayRates = DEFAULT_RATES,
+  isPublicHoliday = false,
 ): ShiftCalculation {
   let startMinutes = timeToMinutes(startTime);
   let endMinutes = timeToMinutes(endTime);
@@ -140,6 +142,7 @@ export function calculateShiftPay(
   if (isSleepover) {
     // Sleepover: flat rate based on the day the shift starts (the "night")
     // Weekend = Sat(6) or Sun(0) only. Fri(5) is WEEKDAY.
+    // Public holiday does NOT override sleepover flat-fee.
     const dayOfWeek = getDayOfWeek(dateStr);
     const rate = isWeekendSleeperNight(dayOfWeek)
       ? rates.rate_sleepover_weekend
@@ -157,13 +160,19 @@ export function calculateShiftPay(
   let grossPay = 0;
   const breakdown: ShiftCalculation['breakdown'] = [];
 
+  const phRate = rates.rate_public_holiday ?? 150;
+
   for (const seg of segments) {
-    const rate = hourlyRate(seg.dayOfWeek, rates);
+    // Public holiday overrides all day-based rates for hourly shifts
+    const rate = isPublicHoliday ? phRate : hourlyRate(seg.dayOfWeek, rates);
     const amount = seg.hours * rate;
     grossPay += amount;
     const dayName = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][seg.dayOfWeek];
+    const label = isPublicHoliday
+      ? `Public Holiday ${seg.date}`
+      : `${dayName} ${seg.date}`;
     breakdown.push({
-      label: `${dayName} ${seg.date}`,
+      label,
       hours: +seg.hours.toFixed(2),
       rate,
       amount: +amount.toFixed(2),
