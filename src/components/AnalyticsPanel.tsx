@@ -10,16 +10,14 @@ interface AnalyticsPanelProps {
   settings: UserSettings | null;
 }
 
-/** Parse YYYY-MM-DD without timezone shift */
 function parseDate(dateStr: string): Date {
   const [y, m, d] = dateStr.split('-').map(Number);
   return new Date(y, m - 1, d);
 }
 
-/** Get Monday of the ISO week containing `date` */
 function getMondayOf(date: Date): Date {
   const d = new Date(date);
-  const dow = d.getDay(); // 0=Sun
+  const dow = d.getDay();
   const diff = dow === 0 ? -6 : 1 - dow;
   d.setDate(d.getDate() + diff);
   d.setHours(0, 0, 0, 0);
@@ -33,12 +31,10 @@ const AnalyticsPanel = ({ shifts, settings }: AnalyticsPanelProps) => {
   const currentMonth = now.getMonth();
 
   const stats = useMemo(() => {
-    // This week (Mon–Sun)
     const weekStart = getMondayOf(now);
     const weekEnd = new Date(weekStart);
     weekEnd.setDate(weekEnd.getDate() + 6);
 
-    // This fortnight (last 14 days ending today, inclusive)
     const fortnightStart = new Date(now);
     fortnightStart.setDate(now.getDate() - 13);
 
@@ -71,7 +67,6 @@ const AnalyticsPanel = ({ shifts, settings }: AnalyticsPanelProps) => {
     const monthHours = workedHours(thisMonthShifts);
     const avgHourly = monthHours > 0 ? monthGross / monthHours : 0;
 
-    // Monthly breakdown for chart
     const byMonth = Array.from({ length: 12 }, (_, m) => {
       const ms = thisYearShifts.filter(s => parseDate(s.date).getMonth() === m);
       return { month: m, gross: gross(ms), count: ms.length };
@@ -83,22 +78,21 @@ const AnalyticsPanel = ({ shifts, settings }: AnalyticsPanelProps) => {
       byMonth[0]
     );
 
-    // Projected yearly (based on elapsed months proportional to year)
     const completedMonths = Math.max(1, currentMonth + 1);
     const projected = (yearGross / completedMonths) * 12;
 
-    // Sleepover breakdown — use day-of-week from the shift date
+    // Corrected sleepover classification:
+    // Weekday sleepovers: Mon(1)–Fri(5) — Friday is weekday
+    // Weekend sleepovers: Sat(6), Sun(0) — only these two
     const sleepoversWeekday = thisYearShifts.filter(s => {
       if (!s.is_sleepover) return false;
-      const d = parseDate(s.date).getDay(); // 0=Sun
-      // Weekday sleepovers: Mon(1)–Thu(4)
-      return d >= 1 && d <= 4;
+      const d = parseDate(s.date).getDay();
+      return d >= 1 && d <= 5; // Mon–Fri (includes Friday)
     });
     const sleepoversWeekend = thisYearShifts.filter(s => {
       if (!s.is_sleepover) return false;
       const d = parseDate(s.date).getDay();
-      // Weekend sleepovers: Fri(5), Sat(6), Sun(0)
-      return d === 5 || d === 6 || d === 0;
+      return d === 6 || d === 0; // Sat or Sun only
     });
     const sleepoversIncome = thisYearShifts
       .filter(s => s.is_sleepover)
@@ -144,7 +138,7 @@ const AnalyticsPanel = ({ shifts, settings }: AnalyticsPanelProps) => {
                 {card.label}
               </span>
             </div>
-            <p className="font-bold text-foreground" style={{ fontSize: 'clamp(0.9rem, 3vw, 1.25rem)' }}>
+            <p className="font-bold money-text" style={{ fontSize: 'clamp(0.9rem, 3vw, 1.25rem)' }}>
               {formatCurrency(card.value)}
             </p>
           </div>
@@ -156,7 +150,7 @@ const AnalyticsPanel = ({ shifts, settings }: AnalyticsPanelProps) => {
         <div className="glass-card p-4 text-center">
           <Clock className="w-5 h-5 mx-auto text-muted-foreground mb-1" />
           <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Avg Hourly</p>
-          <p className="text-sm font-bold text-foreground mt-0.5">{formatCurrency(stats.avgHourly)}</p>
+          <p className="text-sm font-bold money-text mt-0.5">{formatCurrency(stats.avgHourly)}</p>
         </div>
         <div className="glass-card p-4 text-center">
           <Zap className="w-5 h-5 mx-auto text-muted-foreground mb-1" />
@@ -174,10 +168,10 @@ const AnalyticsPanel = ({ shifts, settings }: AnalyticsPanelProps) => {
 
       {/* Projected yearly */}
       <div className="glass-card-glow p-4 flex items-center gap-4">
-        <TrendingUp className="w-6 h-6 shrink-0" style={{ color: 'hsl(var(--primary))' }} />
+        <TrendingUp className="w-6 h-6 shrink-0 money-text" />
         <div className="min-w-0 flex-1">
           <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Projected Year Income</p>
-          <p className="text-2xl font-bold text-foreground">{formatCurrency(stats.projected)}</p>
+          <p className="text-2xl font-bold money-text">{formatCurrency(stats.projected)}</p>
           <p className="text-xs text-muted-foreground">
             Based on {Math.max(1, currentMonth + 1)} completed month{currentMonth + 1 !== 1 ? 's' : ''}
           </p>
@@ -194,7 +188,7 @@ const AnalyticsPanel = ({ shifts, settings }: AnalyticsPanelProps) => {
             <div className="glass-card p-4 space-y-2">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-semibold text-muted-foreground">Monthly Goal</span>
-                <span className="text-xs font-bold text-foreground">
+                <span className="text-xs font-bold money-text">
                   {formatCurrency(stats.monthGross)} / {formatCurrency(monthlyGoal)}
                 </span>
               </div>
@@ -203,10 +197,7 @@ const AnalyticsPanel = ({ shifts, settings }: AnalyticsPanelProps) => {
                   className="progress-fill"
                   style={{
                     width: `${Math.min(100, (stats.monthGross / monthlyGoal) * 100).toFixed(1)}%`,
-                    background:
-                      stats.monthGross >= monthlyGoal
-                        ? 'hsl(var(--stat-green))'
-                        : 'hsl(var(--primary))',
+                    background: 'hsl(var(--money-green))',
                   }}
                 />
               </div>
@@ -222,7 +213,7 @@ const AnalyticsPanel = ({ shifts, settings }: AnalyticsPanelProps) => {
             <div className="glass-card p-4 space-y-2">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-semibold text-muted-foreground">Yearly Goal</span>
-                <span className="text-xs font-bold text-foreground">
+                <span className="text-xs font-bold money-text">
                   {formatCurrency(stats.yearGross)} / {formatCurrency(yearlyGoal)}
                 </span>
               </div>
@@ -231,10 +222,7 @@ const AnalyticsPanel = ({ shifts, settings }: AnalyticsPanelProps) => {
                   className="progress-fill"
                   style={{
                     width: `${Math.min(100, (stats.yearGross / yearlyGoal) * 100).toFixed(1)}%`,
-                    background:
-                      stats.yearGross >= yearlyGoal
-                        ? 'hsl(var(--stat-green))'
-                        : 'hsl(var(--primary))',
+                    background: 'hsl(var(--money-green))',
                   }}
                 />
               </div>
@@ -267,17 +255,17 @@ const AnalyticsPanel = ({ shifts, settings }: AnalyticsPanelProps) => {
                     style={{
                       height: `${Math.max(pct, gross > 0 ? 5 : 0)}%`,
                       background: isBest
-                        ? 'hsl(var(--primary))'
+                        ? 'hsl(var(--money-green))'
                         : isCurrent
-                        ? 'hsl(var(--primary)/0.55)'
+                        ? 'hsl(var(--money-green)/0.55)'
                         : 'hsl(var(--muted-foreground)/0.25)',
-                      boxShadow: isBest ? '0 0 12px hsl(var(--primary)/0.5)' : undefined,
+                      boxShadow: isBest ? '0 0 12px hsl(var(--money-green)/0.5)' : undefined,
                     }}
                   />
                 </div>
                 <span
                   className="text-[8px] font-semibold leading-none"
-                  style={{ color: isCurrent ? 'hsl(var(--primary))' : 'hsl(var(--muted-foreground))' }}
+                  style={{ color: isCurrent ? 'hsl(var(--money-green))' : 'hsl(var(--muted-foreground))' }}
                 >
                   {MONTH_SHORT[month]}
                 </span>
@@ -296,19 +284,22 @@ const AnalyticsPanel = ({ shifts, settings }: AnalyticsPanelProps) => {
           <div className="grid grid-cols-3 gap-3">
             <div className="text-center">
               <p className="text-lg font-bold text-foreground">{stats.sleepoversWeekday}</p>
-              <p className="text-[10px] text-muted-foreground">Weekday nights</p>
+              <p className="text-[10px] text-muted-foreground">Mon–Fri nights</p>
             </div>
             <div className="text-center">
               <p className="text-lg font-bold text-foreground">{stats.sleepoversWeekend}</p>
-              <p className="text-[10px] text-muted-foreground">Weekend nights</p>
+              <p className="text-[10px] text-muted-foreground">Sat–Sun nights</p>
             </div>
             <div className="text-center">
-              <p className="text-lg font-bold" style={{ color: 'hsl(var(--primary))' }}>
+              <p className="text-lg font-bold money-text">
                 {formatCurrency(stats.sleepoversIncome)}
               </p>
               <p className="text-[10px] text-muted-foreground">Total income</p>
             </div>
           </div>
+          <p className="text-[9px] text-muted-foreground border-t border-border pt-1">
+            Friday is counted as weekday ($300 flat). Weekend rate ($350) applies to Saturday & Sunday nights only.
+          </p>
         </div>
       )}
 
@@ -320,7 +311,7 @@ const AnalyticsPanel = ({ shifts, settings }: AnalyticsPanelProps) => {
 
 const DayHeatmap = ({ shifts }: { shifts: Shift[] }) => {
   const dayTotals = useMemo(() => {
-    const totals = [0, 0, 0, 0, 0, 0, 0]; // Sun–Sat
+    const totals = [0, 0, 0, 0, 0, 0, 0];
     for (const s of shifts) {
       const dow = parseDate(s.date).getDay();
       totals[dow] += Number(s.gross_pay);
@@ -350,12 +341,12 @@ const DayHeatmap = ({ shifts }: { shifts: Shift[] }) => {
                   className="h-full rounded-full transition-all duration-700"
                   style={{
                     width: `${pct}%`,
-                    background: `hsl(var(--primary) / ${(0.3 + (pct / 100) * 0.7).toFixed(2)})`,
-                    boxShadow: pct > 70 ? '0 0 8px hsl(var(--primary)/0.4)' : undefined,
+                    background: `hsl(var(--money-green) / ${(0.3 + (pct / 100) * 0.7).toFixed(2)})`,
+                    boxShadow: pct > 70 ? '0 0 8px hsl(var(--money-green)/0.4)' : undefined,
                   }}
                 />
               </div>
-              <span className="text-xs font-semibold text-foreground min-w-[72px] text-right">
+              <span className="text-xs font-semibold money-text min-w-[72px] text-right">
                 {formatCurrency(dayTotals[i])}
               </span>
             </div>
