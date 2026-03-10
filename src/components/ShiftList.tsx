@@ -247,7 +247,7 @@ const ShiftList = ({
       ) : (
         <div className="space-y-2">
           {filtered.map(shift => {
-            const { isSleepover, isWeekend, isWeekday } = getShiftBadges(shift);
+            const { isSleepover, isWeekend, isWeekday, isPublicHoliday } = getShiftBadges(shift);
             const hasOverride = shift.fee_override != null && shift.fee_override > 0;
             const displayPay = effectiveGrossPay(shift);
             return (
@@ -257,19 +257,26 @@ const ShiftList = ({
                     <div className="flex items-center gap-1.5 flex-wrap">
                       <span className="text-sm font-bold text-foreground">{formatDateLabel(shift.date)}</span>
 
+                      {isPublicHoliday && (
+                        <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold"
+                          style={{ background: 'hsl(34 97% 52% / 0.15)', color: 'hsl(34 97% 52%)', border: '1px solid hsl(34 97% 52% / 0.3)' }}>
+                          <Star className="w-2.5 h-2.5" /> Public Holiday
+                        </span>
+                      )}
+
                       {isSleepover && (
                         <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold text-white" style={{ background: '#2563EB' }}>
                           <Moon className="w-2.5 h-2.5" /> Sleepover
                         </span>
                       )}
 
-                      {isWeekend && (
+                      {isWeekend && !isPublicHoliday && (
                         <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold text-white" style={{ background: '#7C3AED' }}>
                           <Sun className="w-2.5 h-2.5" /> Weekend
                         </span>
                       )}
 
-                      {isWeekday && !isSleepover && (
+                      {isWeekday && !isSleepover && !isPublicHoliday && (
                         <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold"
                           style={{ background: 'hsl(var(--muted))', color: 'hsl(var(--muted-foreground))' }}>
                           Weekday
