@@ -1,8 +1,6 @@
 import { Sun, Moon, Printer, Lock, LockOpen } from 'lucide-react';
 import type { EntryMode } from '@/hooks/useIncomeStore';
 import { MONTH_NAMES } from '@/lib/dateUtils';
-import ProfileSettings from '@/components/ProfileSettings';
-import type { AuthState } from '@/hooks/useAuth';
 
 interface SettingsPanelProps {
   year: number;

@@ -149,6 +149,34 @@ const InvoicePanel = ({ shifts, clients, settings, onIncrementCounter: _onIncrem
       <div className="glass-card p-4 space-y-3 no-print">
         <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Select Fortnight Period</p>
 
+        {/* Client filter */}
+        {clients.length > 0 && (
+          <div className="space-y-1">
+            <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
+              <User className="w-3 h-3" /> Client Filter
+            </label>
+            <div className="relative">
+              <select
+                value={selectedClientId}
+                onChange={e => { setSelectedClientId(e.target.value); setPreview(null); }}
+                className="glass-input w-full text-foreground min-h-[44px] appearance-none pr-8"
+              >
+                <option value="">All clients</option>
+                {clients.map(c => (
+                  <option key={c.id} value={c.id}>{c.name}</option>
+                ))}
+              </select>
+              <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+            </div>
+            {selectedClient && (
+              <p className="text-[10px] text-muted-foreground">
+                Invoice will only include shifts for <strong>{selectedClient.name}</strong>
+                {selectedClient.participant_number && ` (#{selectedClient.participant_number})`}.
+              </p>
+            )}
+          </div>
+        )}
+
         <div className="flex gap-2 items-center">
           <label className="text-xs text-muted-foreground shrink-0">Year</label>
           <div className="relative">
