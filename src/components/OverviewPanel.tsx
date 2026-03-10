@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { TrendingUp, Clock, Moon, CalendarDays, Zap, Target, ChevronLeft, ChevronRight } from 'lucide-react';
 import { formatCurrency } from '@/lib/formatUtils';
 import type { Shift } from '@/hooks/useShifts';
+import { effectiveGrossPay } from '@/hooks/useShifts';
 import type { UserSettings } from '@/hooks/useUserSettings';
 import { MONTH_NAMES, MONTH_SHORT } from '@/lib/dateUtils';
 
