@@ -17,28 +17,58 @@ export type Database = {
       clients: {
         Row: {
           active: boolean
+          address: string | null
           created_at: string
+          default_end_time: string | null
+          default_is_sleepover: boolean
+          default_service_note: string | null
+          default_start_time: string | null
+          display_name: string | null
           id: string
+          invoice_label: string | null
+          invoice_notes: string | null
           name: string
           notes: string | null
+          participant_number: string | null
+          phone: string | null
           updated_at: string
           user_id: string
         }
         Insert: {
           active?: boolean
+          address?: string | null
           created_at?: string
+          default_end_time?: string | null
+          default_is_sleepover?: boolean
+          default_service_note?: string | null
+          default_start_time?: string | null
+          display_name?: string | null
           id?: string
+          invoice_label?: string | null
+          invoice_notes?: string | null
           name: string
           notes?: string | null
+          participant_number?: string | null
+          phone?: string | null
           updated_at?: string
           user_id: string
         }
         Update: {
           active?: boolean
+          address?: string | null
           created_at?: string
+          default_end_time?: string | null
+          default_is_sleepover?: boolean
+          default_service_note?: string | null
+          default_start_time?: string | null
+          display_name?: string | null
           id?: string
+          invoice_label?: string | null
+          invoice_notes?: string | null
           name?: string
           notes?: string | null
+          participant_number?: string | null
+          phone?: string | null
           updated_at?: string
           user_id?: string
         }
