@@ -75,6 +75,25 @@ const ShiftForm = ({
     return () => { document.body.style.overflow = ''; };
   }, []);
 
+  // Apply client defaults when a new client is selected (only for new shifts)
+  const handleClientChange = (newClientId: string) => {
+    setClientId(newClientId);
+    if (!isNew) return; // Don't override values when editing
+    const client = clients.find(c => c.id === newClientId);
+    if (!client) return;
+    if (client.default_start_time) setStartTime(client.default_start_time);
+    if (client.default_end_time) setEndTime(client.default_end_time);
+    if (client.default_is_sleepover !== isSleepover) {
+      setIsSleepover(client.default_is_sleepover);
+      if (client.default_is_sleepover && !client.default_start_time) setStartTime('21:30');
+      if (client.default_is_sleepover && !client.default_end_time) setEndTime('07:00');
+    }
+    if (client.default_service_note && !notesCustomised.current) {
+      setNotes(client.default_service_note);
+      notesCustomised.current = true;
+    }
+  };
+
   const handleSleepoverToggle = () => {
     setIsSleepover(prev => {
       const next = !prev;
