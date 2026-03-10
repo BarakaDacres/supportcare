@@ -357,7 +357,7 @@ const ShiftForm = ({
               <div className="relative">
                 <select
                   value={clientId}
-                  onChange={e => setClientId(e.target.value)}
+                  onChange={e => handleClientChange(e.target.value)}
                   className="glass-input w-full text-foreground appearance-none pr-8"
                   style={{ minHeight: 44 }}
                 >
@@ -368,6 +368,11 @@ const ShiftForm = ({
                 </select>
                 <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none" />
               </div>
+              {isNew && clientId && clients.find(c => c.id === clientId)?.default_service_note && (
+                <p className="text-[10px] text-muted-foreground">
+                  ↑ Client defaults applied. Edit any field as needed.
+                </p>
+              )}
             </div>
           )}
 
