@@ -81,6 +81,8 @@
 
     --tab-bar-bg: 0 0% 4% / 0.85;
     --header-bg: 0 0% 4% / 0.9;
+    --money-green: 145 58% 52%;
+    --money-green-fg: 0 0% 98%;
 
     /* iOS 26 Liquid Glass tokens – dark */
     --lg-pill-bg: 0 0% 14% / 0.7;
