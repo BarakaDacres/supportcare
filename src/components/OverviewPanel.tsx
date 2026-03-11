@@ -604,13 +604,41 @@ const OverviewPanel = ({
           </div>
         </div>
 
-        {/* Next shift preview */}
+        {/* Next shift preview – prominent capsule */}
         <div className="pt-4 mt-1" style={{ borderTop: '0.5px solid hsl(var(--border))' }}>
-          <p className="text-[9px] font-semibold text-muted-foreground uppercase tracking-widest mb-1.5">
+          <p className="text-[9px] font-semibold text-muted-foreground uppercase tracking-widest mb-2.5">
             Next Shift
           </p>
-          {nextShiftLabel ? (
-            <p className="text-xs font-semibold text-foreground">{nextShiftLabel}</p>
+          {nextShiftInfo ? (
+            <div
+              className="rounded-2xl px-4 py-3 flex items-center justify-between gap-3"
+              style={{
+                background: 'hsl(var(--primary)/0.08)',
+                border: '1px solid hsl(var(--primary)/0.18)',
+              }}
+            >
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-bold text-foreground leading-snug">
+                  {nextShiftInfo.dateLabel}
+                </p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  {nextShiftInfo.timeLabel}
+                </p>
+              </div>
+              <span
+                className="shrink-0 text-[10px] font-bold px-2.5 py-1 rounded-full"
+                style={{
+                  background: nextShiftInfo.isSleepover
+                    ? 'hsl(var(--primary)/0.15)'
+                    : 'hsl(var(--muted))',
+                  color: nextShiftInfo.isSleepover
+                    ? 'hsl(var(--primary))'
+                    : 'hsl(var(--foreground))',
+                }}
+              >
+                {nextShiftInfo.typeLabel}
+              </span>
+            </div>
           ) : (
             <p className="text-xs text-muted-foreground">No upcoming shifts scheduled.</p>
           )}
