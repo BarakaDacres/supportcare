@@ -529,14 +529,23 @@ const OverviewPanel = ({
     : null;
   const monthGrowthUp = monthGrowthPct !== null && monthGrowthPct >= 0;
 
-  const nextShiftLabel = useMemo(() => {
+  const nextShiftInfo = useMemo(() => {
     if (!stats.nextShift) return null;
-    const d = parseDate(stats.nextShift.date);
+    const s = stats.nextShift;
+    const d = parseDate(s.date);
     const dow = d.toLocaleDateString('en-AU', { weekday: 'short' });
     const dayNum = d.getDate();
     const mon = MONTH_SHORT[d.getMonth()];
-    const timeStr = formatTime(stats.nextShift.start_time);
-    return `${dow} ${dayNum} ${mon} · ${timeStr}${stats.nextShift.is_sleepover ? ' — Sleepover' : ''}`;
+    const dateLabel = `${dow} ${dayNum} ${mon}`;
+    const timeLabel = `${formatTime(s.start_time)} – ${formatTime(s.end_time)}`;
+    const typeLabel = s.is_sleepover
+      ? 'Sleepover'
+      : s.is_public_holiday
+      ? 'Public Holiday'
+      : s.client_name
+      ? s.client_name
+      : 'Support Shift';
+    return { dateLabel, timeLabel, typeLabel, clientName: s.client_name ?? null, isSleepover: s.is_sleepover };
   }, [stats.nextShift]);
 
   // Use month+year as animation deps so numbers animate on navigation
