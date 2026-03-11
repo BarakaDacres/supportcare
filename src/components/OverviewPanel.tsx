@@ -337,71 +337,88 @@ const EarningsCalendarHeatmap = ({
   const days = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
 
   return (
-    <ElevatedCard style={{ padding: '18px 16px' }}>
-      <div className="flex items-center justify-between mb-3">
-        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-          Earnings Calendar
-        </p>
-        <div className="flex items-center gap-1">
-          <span className="text-[9px] text-muted-foreground">Low</span>
-          {[0.15, 0.35, 0.55, 0.75, 1].map((o, i) => (
-            <div key={i} className="w-3 h-3 rounded-sm" style={{ background: `hsl(var(--money-green) / ${o})` }} />
-          ))}
-          <span className="text-[9px] text-muted-foreground">High</span>
+    {/* Bevel-style module: outer ring provides depth, inner surface holds the calendar */}
+    <div
+      style={{
+        borderRadius: 26,
+        padding: 4,
+        background: 'hsl(var(--border)/0.6)',
+        boxShadow:
+          '0 1px 0 hsl(var(--glass-border)) inset, ' +
+          '0 2px 8px hsl(var(--glass-shadow)), ' +
+          '0 8px 28px hsl(var(--glass-shadow))',
+      }}
+    >
+      <div
+        className="glass-card"
+        style={{ borderRadius: 22, padding: '20px 18px' }}
+      >
+        <div className="flex items-center justify-between mb-4">
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+            Earnings Calendar
+          </p>
+          <div className="flex items-center gap-1.5">
+            <span className="text-[9px] text-muted-foreground">Low</span>
+            {[0.15, 0.35, 0.55, 0.75, 1].map((o, i) => (
+              <div key={i} className="w-3 h-3 rounded-sm" style={{ background: `hsl(var(--money-green) / ${o})` }} />
+            ))}
+            <span className="text-[9px] text-muted-foreground">High</span>
+          </div>
         </div>
-      </div>
 
-      <div className="grid grid-cols-7 gap-1 mb-1">
-        {days.map((d, i) => (
-          <div key={i} className="text-center text-[9px] font-bold text-muted-foreground">{d}</div>
-        ))}
-      </div>
+        <div className="grid grid-cols-7 gap-1.5 mb-1.5">
+          {days.map((d, i) => (
+            <div key={i} className="text-center text-[9px] font-bold text-muted-foreground">{d}</div>
+          ))}
+        </div>
 
-      <div className="grid grid-cols-7 gap-1">
-        {Array.from({ length: rows * 7 }).map((_, i) => {
-          const dayNum = i - offsetDays + 1;
-          if (dayNum < 1 || dayNum > lastDay.getDate()) return <div key={i} className="aspect-square" />;
+        <div className="grid grid-cols-7 gap-1.5">
+          {Array.from({ length: rows * 7 }).map((_, i) => {
+            const dayNum = i - offsetDays + 1;
+            if (dayNum < 1 || dayNum > lastDay.getDate()) return <div key={i} className="aspect-square" />;
 
-          const dateStr = formatDateISO(new Date(year, month, dayNum));
-          const gross = grossByDate[dateStr] ?? 0;
-          const count = shiftsByDate[dateStr] ?? 0;
-          const intensity = gross > 0 ? Math.max(0.15, gross / maxGross) : 0;
-          const isToday =
-            today.getFullYear() === year &&
-            today.getMonth() === month &&
-            today.getDate() === dayNum;
+            const dateStr = formatDateISO(new Date(year, month, dayNum));
+            const gross = grossByDate[dateStr] ?? 0;
+            const count = shiftsByDate[dateStr] ?? 0;
+            const intensity = gross > 0 ? Math.max(0.15, gross / maxGross) : 0;
+            const isToday =
+              today.getFullYear() === year &&
+              today.getMonth() === month &&
+              today.getDate() === dayNum;
 
-          return (
-            <button
-              key={i}
-              onClick={() => onDayTap(dateStr)}
-              className="aspect-square rounded-lg flex flex-col items-center justify-center relative transition-all duration-150 active:scale-90"
-              style={{
-                background: gross > 0 ? `hsl(var(--money-green) / ${intensity.toFixed(2)})` : 'hsl(var(--muted)/0.4)',
-                outline: isToday ? '1.5px solid hsl(var(--primary))' : undefined,
-              }}
-              aria-label={`${dayNum} ${MONTH_NAMES[month]}, ${gross > 0 ? formatCurrency(gross) : 'no shifts'}`}
-            >
-              <span
-                className="text-[9px] font-semibold leading-none"
-                style={{ color: intensity > 0.5 ? 'hsl(var(--money-green-fg))' : 'hsl(var(--muted-foreground))' }}
+            return (
+              <button
+                key={i}
+                onClick={() => onDayTap(dateStr)}
+                className="aspect-square rounded-xl flex flex-col items-center justify-center relative transition-all duration-150 active:scale-90"
+                style={{
+                  background: gross > 0 ? `hsl(var(--money-green) / ${intensity.toFixed(2)})` : 'hsl(var(--muted)/0.5)',
+                  outline: isToday ? '1.5px solid hsl(var(--primary))' : undefined,
+                  boxShadow: gross > 0 ? `0 1px 4px hsl(var(--money-green) / ${(intensity * 0.4).toFixed(2)})` : undefined,
+                }}
+                aria-label={`${dayNum} ${MONTH_NAMES[month]}, ${gross > 0 ? formatCurrency(gross) : 'no shifts'}`}
               >
-                {dayNum}
-              </span>
-              {count > 1 && (
                 <span
-                  className="text-[6px] leading-none mt-0.5 font-bold"
+                  className="text-[9px] font-semibold leading-none"
                   style={{ color: intensity > 0.5 ? 'hsl(var(--money-green-fg))' : 'hsl(var(--muted-foreground))' }}
                 >
-                  ×{count}
+                  {dayNum}
                 </span>
-              )}
-            </button>
-          );
-        })}
+                {count > 1 && (
+                  <span
+                    className="text-[6px] leading-none mt-0.5 font-bold"
+                    style={{ color: intensity > 0.5 ? 'hsl(var(--money-green-fg))' : 'hsl(var(--muted-foreground))' }}
+                  >
+                    ×{count}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+        <p className="text-[9px] text-muted-foreground text-center mt-3.5">Tap a day to see shift details</p>
       </div>
-      <p className="text-[9px] text-muted-foreground text-center mt-3">Tap a day to see shift details</p>
-    </ElevatedCard>
+    </div>
   );
 };
 
