@@ -337,7 +337,6 @@ const EarningsCalendarHeatmap = ({
   const days = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
 
   return (
-    {/* Bevel-style module: outer ring provides depth, inner surface holds the calendar */}
     <div
       style={{
         borderRadius: 26,
