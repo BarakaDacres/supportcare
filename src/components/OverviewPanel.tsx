@@ -1,6 +1,6 @@
-import { useMemo, useState, useCallback } from 'react';
+import { useMemo, useState, useCallback, useEffect, useRef } from 'react';
 import {
-  TrendingUp, TrendingDown, Clock, Moon, CalendarDays, Zap, Target,
+  TrendingUp, Clock, Moon, CalendarDays, Zap, Target,
   ChevronLeft, ChevronRight, Users, FileText, ArrowUpRight, ArrowDownRight,
 } from 'lucide-react';
 import { formatCurrency } from '@/lib/formatUtils';
@@ -51,12 +51,59 @@ function formatTime(t: string): string {
   return t.slice(0, 5);
 }
 
+// ── Count-up animation hook ──────────────────────────────────────────────────
+function useCountUp(target: number, duration = 600, deps: unknown[] = []) {
+  const [value, setValue] = useState(0);
+  const rafRef = useRef<number | null>(null);
+  const startRef = useRef<number | null>(null);
+  const startValRef = useRef(0);
+
+  useEffect(() => {
+    startValRef.current = 0;
+    startRef.current = null;
+    if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
+
+    const animate = (ts: number) => {
+      if (startRef.current === null) startRef.current = ts;
+      const elapsed = ts - startRef.current;
+      const progress = Math.min(elapsed / duration, 1);
+      // ease-out cubic
+      const eased = 1 - Math.pow(1 - progress, 3);
+      setValue(startValRef.current + (target - startValRef.current) * eased);
+      if (progress < 1) rafRef.current = requestAnimationFrame(animate);
+      else setValue(target);
+    };
+    rafRef.current = requestAnimationFrame(animate);
+    return () => { if (rafRef.current !== null) cancelAnimationFrame(rafRef.current); };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [target, duration, ...deps]);
+
+  return value;
+}
+
+// ── Animated currency display ─────────────────────────────────────────────────
+const AnimatedCurrency = ({
+  value,
+  className,
+  style,
+  deps = [],
+}: {
+  value: number;
+  className?: string;
+  style?: React.CSSProperties;
+  deps?: unknown[];
+}) => {
+  const animated = useCountUp(value, 620, deps);
+  return (
+    <span className={className} style={style}>
+      {formatCurrency(animated)}
+    </span>
+  );
+};
+
 // ── Day detail bottom sheet ──────────────────────────────────────────────────
 const DayShiftSheet = ({
-  open,
-  onClose,
-  dateStr,
-  shifts,
+  open, onClose, dateStr, shifts,
 }: {
   open: boolean;
   onClose: () => void;
@@ -78,7 +125,11 @@ const DayShiftSheet = ({
 
   return (
     <Sheet open={open} onOpenChange={v => !v && onClose()}>
-      <SheetContent side="bottom" className="rounded-t-3xl pb-8" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 16px) + 16px)' }}>
+      <SheetContent
+        side="bottom"
+        className="rounded-t-[28px] pb-8"
+        style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 16px) + 16px)' }}
+      >
         <SheetHeader className="mb-4">
           <SheetTitle className="text-base font-bold text-foreground">{label}</SheetTitle>
           <SheetDescription className="sr-only">Shift breakdown for this day</SheetDescription>
@@ -134,9 +185,37 @@ const DayShiftSheet = ({
   );
 };
 
-// ── Month navigator with inline summary ─────────────────────────────────────
+// ── Elevated card wrapper ─────────────────────────────────────────────────────
+const ElevatedCard = ({
+  children,
+  className = '',
+  glow = false,
+  style,
+}: {
+  children: React.ReactNode;
+  className?: string;
+  glow?: boolean;
+  style?: React.CSSProperties;
+}) => (
+  <div
+    className={`${glow ? 'glass-card-glow' : 'glass-card'} ${className}`}
+    style={{
+      borderRadius: 24,
+      padding: '18px 20px',
+      boxShadow: glow
+        ? '0 2px 8px hsl(var(--glass-shadow)), 0 8px 32px hsl(var(--glass-shadow)), 0 0 48px hsl(var(--glow-primary))'
+        : '0 1px 4px hsl(var(--glass-shadow)), 0 6px 24px hsl(var(--glass-shadow))',
+      ...style,
+    }}
+  >
+    {children}
+  </div>
+);
+
+// ── Month navigator (Layer 3) ─────────────────────────────────────────────────
 const MonthNavigator = ({
-  year, month, onYearChange, onMonthChange, monthGross, monthShifts, monthHours,
+  year, month, onYearChange, onMonthChange,
+  monthGross, monthShifts, monthHours,
 }: {
   year: number; month: number;
   onYearChange: (y: number) => void;
@@ -154,41 +233,66 @@ const MonthNavigator = ({
     else onMonthChange(month + 1);
   };
 
+  // Swipe support
+  const touchStartX = useRef<number | null>(null);
+  const handleTouchStart = (e: React.TouchEvent) => { touchStartX.current = e.touches[0].clientX; };
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (touchStartX.current === null) return;
+    const dx = e.changedTouches[0].clientX - touchStartX.current;
+    if (Math.abs(dx) > 48) { dx < 0 ? next() : prev(); }
+    touchStartX.current = null;
+  };
+
   return (
-    <div className="glass-card p-1 space-y-1.5">
-      <div className="flex items-center justify-between">
+    <div
+      className="glass-card overflow-hidden"
+      style={{ borderRadius: 22, boxShadow: '0 1px 4px hsl(var(--glass-shadow)), 0 6px 24px hsl(var(--glass-shadow))' }}
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
+    >
+      {/* Month row */}
+      <div className="flex items-center justify-between px-2 py-3">
         <button
           onClick={prev}
-          className="p-2 rounded-xl hover:bg-secondary transition-colors"
+          className="p-2.5 rounded-xl hover:bg-secondary transition-colors"
           aria-label="Previous month"
         >
           <ChevronLeft className="w-4 h-4 text-foreground" />
         </button>
-        <span className="text-sm font-bold text-foreground">
+        <span className="text-base font-bold text-foreground tracking-tight">
           {MONTH_NAMES[month]} {year}
         </span>
         <button
           onClick={next}
-          className="p-2 rounded-xl hover:bg-secondary transition-colors"
+          className="p-2.5 rounded-xl hover:bg-secondary transition-colors"
           aria-label="Next month"
         >
           <ChevronRight className="w-4 h-4 text-foreground" />
         </button>
       </div>
-      {/* Month quick summary */}
+
+      {/* Month summary line */}
       {(monthGross > 0 || monthShifts > 0) && (
-        <p className="text-center text-[11px] text-muted-foreground pb-1 leading-tight">
-          <span className="font-semibold" style={{ color: 'hsl(var(--money-green))' }}>
-            {formatCurrency(monthGross)}
-          </span>
-          {' '}earned · {monthShifts} shift{monthShifts !== 1 ? 's' : ''} · {monthHours.toFixed(0)}h
-        </p>
+        <div
+          className="px-4 pb-3.5 pt-0 text-center"
+          style={{ borderTop: '0.5px solid hsl(var(--border))' }}
+        >
+          <p className="text-[12px] text-muted-foreground leading-snug mt-2.5">
+            <span className="font-bold" style={{ color: 'hsl(var(--money-green))' }}>
+              {formatCurrency(monthGross)}
+            </span>
+            <span className="mx-1.5 text-muted-foreground/50">·</span>
+            <span>{monthShifts} shift{monthShifts !== 1 ? 's' : ''}</span>
+            <span className="mx-1.5 text-muted-foreground/50">·</span>
+            <span>{monthHours.toFixed(0)}h</span>
+          </p>
+        </div>
       )}
     </div>
   );
 };
 
-// ── Interactive Earnings Calendar ────────────────────────────────────────────
+// ── Interactive Earnings Calendar ─────────────────────────────────────────────
 const EarningsCalendarHeatmap = ({
   shifts, year, month, onDayTap,
 }: {
@@ -233,10 +337,10 @@ const EarningsCalendarHeatmap = ({
   const days = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
 
   return (
-    <div className="glass-card p-4 space-y-3">
-      <div className="flex items-center justify-between">
+    <ElevatedCard style={{ padding: '18px 16px' }}>
+      <div className="flex items-center justify-between mb-3">
         <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-          Earnings Calendar — {MONTH_NAMES[month]} {year}
+          Earnings Calendar
         </p>
         <div className="flex items-center gap-1">
           <span className="text-[9px] text-muted-foreground">Low</span>
@@ -247,7 +351,7 @@ const EarningsCalendarHeatmap = ({
         </div>
       </div>
 
-      <div className="grid grid-cols-7 gap-1">
+      <div className="grid grid-cols-7 gap-1 mb-1">
         {days.map((d, i) => (
           <div key={i} className="text-center text-[9px] font-bold text-muted-foreground">{d}</div>
         ))}
@@ -271,12 +375,11 @@ const EarningsCalendarHeatmap = ({
             <button
               key={i}
               onClick={() => onDayTap(dateStr)}
-              className="aspect-square rounded-md flex flex-col items-center justify-center relative transition-opacity active:opacity-70"
+              className="aspect-square rounded-lg flex flex-col items-center justify-center relative transition-all duration-150 active:scale-90"
               style={{
                 background: gross > 0 ? `hsl(var(--money-green) / ${intensity.toFixed(2)})` : 'hsl(var(--muted)/0.4)',
                 outline: isToday ? '1.5px solid hsl(var(--primary))' : undefined,
               }}
-              title={gross > 0 ? `${formatCurrency(gross)} · ${count} shift${count !== 1 ? 's' : ''}` : undefined}
               aria-label={`${dayNum} ${MONTH_NAMES[month]}, ${gross > 0 ? formatCurrency(gross) : 'no shifts'}`}
             >
               <span
@@ -297,28 +400,12 @@ const EarningsCalendarHeatmap = ({
           );
         })}
       </div>
-      <p className="text-[9px] text-muted-foreground text-center">Tap a day to see shift details</p>
-    </div>
+      <p className="text-[9px] text-muted-foreground text-center mt-3">Tap a day to see shift details</p>
+    </ElevatedCard>
   );
 };
 
-// ── Growth indicator ─────────────────────────────────────────────────────────
-const GrowthBadge = ({ current, previous }: { current: number; previous: number }) => {
-  if (previous <= 0) return null;
-  const pct = ((current - previous) / previous) * 100;
-  const up = pct >= 0;
-  return (
-    <span
-      className="inline-flex items-center gap-0.5 text-[10px] font-semibold"
-      style={{ color: up ? 'hsl(var(--stat-green))' : 'hsl(var(--stat-red))' }}
-    >
-      {up ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownRight className="w-3 h-3" />}
-      {Math.abs(pct).toFixed(0)}% vs {MONTH_SHORT[previous > 0 ? 0 : 0]}
-    </span>
-  );
-};
-
-// ── Main OverviewPanel ───────────────────────────────────────────────────────
+// ── Main OverviewPanel ────────────────────────────────────────────────────────
 const OverviewPanel = ({
   shifts, clients, invoices, settings,
   selectedYear, selectedMonth, onYearChange, onMonthChange,
@@ -327,10 +414,7 @@ const OverviewPanel = ({
   today.setHours(0, 0, 0, 0);
 
   const [daySheetDate, setDaySheetDate] = useState<string | null>(null);
-
-  const handleDayTap = useCallback((dateStr: string) => {
-    setDaySheetDate(dateStr);
-  }, []);
+  const handleDayTap = useCallback((dateStr: string) => setDaySheetDate(dateStr), []);
 
   const stats = useMemo(() => {
     const weekStart = getMondayOf(today);
@@ -347,7 +431,6 @@ const OverviewPanel = ({
       return d.getMonth() === selectedMonth && d.getFullYear() === selectedYear;
     });
 
-    // Previous month for comparison
     const prevMonth = selectedMonth === 0 ? 11 : selectedMonth - 1;
     const prevYear = selectedMonth === 0 ? selectedYear - 1 : selectedYear;
     const prevMonthShifts = shifts.filter(s => {
@@ -376,7 +459,6 @@ const OverviewPanel = ({
     );
     const projected = (gross(thisYearShifts) / completedMonths) * 12;
 
-    // Next upcoming shift (any future shift sorted ascending)
     const todayStr = formatDateISO(today);
     const futureShifts = shifts
       .filter(s => s.date >= todayStr)
@@ -386,7 +468,6 @@ const OverviewPanel = ({
       });
     const nextShift = futureShifts.length > 0 ? futureShifts[0] : null;
 
-    // Top client by gross in selected month
     const clientGrossMap: Record<string, { name: string; gross: number; count: number }> = {};
     for (const s of thisMonthShifts) {
       if (!s.client_id || !s.client_name) continue;
@@ -417,7 +498,6 @@ const OverviewPanel = ({
     };
   }, [shifts, selectedMonth, selectedYear]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Unpaid invoices
   const unpaidStats = useMemo(() => {
     const unpaid = invoices.filter(inv => inv.status !== 'paid');
     return {
@@ -431,13 +511,11 @@ const OverviewPanel = ({
     ? Math.min(100, (stats.monthGross / monthlyGoal) * 100)
     : null;
 
-  // Month-over-month growth
   const monthGrowthPct = stats.prevMonthGross > 0
     ? ((stats.monthGross - stats.prevMonthGross) / stats.prevMonthGross) * 100
     : null;
   const monthGrowthUp = monthGrowthPct !== null && monthGrowthPct >= 0;
 
-  // Format next shift label
   const nextShiftLabel = useMemo(() => {
     if (!stats.nextShift) return null;
     const d = parseDate(stats.nextShift.date);
@@ -448,10 +526,15 @@ const OverviewPanel = ({
     return `${dow} ${dayNum} ${mon} · ${timeStr}${stats.nextShift.is_sleepover ? ' — Sleepover' : ''}`;
   }, [stats.nextShift]);
 
-  return (
-    <div className="space-y-5">
+  // Use month+year as animation deps so numbers animate on navigation
+  const animDeps = [selectedMonth, selectedYear];
 
-      {/* ── Month navigator with inline summary ── */}
+  return (
+    <div className="space-y-4">
+
+      {/* ──────────────────────────────────────────
+          LAYER 3 — Dashboard context bar (Month selector)
+          ────────────────────────────────────────── */}
       <MonthNavigator
         year={selectedYear}
         month={selectedMonth}
@@ -462,63 +545,75 @@ const OverviewPanel = ({
         monthHours={stats.monthHours}
       />
 
-      {/* ── Weekly Earnings + Next Shift Preview ── */}
-      <div className="glass-card-glow p-4 space-y-4">
-        <div className="flex items-center justify-between">
-          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+      {/* ── Weekly Earnings card (most prominent) ── */}
+      <ElevatedCard glow>
+        <div className="flex items-center justify-between mb-3">
+          <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest flex items-center gap-1.5">
             <CalendarDays className="w-3.5 h-3.5" /> This Week
           </p>
           <span className="text-[10px] text-muted-foreground">Mon–Sun</span>
         </div>
-        <div>
-          <p className="text-3xl font-bold money-text leading-none">{formatCurrency(stats.weekGross)}</p>
-          <p className="text-xs text-muted-foreground mt-1">weekly gross</p>
+        <div className="mb-4">
+          <AnimatedCurrency
+            value={stats.weekGross}
+            className="text-4xl font-bold money-text leading-none tracking-tight"
+            deps={animDeps}
+          />
+          <p className="text-xs text-muted-foreground mt-1.5">weekly gross</p>
         </div>
-        <div className="grid grid-cols-3 gap-3 pt-1 border-t border-border">
+        <div
+          className="grid grid-cols-3 gap-3 pt-4"
+          style={{ borderTop: '0.5px solid hsl(var(--border))' }}
+        >
           <div className="text-center">
-            <Clock className="w-4 h-4 mx-auto text-muted-foreground mb-0.5" />
+            <Clock className="w-4 h-4 mx-auto mb-1" style={{ color: 'hsl(var(--muted-foreground))' }} />
             <p className="text-sm font-bold text-foreground">{stats.weekHours.toFixed(1)}h</p>
             <p className="text-[9px] text-muted-foreground uppercase tracking-wider">Hours</p>
           </div>
           <div className="text-center">
-            <Zap className="w-4 h-4 mx-auto text-muted-foreground mb-0.5" />
+            <Zap className="w-4 h-4 mx-auto mb-1" style={{ color: 'hsl(var(--muted-foreground))' }} />
             <p className="text-sm font-bold text-foreground">{stats.weekShiftCount}</p>
             <p className="text-[9px] text-muted-foreground uppercase tracking-wider">Shifts</p>
           </div>
           <div className="text-center">
-            <Moon className="w-4 h-4 mx-auto text-muted-foreground mb-0.5" />
+            <Moon className="w-4 h-4 mx-auto mb-1" style={{ color: 'hsl(var(--muted-foreground))' }} />
             <p className="text-sm font-bold text-foreground">{stats.weekSleepovers}</p>
             <p className="text-[9px] text-muted-foreground uppercase tracking-wider">Sleepovers</p>
           </div>
         </div>
 
         {/* Next shift preview */}
-        <div className="pt-1 border-t border-border">
-          <p className="text-[9px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">Next Shift</p>
+        <div className="pt-4 mt-1" style={{ borderTop: '0.5px solid hsl(var(--border))' }}>
+          <p className="text-[9px] font-semibold text-muted-foreground uppercase tracking-widest mb-1.5">
+            Next Shift
+          </p>
           {nextShiftLabel ? (
             <p className="text-xs font-semibold text-foreground">{nextShiftLabel}</p>
           ) : (
             <p className="text-xs text-muted-foreground">No upcoming shifts scheduled.</p>
           )}
         </div>
-      </div>
+      </ElevatedCard>
 
-      {/* ── Month & Year summary with growth indicators ── */}
+      {/* ── Month & Year summary cards ── */}
       <div className="grid grid-cols-2 gap-3">
-        <div className="glass-card p-4">
-          <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">
+        <ElevatedCard style={{ padding: '16px 18px' }}>
+          <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest mb-2">
             {MONTH_SHORT[selectedMonth]} Gross
           </p>
-          <p className="text-xl font-bold money-text">{formatCurrency(stats.monthGross)}</p>
-          <p className="text-[10px] text-muted-foreground mt-0.5">
+          <AnimatedCurrency
+            value={stats.monthGross}
+            className="text-xl font-bold money-text leading-tight"
+            deps={animDeps}
+          />
+          <p className="text-[10px] text-muted-foreground mt-1">
             {stats.monthShiftCount} shifts · {stats.monthHours.toFixed(0)}h
           </p>
-          {/* Growth indicator */}
           {monthGrowthPct !== null && (
-            <div className="mt-1.5 flex items-center gap-0.5">
+            <div className="mt-2 flex items-center gap-0.5">
               {monthGrowthUp
-                ? <ArrowUpRight className="w-3 h-3" style={{ color: 'hsl(var(--stat-green))' }} />
-                : <ArrowDownRight className="w-3 h-3" style={{ color: 'hsl(var(--stat-red))' }} />
+                ? <ArrowUpRight className="w-3 h-3 shrink-0" style={{ color: 'hsl(var(--stat-green))' }} />
+                : <ArrowDownRight className="w-3 h-3 shrink-0" style={{ color: 'hsl(var(--stat-red))' }} />
               }
               <span
                 className="text-[10px] font-semibold"
@@ -528,67 +623,75 @@ const OverviewPanel = ({
               </span>
             </div>
           )}
-        </div>
-        <div className="glass-card p-4">
-          <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">
+        </ElevatedCard>
+
+        <ElevatedCard style={{ padding: '16px 18px' }}>
+          <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest mb-2">
             {selectedYear} Gross
           </p>
-          <p className="text-xl font-bold money-text">{formatCurrency(stats.yearGross)}</p>
-          <p className="text-[10px] text-muted-foreground mt-0.5 flex items-center gap-1">
-            <TrendingUp className="w-3 h-3" />
+          <AnimatedCurrency
+            value={stats.yearGross}
+            className="text-xl font-bold money-text leading-tight"
+            deps={animDeps}
+          />
+          <p className="text-[10px] text-muted-foreground mt-1 flex items-center gap-1">
+            <TrendingUp className="w-3 h-3 shrink-0" />
             Proj. {formatCurrency(stats.projected)}
           </p>
-        </div>
+        </ElevatedCard>
       </div>
 
       {/* ── Top client + Unpaid invoices row ── */}
       <div className="grid grid-cols-2 gap-3">
-        {/* Top client widget */}
         {stats.topClient ? (
-          <div className="glass-card p-4">
-            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1 flex items-center gap-1">
+          <ElevatedCard style={{ padding: '16px 18px' }}>
+            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest mb-2 flex items-center gap-1">
               <Users className="w-3 h-3" /> Top Client
             </p>
             <p className="text-sm font-bold text-foreground leading-tight truncate">{stats.topClient.name}</p>
             <p className="text-sm font-bold money-text mt-0.5">{formatCurrency(stats.topClient.gross)}</p>
-            <p className="text-[10px] text-muted-foreground mt-0.5">{stats.topClient.count} shift{stats.topClient.count !== 1 ? 's' : ''} this month</p>
-          </div>
+            <p className="text-[10px] text-muted-foreground mt-0.5">
+              {stats.topClient.count} shift{stats.topClient.count !== 1 ? 's' : ''} this month
+            </p>
+          </ElevatedCard>
         ) : clients.length > 0 ? (
-          <div className="glass-card p-4">
-            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1 flex items-center gap-1">
+          <ElevatedCard style={{ padding: '16px 18px' }}>
+            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest mb-2 flex items-center gap-1">
               <Users className="w-3 h-3" /> Top Client
             </p>
             <p className="text-xs text-muted-foreground">No client shifts this month.</p>
-          </div>
+          </ElevatedCard>
         ) : null}
 
-        {/* Unpaid invoices widget */}
         {invoices.length > 0 && (
-          <div className={`glass-card p-4 ${!stats.topClient && clients.length === 0 ? 'col-span-2' : ''}`}>
-            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1 flex items-center gap-1">
+          <ElevatedCard
+            style={{ padding: '16px 18px' }}
+            className={!stats.topClient && clients.length === 0 ? 'col-span-2' : ''}
+          >
+            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest mb-2 flex items-center gap-1">
               <FileText className="w-3 h-3" /> Invoices
             </p>
             {unpaidStats.count > 0 ? (
               <>
                 <p className="text-sm font-bold money-text">{formatCurrency(unpaidStats.total)}</p>
-                <p className="text-[10px] text-muted-foreground mt-0.5">
-                  {unpaidStats.count} unpaid pending
-                </p>
+                <p className="text-[10px] text-muted-foreground mt-0.5">{unpaidStats.count} unpaid pending</p>
               </>
             ) : (
               <>
                 <p className="text-sm font-bold text-foreground">All paid</p>
-                <p className="text-[10px] text-muted-foreground mt-0.5">{invoices.length} invoice{invoices.length !== 1 ? 's' : ''} total</p>
+                <p className="text-[10px] text-muted-foreground mt-0.5">
+                  {invoices.length} invoice{invoices.length !== 1 ? 's' : ''} total
+                </p>
               </>
             )}
-          </div>
+          </ElevatedCard>
         )}
       </div>
 
       {/* ── Monthly goal progress ── */}
       {monthlyGoal && monthlyGoal > 0 && goalPct !== null && (
-        <div className="glass-card p-4 space-y-2">
-          <div className="flex items-center justify-between">
+        <ElevatedCard>
+          <div className="flex items-center justify-between mb-2">
             <p className="text-xs font-semibold text-muted-foreground flex items-center gap-1">
               <Target className="w-3.5 h-3.5" /> Monthly Goal
             </p>
@@ -602,13 +705,13 @@ const OverviewPanel = ({
               style={{ width: `${goalPct.toFixed(1)}%`, background: 'hsl(var(--money-green))' }}
             />
           </div>
-          <p className="text-[10px] text-muted-foreground text-right">
+          <p className="text-[10px] text-muted-foreground text-right mt-2">
             {goalPct.toFixed(0)}%
             {goalPct >= 100
               ? ' · Goal reached! 🎉'
               : ` · ${formatCurrency(monthlyGoal - stats.monthGross)} remaining`}
           </p>
-        </div>
+        </ElevatedCard>
       )}
 
       {/* ── Interactive Earnings calendar heatmap ── */}
@@ -620,8 +723,8 @@ const OverviewPanel = ({
       />
 
       {/* ── Monthly trend mini chart ── */}
-      <div className="glass-card p-4 space-y-3">
-        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+      <ElevatedCard>
+        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-4">
           {selectedYear} Monthly Earnings
         </p>
         <div className="flex items-end gap-1" style={{ height: 72 }}>
@@ -654,7 +757,7 @@ const OverviewPanel = ({
             );
           })}
         </div>
-      </div>
+      </ElevatedCard>
 
       {/* ── Day shift detail sheet ── */}
       <DayShiftSheet
