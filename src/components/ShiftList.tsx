@@ -47,6 +47,21 @@ function getShiftBadges(shift: Shift) {
   return { isSleepover, isWeekend, isWeekday, isPublicHoliday };
 }
 
+/**
+ * Returns true when the current wall-clock time falls inside the shift window.
+ * Handles overnight shifts (end < start or is_sleepover) correctly.
+ */
+function isShiftActive(shift: Shift): boolean {
+  const now = new Date();
+  const [sy, sm, sd] = shift.date.split('-').map(Number);
+  const [startH, startM] = shift.start_time.split(':').map(Number);
+  const [endH, endM] = shift.end_time.split(':').map(Number);
+  const shiftStart = new Date(sy, sm - 1, sd, startH, startM, 0, 0);
+  const isOvernight = shift.is_sleepover || endH < startH || (endH === startH && endM < startM);
+  const shiftEnd = new Date(sy, sm - 1, sd + (isOvernight ? 1 : 0), endH, endM, 0, 0);
+  return now >= shiftStart && now < shiftEnd;
+}
+
 const ShiftList = ({
   shifts, clients, loading, rates = DEFAULT_RATES, locked = false,
   onAdd, onUpdate, onDelete, onDuplicate, onSheetOpenChange,
@@ -250,12 +265,34 @@ const ShiftList = ({
             const { isSleepover, isWeekend, isWeekday, isPublicHoliday } = getShiftBadges(shift);
             const hasOverride = shift.fee_override != null && shift.fee_override > 0;
             const displayPay = effectiveGrossPay(shift);
+            const active = isShiftActive(shift);
             return (
-              <div key={shift.id} className="glass-card p-4 space-y-2">
+              <div
+                key={shift.id}
+                className="glass-card p-4 space-y-2"
+                style={active ? {
+                  borderColor: 'hsl(var(--stat-green)/0.5)',
+                  boxShadow: '0 0 0 1px hsl(var(--stat-green)/0.25), 0 4px 20px hsl(var(--stat-green)/0.12)',
+                  background: 'hsl(var(--stat-green)/0.05)',
+                } : undefined}
+              >
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-1.5 flex-wrap">
                       <span className="text-sm font-bold text-foreground">{formatDateLabel(shift.date)}</span>
+
+                      {active && (
+                        <span
+                          className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold animate-pulse"
+                          style={{
+                            background: 'hsl(var(--stat-green)/0.18)',
+                            color: 'hsl(var(--stat-green))',
+                            border: '1px solid hsl(var(--stat-green)/0.4)',
+                          }}
+                        >
+                          ● Active
+                        </span>
+                      )}
 
                       {isPublicHoliday && (
                         <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold"
