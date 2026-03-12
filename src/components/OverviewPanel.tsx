@@ -585,9 +585,8 @@ const OverviewPanel = ({
     : null;
   const monthGrowthUp = monthGrowthPct !== null && monthGrowthPct >= 0;
 
-  const nextShiftInfo = useMemo(() => {
-    if (!stats.nextShift) return null;
-    const s = stats.nextShift;
+  // Build a formatted shift info object from any shift
+  const buildShiftInfo = (s: Shift) => {
     const d = parseDate(s.date);
     const dow = d.toLocaleDateString('en-AU', { weekday: 'short' });
     const dayNum = d.getDate();
@@ -598,11 +597,18 @@ const OverviewPanel = ({
       ? 'Sleepover'
       : s.is_public_holiday
       ? 'Public Holiday'
-      : s.client_name
-      ? s.client_name
-      : 'Support Shift';
-    return { dateLabel, timeLabel, typeLabel, clientName: s.client_name ?? null, isSleepover: s.is_sleepover };
-  }, [stats.nextShift]);
+      : s.client_name ?? 'Support Shift';
+    return { dateLabel, timeLabel, typeLabel, isSleepover: s.is_sleepover };
+  };
+
+  const activeShiftInfo = useMemo(
+    () => stats.activeShift ? buildShiftInfo(stats.activeShift) : null,
+    [stats.activeShift], // eslint-disable-line react-hooks/exhaustive-deps
+  );
+  const nextShiftInfo = useMemo(
+    () => stats.nextShift ? buildShiftInfo(stats.nextShift) : null,
+    [stats.nextShift], // eslint-disable-line react-hooks/exhaustive-deps
+  );
 
   // Use month+year as animation deps so numbers animate on navigation
   const animDeps = [selectedMonth, selectedYear];
@@ -660,43 +666,88 @@ const OverviewPanel = ({
           </div>
         </div>
 
-        {/* Next shift preview – prominent capsule */}
+        {/* Active Now / Next Shift capsule — priority: active → next → empty */}
         <div className="pt-4 mt-1" style={{ borderTop: '0.5px solid hsl(var(--border))' }}>
-          <p className="text-[9px] font-semibold text-muted-foreground uppercase tracking-widest mb-2.5">
-            Next Shift
-          </p>
-          {nextShiftInfo ? (
-            <div
-              className="rounded-2xl px-4 py-3 flex items-center justify-between gap-3"
-              style={{
-                background: 'hsl(var(--primary)/0.08)',
-                border: '1px solid hsl(var(--primary)/0.18)',
-              }}
-            >
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-bold text-foreground leading-snug">
-                  {nextShiftInfo.dateLabel}
-                </p>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  {nextShiftInfo.timeLabel}
-                </p>
+          {activeShiftInfo ? (
+            <>
+              {/* Active Now label row */}
+              <div className="flex items-center gap-2 mb-2.5">
+                <span
+                  className="text-[9px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full"
+                  style={{
+                    background: 'hsl(var(--stat-green)/0.15)',
+                    color: 'hsl(var(--stat-green))',
+                  }}
+                >
+                  ● Active Now
+                </span>
               </div>
-              <span
-                className="shrink-0 text-[10px] font-bold px-2.5 py-1 rounded-full"
+              {/* Active shift card */}
+              <div
+                className="rounded-2xl px-4 py-3 flex items-center justify-between gap-3"
                 style={{
-                  background: nextShiftInfo.isSleepover
-                    ? 'hsl(var(--primary)/0.15)'
-                    : 'hsl(var(--muted))',
-                  color: nextShiftInfo.isSleepover
-                    ? 'hsl(var(--primary))'
-                    : 'hsl(var(--foreground))',
+                  background: 'hsl(var(--stat-green)/0.09)',
+                  border: '1px solid hsl(var(--stat-green)/0.25)',
                 }}
               >
-                {nextShiftInfo.typeLabel}
-              </span>
-            </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-bold text-foreground leading-snug">
+                    {activeShiftInfo.dateLabel}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    {activeShiftInfo.timeLabel}
+                  </p>
+                </div>
+                <span
+                  className="shrink-0 text-[10px] font-bold px-2.5 py-1 rounded-full"
+                  style={{
+                    background: 'hsl(var(--stat-green)/0.15)',
+                    color: 'hsl(var(--stat-green))',
+                  }}
+                >
+                  {activeShiftInfo.typeLabel}
+                </span>
+              </div>
+            </>
           ) : (
-            <p className="text-xs text-muted-foreground">No upcoming shifts scheduled.</p>
+            <>
+              <p className="text-[9px] font-semibold text-muted-foreground uppercase tracking-widest mb-2.5">
+                Next Shift
+              </p>
+              {nextShiftInfo ? (
+                <div
+                  className="rounded-2xl px-4 py-3 flex items-center justify-between gap-3"
+                  style={{
+                    background: 'hsl(var(--primary)/0.08)',
+                    border: '1px solid hsl(var(--primary)/0.18)',
+                  }}
+                >
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-bold text-foreground leading-snug">
+                      {nextShiftInfo.dateLabel}
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      {nextShiftInfo.timeLabel}
+                    </p>
+                  </div>
+                  <span
+                    className="shrink-0 text-[10px] font-bold px-2.5 py-1 rounded-full"
+                    style={{
+                      background: nextShiftInfo.isSleepover
+                        ? 'hsl(var(--primary)/0.15)'
+                        : 'hsl(var(--muted))',
+                      color: nextShiftInfo.isSleepover
+                        ? 'hsl(var(--primary))'
+                        : 'hsl(var(--foreground))',
+                    }}
+                  >
+                    {nextShiftInfo.typeLabel}
+                  </span>
+                </div>
+              ) : (
+                <p className="text-xs text-muted-foreground">No upcoming shifts scheduled.</p>
+              )}
+            </>
           )}
         </div>
       </ElevatedCard>
