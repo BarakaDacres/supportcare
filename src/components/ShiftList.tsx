@@ -47,6 +47,21 @@ function getShiftBadges(shift: Shift) {
   return { isSleepover, isWeekend, isWeekday, isPublicHoliday };
 }
 
+/**
+ * Returns true when the current wall-clock time falls inside the shift window.
+ * Handles overnight shifts (end < start or is_sleepover) correctly.
+ */
+function isShiftActive(shift: Shift): boolean {
+  const now = new Date();
+  const [sy, sm, sd] = shift.date.split('-').map(Number);
+  const [startH, startM] = shift.start_time.split(':').map(Number);
+  const [endH, endM] = shift.end_time.split(':').map(Number);
+  const shiftStart = new Date(sy, sm - 1, sd, startH, startM, 0, 0);
+  const isOvernight = shift.is_sleepover || endH < startH || (endH === startH && endM < startM);
+  const shiftEnd = new Date(sy, sm - 1, sd + (isOvernight ? 1 : 0), endH, endM, 0, 0);
+  return now >= shiftStart && now < shiftEnd;
+}
+
 const ShiftList = ({
   shifts, clients, loading, rates = DEFAULT_RATES, locked = false,
   onAdd, onUpdate, onDelete, onDuplicate, onSheetOpenChange,
