@@ -503,27 +503,38 @@ const OverviewPanel = ({
     );
     const projected = (gross(thisYearShifts) / completedMonths) * 12;
 
-    // Use the actual current wall-clock time (not midnight) for accurate next-shift detection
+    // Use the actual current wall-clock time for accurate shift state detection
     const now = new Date();
+
+    // Helper: build start/end datetimes for a shift
+    const shiftWindow = (s: Shift) => {
+      const [startH, startM] = s.start_time.split(':').map(Number);
+      const [endH, endM] = s.end_time.split(':').map(Number);
+      const [sy, sm, sd] = s.date.split('-').map(Number);
+      const shiftStart = new Date(sy, sm - 1, sd, startH, startM, 0, 0);
+      const endDayOffset = s.is_sleepover || endH < startH || (endH === startH && endM < startM) ? 1 : 0;
+      const shiftEnd = new Date(sy, sm - 1, sd + endDayOffset, endH, endM, 0, 0);
+      return { shiftStart, shiftEnd };
+    };
+
+    // Active shift: currently in progress right now
+    const activeShift = shifts.find(s => {
+      const { shiftStart, shiftEnd } = shiftWindow(s);
+      return now >= shiftStart && now < shiftEnd;
+    }) ?? null;
+
+    // Next upcoming shift: starts in the future (already ended ones excluded)
     const futureShifts = shifts
       .filter(s => {
-        // Build a real datetime from date + start_time, then check if the shift END is still in the future.
-        // An overnight shift that started yesterday but ends this morning still counts until it ends.
-        const [startH, startM] = s.start_time.split(':').map(Number);
-        const [endH, endM] = s.end_time.split(':').map(Number);
-        const [sy, sm, sd] = s.date.split('-').map(Number);
-        const shiftStart = new Date(sy, sm - 1, sd, startH, startM, 0, 0);
-        // For overnight shifts the end is the next calendar day
-        const endDayOffset = s.is_sleepover || endH < startH || (endH === startH && endM < startM) ? 1 : 0;
-        const shiftEnd = new Date(sy, sm - 1, sd + endDayOffset, endH, endM, 0, 0);
-        // Only include shifts that haven't ended yet
+        const { shiftEnd } = shiftWindow(s);
         return shiftEnd > now;
       })
       .sort((a, b) => {
         if (a.date !== b.date) return a.date.localeCompare(b.date);
         return a.start_time.localeCompare(b.start_time);
       });
-    const nextShift = futureShifts.length > 0 ? futureShifts[0] : null;
+    // nextShift should not be the same as the activeShift
+    const nextShift = futureShifts.find(s => s.id !== activeShift?.id) ?? null;
 
     const clientGrossMap: Record<string, { name: string; gross: number; count: number }> = {};
     for (const s of thisMonthShifts) {
