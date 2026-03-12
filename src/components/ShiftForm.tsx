@@ -494,6 +494,7 @@ const ShiftForm = ({
           </div>
         </div>
       </form>
+    </div>
   );
 };
 
