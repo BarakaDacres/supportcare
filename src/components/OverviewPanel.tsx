@@ -100,7 +100,7 @@ const AnimatedCurrency = ({
   );
 };
 
-// ── Day detail bottom sheet ──────────────────────────────────────────────────
+// ── Day detail centered modal ─────────────────────────────────────────────────
 const DayShiftSheet = ({
   open, onClose, dateStr, shifts,
 }: {
@@ -122,31 +122,60 @@ const DayShiftSheet = ({
     return d.toLocaleDateString('en-AU', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
   }, [dateStr]);
 
-  return (
-    <Sheet open={open} onOpenChange={v => !v && onClose()}>
-      <SheetContent
-        side="bottom"
-        className="rounded-t-[28px] pb-8"
-        style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 16px) + 16px)' }}
-      >
-        <SheetHeader className="mb-4">
-          <SheetTitle className="text-base font-bold text-foreground">{label}</SheetTitle>
-          <SheetDescription className="sr-only">Shift breakdown for this day</SheetDescription>
-        </SheetHeader>
+  if (!open) return null;
 
-        {dayShifts.length === 0 ? (
-          <div className="py-8 text-center">
-            <p className="text-sm text-muted-foreground">No shifts recorded for this day.</p>
+  return (
+    <div
+      className="fixed inset-0 z-[60] flex items-center justify-center p-4"
+      style={{ background: 'hsl(var(--foreground)/0.45)', backdropFilter: 'blur(4px)' }}
+      onClick={onClose}
+    >
+      <div
+        className="w-full flex flex-col"
+        style={{
+          maxWidth: 420,
+          maxHeight: '80dvh',
+          background: 'hsl(var(--card))',
+          borderRadius: 24,
+          boxShadow:
+            '0 2px 8px hsl(var(--foreground)/0.08), ' +
+            '0 16px 48px hsl(var(--foreground)/0.18), ' +
+            '0 0 0 0.5px hsl(var(--border))',
+          overflow: 'hidden',
+        }}
+        onClick={e => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div
+          className="flex items-center justify-between px-5 py-4 shrink-0"
+          style={{ borderBottom: '0.5px solid hsl(var(--border))' }}
+        >
+          <div>
+            <p className="text-base font-bold text-foreground">{label}</p>
+            {dayShifts.length > 0 && (
+              <p className="text-xs text-muted-foreground mt-0.5">
+                {dayShifts.length} shift{dayShifts.length !== 1 ? 's' : ''} ·{' '}
+                <span className="font-semibold money-text">{formatCurrency(total)}</span>
+              </p>
+            )}
           </div>
-        ) : (
-          <div className="space-y-3">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                {dayShifts.length} shift{dayShifts.length !== 1 ? 's' : ''}
-              </span>
-              <span className="text-sm font-bold money-text">{formatCurrency(total)} total</span>
+          <button
+            onClick={onClose}
+            className="w-8 h-8 flex items-center justify-center rounded-full transition-colors shrink-0"
+            style={{ background: 'hsl(var(--muted))', color: 'hsl(var(--muted-foreground))' }}
+          >
+            <X className="w-3.5 h-3.5" />
+          </button>
+        </div>
+
+        {/* Body */}
+        <div className="flex-1 overflow-y-auto overscroll-contain p-4 space-y-3">
+          {dayShifts.length === 0 ? (
+            <div className="py-8 text-center">
+              <p className="text-sm text-muted-foreground">No shifts recorded for this day.</p>
             </div>
-            {dayShifts.map(s => (
+          ) : (
+            dayShifts.map(s => (
               <div key={s.id} className="glass-card p-3 space-y-1">
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-semibold text-foreground">
@@ -176,11 +205,11 @@ const DayShiftSheet = ({
                 </div>
                 {s.notes && <p className="text-xs text-muted-foreground">{s.notes}</p>}
               </div>
-            ))}
-          </div>
-        )}
-      </SheetContent>
-    </Sheet>
+            ))
+          )}
+        </div>
+      </div>
+    </div>
   );
 };
 
