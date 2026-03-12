@@ -281,6 +281,19 @@ const ShiftList = ({
                     <div className="flex items-center gap-1.5 flex-wrap">
                       <span className="text-sm font-bold text-foreground">{formatDateLabel(shift.date)}</span>
 
+                      {active && (
+                        <span
+                          className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold animate-pulse"
+                          style={{
+                            background: 'hsl(var(--stat-green)/0.18)',
+                            color: 'hsl(var(--stat-green))',
+                            border: '1px solid hsl(var(--stat-green)/0.4)',
+                          }}
+                        >
+                          ● Active
+                        </span>
+                      )}
+
                       {isPublicHoliday && (
                         <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold"
                           style={{ background: 'hsl(34 97% 52% / 0.15)', color: 'hsl(34 97% 52%)', border: '1px solid hsl(34 97% 52% / 0.3)' }}>
