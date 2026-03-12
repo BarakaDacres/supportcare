@@ -561,6 +561,7 @@ const OverviewPanel = ({
       projected,
       byMonth,
       maxMonth,
+      activeShift,
       nextShift,
       topClient: topClientEntry,
     };
