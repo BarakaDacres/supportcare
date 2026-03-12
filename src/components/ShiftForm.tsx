@@ -163,24 +163,27 @@ const ShiftForm = ({
   return (
     /* ── Backdrop ── */
     <div
-      className="fixed inset-0 z-[60] flex items-center justify-center p-4"
-      style={{ background: 'hsl(var(--foreground)/0.45)', backdropFilter: 'blur(4px)' }}
+      className="fixed inset-0 z-[60] flex items-center justify-center"
+      style={{
+        padding: '16px',
+        background: 'hsl(var(--foreground)/0.45)',
+        backdropFilter: 'blur(4px)',
+      }}
       onClick={(e) => { if (e.target === e.currentTarget) onCancel(); }}
     >
-      {/* ── Modal card ──
-          Uses bg-card (theme-aware) so dark mode gets the proper dark surface.
-          Fixed max-width, centered, rounded on all sides. */}
+      {/* ── Modal card — direct flex child of backdrop, no extra wrapper ── */}
       <form
         onSubmit={handleSubmit}
-        className="w-full flex flex-col"
+        className="flex flex-col"
         style={{
-          maxWidth: 460,
-          maxHeight: '92dvh',
+          width: '100%',
+          maxWidth: 440,
+          maxHeight: 'min(92dvh, 700px)',
           background: 'hsl(var(--card))',
           borderRadius: 24,
           boxShadow:
             '0 2px 8px hsl(var(--foreground)/0.08), ' +
-            '0 16px 48px hsl(var(--foreground)/0.18), ' +
+            '0 20px 60px hsl(var(--foreground)/0.22), ' +
             '0 0 0 0.5px hsl(var(--border))',
           overflow: 'hidden',
         }}
