@@ -495,6 +495,38 @@ const OverviewPanel = ({
     const hours = (arr: Shift[]) =>
       arr.filter(s => !s.is_sleepover).reduce((s, sh) => s + Number(sh.hours_worked), 0);
 
+    // ── Weekly earnings breakdown by category ──
+    const weekBreakdown = (() => {
+      let regularDay = 0;
+      let evening = 0;
+      let weekend = 0;
+      let weekdaySleepover = 0;
+      let saturdaySleepover = 0;
+      let sundaySleepover = 0;
+      let publicHoliday = 0;
+
+      for (const s of thisWeekShifts) {
+        const pay = effectiveGrossPay(s);
+        const dow = getDayOfWeek(s.date);
+        if (s.is_public_holiday && !s.is_sleepover) { publicHoliday += pay; continue; }
+        if (s.is_sleepover) {
+          if (dow === 6) saturdaySleepover += pay;
+          else if (dow === 0) sundaySleepover += pay;
+          else weekdaySleepover += pay;
+          continue;
+        }
+        if (dow === 6 || dow === 0) { weekend += pay; continue; }
+        // weekday
+        const hasEvening = shiftHasEveningHours(s.start_time, s.end_time);
+        const [startH] = s.start_time.split(':').map(Number);
+        const [endH] = s.end_time.split(':').map(Number);
+        const purelyEvening = startH >= 18 && (endH <= 22 || endH <= startH);
+        if (hasEvening && purelyEvening) { evening += pay; }
+        else { regularDay += pay; }
+      }
+      return { regularDay, evening, weekend, weekdaySleepover, saturdaySleepover, sundaySleepover, publicHoliday };
+    })();
+
     const byMonth = Array.from({ length: 12 }, (_, m) => {
       const ms = thisYearShifts.filter(s => parseDate(s.date).getMonth() === m);
       return { month: m, gross: gross(ms) };
