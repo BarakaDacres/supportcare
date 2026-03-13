@@ -252,7 +252,7 @@ const ShiftForm = ({
                 onChange={e => handleDateChange(e.target.value)}
                 required
                 className="glass-input w-full text-foreground"
-                style={{ minHeight: 44 }}
+                style={{ minHeight: 44, boxSizing: 'border-box', width: '100%' }}
               />
             </div>
 
@@ -265,10 +265,10 @@ const ShiftForm = ({
                 <input
                   type="time"
                   value={startTime}
-                  onChange={e => setStartTime(e.target.value)}
+                  onChange={e => handleStartTimeChange(e.target.value)}
                   required
                   className="glass-input w-full text-foreground"
-                  style={{ minHeight: 44 }}
+                  style={{ minHeight: 44, boxSizing: 'border-box', width: '100%' }}
                 />
               </div>
               <div className="space-y-1.5">
@@ -278,10 +278,10 @@ const ShiftForm = ({
                 <input
                   type="time"
                   value={endTime}
-                  onChange={e => setEndTime(e.target.value)}
+                  onChange={e => handleEndTimeChange(e.target.value)}
                   required
                   className="glass-input w-full text-foreground"
-                  style={{ minHeight: 44 }}
+                  style={{ minHeight: 44, boxSizing: 'border-box', width: '100%' }}
                 />
               </div>
             </div>
