@@ -393,4 +393,3 @@ const DayHeatmap = ({ shifts }: { shifts: Shift[] }) => {
 };
 
 export default AnalyticsPanel;
-export default AnalyticsPanel;
