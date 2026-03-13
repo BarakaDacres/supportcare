@@ -1,24 +1,27 @@
 /**
  * Shift pay calculator for independent disability support workers.
  *
- * Default rates (AUD):
- *  Mon–Fri daytime  $60/hr
- *  Saturday         $75/hr
- *  Sunday           $90/hr
- *  Public Holiday   $150/hr  (overrides all day-of-week rates for hourly shifts)
- *  Weekday sleepover flat $300  (Mon–Fri nights)
- *  Weekend sleepover flat $350  (Sat/Sun nights only — Friday is weekday)
+ * Rates (AUD):
+ *  Mon–Fri daytime   $60/hr  (unless evening window)
+ *  Evening (18–22h)  $75/hr  (any day, weekday or weekend)
+ *  Saturday          $75/hr  (non-evening hours)
+ *  Sunday            $90/hr  (non-evening hours)
+ *  Public Holiday    $150/hr (overrides all day/evening rates for hourly shifts)
+ *  Weekday sleepover flat $300  (Mon–Fri nights, start at 22:00 → next morning)
+ *  Weekend sleepover flat $350  (Sat/Sun nights only)
  *
  * Shifts that cross midnight are split across days automatically.
+ * Evening hours (18:00–22:00) are carved out as a separate segment within any day.
  */
 
 export interface PayRates {
-  rate_weekday: number;           // Mon–Fri hourly
-  rate_saturday: number;          // Saturday hourly
-  rate_sunday: number;            // Sunday hourly
+  rate_weekday: number;           // Mon–Fri hourly (daytime)
+  rate_saturday: number;          // Saturday hourly (daytime)
+  rate_sunday: number;            // Sunday hourly (daytime)
   rate_sleepover_weekday: number; // flat per night Mon–Fri
   rate_sleepover_weekend: number; // flat per night Sat–Sun
   rate_public_holiday?: number;   // Public holiday hourly
+  rate_evening?: number;          // Evening 18:00–22:00 hourly (any day)
 }
 
 export const DEFAULT_RATES: PayRates = {
@@ -28,7 +31,12 @@ export const DEFAULT_RATES: PayRates = {
   rate_sleepover_weekday: 300,
   rate_sleepover_weekend: 350,
   rate_public_holiday: 150,
+  rate_evening: 75,
 };
+
+/** Evening window in minutes since midnight */
+const EVENING_START_MIN = 18 * 60; // 1080
+const EVENING_END_MIN   = 22 * 60; // 1320
 
 /**
  * Returns the day-of-week integer (0=Sun,1=Mon...6=Sat) for a given date string (YYYY-MM-DD).
@@ -39,7 +47,8 @@ export function getDayOfWeek(dateStr: string): number {
 }
 
 /**
- * Hourly rate for a given day of week (0=Sun ... 6=Sat).
+ * Daytime hourly rate for a given day of week (0=Sun ... 6=Sat).
+ * Evening hours are handled separately.
  */
 export function hourlyRate(dayOfWeek: number, rates: PayRates): number {
   if (dayOfWeek === 0) return rates.rate_sunday;
@@ -51,24 +60,72 @@ export function hourlyRate(dayOfWeek: number, rates: PayRates): number {
  * Is a night a "weekend sleepover" night?
  * Weekend sleepover = ONLY Saturday night or Sunday night.
  * Friday is treated as a WEEKDAY night ($300).
- * dayOfWeek is the day the shift STARTS (the "night" day).
  */
 export function isWeekendSleeperNight(dayOfWeek: number): boolean {
-  // Sat=6, Sun=0 only. Friday=5 is weekday.
   return dayOfWeek === 6 || dayOfWeek === 0;
+}
+
+/**
+ * Detect whether a shift contains any hours in the evening window 18:00–22:00.
+ * Works for overnight shifts too.
+ */
+export function shiftHasEveningHours(startTime: string, endTime: string): boolean {
+  const startMin = timeToMinutes(startTime);
+  let endMin = timeToMinutes(endTime);
+  if (endMin <= startMin) endMin += 1440; // overnight
+
+  // Iterate through each 24-h window covered by the shift
+  let offset = startMin;
+  let remaining = endMin - startMin;
+  while (remaining > 0) {
+    const dayStart = Math.floor(offset / 1440) * 1440;
+    const relStart = offset - dayStart;
+    const relEnd = Math.min(relStart + remaining, 1440);
+    // Does this day's segment overlap with evening window (1080–1320)?
+    const overlapStart = Math.max(relStart, EVENING_START_MIN);
+    const overlapEnd   = Math.min(relEnd,   EVENING_END_MIN);
+    if (overlapEnd > overlapStart) return true;
+    const chunk = relEnd - relStart;
+    remaining -= chunk;
+    offset += chunk;
+  }
+  return false;
+}
+
+interface SubSegment {
+  startMin: number; // within-day minutes
+  endMin: number;
+  isEvening: boolean;
+}
+
+/**
+ * Split a single day's minutes [segStart, segEnd) into daytime and evening sub-segments.
+ * segStart and segEnd are minutes within [0, 1440).
+ */
+function splitDaySegment(segStart: number, segEnd: number): SubSegment[] {
+  const cuts = [segStart, EVENING_START_MIN, EVENING_END_MIN, segEnd]
+    .filter(v => v > segStart && v < segEnd);
+  const points = [segStart, ...new Set(cuts), segEnd].sort((a, b) => a - b);
+  const result: SubSegment[] = [];
+  for (let i = 0; i < points.length - 1; i++) {
+    const s = points[i];
+    const e = points[i + 1];
+    if (e <= s) continue;
+    const isEvening = s >= EVENING_START_MIN && e <= EVENING_END_MIN;
+    result.push({ startMin: s, endMin: e, isEvening });
+  }
+  return result;
 }
 
 interface DaySegment {
   date: string;
   dayOfWeek: number;
   hours: number;
+  isEvening: boolean;
 }
 
 /**
- * Split a shift into per-day segments (handles midnight crossing).
- * dateStr: YYYY-MM-DD (shift start date)
- * startMinutes: minutes since midnight for start
- * endMinutes: minutes since midnight for end (may be > 1440 for overnight)
+ * Split a shift into per-day, per-rate-zone segments (handles midnight crossing + evening split).
  */
 function splitAcrossDays(dateStr: string, startMinutes: number, endMinutes: number): DaySegment[] {
   const segments: DaySegment[] = [];
@@ -79,13 +136,22 @@ function splitAcrossDays(dateStr: string, startMinutes: number, endMinutes: numb
 
   while (remaining > 0) {
     const minutesToMidnight = 1440 - offset;
-    const hoursInDay = Math.min(remaining, minutesToMidnight) / 60;
-    segments.push({
-      date: formatDate(current),
-      dayOfWeek: current.getDay(),
-      hours: hoursInDay,
-    });
-    remaining -= minutesToMidnight;
+    const inThisDay = Math.min(remaining, minutesToMidnight);
+    const segStart = offset;
+    const segEnd = offset + inThisDay;
+
+    // Split into daytime / evening sub-segments within this day
+    const sub = splitDaySegment(segStart, segEnd);
+    for (const ss of sub) {
+      segments.push({
+        date: formatDate(current),
+        dayOfWeek: current.getDay(),
+        hours: (ss.endMin - ss.startMin) / 60,
+        isEvening: ss.isEvening,
+      });
+    }
+
+    remaining -= inThisDay;
     offset = 0;
     current = new Date(current.getTime() + 86400000);
   }
@@ -140,9 +206,6 @@ export function calculateShiftPay(
   const totalHours = (endMinutes - startMinutes) / 60;
 
   if (isSleepover) {
-    // Sleepover: flat rate based on the day the shift starts (the "night")
-    // Weekend = Sat(6) or Sun(0) only. Fri(5) is WEEKDAY.
-    // Public holiday does NOT override sleepover flat-fee.
     const dayOfWeek = getDayOfWeek(dateStr);
     const rate = isWeekendSleeperNight(dayOfWeek)
       ? rates.rate_sleepover_weekend
@@ -155,24 +218,35 @@ export function calculateShiftPay(
     };
   }
 
-  // Regular shift — split across days and apply day-specific rates
+  // Regular shift — split across days and evening zones
   const segments = splitAcrossDays(dateStr, startMinutes, endMinutes);
   let grossPay = 0;
   const breakdown: ShiftCalculation['breakdown'] = [];
 
   const phRate = rates.rate_public_holiday ?? 150;
+  const eveningRate = rates.rate_evening ?? 75;
 
   for (const seg of segments) {
-    // Public holiday overrides all day-based rates for hourly shifts
-    const rate = isPublicHoliday ? phRate : hourlyRate(seg.dayOfWeek, rates);
+    let rate: number;
+    let zoneLabel: string;
+
+    if (isPublicHoliday) {
+      rate = phRate;
+      zoneLabel = `Public Holiday ${seg.date}`;
+    } else if (seg.isEvening) {
+      rate = eveningRate;
+      const dayName = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][seg.dayOfWeek];
+      zoneLabel = `${dayName} ${seg.date} (Evening)`;
+    } else {
+      rate = hourlyRate(seg.dayOfWeek, rates);
+      const dayName = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][seg.dayOfWeek];
+      zoneLabel = `${dayName} ${seg.date}`;
+    }
+
     const amount = seg.hours * rate;
     grossPay += amount;
-    const dayName = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][seg.dayOfWeek];
-    const label = isPublicHoliday
-      ? `Public Holiday ${seg.date}`
-      : `${dayName} ${seg.date}`;
     breakdown.push({
-      label,
+      label: zoneLabel,
       hours: +seg.hours.toFixed(2),
       rate,
       amount: +amount.toFixed(2),

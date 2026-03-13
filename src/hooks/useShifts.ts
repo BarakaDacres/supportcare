@@ -132,12 +132,19 @@ export function useShifts(rates: PayRates = DEFAULT_RATES) {
     const onFocus = () => {
       if (userIdRef.current) fetchShifts(userIdRef.current);
     };
+    const onVisibility = () => {
+      if (document.visibilityState === 'visible' && userIdRef.current) {
+        fetchShifts(userIdRef.current);
+      }
+    };
     window.addEventListener('focus', onFocus);
+    document.addEventListener('visibilitychange', onVisibility);
 
     return () => {
       subscription.unsubscribe();
       if (realtimeChannel) supabase.removeChannel(realtimeChannel);
       window.removeEventListener('focus', onFocus);
+      document.removeEventListener('visibilitychange', onVisibility);
     };
   }, [fetchShifts]);
 

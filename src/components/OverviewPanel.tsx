@@ -1,7 +1,7 @@
 import { useMemo, useState, useCallback, useEffect, useRef } from 'react';
 import {
   TrendingUp, Clock, Moon, CalendarDays, Zap, Target,
-  ChevronLeft, ChevronRight, Users, FileText, ArrowUpRight, ArrowDownRight, X,
+  ChevronLeft, ChevronRight, Users, FileText, ArrowUpRight, ArrowDownRight, X, Sunset,
 } from 'lucide-react';
 import { formatCurrency } from '@/lib/formatUtils';
 import type { Shift } from '@/hooks/useShifts';
@@ -9,6 +9,7 @@ import { effectiveGrossPay } from '@/hooks/useShifts';
 import type { Client } from '@/hooks/useClients';
 import type { UserSettings } from '@/hooks/useUserSettings';
 import { MONTH_NAMES, MONTH_SHORT } from '@/lib/dateUtils';
+import { shiftHasEveningHours } from '@/lib/shiftCalculator';
 
 interface Invoice {
   id: string;
@@ -188,15 +189,21 @@ const DayShiftSheet = ({
                     <span className="text-xs text-muted-foreground">{s.client_name}</span>
                   )}
                   {s.is_sleepover && (
-                    <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full"
-                      style={{ background: 'hsl(var(--primary)/0.12)', color: 'hsl(var(--primary))' }}>
+                    <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full text-white"
+                      style={{ background: '#2563EB' }}>
                       Sleepover
                     </span>
                   )}
                   {s.is_public_holiday && (
                     <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full"
-                      style={{ background: 'hsl(38 92% 50% / 0.15)', color: 'hsl(38 92% 35%)' }}>
+                      style={{ background: 'hsl(34 97% 52% / 0.15)', color: 'hsl(34 97% 40%)' }}>
                       Public Holiday
+                    </span>
+                  )}
+                  {!s.is_sleepover && !s.is_public_holiday && shiftHasEveningHours(s.start_time, s.end_time) && (
+                    <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full"
+                      style={{ background: 'hsl(38 90% 52% / 0.18)', color: 'hsl(38 90% 38%)' }}>
+                      Evening Shift
                     </span>
                   )}
                   {!s.is_sleepover && (
@@ -593,12 +600,15 @@ const OverviewPanel = ({
     const mon = MONTH_SHORT[d.getMonth()];
     const dateLabel = `${dow} ${dayNum} ${mon}`;
     const timeLabel = `${formatTime(s.start_time)} – ${formatTime(s.end_time)}`;
+    const isEvening = !s.is_sleepover && !s.is_public_holiday && shiftHasEveningHours(s.start_time, s.end_time);
     const typeLabel = s.is_sleepover
       ? 'Sleepover'
       : s.is_public_holiday
       ? 'Public Holiday'
+      : isEvening
+      ? 'Evening Shift'
       : s.client_name ?? 'Support Shift';
-    return { dateLabel, timeLabel, typeLabel, isSleepover: s.is_sleepover };
+    return { dateLabel, timeLabel, typeLabel, isSleepover: s.is_sleepover, isEvening, isPublicHoliday: s.is_public_holiday };
   };
 
   const activeShiftInfo = useMemo(
@@ -698,11 +708,17 @@ const OverviewPanel = ({
                     {activeShiftInfo.timeLabel}
                   </p>
                 </div>
+                {/* Strong-contrast chip for active shift type */}
                 <span
-                  className="shrink-0 text-[10px] font-bold px-2.5 py-1 rounded-full"
+                  className="shrink-0 text-[10px] font-bold px-2.5 py-1 rounded-full text-white"
                   style={{
-                    background: 'hsl(var(--stat-green)/0.15)',
-                    color: 'hsl(var(--stat-green))',
+                    background: activeShiftInfo.isSleepover
+                      ? '#2563EB'
+                      : activeShiftInfo.isPublicHoliday
+                      ? 'hsl(34 97% 48%)'
+                      : activeShiftInfo.isEvening
+                      ? 'hsl(38 90% 44%)'
+                      : 'hsl(var(--stat-green))',
                   }}
                 >
                   {activeShiftInfo.typeLabel}
@@ -718,8 +734,16 @@ const OverviewPanel = ({
                 <div
                   className="rounded-2xl px-4 py-3 flex items-center justify-between gap-3"
                   style={{
-                    background: 'hsl(var(--primary)/0.08)',
-                    border: '1px solid hsl(var(--primary)/0.18)',
+                    background: nextShiftInfo.isEvening
+                      ? 'hsl(38 90% 52% / 0.1)'
+                      : nextShiftInfo.isPublicHoliday
+                      ? 'hsl(34 97% 52% / 0.1)'
+                      : 'hsl(var(--primary)/0.08)',
+                    border: nextShiftInfo.isEvening
+                      ? '1px solid hsl(38 90% 52% / 0.3)'
+                      : nextShiftInfo.isPublicHoliday
+                      ? '1px solid hsl(34 97% 52% / 0.3)'
+                      : '1px solid hsl(var(--primary)/0.22)',
                   }}
                 >
                   <div className="flex-1 min-w-0">
@@ -730,16 +754,25 @@ const OverviewPanel = ({
                       {nextShiftInfo.timeLabel}
                     </p>
                   </div>
+                  {/* Type chip — high-contrast on every variant */}
                   <span
                     className="shrink-0 text-[10px] font-bold px-2.5 py-1 rounded-full"
-                    style={{
-                      background: nextShiftInfo.isSleepover
-                        ? 'hsl(var(--primary)/0.15)'
-                        : 'hsl(var(--muted))',
-                      color: nextShiftInfo.isSleepover
-                        ? 'hsl(var(--primary))'
-                        : 'hsl(var(--foreground))',
-                    }}
+                    style={
+                      nextShiftInfo.isSleepover ? {
+                        background: '#2563EB',
+                        color: '#ffffff',
+                      } : nextShiftInfo.isPublicHoliday ? {
+                        background: 'hsl(34 97% 52%)',
+                        color: '#ffffff',
+                      } : nextShiftInfo.isEvening ? {
+                        background: 'hsl(38 90% 44%)',
+                        color: '#ffffff',
+                      } : {
+                        // Support Shift / client name — solid primary for readability
+                        background: 'hsl(var(--primary))',
+                        color: 'hsl(var(--primary-foreground))',
+                      }
+                    }
                   >
                     {nextShiftInfo.typeLabel}
                   </span>

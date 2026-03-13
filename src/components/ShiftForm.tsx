@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
-import { X, Clock, Moon, User, FileText, ChevronDown, DollarSign, Star } from 'lucide-react';
-import { calculateShiftPay, formatTime12h, type PayRates, DEFAULT_RATES, getDayOfWeek, isWeekendSleeperNight } from '@/lib/shiftCalculator';
+import { X, Clock, Moon, User, FileText, ChevronDown, DollarSign, Star, Sunset } from 'lucide-react';
+import { calculateShiftPay, formatTime12h, type PayRates, DEFAULT_RATES, getDayOfWeek, isWeekendSleeperNight, shiftHasEveningHours } from '@/lib/shiftCalculator';
 import { formatCurrency } from '@/lib/formatUtils';
 import type { NewShift } from '@/hooks/useShifts';
 import type { Client } from '@/hooks/useClients';
@@ -17,6 +17,7 @@ interface ShiftFormProps {
 const today = () => new Date().toISOString().split('T')[0];
 
 const DEFAULT_NOTE_NORMAL = 'Assistance with Self-Care Activities';
+const DEFAULT_NOTE_EVENING = 'Assistance with Self-Care Activities — Evening';
 
 function getSleeoverNote(dateStr?: string, rates?: PayRates): string {
   const weekdayRate = rates?.rate_sleepover_weekday ?? 300;
@@ -32,8 +33,11 @@ function getSleeoverNote(dateStr?: string, rates?: PayRates): string {
 
 const DEFAULT_NOTE_SLEEPOVER = getSleeoverNote();
 
-const getDefaultNote = (isSleepover: boolean, dateStr?: string, rates?: PayRates) =>
-  isSleepover ? getSleeoverNote(dateStr, rates) : DEFAULT_NOTE_NORMAL;
+function getDefaultNote(isSleepover: boolean, startTime: string, endTime: string, dateStr?: string, rates?: PayRates): string {
+  if (isSleepover) return getSleeoverNote(dateStr, rates);
+  if (shiftHasEveningHours(startTime, endTime)) return DEFAULT_NOTE_EVENING;
+  return DEFAULT_NOTE_NORMAL;
+}
 
 const ShiftForm = ({
   clients,
@@ -56,14 +60,18 @@ const ShiftForm = ({
   );
 
   const isNew = !initialValues?.date;
+  const initStart = initialValues?.start_time ?? '09:00';
+  const initEnd   = initialValues?.end_time   ?? '17:00';
   const [notes, setNotes] = useState(
-    initialValues?.notes ?? getDefaultNote(initialValues?.is_sleepover ?? false, initialValues?.date, rates)
+    initialValues?.notes ??
+      getDefaultNote(initialValues?.is_sleepover ?? false, initStart, initEnd, initialValues?.date, rates)
   );
 
   const notesCustomised = useRef(
     !isNew &&
       initialValues?.notes != null &&
       initialValues.notes !== DEFAULT_NOTE_NORMAL &&
+      initialValues.notes !== DEFAULT_NOTE_EVENING &&
       initialValues.notes !== DEFAULT_NOTE_SLEEPOVER
   );
 
@@ -85,8 +93,8 @@ const ShiftForm = ({
     if (client.default_end_time) setEndTime(client.default_end_time);
     if (client.default_is_sleepover !== isSleepover) {
       setIsSleepover(client.default_is_sleepover);
-      if (client.default_is_sleepover && !client.default_start_time) setStartTime('21:30');
-      if (client.default_is_sleepover && !client.default_end_time) setEndTime('07:00');
+      if (client.default_is_sleepover && !client.default_start_time) setStartTime('22:00');
+      if (client.default_is_sleepover && !client.default_end_time) setEndTime('06:00');
     }
     if (client.default_service_note && !notesCustomised.current) {
       setNotes(client.default_service_note);
@@ -95,14 +103,16 @@ const ShiftForm = ({
   };
 
   const handleSleepoverToggle = () => {
+    const nextStart = '22:00';
+    const nextEnd   = '06:00';
     setIsSleepover(prev => {
       const next = !prev;
       if (!notesCustomised.current) {
-        setNotes(getDefaultNote(next, date, rates));
+        setNotes(getDefaultNote(next, next ? nextStart : startTime, next ? nextEnd : endTime, date, rates));
       }
       if (next) {
-        setStartTime('21:30');
-        setEndTime('07:00');
+        setStartTime(nextStart);
+        setEndTime(nextEnd);
       }
       if (!next) setFeeOverride('');
       return next;
@@ -111,18 +121,39 @@ const ShiftForm = ({
 
   const handleDateChange = (val: string) => {
     setDate(val);
-    if (isSleepover && !notesCustomised.current) {
-      setNotes(getDefaultNote(true, val, rates));
+    if (!notesCustomised.current) {
+      setNotes(getDefaultNote(isSleepover, startTime, endTime, val, rates));
+    }
+  };
+
+  // Auto-update note when start/end changes (only if not customised)
+  const handleStartTimeChange = (val: string) => {
+    setStartTime(val);
+    if (!notesCustomised.current && !isSleepover) {
+      setNotes(getDefaultNote(false, val, endTime, date, rates));
+    }
+  };
+
+  const handleEndTimeChange = (val: string) => {
+    setEndTime(val);
+    if (!notesCustomised.current && !isSleepover) {
+      setNotes(getDefaultNote(false, startTime, val, date, rates));
     }
   };
 
   const handleNotesChange = (val: string) => {
     setNotes(val);
-    const currentDefault = getDefaultNote(isSleepover, date, rates);
-    notesCustomised.current = val !== currentDefault && val !== DEFAULT_NOTE_NORMAL && val !== DEFAULT_NOTE_SLEEPOVER;
+    const currentDefault = getDefaultNote(isSleepover, startTime, endTime, date, rates);
+    notesCustomised.current = (
+      val !== currentDefault &&
+      val !== DEFAULT_NOTE_NORMAL &&
+      val !== DEFAULT_NOTE_EVENING &&
+      val !== DEFAULT_NOTE_SLEEPOVER
+    );
   };
 
   const phRate = rates.rate_public_holiday ?? 150;
+  const eveningRate = rates.rate_evening ?? 75;
 
   const calc =
     date && startTime && endTime
@@ -133,6 +164,7 @@ const ShiftForm = ({
   const effectivePay = feeOverrideNum != null && feeOverrideNum > 0 ? feeOverrideNum : calc?.grossPay ?? 0;
 
   const phActive = isPublicHoliday && !isSleepover;
+  const hasEvening = !isSleepover && !isPublicHoliday && shiftHasEveningHours(startTime, endTime);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -220,7 +252,7 @@ const ShiftForm = ({
                 onChange={e => handleDateChange(e.target.value)}
                 required
                 className="glass-input w-full text-foreground"
-                style={{ minHeight: 44 }}
+                style={{ minHeight: 44, boxSizing: 'border-box', width: '100%' }}
               />
             </div>
 
@@ -233,10 +265,10 @@ const ShiftForm = ({
                 <input
                   type="time"
                   value={startTime}
-                  onChange={e => setStartTime(e.target.value)}
+                  onChange={e => handleStartTimeChange(e.target.value)}
                   required
                   className="glass-input w-full text-foreground"
-                  style={{ minHeight: 44 }}
+                  style={{ minHeight: 44, boxSizing: 'border-box', width: '100%' }}
                 />
               </div>
               <div className="space-y-1.5">
@@ -246,10 +278,10 @@ const ShiftForm = ({
                 <input
                   type="time"
                   value={endTime}
-                  onChange={e => setEndTime(e.target.value)}
+                  onChange={e => handleEndTimeChange(e.target.value)}
                   required
                   className="glass-input w-full text-foreground"
-                  style={{ minHeight: 44 }}
+                  style={{ minHeight: 44, boxSizing: 'border-box', width: '100%' }}
                 />
               </div>
             </div>
@@ -402,6 +434,9 @@ const ShiftForm = ({
                 style={phActive ? {
                   background: 'hsl(34 97% 52% / 0.1)',
                   border: '1px solid hsl(34 97% 52% / 0.35)',
+                } : hasEvening ? {
+                  background: 'hsl(38 90% 52% / 0.08)',
+                  border: '1px solid hsl(38 90% 52% / 0.25)',
                 } : {
                   background: 'hsl(var(--money-green)/0.08)',
                   border: '1px solid hsl(var(--money-green)/0.2)',
@@ -412,6 +447,14 @@ const ShiftForm = ({
                     <Star className="w-3 h-3" style={{ color: 'hsl(34 97% 52%)' }} />
                     <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: 'hsl(34 97% 52%)' }}>
                       Public Holiday Rate Active — ${phRate}/hr
+                    </span>
+                  </div>
+                )}
+                {hasEvening && (
+                  <div className="flex items-center gap-1.5 mb-1">
+                    <Sunset className="w-3 h-3" style={{ color: 'hsl(38 90% 45%)' }} />
+                    <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: 'hsl(38 90% 45%)' }}>
+                      Evening Shift — ${eveningRate}/hr (18:00–22:00)
                     </span>
                   </div>
                 )}

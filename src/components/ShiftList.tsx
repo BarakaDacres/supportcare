@@ -1,10 +1,10 @@
 import { useState, useMemo } from 'react';
-import { Plus, Pencil, Trash2, Copy, Moon, User, ChevronDown, SortAsc, Lock, Sun, AlertCircle, Star } from 'lucide-react';
+import { Plus, Pencil, Trash2, Copy, Moon, User, ChevronDown, SortAsc, Lock, Sun, AlertCircle, Star, Sunset } from 'lucide-react';
 import type { Shift, NewShift } from '@/hooks/useShifts';
 import { effectiveGrossPay } from '@/hooks/useShifts';
 import type { Client } from '@/hooks/useClients';
 import type { PayRates } from '@/lib/shiftCalculator';
-import { DEFAULT_RATES, formatTime12h, getDayOfWeek } from '@/lib/shiftCalculator';
+import { DEFAULT_RATES, formatTime12h, getDayOfWeek, shiftHasEveningHours } from '@/lib/shiftCalculator';
 import { formatCurrency } from '@/lib/formatUtils';
 import { MONTH_NAMES } from '@/lib/dateUtils';
 import ShiftForm from './ShiftForm';
@@ -44,7 +44,8 @@ function getShiftBadges(shift: Shift) {
   const isWeekday = !isWeekend;
   const isSleepover = shift.is_sleepover;
   const isPublicHoliday = shift.is_public_holiday;
-  return { isSleepover, isWeekend, isWeekday, isPublicHoliday };
+  const isEvening = !isSleepover && !isPublicHoliday && shiftHasEveningHours(shift.start_time, shift.end_time);
+  return { isSleepover, isWeekend, isWeekday, isPublicHoliday, isEvening };
 }
 
 /**
@@ -262,7 +263,7 @@ const ShiftList = ({
       ) : (
         <div className="space-y-2">
           {filtered.map(shift => {
-            const { isSleepover, isWeekend, isWeekday, isPublicHoliday } = getShiftBadges(shift);
+            const { isSleepover, isWeekend, isWeekday, isPublicHoliday, isEvening } = getShiftBadges(shift);
             const hasOverride = shift.fee_override != null && shift.fee_override > 0;
             const displayPay = effectiveGrossPay(shift);
             const active = isShiftActive(shift);
@@ -307,13 +308,22 @@ const ShiftList = ({
                         </span>
                       )}
 
-                      {isWeekend && !isPublicHoliday && (
+                      {isEvening && !isSleepover && !isPublicHoliday && (
+                        <span
+                          className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold"
+                          style={{ background: 'hsl(38 90% 52% / 0.18)', color: 'hsl(38 90% 38%)', border: '1px solid hsl(38 90% 52% / 0.35)' }}
+                        >
+                          <Sunset className="w-2.5 h-2.5" /> Evening Shift
+                        </span>
+                      )}
+
+                      {isWeekend && !isPublicHoliday && !isSleepover && (
                         <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold text-white" style={{ background: '#7C3AED' }}>
                           <Sun className="w-2.5 h-2.5" /> Weekend
                         </span>
                       )}
 
-                      {isWeekday && !isSleepover && !isPublicHoliday && (
+                      {isWeekday && !isSleepover && !isPublicHoliday && !isEvening && (
                         <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold"
                           style={{ background: 'hsl(var(--muted))', color: 'hsl(var(--muted-foreground))' }}>
                           Weekday
