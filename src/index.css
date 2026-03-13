@@ -2,105 +2,137 @@
 @tailwind components;
 @tailwind utilities;
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,300..800;1,14..32,300..800&display=swap');
 
 @layer base {
   :root {
-    --background: 240 6% 97%;
-    --foreground: 0 0% 10%;
+    /* ── Light: warm off-white, floating white cards ── */
+    --background: 220 14% 96%;
+    --foreground: 220 20% 10%;
     --card: 0 0% 100%;
-    --card-foreground: 0 0% 10%;
+    --card-foreground: 220 20% 10%;
     --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 10%;
+    --popover-foreground: 220 20% 10%;
     --primary: 211 100% 50%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 240 5% 92%;
-    --secondary-foreground: 0 0% 20%;
-    --muted: 240 5% 94%;
-    --muted-foreground: 0 0% 45%;
+    --secondary: 220 12% 92%;
+    --secondary-foreground: 220 10% 20%;
+    --muted: 220 10% 93%;
+    --muted-foreground: 220 8% 46%;
     --accent: 211 100% 50%;
     --accent-foreground: 0 0% 100%;
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
-    --border: 0 0% 90%;
-    --input: 0 0% 90%;
+    --border: 220 10% 88%;
+    --input: 220 10% 88%;
     --ring: 211 100% 50%;
     --radius: 1rem;
 
-    --glass-bg: 0 0% 100% / 0.72;
-    --glass-border: 0 0% 100% / 0.5;
-    --glass-shadow: 0 0% 0% / 0.04;
-    --glass-blur: 24px;
-    --glow-primary: 211 100% 50% / 0.15;
-    --surface-elevated: 0 0% 100% / 0.85;
-    --stat-green: 142 71% 45%;
-    --stat-amber: 38 92% 50%;
+    /* ── Surface system ── */
+    --glass-bg: 0 0% 100% / 0.78;
+    --glass-border: 220 14% 100% / 0.6;
+    --glass-shadow: 220 20% 10% / 0.06;
+    --glass-blur: 20px;
+    --glow-primary: 211 100% 50% / 0.12;
+    --surface-elevated: 0 0% 100% / 0.9;
+
+    /* ── Card shadows (light mode = real drop shadows) ── */
+    --card-shadow-sm: 0 1px 3px hsl(220 20% 10% / 0.06), 0 4px 12px hsl(220 20% 10% / 0.06);
+    --card-shadow-md: 0 2px 8px hsl(220 20% 10% / 0.07), 0 12px 32px hsl(220 20% 10% / 0.08);
+    --card-shadow-lg: 0 4px 16px hsl(220 20% 10% / 0.08), 0 24px 56px hsl(220 20% 10% / 0.1);
+
+    /* ── Semantic accents ── */
+    --stat-green: 152 60% 40%;
+    --stat-amber: 38 88% 48%;
     --stat-red: 0 84% 60%;
-    --money-green: 145 63% 40%;
-    --money-green-fg: 145 63% 20%;
+    --money-green: 152 60% 38%;
+    --money-green-fg: 152 60% 18%;
+    --evening-color: 28 88% 50%;
+    --sleepover-color: 213 90% 55%;
+    --weekend-color: 265 82% 62%;
 
-    --tab-bar-bg: 240 6% 97% / 0.82;
-    --header-bg: 240 6% 97% / 0.88;
+    /* ── Tab / header surfaces ── */
+    --tab-bar-bg: 220 14% 96% / 0.88;
+    --header-bg: 220 14% 96% / 0.92;
 
-    /* iOS 26 Liquid Glass tokens */
-    --lg-pill-bg: 0 0% 100% / 0.55;
-    --lg-pill-border: 0 0% 100% / 0.7;
-    --lg-pill-shadow-color: 0 0% 0% / 0.08;
-    --lg-active-bg: 211 100% 50% / 0.12;
-    --lg-active-border: 211 100% 50% / 0.25;
-    --lg-specular: 0 0% 100% / 0.6;
+    /* ── iOS 26 Liquid Glass tokens ── */
+    --lg-pill-bg: 0 0% 100% / 0.65;
+    --lg-pill-border: 0 0% 100% / 0.75;
+    --lg-pill-shadow-color: 220 20% 10% / 0.1;
+    --lg-active-bg: 211 100% 50% / 0.10;
+    --lg-active-border: 211 100% 50% / 0.22;
+    --lg-specular: 0 0% 100% / 0.7;
+
+    /* ── Separator ── */
+    --divider: 220 10% 90%;
   }
 
   .dark {
-    --background: 0 0% 0%;
-    --foreground: 0 0% 95%;
-    --card: 0 0% 8%;
-    --card-foreground: 0 0% 95%;
-    --popover: 0 0% 8%;
-    --popover-foreground: 0 0% 95%;
-    --primary: 211 100% 55%;
+    /* ── Dark: deep charcoal with warm undertone ── */
+    --background: 220 14% 6%;
+    --foreground: 220 10% 94%;
+    --card: 220 12% 10%;
+    --card-foreground: 220 10% 94%;
+    --popover: 220 12% 10%;
+    --popover-foreground: 220 10% 94%;
+    --primary: 211 100% 58%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 0 0% 14%;
-    --secondary-foreground: 0 0% 85%;
-    --muted: 0 0% 14%;
-    --muted-foreground: 0 0% 55%;
-    --accent: 211 100% 55%;
+    --secondary: 220 10% 16%;
+    --secondary-foreground: 220 8% 82%;
+    --muted: 220 10% 15%;
+    --muted-foreground: 220 6% 54%;
+    --accent: 211 100% 58%;
     --accent-foreground: 0 0% 100%;
-    --destructive: 0 62% 50%;
+    --destructive: 0 62% 52%;
     --destructive-foreground: 0 0% 100%;
-    --border: 0 0% 18%;
-    --input: 0 0% 18%;
-    --ring: 211 100% 55%;
+    --border: 220 10% 18%;
+    --input: 220 10% 18%;
+    --ring: 211 100% 58%;
 
-    --glass-bg: 0 0% 10% / 0.65;
-    --glass-border: 0 0% 100% / 0.08;
-    --glass-shadow: 0 0% 0% / 0.3;
+    /* ── Surface system ── */
+    --glass-bg: 220 14% 10% / 0.72;
+    --glass-border: 220 10% 100% / 0.07;
+    --glass-shadow: 220 20% 0% / 0.35;
     --glass-blur: 24px;
-    --glow-primary: 211 100% 55% / 0.12;
-    --surface-elevated: 0 0% 12% / 0.8;
+    --glow-primary: 211 100% 58% / 0.1;
+    --surface-elevated: 220 12% 14% / 0.85;
 
-    --tab-bar-bg: 0 0% 4% / 0.85;
-    --header-bg: 0 0% 4% / 0.9;
-    --money-green: 145 58% 52%;
+    /* ── Card shadows (dark mode = subtle inner glow + depth) ── */
+    --card-shadow-sm: 0 1px 3px hsl(0 0% 0% / 0.3), 0 4px 12px hsl(0 0% 0% / 0.25), inset 0 0.5px 0 hsl(220 14% 100% / 0.07);
+    --card-shadow-md: 0 2px 8px hsl(0 0% 0% / 0.35), 0 16px 40px hsl(0 0% 0% / 0.3), inset 0 0.5px 0 hsl(220 14% 100% / 0.07);
+    --card-shadow-lg: 0 4px 16px hsl(0 0% 0% / 0.4), 0 32px 64px hsl(0 0% 0% / 0.35), inset 0 0.5px 0 hsl(220 14% 100% / 0.08);
+
+    /* ── Semantic accents ── */
+    --stat-green: 152 55% 50%;
+    --stat-amber: 38 90% 54%;
+    --stat-red: 0 62% 52%;
+    --money-green: 152 55% 50%;
     --money-green-fg: 0 0% 98%;
+    --evening-color: 28 90% 58%;
+    --sleepover-color: 213 90% 62%;
+    --weekend-color: 265 82% 70%;
 
-    /* iOS 26 Liquid Glass tokens – dark */
-    --lg-pill-bg: 0 0% 14% / 0.7;
-    --lg-pill-border: 0 0% 100% / 0.1;
-    --lg-pill-shadow-color: 0 0% 0% / 0.4;
-    --lg-active-bg: 211 100% 55% / 0.15;
-    --lg-active-border: 211 100% 55% / 0.3;
-    --lg-specular: 0 0% 100% / 0.06;
+    --tab-bar-bg: 220 14% 5% / 0.88;
+    --header-bg: 220 14% 5% / 0.93;
+
+    /* ── iOS 26 Liquid Glass tokens – dark ── */
+    --lg-pill-bg: 220 12% 13% / 0.82;
+    --lg-pill-border: 220 10% 100% / 0.1;
+    --lg-pill-shadow-color: 0 0% 0% / 0.5;
+    --lg-active-bg: 211 100% 58% / 0.14;
+    --lg-active-border: 211 100% 58% / 0.28;
+    --lg-specular: 0 0% 100% / 0.05;
+
+    --divider: 220 10% 18%;
   }
 }
 
 @layer base {
-  * {
-    @apply border-border;
-  }
+  * { @apply border-border; }
   body {
     @apply bg-background text-foreground antialiased;
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', sans-serif;
+    font-feature-settings: "cv01", "cv02", "cv03";
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     -webkit-text-size-adjust: 100%;
@@ -108,125 +140,196 @@
 }
 
 @layer components {
+
+  /* ────────────────────────────────────────────────────
+     CARD SYSTEM — two elevations
+  ──────────────────────────────────────────────────── */
+
+  /* Base glass surface (used for filter bars, chips, etc.) */
   .glass-surface {
     background: hsl(var(--glass-bg));
     backdrop-filter: blur(var(--glass-blur));
     -webkit-backdrop-filter: blur(var(--glass-blur));
     border: 1px solid hsl(var(--glass-border));
-    box-shadow: 0 8px 32px hsl(var(--glass-shadow));
   }
 
+  /* Standard card — white in light, dark elevated in dark */
   .glass-card {
-    @apply glass-surface rounded-2xl;
+    background: hsl(var(--card));
+    border: 1px solid hsl(var(--border));
+    border-radius: 20px;
+    box-shadow: var(--card-shadow-sm);
   }
 
+  /* Prominent card — hero-level elements */
   .glass-card-glow {
-    @apply glass-card;
-    box-shadow: 0 8px 32px hsl(var(--glass-shadow)), 0 0 48px hsl(var(--glow-primary));
+    background: hsl(var(--card));
+    border: 1px solid hsl(var(--border));
+    border-radius: 20px;
+    box-shadow: var(--card-shadow-md);
   }
 
+  /* ── Elevated card (for key metrics) ── */
+  .card-elevated {
+    background: hsl(var(--card));
+    border: 1px solid hsl(var(--border));
+    border-radius: 20px;
+    box-shadow: var(--card-shadow-md);
+  }
+
+  /* ── Hero card (primary weekly card) ── */
+  .card-hero {
+    background: hsl(var(--card));
+    border: 1px solid hsl(var(--border));
+    border-radius: 24px;
+    box-shadow: var(--card-shadow-lg);
+  }
+
+  /* ────────────────────────────────────────────────────
+     INPUTS
+  ──────────────────────────────────────────────────── */
   .glass-input {
-    @apply glass-surface rounded-xl px-4 py-2.5 text-sm font-medium outline-none transition-all duration-200;
+    background: hsl(var(--muted) / 0.6);
+    border: 1px solid hsl(var(--border));
+    border-radius: 12px;
+    padding: 8px 14px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    outline: none;
+    transition: all 0.15s ease;
     box-sizing: border-box;
     display: block;
+    color: hsl(var(--foreground));
   }
-
   .glass-input:focus {
     border-color: hsl(var(--primary));
-    box-shadow: 0 0 0 3px hsl(var(--primary) / 0.15);
+    background: hsl(var(--card));
+    box-shadow: 0 0 0 3px hsl(var(--primary) / 0.12);
+  }
+  .dark .glass-input {
+    background: hsl(var(--muted) / 0.5);
   }
 
+  /* ────────────────────────────────────────────────────
+     CHIPS / BADGES
+  ──────────────────────────────────────────────────── */
   .glass-chip {
-    @apply glass-surface rounded-full px-3.5 py-1.5 text-xs font-semibold tracking-wide inline-flex items-center gap-1.5;
+    background: hsl(var(--secondary));
+    border: 1px solid hsl(var(--border));
+    border-radius: 100px;
+    padding: 5px 11px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    color: hsl(var(--foreground));
+    transition: background 0.15s;
   }
 
+  /* ────────────────────────────────────────────────────
+     SEGMENTED CONTROLS
+  ──────────────────────────────────────────────────── */
   .segmented-control {
-    @apply glass-surface rounded-xl p-1 inline-flex gap-0.5;
+    background: hsl(var(--secondary));
+    border: 1px solid hsl(var(--border));
+    border-radius: 14px;
+    padding: 4px;
+    display: inline-flex;
+    gap: 2px;
   }
-
   .segmented-button {
-    @apply rounded-lg px-5 py-2 text-sm font-semibold transition-all duration-200 cursor-pointer select-none;
+    border-radius: 10px;
+    padding: 7px 18px;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    transition: all 0.18s ease;
+    cursor: pointer;
+    user-select: none;
     color: hsl(var(--muted-foreground));
   }
-
   .segmented-button-active {
-    @apply segmented-button;
+    border-radius: 10px;
+    padding: 7px 18px;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    cursor: pointer;
+    user-select: none;
     background: hsl(var(--primary));
     color: hsl(var(--primary-foreground));
-    box-shadow: 0 2px 8px hsl(var(--primary) / 0.3);
+    box-shadow: 0 2px 8px hsl(var(--primary) / 0.28);
   }
 
+  /* ────────────────────────────────────────────────────
+     MONTH / CALENDAR CARDS
+  ──────────────────────────────────────────────────── */
   .month-card {
-    @apply glass-card p-4 cursor-pointer transition-all duration-200;
+    @apply glass-card;
+    padding: 14px 16px;
+    cursor: pointer;
+    transition: all 0.2s ease;
   }
-
-  .month-card:hover {
-    transform: scale(1.02);
-    box-shadow: 0 12px 40px hsl(var(--glass-shadow));
-  }
-
+  .month-card:hover { transform: scale(1.02); }
   .month-card-active {
     @apply month-card;
-    border-color: hsl(var(--primary));
-    box-shadow: 0 0 0 2px hsl(var(--primary) / 0.3), 0 8px 32px hsl(var(--glass-shadow));
+    border-color: hsl(var(--primary) / 0.5);
+    box-shadow: var(--card-shadow-sm), 0 0 0 2px hsl(var(--primary) / 0.2);
   }
 
+  /* ────────────────────────────────────────────────────
+     PROGRESS BARS
+  ──────────────────────────────────────────────────── */
   .progress-bar {
-    @apply h-1.5 rounded-full overflow-hidden;
+    height: 6px;
+    border-radius: 100px;
+    overflow: hidden;
     background: hsl(var(--muted));
   }
-
   .progress-fill {
-    @apply h-full rounded-full transition-all duration-500 ease-out;
+    height: 100%;
+    border-radius: 100px;
+    transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
     background: hsl(var(--primary));
   }
 
-  /* iOS-style tab bar – outer scrim */
+  /* ────────────────────────────────────────────────────
+     BOTTOM TAB BAR  (iOS 26 Liquid Glass pill)
+  ──────────────────────────────────────────────────── */
   .tab-bar-glass {
     background: transparent;
     border-top: none;
   }
-
-  /* ── iOS 26 Liquid Glass pill ── */
   .ios26-tab-bar {
-    /* bottom safe area handled by pill margin */
     padding-bottom: env(safe-area-inset-bottom, 0px);
   }
-
   .ios26-tab-pill {
     background: hsl(var(--lg-pill-bg));
-    backdrop-filter: blur(48px) saturate(200%) brightness(1.04);
-    -webkit-backdrop-filter: blur(48px) saturate(200%) brightness(1.04);
+    backdrop-filter: blur(40px) saturate(180%) brightness(1.02);
+    -webkit-backdrop-filter: blur(40px) saturate(180%) brightness(1.02);
     border: 1px solid hsl(var(--lg-pill-border));
     box-shadow:
       0 8px 32px hsl(var(--lg-pill-shadow-color)),
+      0 2px 8px hsl(var(--lg-pill-shadow-color)),
       inset 0 1px 0 hsl(var(--lg-specular)),
       inset 0 -0.5px 0 hsl(var(--lg-pill-border));
   }
-
-  .ios26-tab-active {
-    color: hsl(var(--primary));
-  }
-
-  .ios26-tab-inactive {
-    color: hsl(var(--muted-foreground));
-  }
-
+  .ios26-tab-active { color: hsl(var(--primary)); }
+  .ios26-tab-inactive { color: hsl(var(--muted-foreground)); }
   .ios26-active-pill {
     background: hsl(var(--lg-active-bg));
     border: 1px solid hsl(var(--lg-active-border));
     box-shadow: inset 0 0.5px 0 hsl(var(--lg-specular));
   }
 
-  /* iOS-style header */
+  /* ────────────────────────────────────────────────────
+     HEADERS
+  ──────────────────────────────────────────────────── */
   .header-glass {
     background: hsl(var(--header-bg));
     backdrop-filter: blur(40px) saturate(180%);
     -webkit-backdrop-filter: blur(40px) saturate(180%);
     border-bottom: 0.5px solid hsl(var(--glass-border));
   }
-
-  /* Sticky context bar under header */
   .context-bar-glass {
     background: hsl(var(--header-bg));
     backdrop-filter: blur(40px) saturate(180%);
@@ -234,156 +337,155 @@
     border-bottom: 0.5px solid hsl(var(--glass-border));
   }
 
-  /* Mobile card entry style */
+  /* ────────────────────────────────────────────────────
+     SHIFT TYPE BADGES  (strong-contrast solid fills)
+  ──────────────────────────────────────────────────── */
+  .badge-active {
+    background: hsl(var(--stat-green) / 0.15);
+    color: hsl(var(--stat-green));
+    border: 1px solid hsl(var(--stat-green) / 0.3);
+    border-radius: 100px;
+    padding: 2px 8px;
+    font-size: 0.625rem;
+    font-weight: 700;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .badge-sleepover {
+    background: hsl(var(--sleepover-color));
+    color: #fff;
+    border-radius: 100px;
+    padding: 2px 8px;
+    font-size: 0.625rem;
+    font-weight: 700;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .badge-evening {
+    background: hsl(var(--evening-color) / 0.15);
+    color: hsl(var(--evening-color));
+    border: 1px solid hsl(var(--evening-color) / 0.3);
+    border-radius: 100px;
+    padding: 2px 8px;
+    font-size: 0.625rem;
+    font-weight: 700;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .badge-weekend {
+    background: hsl(var(--weekend-color));
+    color: #fff;
+    border-radius: 100px;
+    padding: 2px 8px;
+    font-size: 0.625rem;
+    font-weight: 700;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .badge-holiday {
+    background: hsl(var(--stat-amber) / 0.15);
+    color: hsl(var(--stat-amber));
+    border: 1px solid hsl(var(--stat-amber) / 0.3);
+    border-radius: 100px;
+    padding: 2px 8px;
+    font-size: 0.625rem;
+    font-weight: 700;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  /* ────────────────────────────────────────────────────
+     ENTRY CARD (mobile)
+  ──────────────────────────────────────────────────── */
   .entry-card {
-    @apply glass-card p-3 space-y-2;
+    @apply glass-card;
+    padding: 14px 16px;
   }
 
-  /* Safe area utilities */
-  .pb-safe-bottom {
-    padding-bottom: env(safe-area-inset-bottom, 0px);
+  /* ────────────────────────────────────────────────────
+     UTILITIES
+  ──────────────────────────────────────────────────── */
+  .pb-safe-bottom { padding-bottom: env(safe-area-inset-bottom, 0px); }
+  .pt-safe-top { padding-top: env(safe-area-inset-top, 0px); }
+  .scrollbar-none { scrollbar-width: none; -ms-overflow-style: none; }
+  .scrollbar-none::-webkit-scrollbar { display: none; }
+  .money-text { color: hsl(var(--money-green)); }
+
+  /* ── Section label (uppercase eyebrow) ── */
+  .section-label {
+    font-size: 0.625rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: hsl(var(--muted-foreground));
   }
 
-  .pt-safe-top {
-    padding-top: env(safe-area-inset-top, 0px);
-  }
-
-  /* Scrollbar hide utility */
-  .scrollbar-none {
-    scrollbar-width: none;
-    -ms-overflow-style: none;
-  }
-  .scrollbar-none::-webkit-scrollbar {
-    display: none;
+  /* ── Divider ── */
+  .card-divider {
+    border: none;
+    border-top: 0.5px solid hsl(var(--divider));
   }
 
   /* ── Mobile overflow containment ── */
   @media (max-width: 767px) {
-    .glass-card,
-    .glass-card-glow {
-      border-radius: 18px;
-      /* Prevent cards from overflowing parent on narrow viewports */
+    .glass-card, .glass-card-glow, .card-hero, .card-elevated {
       max-width: 100%;
       overflow: hidden;
     }
-
-    /* Ensure inputs never bleed beyond their card */
     .glass-input {
       max-width: 100%;
       box-sizing: border-box;
     }
-
-    /* Prevent segmented controls causing horizontal scroll */
     .segmented-control {
       width: 100%;
     }
   }
-
-  /* ── Money green accent for all currency values ── */
-  .money-text {
-    color: hsl(var(--money-green));
-  }
 }
 
+/* ──────────────────────────────────────────────────────
+   PRINT
+────────────────────────────────────────────────────── */
 @media print {
-  * {
-    -webkit-print-color-adjust: exact;
-    print-color-adjust: exact;
-  }
-
-  body {
-    background: white !important;
-    color: black !important;
-    font-size: 11pt;
-    margin: 0;
-    padding: 0;
-  }
-
-  /* Hide everything except the invoice */
-  body > * {
-    display: none !important;
-  }
-
-  /* Show only the invoice print area */
-  .invoice-print-area,
-  .invoice-print-area * {
-    display: revert !important;
-  }
-
+  * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  body { background: white !important; color: black !important; font-size: 11pt; margin: 0; padding: 0; }
+  body > * { display: none !important; }
+  .invoice-print-area, .invoice-print-area * { display: revert !important; }
   .invoice-print-area {
-    display: block !important;
-    position: static !important;
-    margin: 0 !important;
-    padding: 24px !important;
-    background: white !important;
-    color: black !important;
-    backdrop-filter: none !important;
-    border: none !important;
-    box-shadow: none !important;
-    border-radius: 0 !important;
-    width: 100% !important;
-    max-width: 100% !important;
-    overflow: visible !important;
-    page-break-inside: avoid;
+    display: block !important; position: static !important;
+    margin: 0 !important; padding: 24px !important;
+    background: white !important; color: black !important;
+    backdrop-filter: none !important; border: none !important;
+    box-shadow: none !important; border-radius: 0 !important;
+    width: 100% !important; max-width: 100% !important;
+    overflow: visible !important; page-break-inside: avoid;
   }
-
   .invoice-print-area .glass-card,
   .invoice-print-area .glass-surface,
-  .invoice-print-area .glass-card-glow {
+  .invoice-print-area .glass-card-glow,
+  .invoice-print-area .card-elevated,
+  .invoice-print-area .card-hero {
     background: #f9f9f9 !important;
     backdrop-filter: none !important;
     border: 1px solid #e0e0e0 !important;
     box-shadow: none !important;
   }
-
   .invoice-print-area .text-foreground,
-  .invoice-print-area h1,
-  .invoice-print-area h2,
-  .invoice-print-area p,
-  .invoice-print-area span,
-  .invoice-print-area div {
-    color: black !important;
-  }
-
-  .invoice-print-area .text-muted-foreground {
-    color: #555 !important;
-  }
-
-  /* Money-green prints as a readable dark green */
-  .invoice-print-area .money-text {
-    color: #1a7a3a !important;
-  }
-
-  .invoice-print-area [style*="color: hsl(var(--primary))"] {
-    color: #0071e3 !important;
-  }
-
-  /* Striped rows print legibly */
-  .invoice-print-area [style*="hsl(var(--muted)/0.2)"] {
-    background: #f5f5f5 !important;
-  }
-
-  .invoice-print-area [style*="hsl(var(--money-green)/0.1)"] {
-    background: #eafaf0 !important;
-    border-color: #a3ddb6 !important;
-  }
-
-  .invoice-print-area [style*="hsl(var(--primary)/0.1)"] {
-    background: #e8f2ff !important;
-  }
-
-  .no-print,
-  nav,
-  header,
-  .ios26-tab-bar,
-  .ios26-tab-pill,
-  .tab-bar-glass,
-  .header-glass,
-  .context-bar-glass {
-    display: none !important;
-  }
-
-  .print-break {
-    page-break-before: always;
-  }
+  .invoice-print-area h1, .invoice-print-area h2,
+  .invoice-print-area p, .invoice-print-area span,
+  .invoice-print-area div { color: black !important; }
+  .invoice-print-area .text-muted-foreground { color: #555 !important; }
+  .invoice-print-area .money-text { color: #1a7a3a !important; }
+  .invoice-print-area [style*="color: hsl(var(--primary))"] { color: #0071e3 !important; }
+  .invoice-print-area [style*="hsl(var(--muted)/0.2)"] { background: #f5f5f5 !important; }
+  .invoice-print-area [style*="hsl(var(--money-green)/0.1)"] { background: #eafaf0 !important; border-color: #a3ddb6 !important; }
+  .invoice-print-area [style*="hsl(var(--primary)/0.1)"] { background: #e8f2ff !important; }
+  .no-print, nav, header,
+  .ios26-tab-bar, .ios26-tab-pill,
+  .tab-bar-glass, .header-glass, .context-bar-glass { display: none !important; }
+  .print-break { page-break-before: always; }
 }

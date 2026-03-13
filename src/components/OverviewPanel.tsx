@@ -224,30 +224,23 @@ const DayShiftSheet = ({
 const ElevatedCard = ({
   children,
   className = '',
-  glow = false,
+  hero = false,
   style,
 }: {
   children: React.ReactNode;
   className?: string;
-  glow?: boolean;
+  hero?: boolean;
   style?: React.CSSProperties;
 }) => (
   <div
-    className={`${glow ? 'glass-card-glow' : 'glass-card'} ${className}`}
-    style={{
-      borderRadius: 24,
-      padding: '18px 20px',
-      boxShadow: glow
-        ? '0 2px 8px hsl(var(--glass-shadow)), 0 8px 32px hsl(var(--glass-shadow)), 0 0 48px hsl(var(--glow-primary))'
-        : '0 1px 4px hsl(var(--glass-shadow)), 0 6px 24px hsl(var(--glass-shadow))',
-      ...style,
-    }}
+    className={`${hero ? 'card-hero' : 'card-elevated'} ${className}`}
+    style={{ padding: '20px 20px', ...style }}
   >
     {children}
   </div>
 );
 
-// ── Month navigator (Layer 3) ─────────────────────────────────────────────────
+// ── Month navigator ──────────────────────────────────────────────────────────
 const MonthNavigator = ({
   year, month, onYearChange, onMonthChange,
   monthGross, monthShifts, monthHours,
@@ -268,7 +261,6 @@ const MonthNavigator = ({
     else onMonthChange(month + 1);
   };
 
-  // Swipe support
   const touchStartX = useRef<number | null>(null);
   const handleTouchStart = (e: React.TouchEvent) => { touchStartX.current = e.touches[0].clientX; };
   const handleTouchEnd = (e: React.TouchEvent) => {
@@ -280,49 +272,40 @@ const MonthNavigator = ({
 
   return (
     <div
-      className="glass-card overflow-hidden"
-      style={{ borderRadius: 22, boxShadow: '0 1px 4px hsl(var(--glass-shadow)), 0 6px 24px hsl(var(--glass-shadow))' }}
+      className="card-elevated overflow-hidden"
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
     >
-      {/* Month row */}
-      <div className="flex items-center justify-between px-2 py-3">
+      <div className="flex items-center justify-between px-3 py-3.5">
         <button
           onClick={prev}
-          className="p-2.5 rounded-xl hover:bg-secondary transition-colors"
+          className="w-8 h-8 flex items-center justify-center rounded-full transition-colors hover:bg-secondary"
           aria-label="Previous month"
         >
           <ChevronLeft className="w-4 h-4 text-foreground" />
         </button>
-        <span className="text-base font-bold text-foreground tracking-tight">
-          {MONTH_NAMES[month]} {year}
-        </span>
+        <div className="text-center">
+          <span className="text-base font-bold text-foreground tracking-tight">
+            {MONTH_NAMES[month]} {year}
+          </span>
+          {(monthGross > 0 || monthShifts > 0) && (
+            <p className="text-[11px] text-muted-foreground mt-0.5">
+              <span className="font-bold money-text">{formatCurrency(monthGross)}</span>
+              <span className="mx-1 opacity-40">·</span>
+              <span>{monthShifts} shift{monthShifts !== 1 ? 's' : ''}</span>
+              <span className="mx-1 opacity-40">·</span>
+              <span>{monthHours.toFixed(0)}h</span>
+            </p>
+          )}
+        </div>
         <button
           onClick={next}
-          className="p-2.5 rounded-xl hover:bg-secondary transition-colors"
+          className="w-8 h-8 flex items-center justify-center rounded-full transition-colors hover:bg-secondary"
           aria-label="Next month"
         >
           <ChevronRight className="w-4 h-4 text-foreground" />
         </button>
       </div>
-
-      {/* Month summary line */}
-      {(monthGross > 0 || monthShifts > 0) && (
-        <div
-          className="px-4 pb-3.5 pt-0 text-center"
-          style={{ borderTop: '0.5px solid hsl(var(--border))' }}
-        >
-          <p className="text-[12px] text-muted-foreground leading-snug mt-2.5">
-            <span className="font-bold" style={{ color: 'hsl(var(--money-green))' }}>
-              {formatCurrency(monthGross)}
-            </span>
-            <span className="mx-1.5 text-muted-foreground/50">·</span>
-            <span>{monthShifts} shift{monthShifts !== 1 ? 's' : ''}</span>
-            <span className="mx-1.5 text-muted-foreground/50">·</span>
-            <span>{monthHours.toFixed(0)}h</span>
-          </p>
-        </div>
-      )}
     </div>
   );
 };
@@ -372,86 +355,69 @@ const EarningsCalendarHeatmap = ({
   const days = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
 
   return (
-    <div
-      style={{
-        borderRadius: 26,
-        padding: 4,
-        background: 'hsl(var(--border)/0.6)',
-        boxShadow:
-          '0 1px 0 hsl(var(--glass-border)) inset, ' +
-          '0 2px 8px hsl(var(--glass-shadow)), ' +
-          '0 8px 28px hsl(var(--glass-shadow))',
-      }}
-    >
-      <div
-        className="glass-card"
-        style={{ borderRadius: 22, padding: '20px 18px' }}
-      >
-        <div className="flex items-center justify-between mb-4">
-          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-            Earnings Calendar
-          </p>
-          <div className="flex items-center gap-1.5">
-            <span className="text-[9px] text-muted-foreground">Low</span>
-            {[0.15, 0.35, 0.55, 0.75, 1].map((o, i) => (
-              <div key={i} className="w-3 h-3 rounded-sm" style={{ background: `hsl(var(--money-green) / ${o})` }} />
-            ))}
-            <span className="text-[9px] text-muted-foreground">High</span>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-7 gap-1.5 mb-1.5">
-          {days.map((d, i) => (
-            <div key={i} className="text-center text-[9px] font-bold text-muted-foreground">{d}</div>
+    <div className="card-elevated" style={{ padding: '20px 18px' }}>
+      <div className="flex items-center justify-between mb-4">
+        <p className="section-label">Earnings Calendar</p>
+        <div className="flex items-center gap-1.5">
+          <span className="text-[9px] text-muted-foreground">Low</span>
+          {[0.15, 0.35, 0.55, 0.75, 1].map((o, i) => (
+            <div key={i} className="w-2.5 h-2.5 rounded-sm" style={{ background: `hsl(var(--money-green) / ${o})` }} />
           ))}
+          <span className="text-[9px] text-muted-foreground">High</span>
         </div>
+      </div>
 
-        <div className="grid grid-cols-7 gap-1.5">
-          {Array.from({ length: rows * 7 }).map((_, i) => {
-            const dayNum = i - offsetDays + 1;
-            if (dayNum < 1 || dayNum > lastDay.getDate()) return <div key={i} className="aspect-square" />;
+      <div className="grid grid-cols-7 gap-1.5 mb-2">
+        {days.map((d, i) => (
+          <div key={i} className="text-center text-[9px] font-bold text-muted-foreground">{d}</div>
+        ))}
+      </div>
 
-            const dateStr = formatDateISO(new Date(year, month, dayNum));
-            const gross = grossByDate[dateStr] ?? 0;
-            const count = shiftsByDate[dateStr] ?? 0;
-            const intensity = gross > 0 ? Math.max(0.15, gross / maxGross) : 0;
-            const isToday =
-              today.getFullYear() === year &&
-              today.getMonth() === month &&
-              today.getDate() === dayNum;
+      <div className="grid grid-cols-7 gap-1.5">
+        {Array.from({ length: rows * 7 }).map((_, i) => {
+          const dayNum = i - offsetDays + 1;
+          if (dayNum < 1 || dayNum > lastDay.getDate()) return <div key={i} className="aspect-square" />;
 
-            return (
-              <button
-                key={i}
-                onClick={() => onDayTap(dateStr)}
-                className="aspect-square rounded-xl flex flex-col items-center justify-center relative transition-all duration-150 active:scale-90"
-                style={{
-                  background: gross > 0 ? `hsl(var(--money-green) / ${intensity.toFixed(2)})` : 'hsl(var(--muted)/0.5)',
-                  outline: isToday ? '1.5px solid hsl(var(--primary))' : undefined,
-                  boxShadow: gross > 0 ? `0 1px 4px hsl(var(--money-green) / ${(intensity * 0.4).toFixed(2)})` : undefined,
-                }}
-                aria-label={`${dayNum} ${MONTH_NAMES[month]}, ${gross > 0 ? formatCurrency(gross) : 'no shifts'}`}
+          const dateStr = formatDateISO(new Date(year, month, dayNum));
+          const gross = grossByDate[dateStr] ?? 0;
+          const count = shiftsByDate[dateStr] ?? 0;
+          const intensity = gross > 0 ? Math.max(0.18, gross / maxGross) : 0;
+          const isToday =
+            today.getFullYear() === year &&
+            today.getMonth() === month &&
+            today.getDate() === dayNum;
+
+          return (
+            <button
+              key={i}
+              onClick={() => onDayTap(dateStr)}
+              className="aspect-square rounded-xl flex flex-col items-center justify-center relative transition-all duration-150 active:scale-90"
+              style={{
+                background: gross > 0 ? `hsl(var(--money-green) / ${intensity.toFixed(2)})` : 'hsl(var(--muted) / 0.5)',
+                outline: isToday ? '2px solid hsl(var(--primary))' : undefined,
+                outlineOffset: isToday ? '-1px' : undefined,
+              }}
+              aria-label={`${dayNum} ${MONTH_NAMES[month]}, ${gross > 0 ? formatCurrency(gross) : 'no shifts'}`}
+            >
+              <span
+                className="text-[9px] font-semibold leading-none"
+                style={{ color: intensity > 0.5 ? 'hsl(var(--money-green-fg))' : 'hsl(var(--muted-foreground))' }}
               >
+                {dayNum}
+              </span>
+              {count > 1 && (
                 <span
-                  className="text-[9px] font-semibold leading-none"
+                  className="text-[6px] leading-none mt-0.5 font-bold"
                   style={{ color: intensity > 0.5 ? 'hsl(var(--money-green-fg))' : 'hsl(var(--muted-foreground))' }}
                 >
-                  {dayNum}
+                  ×{count}
                 </span>
-                {count > 1 && (
-                  <span
-                    className="text-[6px] leading-none mt-0.5 font-bold"
-                    style={{ color: intensity > 0.5 ? 'hsl(var(--money-green-fg))' : 'hsl(var(--muted-foreground))' }}
-                  >
-                    ×{count}
-                  </span>
-                )}
-              </button>
-            );
-          })}
-        </div>
-        <p className="text-[9px] text-muted-foreground text-center mt-3.5">Tap a day to see shift details</p>
+              )}
+            </button>
+          );
+        })}
       </div>
+      <p className="text-[9px] text-muted-foreground text-center mt-3">Tap a day to see shift details</p>
     </div>
   );
 };
@@ -695,7 +661,7 @@ const OverviewPanel = ({
       />
 
       {/* ── Weekly Earnings card (most prominent) ── */}
-      <ElevatedCard glow>
+      <ElevatedCard hero>
         <div className="flex items-center justify-between mb-3">
           <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest flex items-center gap-1.5">
             <CalendarDays className="w-3.5 h-3.5" /> This Week

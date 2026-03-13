@@ -168,17 +168,15 @@ const AnalyticsPanel = ({ shifts, settings, selectedYear, selectedMonth }: Analy
         {[
           { label: 'This Week', value: stats.weeklyGross, icon: CalendarDays },
           { label: 'This Fortnight', value: stats.fortnightGross, icon: CalendarDays },
-          { label: 'This Month', value: stats.monthGross, icon: TrendingUp, glow: true },
-          { label: `${selectedYear} Total`, value: stats.yearGross, icon: BarChart3, glow: true },
+          { label: 'This Month', value: stats.monthGross, icon: TrendingUp },
+          { label: `${selectedYear} Total`, value: stats.yearGross, icon: BarChart3 },
         ].map(card => (
-          <div key={card.label} className={card.glow ? 'glass-card-glow p-4' : 'glass-card p-4'}>
-            <div className="flex items-center gap-1.5 mb-1.5">
+          <div key={card.label} className="card-elevated" style={{ padding: '16px 16px' }}>
+            <div className="flex items-center gap-1.5 mb-2">
               <card.icon className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
-              <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider truncate">
-                {card.label}
-              </span>
+              <span className="section-label truncate">{card.label}</span>
             </div>
-            <p className="font-bold money-text" style={{ fontSize: 'clamp(0.9rem, 3vw, 1.25rem)' }}>
+            <p className="font-bold money-text" style={{ fontSize: 'clamp(0.9rem, 3vw, 1.2rem)' }}>
               {formatCurrency(card.value)}
             </p>
           </div>
@@ -187,19 +185,19 @@ const AnalyticsPanel = ({ shifts, settings, selectedYear, selectedMonth }: Analy
 
       {/* Key metrics */}
       <div className="grid grid-cols-3 gap-3">
-        <div className="glass-card p-4 text-center">
-          <Clock className="w-5 h-5 mx-auto text-muted-foreground mb-1" />
-          <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Avg Hourly</p>
+        <div className="card-elevated text-center" style={{ padding: '14px 10px' }}>
+          <Clock className="w-4 h-4 mx-auto text-muted-foreground mb-1.5" />
+          <p className="section-label">Avg/hr</p>
           <p className="text-sm font-bold money-text mt-0.5">{formatCurrency(stats.avgHourly)}</p>
         </div>
-        <div className="glass-card p-4 text-center">
-          <Zap className="w-5 h-5 mx-auto text-muted-foreground mb-1" />
-          <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Shifts</p>
+        <div className="card-elevated text-center" style={{ padding: '14px 10px' }}>
+          <Zap className="w-4 h-4 mx-auto text-muted-foreground mb-1.5" />
+          <p className="section-label">Shifts</p>
           <p className="text-base font-bold text-foreground mt-0.5">{stats.totalShifts}</p>
         </div>
-        <div className="glass-card p-4 text-center">
-          <Award className="w-5 h-5 mx-auto text-muted-foreground mb-1" />
-          <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Best Month</p>
+        <div className="card-elevated text-center" style={{ padding: '14px 10px' }}>
+          <Award className="w-4 h-4 mx-auto text-muted-foreground mb-1.5" />
+          <p className="section-label">Best Mo.</p>
           <p className="text-base font-bold text-foreground mt-0.5">
             {stats.bestMonth.gross > 0 ? MONTH_SHORT[stats.bestMonth.month] : '—'}
           </p>
@@ -207,99 +205,68 @@ const AnalyticsPanel = ({ shifts, settings, selectedYear, selectedMonth }: Analy
       </div>
 
       {/* Projected yearly income */}
-      <div className="glass-card-glow p-4 flex items-center gap-4">
-        <TrendingUp className="w-6 h-6 shrink-0 money-text" />
-        <div className="min-w-0 flex-1">
-          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Projected Year Income</p>
-          <p className="text-2xl font-bold money-text">{formatCurrency(stats.projected)}</p>
-          <p className="text-xs text-muted-foreground">
-            Based on {stats.completedMonths} completed month{stats.completedMonths !== 1 ? 's' : ''}
-          </p>
+      <div className="card-elevated" style={{ padding: '18px 18px' }}>
+        <div className="flex items-center gap-4">
+          <div
+            className="w-10 h-10 rounded-[12px] flex items-center justify-center shrink-0"
+            style={{ background: 'hsl(var(--money-green) / 0.12)' }}
+          >
+            <TrendingUp className="w-5 h-5 money-text" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="section-label mb-1">Projected Year Income</p>
+            <p className="text-2xl font-bold money-text leading-tight">{formatCurrency(stats.projected)}</p>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Based on {stats.completedMonths} completed month{stats.completedMonths !== 1 ? 's' : ''}
+            </p>
+          </div>
         </div>
       </div>
 
       {/* Tax Projection Insight — shown only when enabled */}
       {showTax && taxRate > 0 && (
-        <div className="glass-card p-4 space-y-3">
-          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+        <div className="card-elevated p-4 space-y-3">
+          <p className="section-label flex items-center gap-1.5 mb-1">
             <Target className="w-3.5 h-3.5" /> Tax Projection ({taxRate}% estimate)
           </p>
           <div className="space-y-3">
-            {/* Yearly projection */}
             <div className="rounded-2xl p-3 space-y-2" style={{ background: 'hsl(var(--muted)/0.5)' }}>
               <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Projected Year</p>
               <div className="grid grid-cols-3 gap-2">
-                <div>
-                  <p className="text-[9px] text-muted-foreground mb-0.5">Gross</p>
-                  <p className="text-sm font-bold money-text">{formatCurrency(stats.projected)}</p>
-                </div>
-                <div>
-                  <p className="text-[9px] text-muted-foreground mb-0.5">Est. Tax</p>
-                  <p className="text-sm font-bold" style={{ color: 'hsl(var(--stat-red))' }}>
-                    − {formatCurrency(stats.projected * (taxRate / 100))}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-[9px] text-muted-foreground mb-0.5">Net Income</p>
-                  <p className="text-sm font-bold text-foreground">
-                    {formatCurrency(stats.projected * (1 - taxRate / 100))}
-                  </p>
-                </div>
+                <div><p className="text-[9px] text-muted-foreground mb-0.5">Gross</p><p className="text-sm font-bold money-text">{formatCurrency(stats.projected)}</p></div>
+                <div><p className="text-[9px] text-muted-foreground mb-0.5">Est. Tax</p><p className="text-sm font-bold" style={{ color: 'hsl(var(--stat-red))' }}>− {formatCurrency(stats.projected * (taxRate / 100))}</p></div>
+                <div><p className="text-[9px] text-muted-foreground mb-0.5">Net Income</p><p className="text-sm font-bold text-foreground">{formatCurrency(stats.projected * (1 - taxRate / 100))}</p></div>
               </div>
             </div>
-            {/* This month */}
             <div className="rounded-2xl p-3 space-y-2" style={{ background: 'hsl(var(--muted)/0.5)' }}>
               <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">This Month</p>
               <div className="grid grid-cols-3 gap-2">
-                <div>
-                  <p className="text-[9px] text-muted-foreground mb-0.5">Gross</p>
-                  <p className="text-sm font-bold money-text">{formatCurrency(stats.monthGross)}</p>
-                </div>
-                <div>
-                  <p className="text-[9px] text-muted-foreground mb-0.5">Est. Tax</p>
-                  <p className="text-sm font-bold" style={{ color: 'hsl(var(--stat-red))' }}>
-                    − {formatCurrency(stats.monthGross * (taxRate / 100))}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-[9px] text-muted-foreground mb-0.5">Take-Home</p>
-                  <p className="text-sm font-bold text-foreground">
-                    {formatCurrency(stats.monthGross * (1 - taxRate / 100))}
-                  </p>
-                </div>
+                <div><p className="text-[9px] text-muted-foreground mb-0.5">Gross</p><p className="text-sm font-bold money-text">{formatCurrency(stats.monthGross)}</p></div>
+                <div><p className="text-[9px] text-muted-foreground mb-0.5">Est. Tax</p><p className="text-sm font-bold" style={{ color: 'hsl(var(--stat-red))' }}>− {formatCurrency(stats.monthGross * (taxRate / 100))}</p></div>
+                <div><p className="text-[9px] text-muted-foreground mb-0.5">Take-Home</p><p className="text-sm font-bold text-foreground">{formatCurrency(stats.monthGross * (1 - taxRate / 100))}</p></div>
               </div>
             </div>
-            <p className="text-[9px] text-muted-foreground">
-              Estimates only — not tax advice. Enable / adjust rate in Settings → App → Tax Estimate.
-            </p>
+            <p className="text-[9px] text-muted-foreground">Estimates only — not tax advice.</p>
           </div>
         </div>
       )}
 
       {/* Goals progress */}
       {hasGoals && (
-        <div className="glass-card p-4 space-y-4">
-          <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
-            <Target className="w-4 h-4" /> Income Goals
+        <div className="card-elevated p-4 space-y-4">
+          <h3 className="section-label flex items-center gap-1.5">
+            <Target className="w-3.5 h-3.5" /> Income Goals
           </h3>
-          {weeklyGoal && weeklyGoal > 0 && (
-            <GoalRow label="Weekly" current={stats.weeklyGross} goal={weeklyGoal} />
-          )}
-          {monthlyGoal && monthlyGoal > 0 && (
-            <GoalRow label="Monthly" current={stats.monthGross} goal={monthlyGoal} />
-          )}
-          {yearlyGoal && yearlyGoal > 0 && (
-            <GoalRow label="Yearly" current={stats.yearGross} goal={yearlyGoal} />
-          )}
+          {weeklyGoal && weeklyGoal > 0 && <GoalRow label="Weekly" current={stats.weeklyGross} goal={weeklyGoal} />}
+          {monthlyGoal && monthlyGoal > 0 && <GoalRow label="Monthly" current={stats.monthGross} goal={monthlyGoal} />}
+          {yearlyGoal && yearlyGoal > 0 && <GoalRow label="Yearly" current={stats.yearGross} goal={yearlyGoal} />}
         </div>
       )}
 
       {/* Monthly bar chart */}
-      <div className="glass-card p-4 space-y-3">
-        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-          Monthly Earnings {selectedYear}
-        </p>
-        <div className="flex items-end gap-1" style={{ height: '96px' }}>
+      <div className="card-elevated p-4 space-y-3">
+        <p className="section-label">Monthly Earnings {selectedYear}</p>
+        <div className="flex items-end gap-1" style={{ height: '90px' }}>
           {stats.byMonth.map(({ month, gross }) => {
             const pct = stats.maxMonthGross > 0 ? (gross / stats.maxMonthGross) * 100 : 0;
             const isBest = gross === stats.maxMonthGross && gross > 0;
@@ -308,15 +275,14 @@ const AnalyticsPanel = ({ shifts, settings, selectedYear, selectedMonth }: Analy
               <div key={month} className="flex-1 flex flex-col items-center gap-1 h-full">
                 <div className="w-full flex items-end justify-center flex-1">
                   <div
-                    className="w-full rounded-t-md transition-all duration-500"
+                    className="w-full rounded-t transition-all duration-500"
                     style={{
                       height: `${Math.max(pct, gross > 0 ? 5 : 0)}%`,
                       background: isBest
                         ? 'hsl(var(--money-green))'
                         : isSelected
-                        ? 'hsl(var(--money-green)/0.55)'
-                        : 'hsl(var(--muted-foreground)/0.25)',
-                      boxShadow: isBest ? '0 0 12px hsl(var(--money-green)/0.5)' : undefined,
+                        ? 'hsl(var(--money-green) / 0.55)'
+                        : 'hsl(var(--muted-foreground) / 0.22)',
                     }}
                   />
                 </div>
@@ -334,8 +300,8 @@ const AnalyticsPanel = ({ shifts, settings, selectedYear, selectedMonth }: Analy
 
       {/* Sleepover section */}
       {stats.sleepoversWeekday + stats.sleepoversWeekend > 0 && (
-        <div className="glass-card p-4 space-y-3">
-          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+        <div className="card-elevated p-4 space-y-3">
+          <p className="section-label flex items-center gap-1.5">
             <Moon className="w-3.5 h-3.5" /> Sleepover Summary ({selectedYear})
           </p>
           <div className="grid grid-cols-3 gap-3">
@@ -352,18 +318,18 @@ const AnalyticsPanel = ({ shifts, settings, selectedYear, selectedMonth }: Analy
               <p className="text-[10px] text-muted-foreground">Total income</p>
             </div>
           </div>
-          <p className="text-[9px] text-muted-foreground border-t border-border pt-1">
-            Friday is counted as weekday ($300 flat). Weekend rate ($350) applies to Saturday & Sunday nights only.
+          <p className="text-[9px] text-muted-foreground border-t border-border pt-2">
+            Friday is counted as weekday ($300 flat). Weekend rate ($350) applies to Sat & Sun nights only.
           </p>
         </div>
       )}
 
       {/* Evening shifts summary */}
       {stats.eveningShiftCount > 0 && (
-        <div className="glass-card p-4 space-y-2">
-          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
-            <Sunset className="w-3.5 h-3.5" style={{ color: 'hsl(38 90% 45%)' }} />
-            <span style={{ color: 'hsl(38 90% 45%)' }}>Evening Shifts ({selectedYear})</span>
+        <div className="card-elevated p-4 space-y-2">
+          <p className="section-label flex items-center gap-1.5">
+            <Sunset className="w-3.5 h-3.5" style={{ color: 'hsl(var(--evening-color))' }} />
+            <span style={{ color: 'hsl(var(--evening-color))' }}>Evening Shifts ({selectedYear})</span>
           </p>
           <p className="text-sm font-bold text-foreground">
             {stats.eveningShiftCount} shift{stats.eveningShiftCount !== 1 ? 's' : ''} with evening hours (18:00–22:00)
@@ -398,27 +364,24 @@ const DayHeatmap = ({ shifts }: { shifts: Shift[] }) => {
   const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
   return (
-    <div className="glass-card p-4 space-y-3">
-      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-        Earnings by Day of Week
-      </p>
+    <div className="card-elevated p-4 space-y-3">
+      <p className="section-label">Earnings by Day of Week</p>
       <div className="space-y-2">
         {days.map((day, i) => {
           const pct = (dayTotals[i] / max) * 100;
           return (
             <div key={day} className="flex items-center gap-3">
               <span className="text-xs text-muted-foreground w-7 shrink-0">{day}</span>
-              <div className="flex-1 h-5 rounded-full overflow-hidden" style={{ background: 'hsl(var(--muted))' }}>
+              <div className="flex-1 h-4 rounded-full overflow-hidden" style={{ background: 'hsl(var(--muted))' }}>
                 <div
                   className="h-full rounded-full transition-all duration-700"
                   style={{
                     width: `${pct}%`,
-                    background: `hsl(var(--money-green) / ${(0.3 + (pct / 100) * 0.7).toFixed(2)})`,
-                    boxShadow: pct > 70 ? '0 0 8px hsl(var(--money-green)/0.4)' : undefined,
+                    background: `hsl(var(--money-green) / ${(0.35 + (pct / 100) * 0.65).toFixed(2)})`,
                   }}
                 />
               </div>
-              <span className="text-xs font-semibold money-text min-w-[72px] text-right">
+              <span className="text-xs font-semibold money-text min-w-[68px] text-right">
                 {formatCurrency(dayTotals[i])}
               </span>
             </div>

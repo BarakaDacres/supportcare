@@ -11,13 +11,25 @@ interface HeaderProps {
 const Header = ({ theme, onToggleTheme, auth }: HeaderProps) => {
   return (
     <header className="no-print flex items-center justify-between py-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
-          Support Care
-        </h1>
-        <p className="mt-0.5 text-sm text-muted-foreground font-medium">
-          Track your support shifts
-        </p>
+      <div className="flex items-center gap-3">
+        {/* Logo mark */}
+        <div
+          className="w-9 h-9 rounded-[11px] flex items-center justify-center shrink-0"
+          style={{
+            background: 'hsl(var(--primary))',
+            boxShadow: '0 3px 10px hsl(var(--primary) / 0.3)',
+          }}
+        >
+          <span style={{ fontSize: '0.8rem', fontWeight: 800, color: '#fff', letterSpacing: '-0.03em' }}>SC</span>
+        </div>
+        <div>
+          <h1 className="text-xl font-bold tracking-tight text-foreground sm:text-2xl leading-tight">
+            Support Care
+          </h1>
+          <p className="text-[11px] text-muted-foreground font-medium leading-none mt-0.5">
+            Shift &amp; earnings tracker
+          </p>
+        </div>
       </div>
       <div className="flex items-center gap-2">
         <button

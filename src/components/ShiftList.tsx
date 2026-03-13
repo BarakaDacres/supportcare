@@ -166,9 +166,9 @@ const ShiftList = ({
       </div>
 
       {/* Filters */}
-      <div className="glass-card p-3 space-y-2.5">
-        {/* Period filter — horizontal scroll on mobile */}
-        <div className="flex gap-1 overflow-x-auto scrollbar-none glass-surface rounded-xl p-1">
+      <div className="card-elevated p-3 space-y-2.5">
+        {/* Period filter */}
+        <div className="flex gap-1 overflow-x-auto scrollbar-none rounded-xl p-1" style={{ background: 'hsl(var(--secondary))' }}>
           {(['week', 'fortnight', 'month', 'year', 'all'] as FilterPeriod[]).map(p => (
             <button
               key={p}
@@ -245,10 +245,10 @@ const ShiftList = ({
       {/* Shift list */}
       {loading ? (
         <div className="flex items-center justify-center py-12">
-          <div className="w-8 h-8 rounded-full border-2 border-primary/30 border-t-primary animate-spin" />
+          <div className="w-7 h-7 rounded-full border-2 border-primary/30 border-t-primary animate-spin" />
         </div>
       ) : filtered.length === 0 ? (
-        <div className="glass-card p-8 text-center space-y-2">
+        <div className="card-elevated p-8 text-center space-y-2">
           <p className="text-muted-foreground text-sm">No shifts found</p>
           {!locked && (
             <button
@@ -268,15 +268,20 @@ const ShiftList = ({
             const displayPay = effectiveGrossPay(shift);
             const active = isShiftActive(shift);
             return (
-              <div
-                key={shift.id}
-                className="glass-card p-4 space-y-2"
-                style={active ? {
-                  borderColor: 'hsl(var(--stat-green)/0.5)',
-                  boxShadow: '0 0 0 1px hsl(var(--stat-green)/0.25), 0 4px 20px hsl(var(--stat-green)/0.12)',
-                  background: 'hsl(var(--stat-green)/0.05)',
-                } : undefined}
-              >
+      <div key={shift.id}
+        className="card-elevated"
+        style={{
+          padding: '14px 16px',
+          ...(active ? {
+            borderColor: 'hsl(var(--stat-green) / 0.4)',
+            boxShadow: 'var(--card-shadow-sm), 0 0 0 1.5px hsl(var(--stat-green) / 0.2)',
+            background: 'hsl(var(--stat-green) / 0.04)',
+          } : {}),
+          ...(isEvening && !active ? {
+            borderColor: 'hsl(var(--evening-color) / 0.3)',
+          } : {}),
+        }}
+      >
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-1.5 flex-wrap">
