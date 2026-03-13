@@ -60,14 +60,18 @@ const ShiftForm = ({
   );
 
   const isNew = !initialValues?.date;
+  const initStart = initialValues?.start_time ?? '09:00';
+  const initEnd   = initialValues?.end_time   ?? '17:00';
   const [notes, setNotes] = useState(
-    initialValues?.notes ?? getDefaultNote(initialValues?.is_sleepover ?? false, initialValues?.date, rates)
+    initialValues?.notes ??
+      getDefaultNote(initialValues?.is_sleepover ?? false, initStart, initEnd, initialValues?.date, rates)
   );
 
   const notesCustomised = useRef(
     !isNew &&
       initialValues?.notes != null &&
       initialValues.notes !== DEFAULT_NOTE_NORMAL &&
+      initialValues.notes !== DEFAULT_NOTE_EVENING &&
       initialValues.notes !== DEFAULT_NOTE_SLEEPOVER
   );
 
@@ -89,8 +93,8 @@ const ShiftForm = ({
     if (client.default_end_time) setEndTime(client.default_end_time);
     if (client.default_is_sleepover !== isSleepover) {
       setIsSleepover(client.default_is_sleepover);
-      if (client.default_is_sleepover && !client.default_start_time) setStartTime('21:30');
-      if (client.default_is_sleepover && !client.default_end_time) setEndTime('07:00');
+      if (client.default_is_sleepover && !client.default_start_time) setStartTime('22:00');
+      if (client.default_is_sleepover && !client.default_end_time) setEndTime('06:00');
     }
     if (client.default_service_note && !notesCustomised.current) {
       setNotes(client.default_service_note);
@@ -99,14 +103,16 @@ const ShiftForm = ({
   };
 
   const handleSleepoverToggle = () => {
+    const nextStart = '22:00';
+    const nextEnd   = '06:00';
     setIsSleepover(prev => {
       const next = !prev;
       if (!notesCustomised.current) {
-        setNotes(getDefaultNote(next, date, rates));
+        setNotes(getDefaultNote(next, next ? nextStart : startTime, next ? nextEnd : endTime, date, rates));
       }
       if (next) {
-        setStartTime('21:30');
-        setEndTime('07:00');
+        setStartTime(nextStart);
+        setEndTime(nextEnd);
       }
       if (!next) setFeeOverride('');
       return next;
@@ -115,15 +121,35 @@ const ShiftForm = ({
 
   const handleDateChange = (val: string) => {
     setDate(val);
-    if (isSleepover && !notesCustomised.current) {
-      setNotes(getDefaultNote(true, val, rates));
+    if (!notesCustomised.current) {
+      setNotes(getDefaultNote(isSleepover, startTime, endTime, val, rates));
+    }
+  };
+
+  // Auto-update note when start/end changes (only if not customised)
+  const handleStartTimeChange = (val: string) => {
+    setStartTime(val);
+    if (!notesCustomised.current && !isSleepover) {
+      setNotes(getDefaultNote(false, val, endTime, date, rates));
+    }
+  };
+
+  const handleEndTimeChange = (val: string) => {
+    setEndTime(val);
+    if (!notesCustomised.current && !isSleepover) {
+      setNotes(getDefaultNote(false, startTime, val, date, rates));
     }
   };
 
   const handleNotesChange = (val: string) => {
     setNotes(val);
-    const currentDefault = getDefaultNote(isSleepover, date, rates);
-    notesCustomised.current = val !== currentDefault && val !== DEFAULT_NOTE_NORMAL && val !== DEFAULT_NOTE_SLEEPOVER;
+    const currentDefault = getDefaultNote(isSleepover, startTime, endTime, date, rates);
+    notesCustomised.current = (
+      val !== currentDefault &&
+      val !== DEFAULT_NOTE_NORMAL &&
+      val !== DEFAULT_NOTE_EVENING &&
+      val !== DEFAULT_NOTE_SLEEPOVER
+    );
   };
 
   const phRate = rates.rate_public_holiday ?? 150;
