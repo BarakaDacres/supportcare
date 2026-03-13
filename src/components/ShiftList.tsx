@@ -268,15 +268,20 @@ const ShiftList = ({
             const displayPay = effectiveGrossPay(shift);
             const active = isShiftActive(shift);
             return (
-              <div
-                key={shift.id}
-                className="glass-card p-4 space-y-2"
-                style={active ? {
-                  borderColor: 'hsl(var(--stat-green)/0.5)',
-                  boxShadow: '0 0 0 1px hsl(var(--stat-green)/0.25), 0 4px 20px hsl(var(--stat-green)/0.12)',
-                  background: 'hsl(var(--stat-green)/0.05)',
-                } : undefined}
-              >
+      <div key={shift.id}
+        className="card-elevated"
+        style={{
+          padding: '14px 16px',
+          ...(active ? {
+            borderColor: 'hsl(var(--stat-green) / 0.4)',
+            boxShadow: 'var(--card-shadow-sm), 0 0 0 1.5px hsl(var(--stat-green) / 0.2)',
+            background: 'hsl(var(--stat-green) / 0.04)',
+          } : {}),
+          ...(isEvening && !active ? {
+            borderColor: 'hsl(var(--evening-color) / 0.3)',
+          } : {}),
+        }}
+      >
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-1.5 flex-wrap">
