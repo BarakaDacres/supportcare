@@ -245,10 +245,10 @@ const ShiftList = ({
       {/* Shift list */}
       {loading ? (
         <div className="flex items-center justify-center py-12">
-          <div className="w-8 h-8 rounded-full border-2 border-primary/30 border-t-primary animate-spin" />
+          <div className="w-7 h-7 rounded-full border-2 border-primary/30 border-t-primary animate-spin" />
         </div>
       ) : filtered.length === 0 ? (
-        <div className="glass-card p-8 text-center space-y-2">
+        <div className="card-elevated p-8 text-center space-y-2">
           <p className="text-muted-foreground text-sm">No shifts found</p>
           {!locked && (
             <button

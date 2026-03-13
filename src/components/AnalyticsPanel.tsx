@@ -168,17 +168,15 @@ const AnalyticsPanel = ({ shifts, settings, selectedYear, selectedMonth }: Analy
         {[
           { label: 'This Week', value: stats.weeklyGross, icon: CalendarDays },
           { label: 'This Fortnight', value: stats.fortnightGross, icon: CalendarDays },
-          { label: 'This Month', value: stats.monthGross, icon: TrendingUp, glow: true },
-          { label: `${selectedYear} Total`, value: stats.yearGross, icon: BarChart3, glow: true },
+          { label: 'This Month', value: stats.monthGross, icon: TrendingUp },
+          { label: `${selectedYear} Total`, value: stats.yearGross, icon: BarChart3 },
         ].map(card => (
-          <div key={card.label} className={card.glow ? 'glass-card-glow p-4' : 'glass-card p-4'}>
-            <div className="flex items-center gap-1.5 mb-1.5">
+          <div key={card.label} className="card-elevated" style={{ padding: '16px 16px' }}>
+            <div className="flex items-center gap-1.5 mb-2">
               <card.icon className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
-              <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider truncate">
-                {card.label}
-              </span>
+              <span className="section-label truncate">{card.label}</span>
             </div>
-            <p className="font-bold money-text" style={{ fontSize: 'clamp(0.9rem, 3vw, 1.25rem)' }}>
+            <p className="font-bold money-text" style={{ fontSize: 'clamp(0.9rem, 3vw, 1.2rem)' }}>
               {formatCurrency(card.value)}
             </p>
           </div>
@@ -187,19 +185,19 @@ const AnalyticsPanel = ({ shifts, settings, selectedYear, selectedMonth }: Analy
 
       {/* Key metrics */}
       <div className="grid grid-cols-3 gap-3">
-        <div className="glass-card p-4 text-center">
-          <Clock className="w-5 h-5 mx-auto text-muted-foreground mb-1" />
-          <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Avg Hourly</p>
+        <div className="card-elevated text-center" style={{ padding: '14px 10px' }}>
+          <Clock className="w-4 h-4 mx-auto text-muted-foreground mb-1.5" />
+          <p className="section-label">Avg/hr</p>
           <p className="text-sm font-bold money-text mt-0.5">{formatCurrency(stats.avgHourly)}</p>
         </div>
-        <div className="glass-card p-4 text-center">
-          <Zap className="w-5 h-5 mx-auto text-muted-foreground mb-1" />
-          <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Shifts</p>
+        <div className="card-elevated text-center" style={{ padding: '14px 10px' }}>
+          <Zap className="w-4 h-4 mx-auto text-muted-foreground mb-1.5" />
+          <p className="section-label">Shifts</p>
           <p className="text-base font-bold text-foreground mt-0.5">{stats.totalShifts}</p>
         </div>
-        <div className="glass-card p-4 text-center">
-          <Award className="w-5 h-5 mx-auto text-muted-foreground mb-1" />
-          <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Best Month</p>
+        <div className="card-elevated text-center" style={{ padding: '14px 10px' }}>
+          <Award className="w-4 h-4 mx-auto text-muted-foreground mb-1.5" />
+          <p className="section-label">Best Mo.</p>
           <p className="text-base font-bold text-foreground mt-0.5">
             {stats.bestMonth.gross > 0 ? MONTH_SHORT[stats.bestMonth.month] : '—'}
           </p>
@@ -207,14 +205,21 @@ const AnalyticsPanel = ({ shifts, settings, selectedYear, selectedMonth }: Analy
       </div>
 
       {/* Projected yearly income */}
-      <div className="glass-card-glow p-4 flex items-center gap-4">
-        <TrendingUp className="w-6 h-6 shrink-0 money-text" />
-        <div className="min-w-0 flex-1">
-          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Projected Year Income</p>
-          <p className="text-2xl font-bold money-text">{formatCurrency(stats.projected)}</p>
-          <p className="text-xs text-muted-foreground">
-            Based on {stats.completedMonths} completed month{stats.completedMonths !== 1 ? 's' : ''}
-          </p>
+      <div className="card-elevated" style={{ padding: '18px 18px' }}>
+        <div className="flex items-center gap-4">
+          <div
+            className="w-10 h-10 rounded-[12px] flex items-center justify-center shrink-0"
+            style={{ background: 'hsl(var(--money-green) / 0.12)' }}
+          >
+            <TrendingUp className="w-5 h-5 money-text" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="section-label mb-1">Projected Year Income</p>
+            <p className="text-2xl font-bold money-text leading-tight">{formatCurrency(stats.projected)}</p>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Based on {stats.completedMonths} completed month{stats.completedMonths !== 1 ? 's' : ''}
+            </p>
+          </div>
         </div>
       </div>
 
