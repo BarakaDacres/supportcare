@@ -224,30 +224,23 @@ const DayShiftSheet = ({
 const ElevatedCard = ({
   children,
   className = '',
-  glow = false,
+  hero = false,
   style,
 }: {
   children: React.ReactNode;
   className?: string;
-  glow?: boolean;
+  hero?: boolean;
   style?: React.CSSProperties;
 }) => (
   <div
-    className={`${glow ? 'glass-card-glow' : 'glass-card'} ${className}`}
-    style={{
-      borderRadius: 24,
-      padding: '18px 20px',
-      boxShadow: glow
-        ? '0 2px 8px hsl(var(--glass-shadow)), 0 8px 32px hsl(var(--glass-shadow)), 0 0 48px hsl(var(--glow-primary))'
-        : '0 1px 4px hsl(var(--glass-shadow)), 0 6px 24px hsl(var(--glass-shadow))',
-      ...style,
-    }}
+    className={`${hero ? 'card-hero' : 'card-elevated'} ${className}`}
+    style={{ padding: '20px 20px', ...style }}
   >
     {children}
   </div>
 );
 
-// ── Month navigator (Layer 3) ─────────────────────────────────────────────────
+// ── Month navigator ──────────────────────────────────────────────────────────
 const MonthNavigator = ({
   year, month, onYearChange, onMonthChange,
   monthGross, monthShifts, monthHours,
@@ -268,7 +261,6 @@ const MonthNavigator = ({
     else onMonthChange(month + 1);
   };
 
-  // Swipe support
   const touchStartX = useRef<number | null>(null);
   const handleTouchStart = (e: React.TouchEvent) => { touchStartX.current = e.touches[0].clientX; };
   const handleTouchEnd = (e: React.TouchEvent) => {
@@ -280,49 +272,40 @@ const MonthNavigator = ({
 
   return (
     <div
-      className="glass-card overflow-hidden"
-      style={{ borderRadius: 22, boxShadow: '0 1px 4px hsl(var(--glass-shadow)), 0 6px 24px hsl(var(--glass-shadow))' }}
+      className="card-elevated overflow-hidden"
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
     >
-      {/* Month row */}
-      <div className="flex items-center justify-between px-2 py-3">
+      <div className="flex items-center justify-between px-3 py-3.5">
         <button
           onClick={prev}
-          className="p-2.5 rounded-xl hover:bg-secondary transition-colors"
+          className="w-8 h-8 flex items-center justify-center rounded-full transition-colors hover:bg-secondary"
           aria-label="Previous month"
         >
           <ChevronLeft className="w-4 h-4 text-foreground" />
         </button>
-        <span className="text-base font-bold text-foreground tracking-tight">
-          {MONTH_NAMES[month]} {year}
-        </span>
+        <div className="text-center">
+          <span className="text-base font-bold text-foreground tracking-tight">
+            {MONTH_NAMES[month]} {year}
+          </span>
+          {(monthGross > 0 || monthShifts > 0) && (
+            <p className="text-[11px] text-muted-foreground mt-0.5">
+              <span className="font-bold money-text">{formatCurrency(monthGross)}</span>
+              <span className="mx-1 opacity-40">·</span>
+              <span>{monthShifts} shift{monthShifts !== 1 ? 's' : ''}</span>
+              <span className="mx-1 opacity-40">·</span>
+              <span>{monthHours.toFixed(0)}h</span>
+            </p>
+          )}
+        </div>
         <button
           onClick={next}
-          className="p-2.5 rounded-xl hover:bg-secondary transition-colors"
+          className="w-8 h-8 flex items-center justify-center rounded-full transition-colors hover:bg-secondary"
           aria-label="Next month"
         >
           <ChevronRight className="w-4 h-4 text-foreground" />
         </button>
       </div>
-
-      {/* Month summary line */}
-      {(monthGross > 0 || monthShifts > 0) && (
-        <div
-          className="px-4 pb-3.5 pt-0 text-center"
-          style={{ borderTop: '0.5px solid hsl(var(--border))' }}
-        >
-          <p className="text-[12px] text-muted-foreground leading-snug mt-2.5">
-            <span className="font-bold" style={{ color: 'hsl(var(--money-green))' }}>
-              {formatCurrency(monthGross)}
-            </span>
-            <span className="mx-1.5 text-muted-foreground/50">·</span>
-            <span>{monthShifts} shift{monthShifts !== 1 ? 's' : ''}</span>
-            <span className="mx-1.5 text-muted-foreground/50">·</span>
-            <span>{monthHours.toFixed(0)}h</span>
-          </p>
-        </div>
-      )}
     </div>
   );
 };
