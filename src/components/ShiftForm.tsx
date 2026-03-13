@@ -239,7 +239,7 @@ const ShiftForm = ({
         </div>
 
         {/* ── Scrollable body ── */}
-        <div className="flex-1 overflow-y-auto overscroll-contain" style={{ padding: '20px 20px 20px 20px' }}>
+        <div className="flex-1 overflow-y-auto overscroll-contain" style={{ padding: '20px 24px', boxSizing: 'border-box' }}>
           <div className="space-y-4">
             {/* Date */}
             <div className="space-y-1.5">
