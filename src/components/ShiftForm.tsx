@@ -238,10 +238,7 @@ const ShiftForm = ({
         </div>
 
         {/* ── Scrollable body ── */}
-        <div
-          className="flex-1 overflow-y-auto overscroll-contain"
-          style={{ padding: '20px 24px', boxSizing: 'border-box' }}
-        >
+        <div className="flex-1 overflow-y-auto overscroll-contain px-6 py-5">
           <div className="space-y-4">
             {/* Date */}
             <div className="space-y-1.5">
@@ -251,14 +248,14 @@ const ShiftForm = ({
                 value={date}
                 onChange={e => handleDateChange(e.target.value)}
                 required
-                className="glass-input w-full text-foreground"
-                style={{ minHeight: 44, boxSizing: 'border-box', width: '100%' }}
+                className="glass-input w-full text-foreground block"
+                style={{ minHeight: 44 }}
               />
             </div>
 
             {/* Times */}
             <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5">
+              <div className="space-y-1.5 min-w-0">
                 <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
                   <Clock className="w-3 h-3" /> Start
                 </label>
@@ -267,11 +264,11 @@ const ShiftForm = ({
                   value={startTime}
                   onChange={e => handleStartTimeChange(e.target.value)}
                   required
-                  className="glass-input w-full text-foreground"
-                  style={{ minHeight: 44, boxSizing: 'border-box', width: '100%' }}
+                  className="glass-input w-full text-foreground block"
+                  style={{ minHeight: 44 }}
                 />
               </div>
-              <div className="space-y-1.5">
+              <div className="space-y-1.5 min-w-0">
                 <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
                   <Clock className="w-3 h-3" /> End
                 </label>
@@ -280,8 +277,8 @@ const ShiftForm = ({
                   value={endTime}
                   onChange={e => handleEndTimeChange(e.target.value)}
                   required
-                  className="glass-input w-full text-foreground"
-                  style={{ minHeight: 44, boxSizing: 'border-box', width: '100%' }}
+                  className="glass-input w-full text-foreground block"
+                  style={{ minHeight: 44 }}
                 />
               </div>
             </div>
