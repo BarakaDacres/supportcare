@@ -195,20 +195,18 @@ const ShiftForm = ({
   return (
     /* ── Backdrop ── */
     <div
-      className="fixed inset-0 z-[60] flex items-center justify-center"
+      className="fixed inset-0 z-[60] flex items-center justify-center p-4"
       style={{
-        padding: '16px',
         background: 'hsl(var(--foreground)/0.45)',
         backdropFilter: 'blur(4px)',
       }}
       onClick={(e) => { if (e.target === e.currentTarget) onCancel(); }}
     >
-      {/* ── Modal card — direct flex child of backdrop, no extra wrapper ── */}
+      {/* ── Modal card ── */}
       <form
         onSubmit={handleSubmit}
-        className="flex flex-col"
+        className="flex flex-col w-full"
         style={{
-          width: '100%',
           maxWidth: 440,
           maxHeight: 'min(92dvh, 700px)',
           background: 'hsl(var(--card))',
@@ -217,7 +215,7 @@ const ShiftForm = ({
             '0 2px 8px hsl(var(--foreground)/0.08), ' +
             '0 20px 60px hsl(var(--foreground)/0.22), ' +
             '0 0 0 0.5px hsl(var(--border))',
-          overflow: 'hidden',
+          overflow: 'clip',
         }}
         onClick={(e) => e.stopPropagation()}
       >
