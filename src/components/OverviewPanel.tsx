@@ -722,8 +722,16 @@ const OverviewPanel = ({
                 <div
                   className="rounded-2xl px-4 py-3 flex items-center justify-between gap-3"
                   style={{
-                    background: 'hsl(var(--primary)/0.08)',
-                    border: '1px solid hsl(var(--primary)/0.18)',
+                    background: nextShiftInfo.isEvening
+                      ? 'hsl(38 90% 52% / 0.1)'
+                      : nextShiftInfo.isPublicHoliday
+                      ? 'hsl(34 97% 52% / 0.1)'
+                      : 'hsl(var(--primary)/0.08)',
+                    border: nextShiftInfo.isEvening
+                      ? '1px solid hsl(38 90% 52% / 0.3)'
+                      : nextShiftInfo.isPublicHoliday
+                      ? '1px solid hsl(34 97% 52% / 0.3)'
+                      : '1px solid hsl(var(--primary)/0.22)',
                   }}
                 >
                   <div className="flex-1 min-w-0">
@@ -734,16 +742,25 @@ const OverviewPanel = ({
                       {nextShiftInfo.timeLabel}
                     </p>
                   </div>
+                  {/* Type chip — high-contrast on every variant */}
                   <span
                     className="shrink-0 text-[10px] font-bold px-2.5 py-1 rounded-full"
-                    style={{
-                      background: nextShiftInfo.isSleepover
-                        ? 'hsl(var(--primary)/0.15)'
-                        : 'hsl(var(--muted))',
-                      color: nextShiftInfo.isSleepover
-                        ? 'hsl(var(--primary))'
-                        : 'hsl(var(--foreground))',
-                    }}
+                    style={
+                      nextShiftInfo.isSleepover ? {
+                        background: '#2563EB',
+                        color: '#ffffff',
+                      } : nextShiftInfo.isPublicHoliday ? {
+                        background: 'hsl(34 97% 52%)',
+                        color: '#ffffff',
+                      } : nextShiftInfo.isEvening ? {
+                        background: 'hsl(38 90% 44%)',
+                        color: '#ffffff',
+                      } : {
+                        // Support Shift / client name — solid primary for readability
+                        background: 'hsl(var(--primary))',
+                        color: 'hsl(var(--primary-foreground))',
+                      }
+                    }
                   >
                     {nextShiftInfo.typeLabel}
                   </span>
