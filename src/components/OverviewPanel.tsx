@@ -9,7 +9,7 @@ import { effectiveGrossPay } from '@/hooks/useShifts';
 import type { Client } from '@/hooks/useClients';
 import type { UserSettings } from '@/hooks/useUserSettings';
 import { MONTH_NAMES, MONTH_SHORT } from '@/lib/dateUtils';
-import { shiftHasEveningHours } from '@/lib/shiftCalculator';
+import { shiftHasEveningHours, getDayOfWeek } from '@/lib/shiftCalculator';
 
 interface Invoice {
   id: string;
