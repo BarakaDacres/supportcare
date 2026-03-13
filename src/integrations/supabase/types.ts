@@ -286,15 +286,18 @@ export type Database = {
           invoice_notes: string | null
           monthly_goal: number | null
           phone: string | null
+          rate_evening: number
           rate_public_holiday: number
           rate_saturday: number
           rate_sleepover_weekday: number
           rate_sleepover_weekend: number
           rate_sunday: number
           rate_weekday: number
+          show_tax_estimate: boolean
           tax_rate: number
           updated_at: string
           user_id: string
+          weekly_goal: number | null
           yearly_goal: number | null
         }
         Insert: {
@@ -311,15 +314,18 @@ export type Database = {
           invoice_notes?: string | null
           monthly_goal?: number | null
           phone?: string | null
+          rate_evening?: number
           rate_public_holiday?: number
           rate_saturday?: number
           rate_sleepover_weekday?: number
           rate_sleepover_weekend?: number
           rate_sunday?: number
           rate_weekday?: number
+          show_tax_estimate?: boolean
           tax_rate?: number
           updated_at?: string
           user_id: string
+          weekly_goal?: number | null
           yearly_goal?: number | null
         }
         Update: {
@@ -336,15 +342,18 @@ export type Database = {
           invoice_notes?: string | null
           monthly_goal?: number | null
           phone?: string | null
+          rate_evening?: number
           rate_public_holiday?: number
           rate_saturday?: number
           rate_sleepover_weekday?: number
           rate_sleepover_weekend?: number
           rate_sunday?: number
           rate_weekday?: number
+          show_tax_estimate?: boolean
           tax_rate?: number
           updated_at?: string
           user_id?: string
+          weekly_goal?: number | null
           yearly_goal?: number | null
         }
         Relationships: []
