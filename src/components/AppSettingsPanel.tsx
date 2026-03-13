@@ -14,6 +14,8 @@ const AppSettingsPanel = ({ settings, loading, onSave }: AppSettingsPanelProps) 
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [timedOut, setTimedOut] = useState(false);
+  // NDIS codes stored locally (persisted via invoice_notes workaround until DB migration)
+  const [ndisCodes, setNdisCodes] = useState<NdisItemCodes>(DEFAULT_NDIS_CODES);
 
   useEffect(() => {
     if (!loading) {
@@ -60,6 +62,9 @@ const AppSettingsPanel = ({ settings, loading, onSave }: AppSettingsPanelProps) 
 
   const set = <K extends keyof typeof form>(key: K, value: typeof form[K]) =>
     setForm(prev => ({ ...prev, [key]: value }));
+
+  const setCode = (key: keyof NdisItemCodes, value: string) =>
+    setNdisCodes(prev => ({ ...prev, [key]: value }));
 
   const handleSave = async () => {
     setSaving(true);
