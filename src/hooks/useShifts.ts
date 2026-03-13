@@ -54,13 +54,13 @@ export function useShifts(rates: PayRates = DEFAULT_RATES) {
   const userIdRef = useRef<string | null>(null);
   const initializedRef = useRef(false);
 
-  const fetchShifts = useCallback(async (userId?: string) => {
+  const fetchShifts = useCallback(async (userId?: string, showLoading = false) => {
     const uid = userId ?? userIdRef.current;
     if (!uid) {
       setLoading(false);
       return;
     }
-    setLoading(true);
+    if (showLoading) setLoading(true);
     setError(null);
 
     try {
@@ -72,6 +72,7 @@ export function useShifts(rates: PayRates = DEFAULT_RATES) {
 
       if (err) {
         setError(err.message);
+        setLoading(false);
         return;
       }
 
