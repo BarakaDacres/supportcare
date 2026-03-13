@@ -734,25 +734,36 @@ const OverviewPanel = ({
         {/* ── Weekly earnings breakdown by category ── */}
         {stats.weekGross > 0 && (() => {
           const wb = stats.weekBreakdown;
-          const rows: { label: string; value: number; color: string }[] = [];
-          if (wb.regularDay > 0)        rows.push({ label: 'Regular Day',       value: wb.regularDay,        color: 'hsl(var(--money-green))' });
-          if (wb.evening > 0)           rows.push({ label: 'Evening',           value: wb.evening,           color: 'hsl(38 90% 45%)' });
-          if (wb.weekend > 0)           rows.push({ label: 'Weekend',           value: wb.weekend,           color: 'hsl(var(--primary))' });
-          if (wb.weekdaySleepover > 0)  rows.push({ label: 'Weekday Sleepover', value: wb.weekdaySleepover,  color: '#2563EB' });
-          if (wb.saturdaySleepover > 0) rows.push({ label: 'Sat Sleepover',     value: wb.saturdaySleepover, color: '#7C3AED' });
-          if (wb.sundaySleepover > 0)   rows.push({ label: 'Sun Sleepover',     value: wb.sundaySleepover,   color: '#7C3AED' });
-          if (wb.publicHoliday > 0)     rows.push({ label: 'Public Holiday',    value: wb.publicHoliday,     color: 'hsl(34 97% 48%)' });
+          type BreakdownRow = { label: string; value: number; meta: string; color: string };
+          const rows: BreakdownRow[] = [];
+          if (wb.regularDay > 0)
+            rows.push({ label: 'Weekday Day',        value: wb.regularDay,        meta: `${wb.regularDayH.toFixed(1)}h`,          color: 'hsl(var(--money-green))' });
+          if (wb.evening > 0)
+            rows.push({ label: 'Evening',            value: wb.evening,           meta: `${wb.eveningH.toFixed(1)}h`,              color: 'hsl(38 90% 45%)' });
+          if (wb.satDay > 0)
+            rows.push({ label: 'Saturday Day',       value: wb.satDay,            meta: `${wb.satDayH.toFixed(1)}h`,               color: 'hsl(var(--primary))' });
+          if (wb.sunDay > 0)
+            rows.push({ label: 'Sunday Day',         value: wb.sunDay,            meta: `${wb.sunDayH.toFixed(1)}h`,               color: 'hsl(271 91% 65%)' });
+          if (wb.weekdaySleepover > 0)
+            rows.push({ label: 'Weekday Sleepover',  value: wb.weekdaySleepover,  meta: `${wb.weekdaySleepoverN} night${wb.weekdaySleepoverN !== 1 ? 's' : ''}`, color: '#2563EB' });
+          if (wb.weekendSleepover > 0)
+            rows.push({ label: 'Weekend Sleepover',  value: wb.weekendSleepover,  meta: `${wb.weekendSleepoverN} night${wb.weekendSleepoverN !== 1 ? 's' : ''}`, color: '#7C3AED' });
+          if (wb.publicHoliday > 0)
+            rows.push({ label: 'Public Holiday',     value: wb.publicHoliday,     meta: `${wb.publicHolidayH.toFixed(1)}h`,         color: 'hsl(34 97% 48%)' });
           if (rows.length <= 1) return null;
           return (
-            <div className="mt-4 pt-4 space-y-2" style={{ borderTop: '0.5px solid hsl(var(--border))' }}>
-              <p className="text-[9px] font-semibold text-muted-foreground uppercase tracking-widest mb-2">Income Breakdown</p>
+            <div className="mt-4 pt-4 space-y-1.5" style={{ borderTop: '0.5px solid hsl(var(--border))' }}>
+              <p className="text-[9px] font-semibold text-muted-foreground uppercase tracking-widest mb-3">Income Breakdown</p>
               {rows.map(row => (
-                <div key={row.label} className="flex items-center justify-between gap-3">
+                <div key={row.label} className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-2 min-w-0">
-                    <span className="w-2 h-2 rounded-full shrink-0" style={{ background: row.color }} />
+                    <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: row.color }} />
                     <span className="text-xs text-muted-foreground truncate">{row.label}</span>
                   </div>
-                  <span className="text-xs font-semibold text-foreground shrink-0">{formatCurrency(row.value)}</span>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span className="text-[10px] text-muted-foreground/70">{row.meta}</span>
+                    <span className="text-xs font-semibold text-foreground">{formatCurrency(row.value)}</span>
+                  </div>
                 </div>
               ))}
             </div>
