@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
-import { Save, Loader2, Target, Building2, CreditCard, FileText, Sliders, AlertCircle, Sunset } from 'lucide-react';
+import { Save, Loader2, Target, Building2, CreditCard, FileText, Sliders, AlertCircle, Sunset, Code2 } from 'lucide-react';
 import type { UserSettings } from '@/hooks/useUserSettings';
+import { DEFAULT_NDIS_CODES, type NdisItemCodes } from '@/lib/invoiceGrouping';
 
 interface AppSettingsPanelProps {
   settings: UserSettings | null;
