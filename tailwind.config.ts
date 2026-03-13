@@ -55,6 +55,9 @@ export default {
         money: {
           green: "hsl(var(--money-green))",
         },
+        evening: "hsl(var(--evening-color))",
+        sleepover: "hsl(var(--sleepover-color))",
+        weekend: "hsl(var(--weekend-color))",
       },
       borderRadius: {
         lg: "var(--radius)",
