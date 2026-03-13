@@ -95,13 +95,13 @@ export function useClients() {
 
   const addClient = useCallback(async (fields: Partial<Omit<Client, 'id' | 'user_id' | 'created_at' | 'updated_at'>> & { name: string }): Promise<Client | null> => {
     const { data: { session } } = await supabase.auth.getSession();
-    if (!session) return null;
+    if (!session) throw new Error('Not authenticated. Please sign in and try again.');
     const { data, error } = await supabase
       .from('clients')
       .insert({ user_id: session.user.id, ...fields })
       .select()
       .single();
-    if (error) { console.error(error); return null; }
+    if (error) { console.error(error); throw new Error(error.message ?? 'Failed to save client.'); }
     const client = data as Client;
     setClients(prev => [...prev, client].sort((a, b) => a.name.localeCompare(b.name)));
     return client;
@@ -114,7 +114,7 @@ export function useClients() {
       .eq('id', id)
       .select()
       .single();
-    if (error) { console.error(error); return; }
+    if (error) { console.error(error); throw new Error(error.message ?? 'Failed to update client.'); }
     const updated = data as Client;
     setClients(prev => prev.map(c => c.id === id ? updated : c));
   }, []);
