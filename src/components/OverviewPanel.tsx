@@ -831,6 +831,33 @@ const OverviewPanel = ({
         </ElevatedCard>
       </div>
 
+      {/* ── Tax Estimate card (shown only when enabled) ── */}
+      {settings?.show_tax_estimate && settings.tax_rate > 0 && (
+        <ElevatedCard style={{ padding: '16px 18px' }}>
+          <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest mb-3 flex items-center gap-1.5">
+            <Target className="w-3 h-3" /> Monthly Tax Estimate ({settings.tax_rate}%)
+          </p>
+          <div className="grid grid-cols-3 gap-3">
+            <div>
+              <p className="text-[9px] text-muted-foreground uppercase tracking-wider mb-0.5">Gross</p>
+              <p className="text-sm font-bold money-text">{formatCurrency(stats.monthGross)}</p>
+            </div>
+            <div>
+              <p className="text-[9px] text-muted-foreground uppercase tracking-wider mb-0.5">Est. Tax</p>
+              <p className="text-sm font-bold" style={{ color: 'hsl(var(--stat-red))' }}>
+                − {formatCurrency(stats.monthGross * (settings.tax_rate / 100))}
+              </p>
+            </div>
+            <div>
+              <p className="text-[9px] text-muted-foreground uppercase tracking-wider mb-0.5">Take-Home</p>
+              <p className="text-sm font-bold text-foreground">
+                {formatCurrency(stats.monthGross * (1 - settings.tax_rate / 100))}
+              </p>
+            </div>
+          </div>
+        </ElevatedCard>
+      )}
+
       {/* ── Top client + Unpaid invoices row ── */}
       <div className="grid grid-cols-2 gap-3">
         {stats.topClient ? (
