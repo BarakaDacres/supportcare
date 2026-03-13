@@ -593,12 +593,15 @@ const OverviewPanel = ({
     const mon = MONTH_SHORT[d.getMonth()];
     const dateLabel = `${dow} ${dayNum} ${mon}`;
     const timeLabel = `${formatTime(s.start_time)} – ${formatTime(s.end_time)}`;
+    const isEvening = !s.is_sleepover && !s.is_public_holiday && shiftHasEveningHours(s.start_time, s.end_time);
     const typeLabel = s.is_sleepover
       ? 'Sleepover'
       : s.is_public_holiday
       ? 'Public Holiday'
+      : isEvening
+      ? 'Evening Shift'
       : s.client_name ?? 'Support Shift';
-    return { dateLabel, timeLabel, typeLabel, isSleepover: s.is_sleepover };
+    return { dateLabel, timeLabel, typeLabel, isSleepover: s.is_sleepover, isEvening, isPublicHoliday: s.is_public_holiday };
   };
 
   const activeShiftInfo = useMemo(
