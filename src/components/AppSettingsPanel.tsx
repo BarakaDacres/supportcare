@@ -328,6 +328,40 @@ const AppSettingsPanel = ({ settings, loading, onSave }: AppSettingsPanelProps) 
         />
       </div>
 
+      {/* ── NDIS Item Codes ── */}
+      <div className="glass-card p-4 space-y-3">
+        <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+          <Code2 className="w-3.5 h-3.5" /> NDIS Item Codes
+        </h3>
+        <p className="text-[10px] text-muted-foreground">These codes appear on grouped invoice line items.</p>
+        <div className="space-y-2">
+          {(Object.entries(ndisCodes) as [keyof NdisItemCodes, string][]).map(([key, value]) => {
+            const labels: Record<keyof NdisItemCodes, string> = {
+              daily:             'Daily Support',
+              evening:           'Evening Support',
+              saturday:          'Saturday Support',
+              sunday:            'Sunday Support',
+              weekday_sleepover: 'Weekday Sleepover',
+              saturday_sleepover:'Saturday Sleepover',
+              sunday_sleepover:  'Sunday Sleepover',
+              public_holiday:    'Public Holiday',
+            };
+            return (
+              <div key={key} className="grid grid-cols-2 gap-2 items-center">
+                <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider leading-tight">{labels[key]}</label>
+                <input
+                  type="text"
+                  value={value}
+                  onChange={e => setCode(key, e.target.value)}
+                  className="glass-input text-foreground text-xs font-mono"
+                  style={{ minHeight: 36 }}
+                />
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
       {/* Save button */}
       <button
         onClick={handleSave}
