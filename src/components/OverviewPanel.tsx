@@ -661,7 +661,7 @@ const OverviewPanel = ({
       />
 
       {/* ── Weekly Earnings card (most prominent) ── */}
-      <ElevatedCard glow>
+      <ElevatedCard hero>
         <div className="flex items-center justify-between mb-3">
           <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest flex items-center gap-1.5">
             <CalendarDays className="w-3.5 h-3.5" /> This Week
