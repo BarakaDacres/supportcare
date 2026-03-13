@@ -83,15 +83,22 @@ const ClientFormSheet = ({
 }) => {
   const [form, setForm] = useState<ClientForm>(initial);
   const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const set = <K extends keyof ClientForm>(k: K, v: ClientForm[K]) =>
     setForm(prev => ({ ...prev, [k]: v }));
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.name.trim()) return;
+    if (!form.name.trim() || saving) return;
+    setSaveError(null);
     setSaving(true);
-    await onSave(form);
-    setSaving(false);
+    try {
+      await onSave(form);
+    } catch (err) {
+      setSaveError(err instanceof Error ? err.message : 'Failed to save. Please try again.');
+    } finally {
+      setSaving(false);
+    }
   };
 
   const Toggle = ({ label, fieldKey, icon }: { label: string; fieldKey: 'default_is_sleepover'; icon: React.ReactNode }) => (
