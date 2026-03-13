@@ -388,24 +388,9 @@ const DayHeatmap = ({ shifts }: { shifts: Shift[] }) => {
           );
         })}
       </div>
-                <div
-                  className="h-full rounded-full transition-all duration-700"
-                  style={{
-                    width: `${pct}%`,
-                    background: `hsl(var(--money-green) / ${(0.3 + (pct / 100) * 0.7).toFixed(2)})`,
-                    boxShadow: pct > 70 ? '0 0 8px hsl(var(--money-green)/0.4)' : undefined,
-                  }}
-                />
-              </div>
-              <span className="text-xs font-semibold money-text min-w-[72px] text-right">
-                {formatCurrency(dayTotals[i])}
-              </span>
-            </div>
-          );
-        })}
-      </div>
     </div>
   );
 };
 
+export default AnalyticsPanel;
 export default AnalyticsPanel;
