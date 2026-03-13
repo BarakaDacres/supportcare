@@ -119,15 +119,28 @@ export function useUserSettings() {
       }
     });
 
-    // 3. Refetch on window focus
+    // 3. Refetch on window focus OR tab becoming visible (handles minimised/idle)
     const onFocus = () => {
       if (userIdRef.current) fetchSettings(userIdRef.current);
     };
+    const onVisibility = () => {
+      if (document.visibilityState === 'visible' && userIdRef.current) {
+        fetchSettings(userIdRef.current);
+      }
+    };
     window.addEventListener('focus', onFocus);
+    document.addEventListener('visibilitychange', onVisibility);
+
+    // 4. Safety net: if still loading after 10 s, force a retry
+    const staleTimer = setTimeout(() => {
+      if (userIdRef.current) fetchSettings(userIdRef.current);
+    }, 10_000);
 
     return () => {
       subscription.unsubscribe();
       window.removeEventListener('focus', onFocus);
+      document.removeEventListener('visibilitychange', onVisibility);
+      clearTimeout(staleTimer);
     };
   }, [fetchSettings]);
 
