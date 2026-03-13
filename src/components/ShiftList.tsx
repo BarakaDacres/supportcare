@@ -166,9 +166,9 @@ const ShiftList = ({
       </div>
 
       {/* Filters */}
-      <div className="glass-card p-3 space-y-2.5">
-        {/* Period filter — horizontal scroll on mobile */}
-        <div className="flex gap-1 overflow-x-auto scrollbar-none glass-surface rounded-xl p-1">
+      <div className="card-elevated p-3 space-y-2.5">
+        {/* Period filter */}
+        <div className="flex gap-1 overflow-x-auto scrollbar-none rounded-xl p-1" style={{ background: 'hsl(var(--secondary))' }}>
           {(['week', 'fortnight', 'month', 'year', 'all'] as FilterPeriod[]).map(p => (
             <button
               key={p}
