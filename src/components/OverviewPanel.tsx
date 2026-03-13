@@ -708,11 +708,17 @@ const OverviewPanel = ({
                     {activeShiftInfo.timeLabel}
                   </p>
                 </div>
+                {/* Strong-contrast chip for active shift type */}
                 <span
-                  className="shrink-0 text-[10px] font-bold px-2.5 py-1 rounded-full"
+                  className="shrink-0 text-[10px] font-bold px-2.5 py-1 rounded-full text-white"
                   style={{
-                    background: 'hsl(var(--stat-green)/0.15)',
-                    color: 'hsl(var(--stat-green))',
+                    background: activeShiftInfo.isSleepover
+                      ? '#2563EB'
+                      : activeShiftInfo.isPublicHoliday
+                      ? 'hsl(34 97% 48%)'
+                      : activeShiftInfo.isEvening
+                      ? 'hsl(38 90% 44%)'
+                      : 'hsl(var(--stat-green))',
                   }}
                 >
                   {activeShiftInfo.typeLabel}
