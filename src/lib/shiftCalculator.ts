@@ -229,18 +229,20 @@ export function calculateShiftPay(
   for (const seg of segments) {
     let rate: number;
     let zoneLabel: string;
+    const dayName = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][seg.dayOfWeek];
+    const isWeekday = seg.dayOfWeek >= 1 && seg.dayOfWeek <= 5; // Mon–Fri only
 
     if (isPublicHoliday) {
       rate = phRate;
       zoneLabel = `Public Holiday ${seg.date}`;
-    } else if (seg.isEvening) {
+    } else if (seg.isEvening && isWeekday) {
+      // Evening rate only overrides weekday (Mon–Fri) rates.
+      // Saturday ($75) and Sunday ($90) are already ≥ evening rate, so use their day rate.
       rate = eveningRate;
-      const dayName = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][seg.dayOfWeek];
       zoneLabel = `${dayName} ${seg.date} (Evening)`;
     } else {
       rate = hourlyRate(seg.dayOfWeek, rates);
-      const dayName = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][seg.dayOfWeek];
-      zoneLabel = `${dayName} ${seg.date}`;
+      zoneLabel = seg.isEvening ? `${dayName} ${seg.date} (Evening)` : `${dayName} ${seg.date}`;
     }
 
     const amount = seg.hours * rate;

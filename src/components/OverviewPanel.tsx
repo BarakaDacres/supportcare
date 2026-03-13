@@ -582,9 +582,18 @@ const OverviewPanel = ({
     };
   }, [invoices]);
 
-  const monthlyGoal = settings?.monthly_goal;
+  const weeklyGoal = settings?.weekly_goal ?? null;
+  const monthlyGoal = settings?.monthly_goal ?? null;
+  const yearlyGoal = settings?.yearly_goal ?? null;
+
+  const weekGoalPct = weeklyGoal && weeklyGoal > 0
+    ? Math.min(100, (stats.weekGross / weeklyGoal) * 100)
+    : null;
   const goalPct = monthlyGoal && monthlyGoal > 0
     ? Math.min(100, (stats.monthGross / monthlyGoal) * 100)
+    : null;
+  const yearGoalPct = yearlyGoal && yearlyGoal > 0
+    ? Math.min(100, (stats.yearGross / yearlyGoal) * 100)
     : null;
 
   const monthGrowthPct = stats.prevMonthGross > 0
@@ -831,6 +840,33 @@ const OverviewPanel = ({
         </ElevatedCard>
       </div>
 
+      {/* ── Tax Estimate card (shown only when enabled) ── */}
+      {settings?.show_tax_estimate && settings.tax_rate > 0 && (
+        <ElevatedCard style={{ padding: '16px 18px' }}>
+          <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest mb-3 flex items-center gap-1.5">
+            <Target className="w-3 h-3" /> Monthly Tax Estimate ({settings.tax_rate}%)
+          </p>
+          <div className="grid grid-cols-3 gap-3">
+            <div>
+              <p className="text-[9px] text-muted-foreground uppercase tracking-wider mb-0.5">Gross</p>
+              <p className="text-sm font-bold money-text">{formatCurrency(stats.monthGross)}</p>
+            </div>
+            <div>
+              <p className="text-[9px] text-muted-foreground uppercase tracking-wider mb-0.5">Est. Tax</p>
+              <p className="text-sm font-bold" style={{ color: 'hsl(var(--stat-red))' }}>
+                − {formatCurrency(stats.monthGross * (settings.tax_rate / 100))}
+              </p>
+            </div>
+            <div>
+              <p className="text-[9px] text-muted-foreground uppercase tracking-wider mb-0.5">Take-Home</p>
+              <p className="text-sm font-bold text-foreground">
+                {formatCurrency(stats.monthGross * (1 - settings.tax_rate / 100))}
+              </p>
+            </div>
+          </div>
+        </ElevatedCard>
+      )}
+
       {/* ── Top client + Unpaid invoices row ── */}
       <div className="grid grid-cols-2 gap-3">
         {stats.topClient ? (
@@ -878,33 +914,78 @@ const OverviewPanel = ({
         )}
       </div>
 
-      {/* ── Monthly goal progress ── */}
-      {monthlyGoal && monthlyGoal > 0 && goalPct !== null && (
+      {/* ── Income Goals progress ── */}
+      {(weekGoalPct !== null || goalPct !== null || yearGoalPct !== null) && (
         <ElevatedCard>
-          <div className="flex items-center justify-between mb-2">
-            <p className="text-xs font-semibold text-muted-foreground flex items-center gap-1">
-              <Target className="w-3.5 h-3.5" /> Monthly Goal
-            </p>
-            <p className="text-xs font-bold money-text">
-              {formatCurrency(stats.monthGross)} / {formatCurrency(monthlyGoal)}
-            </p>
-          </div>
-          <div className="h-2 rounded-full overflow-hidden" style={{ background: 'hsl(var(--muted))' }}>
-            <div
-              className="h-full rounded-full transition-all duration-700"
-              style={{ width: `${goalPct.toFixed(1)}%`, background: 'hsl(var(--money-green))' }}
-            />
-          </div>
-          <p className="text-[10px] text-muted-foreground text-right mt-2">
-            {goalPct.toFixed(0)}%
-            {goalPct >= 100
-              ? ' · Goal reached! 🎉'
-              : ` · ${formatCurrency(monthlyGoal - stats.monthGross)} remaining`}
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5 mb-3">
+            <Target className="w-3.5 h-3.5" /> Income Goals
           </p>
+          <div className="space-y-4">
+            {weekGoalPct !== null && weeklyGoal && (
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-semibold text-muted-foreground">Weekly</span>
+                  <span className="text-xs font-bold money-text">
+                    {formatCurrency(stats.weekGross)} / {formatCurrency(weeklyGoal)}
+                  </span>
+                </div>
+                <div className="h-2 rounded-full overflow-hidden" style={{ background: 'hsl(var(--muted))' }}>
+                  <div
+                    className="h-full rounded-full transition-all duration-700"
+                    style={{ width: `${weekGoalPct.toFixed(1)}%`, background: 'hsl(var(--money-green))' }}
+                  />
+                </div>
+                <p className="text-[10px] text-muted-foreground text-right">
+                  {weekGoalPct.toFixed(0)}%
+                  {weekGoalPct >= 100 ? ' · Goal reached! 🎉' : ` · ${formatCurrency(weeklyGoal - stats.weekGross)} to go`}
+                </p>
+              </div>
+            )}
+            {goalPct !== null && monthlyGoal && (
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-semibold text-muted-foreground">Monthly</span>
+                  <span className="text-xs font-bold money-text">
+                    {formatCurrency(stats.monthGross)} / {formatCurrency(monthlyGoal)}
+                  </span>
+                </div>
+                <div className="h-2 rounded-full overflow-hidden" style={{ background: 'hsl(var(--muted))' }}>
+                  <div
+                    className="h-full rounded-full transition-all duration-700"
+                    style={{ width: `${goalPct.toFixed(1)}%`, background: 'hsl(var(--money-green))' }}
+                  />
+                </div>
+                <p className="text-[10px] text-muted-foreground text-right">
+                  {goalPct.toFixed(0)}%
+                  {goalPct >= 100 ? ' · Goal reached! 🎉' : ` · ${formatCurrency(monthlyGoal - stats.monthGross)} to go`}
+                </p>
+              </div>
+            )}
+            {yearGoalPct !== null && yearlyGoal && (
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-semibold text-muted-foreground">Yearly</span>
+                  <span className="text-xs font-bold money-text">
+                    {formatCurrency(stats.yearGross)} / {formatCurrency(yearlyGoal)}
+                  </span>
+                </div>
+                <div className="h-2 rounded-full overflow-hidden" style={{ background: 'hsl(var(--muted))' }}>
+                  <div
+                    className="h-full rounded-full transition-all duration-700"
+                    style={{ width: `${yearGoalPct.toFixed(1)}%`, background: 'hsl(var(--money-green))' }}
+                  />
+                </div>
+                <p className="text-[10px] text-muted-foreground text-right">
+                  {yearGoalPct.toFixed(0)}%
+                  {yearGoalPct >= 100 ? ' · Goal reached! 🎉' : ` · ${formatCurrency(yearlyGoal - stats.yearGross)} to go`}
+                </p>
+              </div>
+            )}
+          </div>
         </ElevatedCard>
       )}
 
-      {/* ── Interactive Earnings calendar heatmap ── */}
+
       <EarningsCalendarHeatmap
         shifts={shifts}
         year={selectedYear}

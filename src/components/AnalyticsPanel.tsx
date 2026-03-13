@@ -1,10 +1,11 @@
 import { useMemo } from 'react';
-import { TrendingUp, Moon, Clock, Zap, BarChart3, Award, Target, CalendarDays } from 'lucide-react';
+import { TrendingUp, Moon, Clock, Zap, BarChart3, Award, Target, CalendarDays, Sunset } from 'lucide-react';
 import { formatCurrency } from '@/lib/formatUtils';
 import type { Shift } from '@/hooks/useShifts';
 import { effectiveGrossPay } from '@/hooks/useShifts';
 import type { UserSettings } from '@/hooks/useUserSettings';
 import { MONTH_SHORT } from '@/lib/dateUtils';
+import { shiftHasEveningHours } from '@/lib/shiftCalculator';
 
 interface AnalyticsPanelProps {
   shifts: Shift[];
@@ -26,6 +27,33 @@ function getMondayOf(date: Date): Date {
   d.setHours(0, 0, 0, 0);
   return d;
 }
+
+// ── Progress bar row ──────────────────────────────────────────────────────────
+const GoalRow = ({
+  label, current, goal,
+}: { label: string; current: number; goal: number }) => {
+  const pct = Math.min(100, (current / goal) * 100);
+  return (
+    <div className="space-y-1.5">
+      <div className="flex items-center justify-between">
+        <span className="text-xs font-semibold text-muted-foreground">{label}</span>
+        <span className="text-xs font-bold money-text">
+          {formatCurrency(current)} / {formatCurrency(goal)}
+        </span>
+      </div>
+      <div className="h-2 rounded-full overflow-hidden" style={{ background: 'hsl(var(--muted))' }}>
+        <div
+          className="h-full rounded-full transition-all duration-700"
+          style={{ width: `${pct.toFixed(1)}%`, background: 'hsl(var(--money-green))' }}
+        />
+      </div>
+      <p className="text-[10px] text-muted-foreground text-right">
+        {pct.toFixed(0)}%
+        {pct >= 100 ? ' · Goal reached! 🎉' : ` · ${formatCurrency(goal - current)} to go`}
+      </p>
+    </div>
+  );
+};
 
 const AnalyticsPanel = ({ shifts, settings, selectedYear, selectedMonth }: AnalyticsPanelProps) => {
   const today = new Date();
@@ -99,6 +127,10 @@ const AnalyticsPanel = ({ shifts, settings, selectedYear, selectedMonth }: Analy
       .filter(s => s.is_sleepover)
       .reduce((s, sh) => s + effectiveGrossPay(sh), 0);
 
+    const eveningShifts = thisYearShifts.filter(
+      s => !s.is_sleepover && !s.is_public_holiday && shiftHasEveningHours(s.start_time, s.end_time)
+    );
+
     return {
       weeklyGross,
       fortnightGross,
@@ -114,11 +146,18 @@ const AnalyticsPanel = ({ shifts, settings, selectedYear, selectedMonth }: Analy
       sleepoversWeekday: sleepoversWeekday.length,
       sleepoversWeekend: sleepoversWeekend.length,
       sleepoversIncome,
+      eveningShiftCount: eveningShifts.length,
+      completedMonths,
     };
   }, [shifts, selectedMonth, selectedYear]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  const taxRate = settings?.tax_rate ?? 30;
+  const showTax = settings?.show_tax_estimate ?? false;
+  const weeklyGoal = settings?.weekly_goal ?? null;
   const monthlyGoal = settings?.monthly_goal ?? null;
   const yearlyGoal = settings?.yearly_goal ?? null;
+
+  const hasGoals = (weeklyGoal && weeklyGoal > 0) || (monthlyGoal && monthlyGoal > 0) || (yearlyGoal && yearlyGoal > 0);
 
   return (
     <div className="space-y-6">
@@ -167,79 +206,90 @@ const AnalyticsPanel = ({ shifts, settings, selectedYear, selectedMonth }: Analy
         </div>
       </div>
 
-      {/* Projected yearly */}
+      {/* Projected yearly income */}
       <div className="glass-card-glow p-4 flex items-center gap-4">
         <TrendingUp className="w-6 h-6 shrink-0 money-text" />
         <div className="min-w-0 flex-1">
           <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Projected Year Income</p>
           <p className="text-2xl font-bold money-text">{formatCurrency(stats.projected)}</p>
           <p className="text-xs text-muted-foreground">
-            Based on {Math.max(1,
-              selectedYear < today.getFullYear() ? 12
-              : selectedYear > today.getFullYear() ? 1
-              : today.getMonth() + 1
-            )} completed month{
-              (selectedYear < today.getFullYear() ? 12 : selectedYear > today.getFullYear() ? 1 : today.getMonth() + 1) !== 1 ? 's' : ''
-            }
+            Based on {stats.completedMonths} completed month{stats.completedMonths !== 1 ? 's' : ''}
           </p>
         </div>
       </div>
 
-      {/* Goals progress */}
-      {(monthlyGoal || yearlyGoal) && (
-        <div className="space-y-3">
-          <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
-            <Target className="w-4 h-4" /> Goals
-          </h3>
-          {monthlyGoal && monthlyGoal > 0 && (
-            <div className="glass-card p-4 space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-semibold text-muted-foreground">Monthly Goal</span>
-                <span className="text-xs font-bold money-text">
-                  {formatCurrency(stats.monthGross)} / {formatCurrency(monthlyGoal)}
-                </span>
+      {/* Tax Projection Insight — shown only when enabled */}
+      {showTax && taxRate > 0 && (
+        <div className="glass-card p-4 space-y-3">
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+            <Target className="w-3.5 h-3.5" /> Tax Projection ({taxRate}% estimate)
+          </p>
+          <div className="space-y-3">
+            {/* Yearly projection */}
+            <div className="rounded-2xl p-3 space-y-2" style={{ background: 'hsl(var(--muted)/0.5)' }}>
+              <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Projected Year</p>
+              <div className="grid grid-cols-3 gap-2">
+                <div>
+                  <p className="text-[9px] text-muted-foreground mb-0.5">Gross</p>
+                  <p className="text-sm font-bold money-text">{formatCurrency(stats.projected)}</p>
+                </div>
+                <div>
+                  <p className="text-[9px] text-muted-foreground mb-0.5">Est. Tax</p>
+                  <p className="text-sm font-bold" style={{ color: 'hsl(var(--stat-red))' }}>
+                    − {formatCurrency(stats.projected * (taxRate / 100))}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-[9px] text-muted-foreground mb-0.5">Net Income</p>
+                  <p className="text-sm font-bold text-foreground">
+                    {formatCurrency(stats.projected * (1 - taxRate / 100))}
+                  </p>
+                </div>
               </div>
-              <div className="progress-bar">
-                <div
-                  className="progress-fill"
-                  style={{
-                    width: `${Math.min(100, (stats.monthGross / monthlyGoal) * 100).toFixed(1)}%`,
-                    background: 'hsl(var(--money-green))',
-                  }}
-                />
-              </div>
-              <p className="text-[10px] text-muted-foreground text-right">
-                {Math.min(100, (stats.monthGross / monthlyGoal) * 100).toFixed(0)}%
-                {stats.monthGross >= monthlyGoal
-                  ? ' · Goal reached! 🎉'
-                  : ` · ${formatCurrency(monthlyGoal - stats.monthGross)} to go`}
-              </p>
             </div>
+            {/* This month */}
+            <div className="rounded-2xl p-3 space-y-2" style={{ background: 'hsl(var(--muted)/0.5)' }}>
+              <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">This Month</p>
+              <div className="grid grid-cols-3 gap-2">
+                <div>
+                  <p className="text-[9px] text-muted-foreground mb-0.5">Gross</p>
+                  <p className="text-sm font-bold money-text">{formatCurrency(stats.monthGross)}</p>
+                </div>
+                <div>
+                  <p className="text-[9px] text-muted-foreground mb-0.5">Est. Tax</p>
+                  <p className="text-sm font-bold" style={{ color: 'hsl(var(--stat-red))' }}>
+                    − {formatCurrency(stats.monthGross * (taxRate / 100))}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-[9px] text-muted-foreground mb-0.5">Take-Home</p>
+                  <p className="text-sm font-bold text-foreground">
+                    {formatCurrency(stats.monthGross * (1 - taxRate / 100))}
+                  </p>
+                </div>
+              </div>
+            </div>
+            <p className="text-[9px] text-muted-foreground">
+              Estimates only — not tax advice. Enable / adjust rate in Settings → App → Tax Estimate.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Goals progress */}
+      {hasGoals && (
+        <div className="glass-card p-4 space-y-4">
+          <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+            <Target className="w-4 h-4" /> Income Goals
+          </h3>
+          {weeklyGoal && weeklyGoal > 0 && (
+            <GoalRow label="Weekly" current={stats.weeklyGross} goal={weeklyGoal} />
+          )}
+          {monthlyGoal && monthlyGoal > 0 && (
+            <GoalRow label="Monthly" current={stats.monthGross} goal={monthlyGoal} />
           )}
           {yearlyGoal && yearlyGoal > 0 && (
-            <div className="glass-card p-4 space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-semibold text-muted-foreground">Yearly Goal</span>
-                <span className="text-xs font-bold money-text">
-                  {formatCurrency(stats.yearGross)} / {formatCurrency(yearlyGoal)}
-                </span>
-              </div>
-              <div className="progress-bar">
-                <div
-                  className="progress-fill"
-                  style={{
-                    width: `${Math.min(100, (stats.yearGross / yearlyGoal) * 100).toFixed(1)}%`,
-                    background: 'hsl(var(--money-green))',
-                  }}
-                />
-              </div>
-              <p className="text-[10px] text-muted-foreground text-right">
-                {Math.min(100, (stats.yearGross / yearlyGoal) * 100).toFixed(0)}%
-                {stats.yearGross >= yearlyGoal
-                  ? ' · Goal reached! 🎉'
-                  : ` · ${formatCurrency(yearlyGoal - stats.yearGross)} to go`}
-              </p>
-            </div>
+            <GoalRow label="Yearly" current={stats.yearGross} goal={yearlyGoal} />
           )}
         </div>
       )}
@@ -304,6 +354,22 @@ const AnalyticsPanel = ({ shifts, settings, selectedYear, selectedMonth }: Analy
           </div>
           <p className="text-[9px] text-muted-foreground border-t border-border pt-1">
             Friday is counted as weekday ($300 flat). Weekend rate ($350) applies to Saturday & Sunday nights only.
+          </p>
+        </div>
+      )}
+
+      {/* Evening shifts summary */}
+      {stats.eveningShiftCount > 0 && (
+        <div className="glass-card p-4 space-y-2">
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+            <Sunset className="w-3.5 h-3.5" style={{ color: 'hsl(38 90% 45%)' }} />
+            <span style={{ color: 'hsl(38 90% 45%)' }}>Evening Shifts ({selectedYear})</span>
+          </p>
+          <p className="text-sm font-bold text-foreground">
+            {stats.eveningShiftCount} shift{stats.eveningShiftCount !== 1 ? 's' : ''} with evening hours (18:00–22:00)
+          </p>
+          <p className="text-[9px] text-muted-foreground">
+            Evening hours on Mon–Fri use the evening rate. Sat/Sun use their own day rates.
           </p>
         </div>
       )}

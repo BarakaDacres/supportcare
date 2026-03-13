@@ -12,6 +12,8 @@ export interface UserSettings {
   account_number: string | null;
   invoice_notes: string | null;
   tax_rate: number;
+  show_tax_estimate: boolean;
+  weekly_goal: number | null;
   monthly_goal: number | null;
   yearly_goal: number | null;
   rate_weekday: number;
@@ -20,6 +22,7 @@ export interface UserSettings {
   rate_sleepover_weekday: number;
   rate_sleepover_weekend: number;
   rate_public_holiday: number;
+  rate_evening: number;
   invoice_counter: number;
 }
 
@@ -31,6 +34,8 @@ export const DEFAULT_SETTINGS: Omit<UserSettings, 'id' | 'user_id'> = {
   account_number: null,
   invoice_notes: null,
   tax_rate: 30,
+  show_tax_estimate: false,
+  weekly_goal: null,
   monthly_goal: null,
   yearly_goal: null,
   rate_weekday: 60,
@@ -39,6 +44,7 @@ export const DEFAULT_SETTINGS: Omit<UserSettings, 'id' | 'user_id'> = {
   rate_sleepover_weekday: 300,
   rate_sleepover_weekend: 350,
   rate_public_holiday: 150,
+  rate_evening: 75,
   invoice_counter: 0,
 };
 
@@ -93,7 +99,6 @@ export function useUserSettings() {
   }, []);
 
   useEffect(() => {
-    // 1. Restore session from storage first
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) {
         userIdRef.current = session.user.id;
@@ -105,7 +110,6 @@ export function useUserSettings() {
       }
     });
 
-    // 2. Listen for subsequent auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       if (session) {
         if (userIdRef.current !== session.user.id) {
@@ -119,7 +123,6 @@ export function useUserSettings() {
       }
     });
 
-    // 3. Refetch on window focus OR tab becoming visible (handles minimised/idle)
     const onFocus = () => {
       if (userIdRef.current) fetchSettings(userIdRef.current);
     };
@@ -131,7 +134,6 @@ export function useUserSettings() {
     window.addEventListener('focus', onFocus);
     document.addEventListener('visibilitychange', onVisibility);
 
-    // 4. Safety net: if still loading after 10 s, force a retry
     const staleTimer = setTimeout(() => {
       if (userIdRef.current) fetchSettings(userIdRef.current);
     }, 10_000);
@@ -173,6 +175,7 @@ export function useUserSettings() {
     rate_sleepover_weekday: settings?.rate_sleepover_weekday ?? 300,
     rate_sleepover_weekend: settings?.rate_sleepover_weekend ?? 350,
     rate_public_holiday: settings?.rate_public_holiday ?? 150,
+    rate_evening: settings?.rate_evening ?? 75,
   }), [settings]);
 
   return { settings, loading, fetchSettings, updateSettings, incrementInvoiceCounter, getRates };
