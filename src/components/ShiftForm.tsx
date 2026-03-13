@@ -195,8 +195,9 @@ const ShiftForm = ({
   return (
     /* ── Backdrop ── */
     <div
-      className="fixed inset-0 z-[60] flex items-center justify-center p-4"
+      className="fixed inset-0 z-[60] flex items-center justify-center"
       style={{
+        padding: '16px',
         background: 'hsl(var(--foreground)/0.45)',
         backdropFilter: 'blur(4px)',
       }}
@@ -207,7 +208,8 @@ const ShiftForm = ({
         onSubmit={handleSubmit}
         className="flex flex-col w-full"
         style={{
-          maxWidth: 440,
+          maxWidth: 420,
+          width: '100%',
           maxHeight: 'min(92dvh, 700px)',
           background: 'hsl(var(--card))',
           borderRadius: 24,
@@ -215,7 +217,8 @@ const ShiftForm = ({
             '0 2px 8px hsl(var(--foreground)/0.08), ' +
             '0 20px 60px hsl(var(--foreground)/0.22), ' +
             '0 0 0 0.5px hsl(var(--border))',
-          overflow: 'clip',
+          overflow: 'hidden',
+          boxSizing: 'border-box',
         }}
         onClick={(e) => e.stopPropagation()}
       >
@@ -236,7 +239,7 @@ const ShiftForm = ({
         </div>
 
         {/* ── Scrollable body ── */}
-        <div className="flex-1 overflow-y-auto overscroll-contain" style={{ padding: '20px 20px 20px 20px' }}>
+        <div className="flex-1 overflow-y-auto overscroll-contain" style={{ padding: '20px 24px', boxSizing: 'border-box' }}>
           <div className="space-y-4">
             {/* Date */}
             <div className="space-y-1.5">
@@ -497,8 +500,8 @@ const ShiftForm = ({
 
         {/* ── Footer ── */}
         <div
-          className="shrink-0 pt-3 pb-5 space-y-2"
-          style={{ borderTop: '0.5px solid hsl(var(--border))', padding: '12px 24px 20px' }}
+          className="shrink-0 space-y-2"
+          style={{ borderTop: '0.5px solid hsl(var(--border))', padding: '12px 24px 20px', boxSizing: 'border-box' }}
         >
           {submitError && (
             <p className="text-xs text-destructive text-center px-2">{submitError}</p>

@@ -9,7 +9,7 @@ import { effectiveGrossPay } from '@/hooks/useShifts';
 import type { Client } from '@/hooks/useClients';
 import type { UserSettings } from '@/hooks/useUserSettings';
 import { MONTH_NAMES, MONTH_SHORT } from '@/lib/dateUtils';
-import { shiftHasEveningHours } from '@/lib/shiftCalculator';
+import { shiftHasEveningHours, getDayOfWeek } from '@/lib/shiftCalculator';
 
 interface Invoice {
   id: string;
@@ -495,6 +495,38 @@ const OverviewPanel = ({
     const hours = (arr: Shift[]) =>
       arr.filter(s => !s.is_sleepover).reduce((s, sh) => s + Number(sh.hours_worked), 0);
 
+    // ── Weekly earnings breakdown by category ──
+    const weekBreakdown = (() => {
+      let regularDay = 0;
+      let evening = 0;
+      let weekend = 0;
+      let weekdaySleepover = 0;
+      let saturdaySleepover = 0;
+      let sundaySleepover = 0;
+      let publicHoliday = 0;
+
+      for (const s of thisWeekShifts) {
+        const pay = effectiveGrossPay(s);
+        const dow = getDayOfWeek(s.date);
+        if (s.is_public_holiday && !s.is_sleepover) { publicHoliday += pay; continue; }
+        if (s.is_sleepover) {
+          if (dow === 6) saturdaySleepover += pay;
+          else if (dow === 0) sundaySleepover += pay;
+          else weekdaySleepover += pay;
+          continue;
+        }
+        if (dow === 6 || dow === 0) { weekend += pay; continue; }
+        // weekday
+        const hasEvening = shiftHasEveningHours(s.start_time, s.end_time);
+        const [startH] = s.start_time.split(':').map(Number);
+        const [endH] = s.end_time.split(':').map(Number);
+        const purelyEvening = startH >= 18 && (endH <= 22 || endH <= startH);
+        if (hasEvening && purelyEvening) { evening += pay; }
+        else { regularDay += pay; }
+      }
+      return { regularDay, evening, weekend, weekdaySleepover, saturdaySleepover, sundaySleepover, publicHoliday };
+    })();
+
     const byMonth = Array.from({ length: 12 }, (_, m) => {
       const ms = thisYearShifts.filter(s => parseDate(s.date).getMonth() === m);
       return { month: m, gross: gross(ms) };
@@ -559,6 +591,7 @@ const OverviewPanel = ({
       weekHours: hours(thisWeekShifts),
       weekShiftCount: thisWeekShifts.length,
       weekSleepovers: thisWeekShifts.filter(s => s.is_sleepover).length,
+      weekBreakdown,
       monthGross: gross(thisMonthShifts),
       monthHours: hours(thisMonthShifts),
       monthShiftCount: thisMonthShifts.length,
@@ -684,6 +717,34 @@ const OverviewPanel = ({
             <p className="text-[9px] text-muted-foreground uppercase tracking-wider">Sleepovers</p>
           </div>
         </div>
+
+        {/* ── Weekly earnings breakdown by category ── */}
+        {stats.weekGross > 0 && (() => {
+          const wb = stats.weekBreakdown;
+          const rows: { label: string; value: number; color: string }[] = [];
+          if (wb.regularDay > 0)        rows.push({ label: 'Regular Day',       value: wb.regularDay,        color: 'hsl(var(--money-green))' });
+          if (wb.evening > 0)           rows.push({ label: 'Evening',           value: wb.evening,           color: 'hsl(38 90% 45%)' });
+          if (wb.weekend > 0)           rows.push({ label: 'Weekend',           value: wb.weekend,           color: 'hsl(var(--primary))' });
+          if (wb.weekdaySleepover > 0)  rows.push({ label: 'Weekday Sleepover', value: wb.weekdaySleepover,  color: '#2563EB' });
+          if (wb.saturdaySleepover > 0) rows.push({ label: 'Sat Sleepover',     value: wb.saturdaySleepover, color: '#7C3AED' });
+          if (wb.sundaySleepover > 0)   rows.push({ label: 'Sun Sleepover',     value: wb.sundaySleepover,   color: '#7C3AED' });
+          if (wb.publicHoliday > 0)     rows.push({ label: 'Public Holiday',    value: wb.publicHoliday,     color: 'hsl(34 97% 48%)' });
+          if (rows.length <= 1) return null;
+          return (
+            <div className="mt-4 pt-4 space-y-2" style={{ borderTop: '0.5px solid hsl(var(--border))' }}>
+              <p className="text-[9px] font-semibold text-muted-foreground uppercase tracking-widest mb-2">Income Breakdown</p>
+              {rows.map(row => (
+                <div key={row.label} className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="w-2 h-2 rounded-full shrink-0" style={{ background: row.color }} />
+                    <span className="text-xs text-muted-foreground truncate">{row.label}</span>
+                  </div>
+                  <span className="text-xs font-semibold text-foreground shrink-0">{formatCurrency(row.value)}</span>
+                </div>
+              ))}
+            </div>
+          );
+        })()}
 
         {/* Active Now / Next Shift capsule — priority: active → next → empty */}
         <div className="pt-4 mt-1" style={{ borderTop: '0.5px solid hsl(var(--border))' }}>

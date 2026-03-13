@@ -28,11 +28,11 @@ export function useClients() {
   const [loading, setLoading] = useState(true);
   const userIdRef = useRef<string | null>(null);
 
-  const fetchClients = useCallback(async (userId?: string) => {
+  const fetchClients = useCallback(async (userId?: string, showLoading = false) => {
     const uid = userId ?? userIdRef.current;
     if (!uid) { setLoading(false); return; }
 
-    setLoading(true);
+    if (showLoading) setLoading(true);
     const { data, error } = await supabase
       .from('clients')
       .select('*')
@@ -49,7 +49,7 @@ export function useClients() {
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) {
         userIdRef.current = session.user.id;
-        fetchClients(session.user.id);
+        fetchClients(session.user.id, true);
       } else {
         userIdRef.current = null;
         setClients([]);
@@ -61,7 +61,7 @@ export function useClients() {
       if (session) {
         if (userIdRef.current !== session.user.id) {
           userIdRef.current = session.user.id;
-          fetchClients(session.user.id);
+          fetchClients(session.user.id, true);
         }
       } else {
         userIdRef.current = null;
@@ -79,11 +79,11 @@ export function useClients() {
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'clients' },
-        () => { if (userIdRef.current) fetchClients(userIdRef.current); }
+        () => { if (userIdRef.current) fetchClients(userIdRef.current, false); }
       )
       .subscribe();
 
-    const onFocus = () => { if (userIdRef.current) fetchClients(userIdRef.current); };
+    const onFocus = () => { if (userIdRef.current) fetchClients(userIdRef.current, false); };
     window.addEventListener('focus', onFocus);
 
     return () => {

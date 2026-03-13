@@ -54,13 +54,13 @@ export function useShifts(rates: PayRates = DEFAULT_RATES) {
   const userIdRef = useRef<string | null>(null);
   const initializedRef = useRef(false);
 
-  const fetchShifts = useCallback(async (userId?: string) => {
+  const fetchShifts = useCallback(async (userId?: string, showLoading = false) => {
     const uid = userId ?? userIdRef.current;
     if (!uid) {
       setLoading(false);
       return;
     }
-    setLoading(true);
+    if (showLoading) setLoading(true);
     setError(null);
 
     try {
@@ -72,6 +72,7 @@ export function useShifts(rates: PayRates = DEFAULT_RATES) {
 
       if (err) {
         setError(err.message);
+        setLoading(false);
         return;
       }
 
@@ -90,7 +91,7 @@ export function useShifts(rates: PayRates = DEFAULT_RATES) {
       if (session) {
         userIdRef.current = session.user.id;
         initializedRef.current = true;
-        fetchShifts(session.user.id);
+        fetchShifts(session.user.id, true); // show loading spinner on initial load
       } else {
         userIdRef.current = null;
         setShifts([]);
@@ -104,7 +105,7 @@ export function useShifts(rates: PayRates = DEFAULT_RATES) {
         if (userIdRef.current !== uid || !initializedRef.current) {
           userIdRef.current = uid;
           initializedRef.current = true;
-          fetchShifts(uid);
+          fetchShifts(uid, true); // show loading on user switch
         }
       } else {
         userIdRef.current = null;
@@ -124,17 +125,17 @@ export function useShifts(rates: PayRates = DEFAULT_RATES) {
         'postgres_changes',
         { event: '*', schema: 'public', table: 'shifts' },
         () => {
-          if (userIdRef.current) fetchShifts(userIdRef.current);
+          if (userIdRef.current) fetchShifts(userIdRef.current, false); // silent background refresh
         }
       )
       .subscribe();
 
     const onFocus = () => {
-      if (userIdRef.current) fetchShifts(userIdRef.current);
+      if (userIdRef.current) fetchShifts(userIdRef.current, false);
     };
     const onVisibility = () => {
       if (document.visibilityState === 'visible' && userIdRef.current) {
-        fetchShifts(userIdRef.current);
+        fetchShifts(userIdRef.current, false);
       }
     };
     window.addEventListener('focus', onFocus);

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
-import { Save, Loader2, Target, Building2, CreditCard, FileText, Sliders, AlertCircle, Sunset } from 'lucide-react';
+import { Save, Loader2, Target, Building2, CreditCard, FileText, Sliders, AlertCircle, Sunset, Code2 } from 'lucide-react';
 import type { UserSettings } from '@/hooks/useUserSettings';
+import { DEFAULT_NDIS_CODES, type NdisItemCodes } from '@/lib/invoiceGrouping';
 
 interface AppSettingsPanelProps {
   settings: UserSettings | null;
@@ -13,6 +14,8 @@ const AppSettingsPanel = ({ settings, loading, onSave }: AppSettingsPanelProps) 
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [timedOut, setTimedOut] = useState(false);
+  // NDIS codes stored locally (persisted via invoice_notes workaround until DB migration)
+  const [ndisCodes, setNdisCodes] = useState<NdisItemCodes>(DEFAULT_NDIS_CODES);
 
   useEffect(() => {
     if (!loading) {
@@ -59,6 +62,9 @@ const AppSettingsPanel = ({ settings, loading, onSave }: AppSettingsPanelProps) 
 
   const set = <K extends keyof typeof form>(key: K, value: typeof form[K]) =>
     setForm(prev => ({ ...prev, [key]: value }));
+
+  const setCode = (key: keyof NdisItemCodes, value: string) =>
+    setNdisCodes(prev => ({ ...prev, [key]: value }));
 
   const handleSave = async () => {
     setSaving(true);
@@ -320,6 +326,40 @@ const AppSettingsPanel = ({ settings, loading, onSave }: AppSettingsPanelProps) 
           rows={3}
           className="glass-input w-full text-foreground resize-none"
         />
+      </div>
+
+      {/* ── NDIS Item Codes ── */}
+      <div className="glass-card p-4 space-y-3">
+        <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+          <Code2 className="w-3.5 h-3.5" /> NDIS Item Codes
+        </h3>
+        <p className="text-[10px] text-muted-foreground">These codes appear on grouped invoice line items.</p>
+        <div className="space-y-2">
+          {(Object.entries(ndisCodes) as [keyof NdisItemCodes, string][]).map(([key, value]) => {
+            const labels: Record<keyof NdisItemCodes, string> = {
+              daily:             'Daily Support',
+              evening:           'Evening Support',
+              saturday:          'Saturday Support',
+              sunday:            'Sunday Support',
+              weekday_sleepover: 'Weekday Sleepover',
+              saturday_sleepover:'Saturday Sleepover',
+              sunday_sleepover:  'Sunday Sleepover',
+              public_holiday:    'Public Holiday',
+            };
+            return (
+              <div key={key} className="grid grid-cols-2 gap-2 items-center">
+                <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider leading-tight">{labels[key]}</label>
+                <input
+                  type="text"
+                  value={value}
+                  onChange={e => setCode(key, e.target.value)}
+                  className="glass-input text-foreground text-xs font-mono"
+                  style={{ minHeight: 36 }}
+                />
+              </div>
+            );
+          })}
+        </div>
       </div>
 
       {/* Save button */}
