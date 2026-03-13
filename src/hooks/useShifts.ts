@@ -91,7 +91,7 @@ export function useShifts(rates: PayRates = DEFAULT_RATES) {
       if (session) {
         userIdRef.current = session.user.id;
         initializedRef.current = true;
-        fetchShifts(session.user.id);
+        fetchShifts(session.user.id, true); // show loading spinner on initial load
       } else {
         userIdRef.current = null;
         setShifts([]);
