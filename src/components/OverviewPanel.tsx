@@ -495,36 +495,49 @@ const OverviewPanel = ({
     const hours = (arr: Shift[]) =>
       arr.filter(s => !s.is_sleepover).reduce((s, sh) => s + Number(sh.hours_worked), 0);
 
-    // ── Weekly earnings breakdown by category ──
+    // ── Weekly earnings breakdown by category (with hours) ──
     const weekBreakdown = (() => {
-      let regularDay = 0;
-      let evening = 0;
-      let weekend = 0;
-      let weekdaySleepover = 0;
-      let saturdaySleepover = 0;
-      let sundaySleepover = 0;
-      let publicHoliday = 0;
+      let regularDay = 0,  regularDayH = 0;
+      let evening = 0,     eveningH = 0;
+      let satDay = 0,      satDayH = 0;
+      let sunDay = 0,      sunDayH = 0;
+      let weekdaySleepover = 0, weekdaySleepoverN = 0;
+      let weekendSleepover = 0, weekendSleepoverN = 0;
+      let publicHoliday = 0,    publicHolidayH = 0;
 
       for (const s of thisWeekShifts) {
         const pay = effectiveGrossPay(s);
+        const h = Number(s.hours_worked);
         const dow = getDayOfWeek(s.date);
-        if (s.is_public_holiday && !s.is_sleepover) { publicHoliday += pay; continue; }
+
+        if (s.is_public_holiday && !s.is_sleepover) {
+          publicHoliday += pay; publicHolidayH += h; continue;
+        }
         if (s.is_sleepover) {
-          if (dow === 6) saturdaySleepover += pay;
-          else if (dow === 0) sundaySleepover += pay;
-          else weekdaySleepover += pay;
+          // weekend = Saturday (6) or Sunday (0)
+          if (dow === 6 || dow === 0) { weekendSleepover += pay; weekendSleepoverN += 1; }
+          else { weekdaySleepover += pay; weekdaySleepoverN += 1; }
           continue;
         }
-        if (dow === 6 || dow === 0) { weekend += pay; continue; }
-        // weekday
+        if (dow === 6) { satDay += pay; satDayH += h; continue; }
+        if (dow === 0) { sunDay += pay; sunDayH += h; continue; }
+        // weekday: check if purely evening shift
         const hasEvening = shiftHasEveningHours(s.start_time, s.end_time);
         const [startH] = s.start_time.split(':').map(Number);
-        const [endH] = s.end_time.split(':').map(Number);
-        const purelyEvening = startH >= 18 && (endH <= 22 || endH <= startH);
-        if (hasEvening && purelyEvening) { evening += pay; }
-        else { regularDay += pay; }
+        const [endH]   = s.end_time.split(':').map(Number);
+        const purelyEvening = startH >= 18 && (endH <= 22 || endH < startH);
+        if (hasEvening && purelyEvening) { evening += pay; eveningH += h; }
+        else { regularDay += pay; regularDayH += h; }
       }
-      return { regularDay, evening, weekend, weekdaySleepover, saturdaySleepover, sundaySleepover, publicHoliday };
+      return {
+        regularDay, regularDayH,
+        evening,    eveningH,
+        satDay,     satDayH,
+        sunDay,     sunDayH,
+        weekdaySleepover, weekdaySleepoverN,
+        weekendSleepover, weekendSleepoverN,
+        publicHoliday,    publicHolidayH,
+      };
     })();
 
     const byMonth = Array.from({ length: 12 }, (_, m) => {
