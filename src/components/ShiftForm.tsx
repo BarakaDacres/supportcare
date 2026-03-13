@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
-import { X, Clock, Moon, User, FileText, ChevronDown, DollarSign, Star } from 'lucide-react';
-import { calculateShiftPay, formatTime12h, type PayRates, DEFAULT_RATES, getDayOfWeek, isWeekendSleeperNight } from '@/lib/shiftCalculator';
+import { X, Clock, Moon, User, FileText, ChevronDown, DollarSign, Star, Sunset } from 'lucide-react';
+import { calculateShiftPay, formatTime12h, type PayRates, DEFAULT_RATES, getDayOfWeek, isWeekendSleeperNight, shiftHasEveningHours } from '@/lib/shiftCalculator';
 import { formatCurrency } from '@/lib/formatUtils';
 import type { NewShift } from '@/hooks/useShifts';
 import type { Client } from '@/hooks/useClients';
@@ -17,6 +17,7 @@ interface ShiftFormProps {
 const today = () => new Date().toISOString().split('T')[0];
 
 const DEFAULT_NOTE_NORMAL = 'Assistance with Self-Care Activities';
+const DEFAULT_NOTE_EVENING = 'Assistance with Self-Care Activities — Evening';
 
 function getSleeoverNote(dateStr?: string, rates?: PayRates): string {
   const weekdayRate = rates?.rate_sleepover_weekday ?? 300;
@@ -32,8 +33,11 @@ function getSleeoverNote(dateStr?: string, rates?: PayRates): string {
 
 const DEFAULT_NOTE_SLEEPOVER = getSleeoverNote();
 
-const getDefaultNote = (isSleepover: boolean, dateStr?: string, rates?: PayRates) =>
-  isSleepover ? getSleeoverNote(dateStr, rates) : DEFAULT_NOTE_NORMAL;
+function getDefaultNote(isSleepover: boolean, startTime: string, endTime: string, dateStr?: string, rates?: PayRates): string {
+  if (isSleepover) return getSleeoverNote(dateStr, rates);
+  if (shiftHasEveningHours(startTime, endTime)) return DEFAULT_NOTE_EVENING;
+  return DEFAULT_NOTE_NORMAL;
+}
 
 const ShiftForm = ({
   clients,
