@@ -189,15 +189,21 @@ const DayShiftSheet = ({
                     <span className="text-xs text-muted-foreground">{s.client_name}</span>
                   )}
                   {s.is_sleepover && (
-                    <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full"
-                      style={{ background: 'hsl(var(--primary)/0.12)', color: 'hsl(var(--primary))' }}>
+                    <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full text-white"
+                      style={{ background: '#2563EB' }}>
                       Sleepover
                     </span>
                   )}
                   {s.is_public_holiday && (
                     <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full"
-                      style={{ background: 'hsl(38 92% 50% / 0.15)', color: 'hsl(38 92% 35%)' }}>
+                      style={{ background: 'hsl(34 97% 52% / 0.15)', color: 'hsl(34 97% 40%)' }}>
                       Public Holiday
+                    </span>
+                  )}
+                  {!s.is_sleepover && !s.is_public_holiday && shiftHasEveningHours(s.start_time, s.end_time) && (
+                    <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full"
+                      style={{ background: 'hsl(38 90% 52% / 0.18)', color: 'hsl(38 90% 38%)' }}>
+                      Evening Shift
                     </span>
                   )}
                   {!s.is_sleepover && (
