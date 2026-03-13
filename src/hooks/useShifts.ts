@@ -125,7 +125,7 @@ export function useShifts(rates: PayRates = DEFAULT_RATES) {
         'postgres_changes',
         { event: '*', schema: 'public', table: 'shifts' },
         () => {
-          if (userIdRef.current) fetchShifts(userIdRef.current);
+          if (userIdRef.current) fetchShifts(userIdRef.current, false); // silent background refresh
         }
       )
       .subscribe();
