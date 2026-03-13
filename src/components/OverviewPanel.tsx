@@ -591,6 +591,7 @@ const OverviewPanel = ({
       weekHours: hours(thisWeekShifts),
       weekShiftCount: thisWeekShifts.length,
       weekSleepovers: thisWeekShifts.filter(s => s.is_sleepover).length,
+      weekBreakdown,
       monthGross: gross(thisMonthShifts),
       monthHours: hours(thisMonthShifts),
       monthShiftCount: thisMonthShifts.length,
