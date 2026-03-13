@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Ellipsis } from 'lucide-react';
+import { Ellipsis, Sun, Moon } from 'lucide-react';
 import { MONTH_NAMES } from '@/lib/dateUtils';
 import type { EntryMode } from '@/hooks/useIncomeStore';
 import ActionSheet from './ActionSheet';
@@ -34,60 +34,92 @@ const MobileHeader = ({
 
   return (
     <>
-      {/* Scroll sentinel */}
       <div ref={sentinelRef} className="h-0 w-full" aria-hidden="true" />
 
       <header
-        className="sticky top-0 z-40 md:hidden no-print transition-all duration-300"
+        className="sticky top-0 z-40 md:hidden no-print"
         style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}
       >
-        {/* Title row */}
-        <div
-          className={`header-glass px-4 transition-all duration-300 ${
-            collapsed ? 'py-2' : 'pb-2 pt-2.5'
-          }`}
-        >
+        <div className="header-glass px-4 transition-all duration-200" style={{ paddingTop: collapsed ? 8 : 10, paddingBottom: collapsed ? 8 : 6 }}>
           <div className="flex items-center justify-between gap-3">
-            <div className="min-w-0">
-              <h1
-                className="font-bold text-foreground tracking-tight transition-all duration-300 leading-tight"
-                style={{ fontSize: collapsed ? '1rem' : '1.35rem' }}
+            <div className="min-w-0 flex items-center gap-3">
+              {/* Logo dot */}
+              <div
+                className="shrink-0 w-7 h-7 rounded-[9px] flex items-center justify-center"
+                style={{
+                  background: 'hsl(var(--primary))',
+                  boxShadow: '0 2px 8px hsl(var(--primary) / 0.35)',
+                  transition: 'transform 0.2s ease',
+                  transform: collapsed ? 'scale(0.85)' : 'scale(1)',
+                }}
               >
-                Support Care
-              </h1>
-              {!collapsed && (
-                <p className="text-[11px] text-muted-foreground font-medium mt-0.5 leading-none">
-                  Track your support shifts
-                </p>
-              )}
+                <span style={{ fontSize: '0.7rem', fontWeight: 800, color: '#fff', letterSpacing: '-0.02em' }}>SC</span>
+              </div>
+              <div>
+                <h1
+                  className="font-bold text-foreground tracking-tight leading-tight transition-all duration-200"
+                  style={{ fontSize: collapsed ? '0.9375rem' : '1.25rem' }}
+                >
+                  Support Care
+                </h1>
+                {!collapsed && (
+                  <p className="text-[10px] text-muted-foreground font-medium mt-0 leading-none">
+                    Shift &amp; earnings tracker
+                  </p>
+                )}
+              </div>
             </div>
-            <button
-              onClick={() => setSheetOpen(true)}
-              className="glass-chip shrink-0 flex items-center justify-center"
-              style={{ minHeight: 36, minWidth: 36, padding: 0 }}
-              aria-label="More actions"
-            >
-              <Ellipsis className="w-4 h-4" />
-            </button>
+
+            <div className="flex items-center gap-2 shrink-0">
+              {/* Theme toggle */}
+              <button
+                onClick={onToggleTheme}
+                className="w-8 h-8 flex items-center justify-center rounded-full transition-colors"
+                style={{ background: 'hsl(var(--secondary))', border: '1px solid hsl(var(--border))' }}
+                aria-label="Toggle theme"
+              >
+                {theme === 'light'
+                  ? <Moon className="w-3.5 h-3.5 text-muted-foreground" />
+                  : <Sun className="w-3.5 h-3.5 text-muted-foreground" />
+                }
+              </button>
+              {/* More actions */}
+              <button
+                onClick={() => setSheetOpen(true)}
+                className="w-8 h-8 flex items-center justify-center rounded-full transition-colors"
+                style={{ background: 'hsl(var(--secondary))', border: '1px solid hsl(var(--border))' }}
+                aria-label="More actions"
+              >
+                <Ellipsis className="w-4 h-4 text-muted-foreground" />
+              </button>
+            </div>
           </div>
         </div>
 
         {/* Context chips row */}
-        <div
-          className="context-bar-glass px-4 py-1.5 flex items-center gap-1.5 overflow-x-auto scrollbar-none"
-        >
-          <span className="glass-chip shrink-0 text-[11px] py-1 px-2.5">{year}</span>
-          <span className="glass-chip shrink-0 text-[11px] py-1 px-2.5">{MONTH_NAMES[month]}</span>
-          <span className="glass-chip shrink-0 text-[11px] py-1 px-2.5 capitalize">{mode}</span>
+        <div className="context-bar-glass px-4 py-1.5 flex items-center gap-1.5 overflow-x-auto scrollbar-none">
           <span
-            className="glass-chip shrink-0 text-[11px] py-1 px-2.5"
-            style={{ color: locked ? 'hsl(var(--destructive))' : 'hsl(var(--stat-green))' }}
+            className="shrink-0 rounded-full px-2.5 py-1 text-[10px] font-semibold"
+            style={{ background: 'hsl(var(--secondary))', color: 'hsl(var(--muted-foreground))' }}
+          >
+            {MONTH_NAMES[month]} {year}
+          </span>
+          <span
+            className="shrink-0 rounded-full px-2.5 py-1 text-[10px] font-semibold capitalize"
+            style={{ background: 'hsl(var(--secondary))', color: 'hsl(var(--muted-foreground))' }}
+          >
+            {mode}
+          </span>
+          <span
+            className="shrink-0 rounded-full px-2.5 py-1 text-[10px] font-semibold flex items-center gap-1"
+            style={{
+              background: locked ? 'hsl(var(--destructive) / 0.1)' : 'hsl(var(--stat-green) / 0.12)',
+              color: locked ? 'hsl(var(--destructive))' : 'hsl(var(--stat-green))',
+            }}
           >
             <span
-              className="w-1.5 h-1.5 rounded-full inline-block mr-1 shrink-0"
-              style={{
-                background: locked ? 'hsl(var(--destructive))' : 'hsl(var(--stat-green))',
-              }}
+              className="w-1.5 h-1.5 rounded-full inline-block shrink-0"
+              style={{ background: locked ? 'hsl(var(--destructive))' : 'hsl(var(--stat-green))' }}
             />
             {locked ? 'Locked' : 'Open'}
           </span>
