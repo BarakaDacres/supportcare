@@ -263,7 +263,7 @@ const ShiftList = ({
       ) : (
         <div className="space-y-2">
           {filtered.map(shift => {
-            const { isSleepover, isWeekend, isWeekday, isPublicHoliday } = getShiftBadges(shift);
+            const { isSleepover, isWeekend, isWeekday, isPublicHoliday, isEvening } = getShiftBadges(shift);
             const hasOverride = shift.fee_override != null && shift.fee_override > 0;
             const displayPay = effectiveGrossPay(shift);
             const active = isShiftActive(shift);
@@ -308,13 +308,22 @@ const ShiftList = ({
                         </span>
                       )}
 
-                      {isWeekend && !isPublicHoliday && (
+                      {isEvening && !isSleepover && !isPublicHoliday && (
+                        <span
+                          className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold"
+                          style={{ background: 'hsl(38 90% 52% / 0.18)', color: 'hsl(38 90% 38%)', border: '1px solid hsl(38 90% 52% / 0.35)' }}
+                        >
+                          <Sunset className="w-2.5 h-2.5" /> Evening Shift
+                        </span>
+                      )}
+
+                      {isWeekend && !isPublicHoliday && !isSleepover && (
                         <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold text-white" style={{ background: '#7C3AED' }}>
                           <Sun className="w-2.5 h-2.5" /> Weekend
                         </span>
                       )}
 
-                      {isWeekday && !isSleepover && !isPublicHoliday && (
+                      {isWeekday && !isSleepover && !isPublicHoliday && !isEvening && (
                         <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold"
                           style={{ background: 'hsl(var(--muted))', color: 'hsl(var(--muted-foreground))' }}>
                           Weekday
