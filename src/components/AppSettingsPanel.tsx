@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Save, Loader2, Target, Building2, CreditCard, FileText, Sliders, AlertCircle } from 'lucide-react';
+import { Save, Loader2, Target, Building2, CreditCard, FileText, Sliders, AlertCircle, Sunset } from 'lucide-react';
 import type { UserSettings } from '@/hooks/useUserSettings';
 
 interface AppSettingsPanelProps {
@@ -102,6 +102,40 @@ const AppSettingsPanel = ({ settings, loading, onSave }: AppSettingsPanelProps) 
     </div>
   );
 
+  /* ── Toggle row ── */
+  const ToggleRow = ({
+    label,
+    description,
+    fieldKey,
+  }: {
+    label: string;
+    description?: string;
+    fieldKey: keyof Omit<UserSettings, 'id' | 'user_id'>;
+  }) => {
+    const checked = val(fieldKey, settings[fieldKey] as boolean) as boolean;
+    return (
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-semibold text-foreground">{label}</p>
+          {description && <p className="text-[10px] text-muted-foreground mt-0.5">{description}</p>}
+        </div>
+        <button
+          type="button"
+          onClick={() => set(fieldKey, !checked)}
+          className="relative shrink-0 rounded-full transition-all duration-200"
+          style={{ width: 44, height: 26, background: checked ? 'hsl(var(--primary))' : 'hsl(var(--muted))' }}
+        >
+          <span
+            className="absolute top-[3px] rounded-full bg-white shadow-sm transition-all duration-200"
+            style={{ width: 20, height: 20, left: checked ? 21 : 3 }}
+          />
+        </button>
+      </div>
+    );
+  };
+
+  const showTax = val('show_tax_estimate', settings.show_tax_estimate) as boolean;
+
   return (
     <div className="space-y-5">
       <h2 className="text-lg font-bold text-foreground">App Settings</h2>
@@ -118,6 +152,26 @@ const AppSettingsPanel = ({ settings, loading, onSave }: AppSettingsPanelProps) 
           <RateInput label="Saturday" fieldKey="rate_saturday" />
           <RateInput label="Sunday" fieldKey="rate_sunday" />
           <RateInput label="Public Holiday" fieldKey="rate_public_holiday" />
+        </div>
+
+        {/* Evening rate — full width with clear labelling */}
+        <div
+          className="rounded-2xl p-3 space-y-2"
+          style={{ background: 'hsl(38 90% 52% / 0.07)', border: '1px solid hsl(38 90% 52% / 0.2)' }}
+        >
+          <div className="flex items-center gap-1.5">
+            <Sunset className="w-3.5 h-3.5" style={{ color: 'hsl(38 90% 45%)' }} />
+            <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: 'hsl(38 90% 45%)' }}>
+              Evening Rate
+            </span>
+          </div>
+          <div className="grid grid-cols-1 gap-2">
+            <RateInput
+              label="Mon–Fri 18:00–22:00"
+              subLabel="Overrides weekday rate for evening hours only. Sat/Sun use their own rates."
+              fieldKey="rate_evening"
+            />
+          </div>
         </div>
 
         <div className="border-t border-border pt-3 space-y-1">
@@ -150,19 +204,29 @@ const AppSettingsPanel = ({ settings, loading, onSave }: AppSettingsPanelProps) 
           Tax Estimate
         </h3>
         <p className="text-[10px] text-muted-foreground">For personal planning only — not applied to invoices.</p>
-        <div className="flex items-center gap-2">
-          <input
-            type="number"
-            min={0}
-            max={100}
-            step={0.5}
-            value={val('tax_rate', settings.tax_rate) as number}
-            onChange={e => set('tax_rate', parseFloat(e.target.value) || 0)}
-            className="glass-input w-20 text-center text-foreground"
-            style={{ minHeight: 44 }}
-          />
-          <span className="text-sm font-semibold text-muted-foreground">%</span>
-        </div>
+        <ToggleRow
+          label="Show Tax Estimates"
+          description="Display estimated tax deductions and take-home on Overview and Analytics."
+          fieldKey="show_tax_estimate"
+        />
+        {showTax && (
+          <div className="space-y-1 pt-1">
+            <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Tax Rate</label>
+            <div className="flex items-center gap-2">
+              <input
+                type="number"
+                min={0}
+                max={100}
+                step={0.5}
+                value={val('tax_rate', settings.tax_rate) as number}
+                onChange={e => set('tax_rate', parseFloat(e.target.value) || 0)}
+                className="glass-input w-20 text-center text-foreground"
+                style={{ minHeight: 44 }}
+              />
+              <span className="text-sm font-semibold text-muted-foreground">%</span>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* ── Income Goals ── */}
@@ -170,8 +234,9 @@ const AppSettingsPanel = ({ settings, loading, onSave }: AppSettingsPanelProps) 
         <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
           <Target className="w-3.5 h-3.5" /> Income Goals
         </h3>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="space-y-3">
           {([
+            { label: 'Weekly Goal', key: 'weekly_goal' as const },
             { label: 'Monthly Goal', key: 'monthly_goal' as const },
             { label: 'Yearly Goal', key: 'yearly_goal' as const },
           ] as const).map(({ label, key }) => (
