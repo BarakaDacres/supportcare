@@ -495,36 +495,49 @@ const OverviewPanel = ({
     const hours = (arr: Shift[]) =>
       arr.filter(s => !s.is_sleepover).reduce((s, sh) => s + Number(sh.hours_worked), 0);
 
-    // ── Weekly earnings breakdown by category ──
+    // ── Weekly earnings breakdown by category (with hours) ──
     const weekBreakdown = (() => {
-      let regularDay = 0;
-      let evening = 0;
-      let weekend = 0;
-      let weekdaySleepover = 0;
-      let saturdaySleepover = 0;
-      let sundaySleepover = 0;
-      let publicHoliday = 0;
+      let regularDay = 0,  regularDayH = 0;
+      let evening = 0,     eveningH = 0;
+      let satDay = 0,      satDayH = 0;
+      let sunDay = 0,      sunDayH = 0;
+      let weekdaySleepover = 0, weekdaySleepoverN = 0;
+      let weekendSleepover = 0, weekendSleepoverN = 0;
+      let publicHoliday = 0,    publicHolidayH = 0;
 
       for (const s of thisWeekShifts) {
         const pay = effectiveGrossPay(s);
+        const h = Number(s.hours_worked);
         const dow = getDayOfWeek(s.date);
-        if (s.is_public_holiday && !s.is_sleepover) { publicHoliday += pay; continue; }
+
+        if (s.is_public_holiday && !s.is_sleepover) {
+          publicHoliday += pay; publicHolidayH += h; continue;
+        }
         if (s.is_sleepover) {
-          if (dow === 6) saturdaySleepover += pay;
-          else if (dow === 0) sundaySleepover += pay;
-          else weekdaySleepover += pay;
+          // weekend = Saturday (6) or Sunday (0)
+          if (dow === 6 || dow === 0) { weekendSleepover += pay; weekendSleepoverN += 1; }
+          else { weekdaySleepover += pay; weekdaySleepoverN += 1; }
           continue;
         }
-        if (dow === 6 || dow === 0) { weekend += pay; continue; }
-        // weekday
+        if (dow === 6) { satDay += pay; satDayH += h; continue; }
+        if (dow === 0) { sunDay += pay; sunDayH += h; continue; }
+        // weekday: check if purely evening shift
         const hasEvening = shiftHasEveningHours(s.start_time, s.end_time);
         const [startH] = s.start_time.split(':').map(Number);
-        const [endH] = s.end_time.split(':').map(Number);
-        const purelyEvening = startH >= 18 && (endH <= 22 || endH <= startH);
-        if (hasEvening && purelyEvening) { evening += pay; }
-        else { regularDay += pay; }
+        const [endH]   = s.end_time.split(':').map(Number);
+        const purelyEvening = startH >= 18 && (endH <= 22 || endH < startH);
+        if (hasEvening && purelyEvening) { evening += pay; eveningH += h; }
+        else { regularDay += pay; regularDayH += h; }
       }
-      return { regularDay, evening, weekend, weekdaySleepover, saturdaySleepover, sundaySleepover, publicHoliday };
+      return {
+        regularDay, regularDayH,
+        evening,    eveningH,
+        satDay,     satDayH,
+        sunDay,     sunDayH,
+        weekdaySleepover, weekdaySleepoverN,
+        weekendSleepover, weekendSleepoverN,
+        publicHoliday,    publicHolidayH,
+      };
     })();
 
     const byMonth = Array.from({ length: 12 }, (_, m) => {
@@ -721,25 +734,36 @@ const OverviewPanel = ({
         {/* ── Weekly earnings breakdown by category ── */}
         {stats.weekGross > 0 && (() => {
           const wb = stats.weekBreakdown;
-          const rows: { label: string; value: number; color: string }[] = [];
-          if (wb.regularDay > 0)        rows.push({ label: 'Regular Day',       value: wb.regularDay,        color: 'hsl(var(--money-green))' });
-          if (wb.evening > 0)           rows.push({ label: 'Evening',           value: wb.evening,           color: 'hsl(38 90% 45%)' });
-          if (wb.weekend > 0)           rows.push({ label: 'Weekend',           value: wb.weekend,           color: 'hsl(var(--primary))' });
-          if (wb.weekdaySleepover > 0)  rows.push({ label: 'Weekday Sleepover', value: wb.weekdaySleepover,  color: '#2563EB' });
-          if (wb.saturdaySleepover > 0) rows.push({ label: 'Sat Sleepover',     value: wb.saturdaySleepover, color: '#7C3AED' });
-          if (wb.sundaySleepover > 0)   rows.push({ label: 'Sun Sleepover',     value: wb.sundaySleepover,   color: '#7C3AED' });
-          if (wb.publicHoliday > 0)     rows.push({ label: 'Public Holiday',    value: wb.publicHoliday,     color: 'hsl(34 97% 48%)' });
+          type BreakdownRow = { label: string; value: number; meta: string; color: string };
+          const rows: BreakdownRow[] = [];
+          if (wb.regularDay > 0)
+            rows.push({ label: 'Weekday Day',        value: wb.regularDay,        meta: `${wb.regularDayH.toFixed(1)}h`,          color: 'hsl(var(--money-green))' });
+          if (wb.evening > 0)
+            rows.push({ label: 'Evening',            value: wb.evening,           meta: `${wb.eveningH.toFixed(1)}h`,              color: 'hsl(38 90% 45%)' });
+          if (wb.satDay > 0)
+            rows.push({ label: 'Saturday Day',       value: wb.satDay,            meta: `${wb.satDayH.toFixed(1)}h`,               color: 'hsl(var(--primary))' });
+          if (wb.sunDay > 0)
+            rows.push({ label: 'Sunday Day',         value: wb.sunDay,            meta: `${wb.sunDayH.toFixed(1)}h`,               color: 'hsl(271 91% 65%)' });
+          if (wb.weekdaySleepover > 0)
+            rows.push({ label: 'Weekday Sleepover',  value: wb.weekdaySleepover,  meta: `${wb.weekdaySleepoverN} night${wb.weekdaySleepoverN !== 1 ? 's' : ''}`, color: '#2563EB' });
+          if (wb.weekendSleepover > 0)
+            rows.push({ label: 'Weekend Sleepover',  value: wb.weekendSleepover,  meta: `${wb.weekendSleepoverN} night${wb.weekendSleepoverN !== 1 ? 's' : ''}`, color: '#7C3AED' });
+          if (wb.publicHoliday > 0)
+            rows.push({ label: 'Public Holiday',     value: wb.publicHoliday,     meta: `${wb.publicHolidayH.toFixed(1)}h`,         color: 'hsl(34 97% 48%)' });
           if (rows.length <= 1) return null;
           return (
-            <div className="mt-4 pt-4 space-y-2" style={{ borderTop: '0.5px solid hsl(var(--border))' }}>
-              <p className="text-[9px] font-semibold text-muted-foreground uppercase tracking-widest mb-2">Income Breakdown</p>
+            <div className="mt-4 pt-4 space-y-1.5" style={{ borderTop: '0.5px solid hsl(var(--border))' }}>
+              <p className="text-[9px] font-semibold text-muted-foreground uppercase tracking-widest mb-3">Income Breakdown</p>
               {rows.map(row => (
-                <div key={row.label} className="flex items-center justify-between gap-3">
+                <div key={row.label} className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-2 min-w-0">
-                    <span className="w-2 h-2 rounded-full shrink-0" style={{ background: row.color }} />
+                    <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: row.color }} />
                     <span className="text-xs text-muted-foreground truncate">{row.label}</span>
                   </div>
-                  <span className="text-xs font-semibold text-foreground shrink-0">{formatCurrency(row.value)}</span>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span className="text-[10px] text-muted-foreground/70">{row.meta}</span>
+                    <span className="text-xs font-semibold text-foreground">{formatCurrency(row.value)}</span>
+                  </div>
                 </div>
               ))}
             </div>
