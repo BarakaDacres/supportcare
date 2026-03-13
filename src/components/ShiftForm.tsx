@@ -434,6 +434,9 @@ const ShiftForm = ({
                 style={phActive ? {
                   background: 'hsl(34 97% 52% / 0.1)',
                   border: '1px solid hsl(34 97% 52% / 0.35)',
+                } : hasEvening ? {
+                  background: 'hsl(38 90% 52% / 0.08)',
+                  border: '1px solid hsl(38 90% 52% / 0.25)',
                 } : {
                   background: 'hsl(var(--money-green)/0.08)',
                   border: '1px solid hsl(var(--money-green)/0.2)',
@@ -444,6 +447,14 @@ const ShiftForm = ({
                     <Star className="w-3 h-3" style={{ color: 'hsl(34 97% 52%)' }} />
                     <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: 'hsl(34 97% 52%)' }}>
                       Public Holiday Rate Active — ${phRate}/hr
+                    </span>
+                  </div>
+                )}
+                {hasEvening && (
+                  <div className="flex items-center gap-1.5 mb-1">
+                    <Sunset className="w-3 h-3" style={{ color: 'hsl(38 90% 45%)' }} />
+                    <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: 'hsl(38 90% 45%)' }}>
+                      Evening Shift — ${eveningRate}/hr (18:00–22:00)
                     </span>
                   </div>
                 )}
