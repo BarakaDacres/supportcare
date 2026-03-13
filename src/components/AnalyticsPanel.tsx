@@ -225,86 +225,48 @@ const AnalyticsPanel = ({ shifts, settings, selectedYear, selectedMonth }: Analy
 
       {/* Tax Projection Insight — shown only when enabled */}
       {showTax && taxRate > 0 && (
-        <div className="glass-card p-4 space-y-3">
-          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+        <div className="card-elevated p-4 space-y-3">
+          <p className="section-label flex items-center gap-1.5 mb-1">
             <Target className="w-3.5 h-3.5" /> Tax Projection ({taxRate}% estimate)
           </p>
           <div className="space-y-3">
-            {/* Yearly projection */}
             <div className="rounded-2xl p-3 space-y-2" style={{ background: 'hsl(var(--muted)/0.5)' }}>
               <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Projected Year</p>
               <div className="grid grid-cols-3 gap-2">
-                <div>
-                  <p className="text-[9px] text-muted-foreground mb-0.5">Gross</p>
-                  <p className="text-sm font-bold money-text">{formatCurrency(stats.projected)}</p>
-                </div>
-                <div>
-                  <p className="text-[9px] text-muted-foreground mb-0.5">Est. Tax</p>
-                  <p className="text-sm font-bold" style={{ color: 'hsl(var(--stat-red))' }}>
-                    − {formatCurrency(stats.projected * (taxRate / 100))}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-[9px] text-muted-foreground mb-0.5">Net Income</p>
-                  <p className="text-sm font-bold text-foreground">
-                    {formatCurrency(stats.projected * (1 - taxRate / 100))}
-                  </p>
-                </div>
+                <div><p className="text-[9px] text-muted-foreground mb-0.5">Gross</p><p className="text-sm font-bold money-text">{formatCurrency(stats.projected)}</p></div>
+                <div><p className="text-[9px] text-muted-foreground mb-0.5">Est. Tax</p><p className="text-sm font-bold" style={{ color: 'hsl(var(--stat-red))' }}>− {formatCurrency(stats.projected * (taxRate / 100))}</p></div>
+                <div><p className="text-[9px] text-muted-foreground mb-0.5">Net Income</p><p className="text-sm font-bold text-foreground">{formatCurrency(stats.projected * (1 - taxRate / 100))}</p></div>
               </div>
             </div>
-            {/* This month */}
             <div className="rounded-2xl p-3 space-y-2" style={{ background: 'hsl(var(--muted)/0.5)' }}>
               <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">This Month</p>
               <div className="grid grid-cols-3 gap-2">
-                <div>
-                  <p className="text-[9px] text-muted-foreground mb-0.5">Gross</p>
-                  <p className="text-sm font-bold money-text">{formatCurrency(stats.monthGross)}</p>
-                </div>
-                <div>
-                  <p className="text-[9px] text-muted-foreground mb-0.5">Est. Tax</p>
-                  <p className="text-sm font-bold" style={{ color: 'hsl(var(--stat-red))' }}>
-                    − {formatCurrency(stats.monthGross * (taxRate / 100))}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-[9px] text-muted-foreground mb-0.5">Take-Home</p>
-                  <p className="text-sm font-bold text-foreground">
-                    {formatCurrency(stats.monthGross * (1 - taxRate / 100))}
-                  </p>
-                </div>
+                <div><p className="text-[9px] text-muted-foreground mb-0.5">Gross</p><p className="text-sm font-bold money-text">{formatCurrency(stats.monthGross)}</p></div>
+                <div><p className="text-[9px] text-muted-foreground mb-0.5">Est. Tax</p><p className="text-sm font-bold" style={{ color: 'hsl(var(--stat-red))' }}>− {formatCurrency(stats.monthGross * (taxRate / 100))}</p></div>
+                <div><p className="text-[9px] text-muted-foreground mb-0.5">Take-Home</p><p className="text-sm font-bold text-foreground">{formatCurrency(stats.monthGross * (1 - taxRate / 100))}</p></div>
               </div>
             </div>
-            <p className="text-[9px] text-muted-foreground">
-              Estimates only — not tax advice. Enable / adjust rate in Settings → App → Tax Estimate.
-            </p>
+            <p className="text-[9px] text-muted-foreground">Estimates only — not tax advice.</p>
           </div>
         </div>
       )}
 
       {/* Goals progress */}
       {hasGoals && (
-        <div className="glass-card p-4 space-y-4">
-          <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
-            <Target className="w-4 h-4" /> Income Goals
+        <div className="card-elevated p-4 space-y-4">
+          <h3 className="section-label flex items-center gap-1.5">
+            <Target className="w-3.5 h-3.5" /> Income Goals
           </h3>
-          {weeklyGoal && weeklyGoal > 0 && (
-            <GoalRow label="Weekly" current={stats.weeklyGross} goal={weeklyGoal} />
-          )}
-          {monthlyGoal && monthlyGoal > 0 && (
-            <GoalRow label="Monthly" current={stats.monthGross} goal={monthlyGoal} />
-          )}
-          {yearlyGoal && yearlyGoal > 0 && (
-            <GoalRow label="Yearly" current={stats.yearGross} goal={yearlyGoal} />
-          )}
+          {weeklyGoal && weeklyGoal > 0 && <GoalRow label="Weekly" current={stats.weeklyGross} goal={weeklyGoal} />}
+          {monthlyGoal && monthlyGoal > 0 && <GoalRow label="Monthly" current={stats.monthGross} goal={monthlyGoal} />}
+          {yearlyGoal && yearlyGoal > 0 && <GoalRow label="Yearly" current={stats.yearGross} goal={yearlyGoal} />}
         </div>
       )}
 
       {/* Monthly bar chart */}
-      <div className="glass-card p-4 space-y-3">
-        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-          Monthly Earnings {selectedYear}
-        </p>
-        <div className="flex items-end gap-1" style={{ height: '96px' }}>
+      <div className="card-elevated p-4 space-y-3">
+        <p className="section-label">Monthly Earnings {selectedYear}</p>
+        <div className="flex items-end gap-1" style={{ height: '90px' }}>
           {stats.byMonth.map(({ month, gross }) => {
             const pct = stats.maxMonthGross > 0 ? (gross / stats.maxMonthGross) * 100 : 0;
             const isBest = gross === stats.maxMonthGross && gross > 0;
@@ -313,15 +275,14 @@ const AnalyticsPanel = ({ shifts, settings, selectedYear, selectedMonth }: Analy
               <div key={month} className="flex-1 flex flex-col items-center gap-1 h-full">
                 <div className="w-full flex items-end justify-center flex-1">
                   <div
-                    className="w-full rounded-t-md transition-all duration-500"
+                    className="w-full rounded-t transition-all duration-500"
                     style={{
                       height: `${Math.max(pct, gross > 0 ? 5 : 0)}%`,
                       background: isBest
                         ? 'hsl(var(--money-green))'
                         : isSelected
-                        ? 'hsl(var(--money-green)/0.55)'
-                        : 'hsl(var(--muted-foreground)/0.25)',
-                      boxShadow: isBest ? '0 0 12px hsl(var(--money-green)/0.5)' : undefined,
+                        ? 'hsl(var(--money-green) / 0.55)'
+                        : 'hsl(var(--muted-foreground) / 0.22)',
                     }}
                   />
                 </div>
@@ -339,8 +300,8 @@ const AnalyticsPanel = ({ shifts, settings, selectedYear, selectedMonth }: Analy
 
       {/* Sleepover section */}
       {stats.sleepoversWeekday + stats.sleepoversWeekend > 0 && (
-        <div className="glass-card p-4 space-y-3">
-          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+        <div className="card-elevated p-4 space-y-3">
+          <p className="section-label flex items-center gap-1.5">
             <Moon className="w-3.5 h-3.5" /> Sleepover Summary ({selectedYear})
           </p>
           <div className="grid grid-cols-3 gap-3">
@@ -357,18 +318,18 @@ const AnalyticsPanel = ({ shifts, settings, selectedYear, selectedMonth }: Analy
               <p className="text-[10px] text-muted-foreground">Total income</p>
             </div>
           </div>
-          <p className="text-[9px] text-muted-foreground border-t border-border pt-1">
-            Friday is counted as weekday ($300 flat). Weekend rate ($350) applies to Saturday & Sunday nights only.
+          <p className="text-[9px] text-muted-foreground border-t border-border pt-2">
+            Friday is counted as weekday ($300 flat). Weekend rate ($350) applies to Sat & Sun nights only.
           </p>
         </div>
       )}
 
       {/* Evening shifts summary */}
       {stats.eveningShiftCount > 0 && (
-        <div className="glass-card p-4 space-y-2">
-          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
-            <Sunset className="w-3.5 h-3.5" style={{ color: 'hsl(38 90% 45%)' }} />
-            <span style={{ color: 'hsl(38 90% 45%)' }}>Evening Shifts ({selectedYear})</span>
+        <div className="card-elevated p-4 space-y-2">
+          <p className="section-label flex items-center gap-1.5">
+            <Sunset className="w-3.5 h-3.5" style={{ color: 'hsl(var(--evening-color))' }} />
+            <span style={{ color: 'hsl(var(--evening-color))' }}>Evening Shifts ({selectedYear})</span>
           </p>
           <p className="text-sm font-bold text-foreground">
             {stats.eveningShiftCount} shift{stats.eveningShiftCount !== 1 ? 's' : ''} with evening hours (18:00–22:00)
@@ -403,17 +364,30 @@ const DayHeatmap = ({ shifts }: { shifts: Shift[] }) => {
   const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
   return (
-    <div className="glass-card p-4 space-y-3">
-      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-        Earnings by Day of Week
-      </p>
+    <div className="card-elevated p-4 space-y-3">
+      <p className="section-label">Earnings by Day of Week</p>
       <div className="space-y-2">
         {days.map((day, i) => {
           const pct = (dayTotals[i] / max) * 100;
           return (
             <div key={day} className="flex items-center gap-3">
               <span className="text-xs text-muted-foreground w-7 shrink-0">{day}</span>
-              <div className="flex-1 h-5 rounded-full overflow-hidden" style={{ background: 'hsl(var(--muted))' }}>
+              <div className="flex-1 h-4 rounded-full overflow-hidden" style={{ background: 'hsl(var(--muted))' }}>
+                <div
+                  className="h-full rounded-full transition-all duration-700"
+                  style={{
+                    width: `${pct}%`,
+                    background: `hsl(var(--money-green) / ${(0.35 + (pct / 100) * 0.65).toFixed(2)})`,
+                  }}
+                />
+              </div>
+              <span className="text-xs font-semibold money-text min-w-[68px] text-right">
+                {formatCurrency(dayTotals[i])}
+              </span>
+            </div>
+          );
+        })}
+      </div>
                 <div
                   className="h-full rounded-full transition-all duration-700"
                   style={{
