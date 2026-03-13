@@ -153,6 +153,7 @@ const ShiftForm = ({
   };
 
   const phRate = rates.rate_public_holiday ?? 150;
+  const eveningRate = rates.rate_evening ?? 75;
 
   const calc =
     date && startTime && endTime
@@ -163,6 +164,7 @@ const ShiftForm = ({
   const effectivePay = feeOverrideNum != null && feeOverrideNum > 0 ? feeOverrideNum : calc?.grossPay ?? 0;
 
   const phActive = isPublicHoliday && !isSleepover;
+  const hasEvening = !isSleepover && !isPublicHoliday && shiftHasEveningHours(startTime, endTime);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
