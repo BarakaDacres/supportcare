@@ -502,8 +502,8 @@ const ShiftForm = ({
 
         {/* ── Footer ── */}
         <div
-          className="shrink-0 px-5 pt-3 pb-5 space-y-2"
-          style={{ borderTop: '0.5px solid hsl(var(--border))' }}
+          className="shrink-0 pt-3 pb-5 space-y-2"
+          style={{ borderTop: '0.5px solid hsl(var(--border))', padding: '12px 24px 20px' }}
         >
           {submitError && (
             <p className="text-xs text-destructive text-center px-2">{submitError}</p>
