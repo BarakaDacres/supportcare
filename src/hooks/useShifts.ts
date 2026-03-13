@@ -131,11 +131,11 @@ export function useShifts(rates: PayRates = DEFAULT_RATES) {
       .subscribe();
 
     const onFocus = () => {
-      if (userIdRef.current) fetchShifts(userIdRef.current);
+      if (userIdRef.current) fetchShifts(userIdRef.current, false);
     };
     const onVisibility = () => {
       if (document.visibilityState === 'visible' && userIdRef.current) {
-        fetchShifts(userIdRef.current);
+        fetchShifts(userIdRef.current, false);
       }
     };
     window.addEventListener('focus', onFocus);
