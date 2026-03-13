@@ -582,9 +582,18 @@ const OverviewPanel = ({
     };
   }, [invoices]);
 
-  const monthlyGoal = settings?.monthly_goal;
+  const weeklyGoal = settings?.weekly_goal ?? null;
+  const monthlyGoal = settings?.monthly_goal ?? null;
+  const yearlyGoal = settings?.yearly_goal ?? null;
+
+  const weekGoalPct = weeklyGoal && weeklyGoal > 0
+    ? Math.min(100, (stats.weekGross / weeklyGoal) * 100)
+    : null;
   const goalPct = monthlyGoal && monthlyGoal > 0
     ? Math.min(100, (stats.monthGross / monthlyGoal) * 100)
+    : null;
+  const yearGoalPct = yearlyGoal && yearlyGoal > 0
+    ? Math.min(100, (stats.yearGross / yearlyGoal) * 100)
     : null;
 
   const monthGrowthPct = stats.prevMonthGross > 0
