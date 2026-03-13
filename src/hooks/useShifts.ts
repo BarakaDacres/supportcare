@@ -105,7 +105,7 @@ export function useShifts(rates: PayRates = DEFAULT_RATES) {
         if (userIdRef.current !== uid || !initializedRef.current) {
           userIdRef.current = uid;
           initializedRef.current = true;
-          fetchShifts(uid);
+          fetchShifts(uid, true); // show loading on user switch
         }
       } else {
         userIdRef.current = null;
