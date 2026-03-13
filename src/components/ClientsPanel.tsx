@@ -468,7 +468,7 @@ const ClientsPanel = ({ clients, shifts, loading, onAdd, onUpdate, onDelete }: C
   const visibleClients = showInactive ? clients : activeClients;
 
   const handleAdd = async (form: ClientForm) => {
-    await onAdd({
+    const result = await onAdd({
       name: form.name.trim(),
       display_name: form.display_name.trim() || null,
       notes: form.notes.trim() || null,
@@ -483,6 +483,7 @@ const ClientsPanel = ({ clients, shifts, loading, onAdd, onUpdate, onDelete }: C
       invoice_label: form.invoice_label.trim() || null,
       invoice_notes: form.invoice_notes.trim() || null,
     });
+    if (!result) throw new Error('Failed to save client. Please try again.');
     setShowAdd(false);
   };
 
@@ -504,9 +505,8 @@ const ClientsPanel = ({ clients, shifts, loading, onAdd, onUpdate, onDelete }: C
       invoice_notes: form.invoice_notes.trim() || null,
     });
     setEditingClient(null);
-    // Refresh viewing client data if we edited the currently viewed one
     if (viewingClient?.id === editingClient.id) {
-      setViewingClient(null); // Will re-open fresh from list
+      setViewingClient(null);
     }
   };
 
