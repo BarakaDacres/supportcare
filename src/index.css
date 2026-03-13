@@ -127,6 +127,8 @@
 
   .glass-input {
     @apply glass-surface rounded-xl px-4 py-2.5 text-sm font-medium outline-none transition-all duration-200;
+    box-sizing: border-box;
+    display: block;
   }
 
   .glass-input:focus {

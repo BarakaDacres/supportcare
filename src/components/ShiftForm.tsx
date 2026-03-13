@@ -195,20 +195,18 @@ const ShiftForm = ({
   return (
     /* ── Backdrop ── */
     <div
-      className="fixed inset-0 z-[60] flex items-center justify-center"
+      className="fixed inset-0 z-[60] flex items-center justify-center p-4"
       style={{
-        padding: '16px',
         background: 'hsl(var(--foreground)/0.45)',
         backdropFilter: 'blur(4px)',
       }}
       onClick={(e) => { if (e.target === e.currentTarget) onCancel(); }}
     >
-      {/* ── Modal card — direct flex child of backdrop, no extra wrapper ── */}
+      {/* ── Modal card ── */}
       <form
         onSubmit={handleSubmit}
-        className="flex flex-col"
+        className="flex flex-col w-full"
         style={{
-          width: '100%',
           maxWidth: 440,
           maxHeight: 'min(92dvh, 700px)',
           background: 'hsl(var(--card))',
@@ -217,7 +215,7 @@ const ShiftForm = ({
             '0 2px 8px hsl(var(--foreground)/0.08), ' +
             '0 20px 60px hsl(var(--foreground)/0.22), ' +
             '0 0 0 0.5px hsl(var(--border))',
-          overflow: 'hidden',
+          overflow: 'clip',
         }}
         onClick={(e) => e.stopPropagation()}
       >
@@ -238,10 +236,7 @@ const ShiftForm = ({
         </div>
 
         {/* ── Scrollable body ── */}
-        <div
-          className="flex-1 overflow-y-auto overscroll-contain"
-          style={{ padding: '20px 24px', boxSizing: 'border-box' }}
-        >
+        <div className="flex-1 overflow-y-auto overscroll-contain" style={{ padding: '20px 20px 20px 20px' }}>
           <div className="space-y-4">
             {/* Date */}
             <div className="space-y-1.5">
@@ -251,14 +246,14 @@ const ShiftForm = ({
                 value={date}
                 onChange={e => handleDateChange(e.target.value)}
                 required
-                className="glass-input w-full text-foreground"
-                style={{ minHeight: 44, boxSizing: 'border-box', width: '100%' }}
+                className="glass-input w-full text-foreground block"
+                style={{ minHeight: 44 }}
               />
             </div>
 
             {/* Times */}
             <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5">
+              <div className="space-y-1.5 min-w-0">
                 <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
                   <Clock className="w-3 h-3" /> Start
                 </label>
@@ -267,11 +262,11 @@ const ShiftForm = ({
                   value={startTime}
                   onChange={e => handleStartTimeChange(e.target.value)}
                   required
-                  className="glass-input w-full text-foreground"
-                  style={{ minHeight: 44, boxSizing: 'border-box', width: '100%' }}
+                  className="glass-input w-full text-foreground block"
+                  style={{ minHeight: 44 }}
                 />
               </div>
-              <div className="space-y-1.5">
+              <div className="space-y-1.5 min-w-0">
                 <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
                   <Clock className="w-3 h-3" /> End
                 </label>
@@ -280,8 +275,8 @@ const ShiftForm = ({
                   value={endTime}
                   onChange={e => handleEndTimeChange(e.target.value)}
                   required
-                  className="glass-input w-full text-foreground"
-                  style={{ minHeight: 44, boxSizing: 'border-box', width: '100%' }}
+                  className="glass-input w-full text-foreground block"
+                  style={{ minHeight: 44 }}
                 />
               </div>
             </div>
