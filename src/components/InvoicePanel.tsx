@@ -328,7 +328,7 @@ async function exportToPDF(snap: InvoiceSnapshot, lineGroups: ReturnType<typeof 
   cols.forEach(c => {
     sf(5.5, 'bold', P.muted);
     const cx = M + c.x + (c.al === 'right' ? c.w : c.al === 'center' ? c.w / 2 : 0);
-    tx(c.label, cx, hY, { align: c.al === 'center' ? 'center' : c.al });
+    tx(c.lbl, cx, hY, { align: c.al === 'center' ? 'center' : c.al });
   });
 
   // Header / body separator
