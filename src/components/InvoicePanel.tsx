@@ -944,136 +944,131 @@ const InvoicePanel = ({
 
               {/* ────────────── Invoice Preview Card ────────────── */}
               <div className="glass-card overflow-hidden">
-                {/* Thin top rule — slate, not blue */}
-                <div style={{ height: 3, background: '#111827' }} />
+                {/* Top rule — dark slate */}
+                <div style={{ height: 3, background: P.ink }} />
 
                 <div style={{
-                  padding: '20px 20px',
+                  padding: '18px 18px 16px',
                   fontFamily: '"Helvetica Neue", Helvetica, Arial, sans-serif',
-                  fontSize: 11, color: '#111827',
+                  fontSize: 11, color: P.ink,
                   background: 'hsl(var(--card))',
                 }}>
 
-                  {/* ── HEADER ── */}
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 14 }}>
+                  {/* ── HEADER: issuer left / INVOICE right ── */}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
+                    {/* Left — issuer */}
                     <div>
-                      <div style={{ fontSize: 17, fontWeight: 800, color: '#111827', letterSpacing: '-0.02em', marginBottom: 4 }}>
+                      <div style={{ fontSize: 16, fontWeight: 800, color: P.ink, letterSpacing: '-0.02em', marginBottom: 4 }}>
                         {preview.issuerName || 'Your Business Name'}
                       </div>
-                      {preview.abn     && <div style={{ fontSize: 9, color: '#6B7280', marginBottom: 2 }}>ABN: {preview.abn}</div>}
-                      {preview.phone   && <div style={{ fontSize: 9, color: '#6B7280', marginBottom: 2 }}>Ph: {preview.phone}</div>}
-                      {preview.address && <div style={{ fontSize: 9, color: '#6B7280' }}>{preview.address}</div>}
+                      {preview.abn     && <div style={{ fontSize: 9, color: P.muted, marginBottom: 2 }}>ABN: {preview.abn}</div>}
+                      {preview.phone   && <div style={{ fontSize: 9, color: P.muted, marginBottom: 2 }}>Phone: {preview.phone}</div>}
+                      {preview.address && <div style={{ fontSize: 9, color: P.muted }}>{preview.address}</div>}
                     </div>
+                    {/* Right — INVOICE title + meta */}
                     <div style={{ textAlign: 'right' }}>
-                      <div style={{ fontSize: 22, fontWeight: 900, color: '#111827', letterSpacing: '-0.03em', marginBottom: 3 }}>INVOICE</div>
-                      <div style={{ fontSize: 11, fontWeight: 700, color: '#374151', marginBottom: 2 }}>{preview.invoiceNumber}</div>
-                      <div style={{ fontSize: 9, color: '#6B7280', marginBottom: 1 }}>Date: <strong style={{ color: '#374151' }}>{formatDateShort(preview.issueDate)}</strong></div>
-                      <div style={{ fontSize: 9, color: '#6B7280' }}>Due: <strong style={{ color: '#374151' }}>{formatDateShort(preview.dueDate)}</strong></div>
+                      <div style={{ fontSize: 22, fontWeight: 900, color: P.ink, letterSpacing: '-0.03em', marginBottom: 3 }}>INVOICE</div>
+                      <div style={{ fontSize: 10, fontWeight: 700, color: P.mid, marginBottom: 2 }}>{preview.invoiceNumber}</div>
+                      <div style={{ fontSize: 8.5, color: P.muted, marginBottom: 1.5 }}>Submitted: <strong style={{ color: P.mid }}>{formatDateShort(preview.issueDate)}</strong></div>
+                      <div style={{ fontSize: 8.5, color: P.muted }}>Due: <strong style={{ color: P.mid }}>{formatDateShort(preview.dueDate)}</strong></div>
                     </div>
                   </div>
 
-                  <div style={{ borderTop: '1.5px solid #E5E7EB', marginBottom: 14 }} />
+                  {/* Divider */}
+                  <div style={{ borderTop: '1.5px solid ' + P.border, marginBottom: 12 }} />
 
                   {/* ── BILL TO + INVOICE DETAILS ── */}
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 14 }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 12 }}>
+
                     {/* BILL TO */}
-                    <div style={{ background: '#F9FAFB', borderRadius: 8, padding: '10px 12px', border: '1px solid #E5E7EB' }}>
-                      <div style={sectionTitle}>Bill To</div>
+                    <div style={{ background: P.bg, borderRadius: 8, padding: '10px 12px', border: '1px solid ' + P.border }}>
+                      <div style={{ fontSize: 8.5, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.07em', color: P.muted, marginBottom: 6 }}>BILL TO</div>
                       {preview.clientOrganisation && (
-                        <div style={{ fontSize: 10, fontWeight: 700, color: '#111827', marginBottom: 2 }}>{preview.clientOrganisation}</div>
+                        <div style={{ fontSize: 10, fontWeight: 700, color: P.ink, marginBottom: 2 }}>{preview.clientOrganisation}</div>
                       )}
-                      <div style={{ fontSize: 10, fontWeight: preview.clientOrganisation ? 400 : 700, color: '#111827', marginBottom: 2 }}>
+                      <div style={{ fontSize: 10, fontWeight: preview.clientOrganisation ? 400 : 700, color: P.ink, marginBottom: 3 }}>
                         {preview.clientName || 'Participant / Organisation'}
                       </div>
-                      {preview.clientContact && (
-                        <div style={{ fontSize: 8.5, color: '#6B7280', marginBottom: 1 }}>Contact: {preview.clientContact}</div>
-                      )}
-                      {preview.clientAddress && (
-                        <div style={{ fontSize: 8.5, color: '#6B7280', marginBottom: 1 }}>{preview.clientAddress}</div>
-                      )}
-                      {preview.clientEmail && (
-                        <div style={{ fontSize: 8.5, color: '#6B7280', marginBottom: 1 }}>{preview.clientEmail}</div>
-                      )}
-                      {preview.clientPhone && (
-                        <div style={{ fontSize: 8.5, color: '#6B7280', marginBottom: 1 }}>Ph: {preview.clientPhone}</div>
-                      )}
+                      {preview.clientContact && <div style={{ fontSize: 8.5, color: P.muted, marginBottom: 1.5 }}>Contact: {preview.clientContact}</div>}
+                      {preview.clientAddress && <div style={{ fontSize: 8.5, color: P.muted, marginBottom: 1.5 }}>{preview.clientAddress}</div>}
+                      {preview.clientEmail   && <div style={{ fontSize: 8.5, color: P.muted, marginBottom: 1.5 }}>{preview.clientEmail}</div>}
+                      {preview.clientPhone   && <div style={{ fontSize: 8.5, color: P.muted, marginBottom: 1.5 }}>Ph: {preview.clientPhone}</div>}
                       {preview.clientParticipantNumber && (
-                        <div style={{ fontSize: 8.5, color: '#6B7280' }}>NDIS No: <strong style={{ color: '#374151' }}>{preview.clientParticipantNumber}</strong></div>
+                        <div style={{ fontSize: 8.5, color: P.muted }}>NDIS No: <strong style={{ color: P.mid }}>{preview.clientParticipantNumber}</strong></div>
                       )}
                     </div>
 
                     {/* INVOICE DETAILS */}
-                    <div style={{ background: '#F9FAFB', borderRadius: 8, padding: '10px 12px', border: '1px solid #E5E7EB' }}>
-                      <div style={sectionTitle}>Invoice Details</div>
+                    <div style={{ background: P.bg, borderRadius: 8, padding: '10px 12px', border: '1px solid ' + P.border }}>
+                      <div style={{ fontSize: 8.5, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.07em', color: P.muted, marginBottom: 6 }}>INVOICE DETAILS</div>
                       {[
                         ['Service From', formatDateShort(preview.periodStart)],
                         ['Service To',   formatDateShort(preview.periodEnd)],
                         ['Due Date',     formatDateShort(preview.dueDate)],
-                        ['GST',          '0% (GST-Free)'],
+                        ['GST Rate',     '0% (GST-Free)'],
                       ].map(([l, v]) => (
-                        <div key={l} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 2.5 }}>
-                          <span style={cellLabel}>{l}</span>
-                          <span style={cellValue}>{v}</span>
+                        <div key={l} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 3 }}>
+                          <span style={{ fontSize: 8.5, color: P.muted }}>{l}</span>
+                          <span style={{ fontSize: 8.5, fontWeight: 600, color: P.mid }}>{v}</span>
                         </div>
                       ))}
-                      {/* BALANCE DUE — prominent */}
-                      <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 6, paddingTop: 6, borderTop: '1px solid #E5E7EB' }}>
-                        <span style={{ fontSize: 9, fontWeight: 700, color: '#111827', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Balance Due</span>
-                        <span style={{ fontSize: 13, fontWeight: 900, color: '#111827' }}>{fmt$(preview.total)}</span>
+                      {/* Separator + BALANCE DUE */}
+                      <div style={{ borderTop: '1px solid ' + P.border, marginTop: 6, paddingTop: 6, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span style={{ fontSize: 8.5, fontWeight: 700, color: P.ink, textTransform: 'uppercase' as const, letterSpacing: '0.05em' }}>BALANCE DUE</span>
+                        <span style={{ fontSize: 13, fontWeight: 900, color: P.ink, fontVariantNumeric: 'tabular-nums' }}>{fmt$(preview.total)}</span>
                       </div>
                     </div>
                   </div>
 
                   {/* ── SERVICES RENDERED ── */}
-                  <div style={{ marginBottom: 14 }}>
-                    <div style={sectionTitle}>Services Rendered</div>
-                    {/* Boxed table */}
-                    <div style={{ border: '1px solid #E5E7EB', borderRadius: 8, overflow: 'hidden' }}>
+                  <div style={{ marginBottom: 12 }}>
+                    <div style={{ fontSize: 8.5, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.07em', color: P.muted, marginBottom: 5 }}>SERVICES RENDERED</div>
+                    <div style={{ border: '1px solid ' + P.border, borderRadius: 8, overflow: 'hidden' }}>
                       <table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed' }}>
                         <thead>
                           <tr style={{ background: '#F3F4F6' }}>
                             {[
-                              { h: '#',          w: '5%',  align: 'center' as const },
-                              { h: 'DESCRIPTION', w: '28%', align: 'left' as const },
-                              { h: 'ITEM CODE',  w: '18%', align: 'left' as const },
-                              { h: 'QTY',        w: '8%',  align: 'right' as const },
-                              { h: 'UNIT',       w: '7%',  align: 'right' as const },
-                              { h: 'RATE',       w: '11%', align: 'right' as const },
-                              { h: 'TOTAL EX',   w: '11%', align: 'right' as const },
-                              { h: 'GST',        w: '6%',  align: 'right' as const },
-                              { h: 'TOTAL INC',  w: '11%', align: 'right' as const },
-                            ].map(({ h, w, align }) => (
+                              { h: '#',           w: '5%',  a: 'center' as const },
+                              { h: 'DESCRIPTION', w: '27%', a: 'left'   as const },
+                              { h: 'ITEM CODE',   w: '18%', a: 'left'   as const },
+                              { h: 'QTY',         w: '8%',  a: 'right'  as const },
+                              { h: 'UNIT',        w: '6%',  a: 'right'  as const },
+                              { h: 'RATE',        w: '12%', a: 'right'  as const },
+                              { h: 'TOTAL EX',    w: '12%', a: 'right'  as const },
+                              { h: 'GST',         w: '6%',  a: 'right'  as const },
+                              { h: 'TOTAL INC',   w: '12%', a: 'right'  as const },
+                            ].map(({ h, w, a }) => (
                               <th key={h} style={{
-                                width: w, padding: '5px 6px',
-                                fontSize: 7, fontWeight: 700,
-                                textTransform: 'uppercase', letterSpacing: '0.05em',
-                                color: '#6B7280', textAlign: align,
-                                borderBottom: '1px solid #E5E7EB',
+                                width: w, padding: '5px 5px',
+                                fontSize: 6.5, fontWeight: 700,
+                                textTransform: 'uppercase', letterSpacing: '0.04em',
+                                color: P.muted, textAlign: a,
+                                borderBottom: '1px solid ' + P.border,
                               }}>{h}</th>
                             ))}
                           </tr>
                         </thead>
                         <tbody>
                           {lineGroups.map((group, idx) => (
-                            <tr key={group.category} style={{ background: idx % 2 === 1 ? '#FAFAFA' : '#FFFFFF' }}>
-                              <td style={{ fontSize: 8.5, color: '#9CA3AF', padding: '7px 6px', textAlign: 'center', borderBottom: '0.5px solid #F3F4F6' }}>{idx + 1}</td>
-                              <td style={{ padding: '7px 6px', borderBottom: '0.5px solid #F3F4F6' }}>
-                                <div style={{ fontSize: 9, fontWeight: 600, color: '#111827' }}>{group.label}</div>
-                                <div style={{ fontSize: 7.5, color: '#9CA3AF', marginTop: 1 }}>{group.shifts.length} shift{group.shifts.length !== 1 ? 's' : ''}</div>
+                            <tr key={group.category} style={{ background: idx % 2 === 1 ? P.rowAlt : P.white }}>
+                              <td style={{ fontSize: 8, color: P.faint, padding: '6px 5px', textAlign: 'center', borderBottom: '0.5px solid #F3F4F6' }}>{idx + 1}</td>
+                              <td style={{ padding: '6px 5px', borderBottom: '0.5px solid #F3F4F6' }}>
+                                <div style={{ fontSize: 8.5, fontWeight: 600, color: P.ink }}>{group.label}</div>
+                                <div style={{ fontSize: 7, color: P.faint, marginTop: 1 }}>{group.shifts.length} shift{group.shifts.length !== 1 ? 's' : ''}</div>
                               </td>
-                              <td style={{ fontSize: 7.5, color: '#6B7280', fontFamily: 'monospace', padding: '7px 6px', borderBottom: '0.5px solid #F3F4F6' }}>{group.ndisCode}</td>
-                              <td style={{ fontSize: 9, color: '#374151', padding: '7px 6px', textAlign: 'right', borderBottom: '0.5px solid #F3F4F6', fontVariantNumeric: 'tabular-nums' }}>{group.quantity}</td>
-                              <td style={{ fontSize: 8.5, color: '#9CA3AF', padding: '7px 6px', textAlign: 'right', borderBottom: '0.5px solid #F3F4F6' }}>{group.isSleepover ? 'night' : 'hr'}</td>
-                              <td style={{ fontSize: 9, color: '#374151', padding: '7px 6px', textAlign: 'right', borderBottom: '0.5px solid #F3F4F6', fontVariantNumeric: 'tabular-nums' }}>{fmt$(group.rate)}</td>
-                              <td style={{ fontSize: 9, fontWeight: 600, color: '#374151', padding: '7px 6px', textAlign: 'right', borderBottom: '0.5px solid #F3F4F6', fontVariantNumeric: 'tabular-nums' }}>{fmt$(group.subtotal)}</td>
-                              <td style={{ fontSize: 8.5, color: '#9CA3AF', padding: '7px 6px', textAlign: 'right', borderBottom: '0.5px solid #F3F4F6' }}>$0.00</td>
-                              <td style={{ fontSize: 9, fontWeight: 700, color: '#111827', padding: '7px 6px', textAlign: 'right', borderBottom: '0.5px solid #F3F4F6', fontVariantNumeric: 'tabular-nums' }}>{fmt$(group.subtotal)}</td>
+                              <td style={{ fontSize: 7, color: P.muted, fontFamily: 'monospace', padding: '6px 5px', borderBottom: '0.5px solid #F3F4F6' }}>{group.ndisCode}</td>
+                              <td style={{ fontSize: 8.5, color: P.mid, padding: '6px 5px', textAlign: 'right', borderBottom: '0.5px solid #F3F4F6', fontVariantNumeric: 'tabular-nums' }}>{group.quantity}</td>
+                              <td style={{ fontSize: 7.5, color: P.faint, padding: '6px 5px', textAlign: 'right', borderBottom: '0.5px solid #F3F4F6' }}>{group.isSleepover ? 'night' : 'hr'}</td>
+                              <td style={{ fontSize: 8.5, color: P.mid, padding: '6px 5px', textAlign: 'right', borderBottom: '0.5px solid #F3F4F6', fontVariantNumeric: 'tabular-nums' }}>{fmt$(group.rate)}</td>
+                              <td style={{ fontSize: 8.5, fontWeight: 600, color: P.mid, padding: '6px 5px', textAlign: 'right', borderBottom: '0.5px solid #F3F4F6', fontVariantNumeric: 'tabular-nums' }}>{fmt$(group.subtotal)}</td>
+                              <td style={{ fontSize: 7.5, color: P.faint, padding: '6px 5px', textAlign: 'right', borderBottom: '0.5px solid #F3F4F6' }}>$0.00</td>
+                              <td style={{ fontSize: 8.5, fontWeight: 700, color: P.ink, padding: '6px 5px', textAlign: 'right', borderBottom: '0.5px solid #F3F4F6', fontVariantNumeric: 'tabular-nums' }}>{fmt$(group.subtotal)}</td>
                             </tr>
                           ))}
                           {lineGroups.length === 0 && (
                             <tr>
-                              <td colSpan={9} style={{ padding: '12px 6px', textAlign: 'center', fontSize: 9, color: '#9CA3AF' }}>
-                                No line items — shifts will appear here after selecting a period.
+                              <td colSpan={9} style={{ padding: '12px 5px', textAlign: 'center', fontSize: 8.5, color: P.faint }}>
+                                No services — select a period with shifts.
                               </td>
                             </tr>
                           )}
@@ -1082,66 +1077,62 @@ const InvoicePanel = ({
                     </div>
                   </div>
 
-                  {/* ── TOTALS ── */}
-                  <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 14 }}>
-                    <div style={{ minWidth: 220, maxWidth: 260 }}>
-                      <div style={{ border: '1px solid #E5E7EB', borderRadius: 8, overflow: 'hidden' }}>
-                        {[
-                          ['SUBTOTAL (EX GST)', fmt$(preview.total)],
-                          ['GST',               '$0.00'],
-                        ].map(([l, v]) => (
-                          <div key={l} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 10px', borderBottom: '0.5px solid #E5E7EB' }}>
-                            <span style={cellLabel}>{l}</span>
-                            <span style={cellValue}>{v}</span>
-                          </div>
-                        ))}
-                        {/* BALANCE DUE row */}
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 10px', background: '#111827' }}>
-                          <span style={{ fontSize: 9, fontWeight: 700, color: '#FFFFFF', textTransform: 'uppercase', letterSpacing: '0.05em' }}>BALANCE DUE</span>
-                          <span style={{ fontSize: 15, fontWeight: 900, color: '#FFFFFF', fontVariantNumeric: 'tabular-nums' }}>{fmt$(preview.total)}</span>
-                        </div>
+                  {/* ── TOTALS CONTAINER ── */}
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 12 }}>
+                    <div style={{ minWidth: 220, maxWidth: 260, border: '1px solid ' + P.border, borderRadius: 8, overflow: 'hidden' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 10px', borderBottom: '1px solid ' + P.border }}>
+                        <span style={{ fontSize: 8.5, color: P.muted }}>SUBTOTAL (EX GST)</span>
+                        <span style={{ fontSize: 8.5, fontWeight: 600, color: P.mid, fontVariantNumeric: 'tabular-nums' }}>{fmt$(preview.total)}</span>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 10px', borderBottom: '1px solid ' + P.border }}>
+                        <span style={{ fontSize: 8.5, color: P.muted }}>GST</span>
+                        <span style={{ fontSize: 8.5, fontWeight: 600, color: P.mid }}>$0.00</span>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '9px 10px', background: P.balanceBg }}>
+                        <span style={{ fontSize: 8.5, fontWeight: 700, color: P.white, textTransform: 'uppercase' as const, letterSpacing: '0.05em' }}>BALANCE DUE</span>
+                        <span style={{ fontSize: 14, fontWeight: 900, color: P.white, fontVariantNumeric: 'tabular-nums' }}>{fmt$(preview.total)}</span>
                       </div>
                     </div>
                   </div>
 
                   {/* ── PAYMENT DETAILS ── */}
-                  {(preview.bankName || preview.bsb || preview.accountNumber) && (
-                    <div style={{ background: '#F9FAFB', borderRadius: 8, border: '1px solid #E5E7EB', padding: '10px 12px', marginBottom: 10 }}>
-                      <div style={sectionTitle}>Payment Details</div>
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8, marginBottom: 8 }}>
+                  {(preview.accountName || preview.bankName || preview.bsb || preview.accountNumber) && (
+                    <div style={{ background: P.bg, borderRadius: 8, border: '1px solid ' + P.border, padding: '10px 12px', marginBottom: 10 }}>
+                      <div style={{ fontSize: 8.5, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.07em', color: P.muted, marginBottom: 8 }}>PAYMENT DETAILS</div>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 8, marginBottom: 8 }}>
                         {[
                           preview.accountName   && { k: 'Account Name', v: preview.accountName },
                           preview.bankName      && { k: 'Bank',          v: preview.bankName },
                           preview.bsb           && { k: 'BSB',           v: preview.bsb },
                           preview.accountNumber && { k: 'Account No.',   v: preview.accountNumber },
+                          { k: 'Reference', v: preview.invoiceNumber },
                         ].filter(Boolean).map(item => item && (
                           <div key={item.k}>
-                            <div style={cellLabel}>{item.k}</div>
-                            <div style={{ ...cellValue, fontSize: 9.5 }}>{item.v}</div>
+                            <div style={{ fontSize: 7.5, color: P.muted, marginBottom: 2 }}>{item.k}</div>
+                            <div style={{ fontSize: 9, fontWeight: 700, color: P.ink }}>{item.v}</div>
                           </div>
                         ))}
                       </div>
-                      {/* Reference — inside the payment box */}
-                      <div style={{ borderTop: '0.5px solid #E5E7EB', paddingTop: 6, fontSize: 8.5, color: '#374151' }}>
-                        Reference: <strong>{preview.invoiceNumber}</strong> · Payment due within 7 days of invoice date.
+                      <div style={{ borderTop: '0.5px solid ' + P.border, paddingTop: 6, fontSize: 8, color: P.muted }}>
+                        Payment due within 7 days of invoice date.
                       </div>
                     </div>
                   )}
 
                   {/* ── NOTES ── */}
                   {preview.invoiceNotes && (
-                    <div style={{ border: '1px solid #E5E7EB', borderRadius: 8, padding: '8px 10px', marginBottom: 10 }}>
-                      <div style={sectionTitle}>Notes</div>
-                      <p style={{ fontSize: 8.5, color: '#6B7280', whiteSpace: 'pre-line', margin: 0 }}>{preview.invoiceNotes}</p>
+                    <div style={{ border: '1px solid ' + P.border, borderRadius: 8, padding: '8px 10px', marginBottom: 10 }}>
+                      <div style={{ fontSize: 8.5, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.07em', color: P.muted, marginBottom: 5 }}>NOTES</div>
+                      <p style={{ fontSize: 8.5, color: P.muted, whiteSpace: 'pre-line', margin: 0 }}>{preview.invoiceNotes}</p>
                     </div>
                   )}
 
                   {/* ── FOOTER ── */}
-                  <div style={{ borderTop: '1px solid #E5E7EB', paddingTop: 8, display: 'flex', justifyContent: 'space-between' }}>
-                    <p style={{ fontSize: 7.5, color: '#9CA3AF', margin: 0 }}>
+                  <div style={{ borderTop: '1px solid ' + P.border, paddingTop: 7, display: 'flex', justifyContent: 'space-between' }}>
+                    <p style={{ fontSize: 7.5, color: P.faint, margin: 0 }}>
                       This invoice is GST-free under the NDIS.{preview.abn ? ` ABN: ${preview.abn}` : ''}
                     </p>
-                    <p style={{ fontSize: 7.5, color: '#9CA3AF', margin: 0 }}>Thank you for your payment.</p>
+                    <p style={{ fontSize: 7.5, color: P.faint, margin: 0 }}>Thank you for your payment.</p>
                   </div>
 
                 </div>
