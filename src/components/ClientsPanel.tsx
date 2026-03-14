@@ -361,7 +361,7 @@ const ClientProfile = ({
           </button>
         </div>
 
-        {/* Detail chips */}
+      {/* Detail chips */}
         <div className="flex flex-wrap gap-2">
           {client.participant_number && (
             <span className="glass-chip text-xs gap-1.5"><Hash className="w-3 h-3" /> {client.participant_number}</span>
@@ -378,6 +378,57 @@ const ClientProfile = ({
           <p className="text-xs text-muted-foreground border-t border-border pt-2.5">{client.notes}</p>
         )}
       </div>
+
+      {/* Billing / participant details */}
+      {(() => {
+        const cx = client as unknown as Record<string, string | undefined>;
+        const org     = cx.organisation_name;
+        const contact = cx.billing_contact;
+        const email   = cx.email;
+        const pn      = client.participant_number;
+        if (!org && !contact && !email && !pn) return null;
+        return (
+          <div className="glass-card p-4 space-y-2">
+            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Participant &amp; Billing</p>
+            {org && (
+              <div className="flex items-start gap-2">
+                <FileText className="w-3.5 h-3.5 text-muted-foreground shrink-0 mt-0.5" />
+                <div className="min-w-0">
+                  <p className="text-[9px] text-muted-foreground uppercase tracking-wider mb-0.5">Organisation</p>
+                  <p className="text-xs font-semibold text-foreground">{org}</p>
+                </div>
+              </div>
+            )}
+            {contact && (
+              <div className="flex items-start gap-2">
+                <User className="w-3.5 h-3.5 text-muted-foreground shrink-0 mt-0.5" />
+                <div className="min-w-0">
+                  <p className="text-[9px] text-muted-foreground uppercase tracking-wider mb-0.5">Billing Contact</p>
+                  <p className="text-xs font-semibold text-foreground">{contact}</p>
+                </div>
+              </div>
+            )}
+            {email && (
+              <div className="flex items-start gap-2">
+                <FileText className="w-3.5 h-3.5 text-muted-foreground shrink-0 mt-0.5" />
+                <div className="min-w-0">
+                  <p className="text-[9px] text-muted-foreground uppercase tracking-wider mb-0.5">Email</p>
+                  <p className="text-xs font-semibold text-foreground">{email}</p>
+                </div>
+              </div>
+            )}
+            {pn && (
+              <div className="flex items-start gap-2">
+                <Hash className="w-3.5 h-3.5 text-muted-foreground shrink-0 mt-0.5" />
+                <div className="min-w-0">
+                  <p className="text-[9px] text-muted-foreground uppercase tracking-wider mb-0.5">NDIS Participant No.</p>
+                  <p className="text-xs font-semibold text-foreground">{pn}</p>
+                </div>
+              </div>
+            )}
+          </div>
+        );
+      })()}
 
       {/* Stats */}
       <div className="grid grid-cols-3 gap-2">

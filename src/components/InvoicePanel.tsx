@@ -1,14 +1,18 @@
 /**
- * InvoicePanel — Stable invoice generator + records list
+ * InvoicePanel — Invoice generator + records list
  *
- * Architecture:
- * - Generator tab and Records (list) tab each have explicit loading / loaded / empty / error states.
- * - PDF export uses jsPDF directly (pure vector text + lines) — NO html2canvas / screenshot.
- * - Invoice generation is idempotent: reusing an existing record for the same fortnight+client.
- * - Invoice numbers are deterministic (INV-YYYY-FNxx).
+ * Fixes applied in this version:
+ * - Generator auto-selects the CURRENT FORTNIGHT on every mount
+ * - Participant / billing details fully pulled from client
+ * - Invoice preview: all section titles CAPITALISED, boxed services table,
+ *   consistent accent (slate/dark), BALANCE DUE bold + prominent,
+ *   reference inside PAYMENT DETAILS, no stray blue print line,
+ *   all numeric columns right-aligned
+ * - jsPDF export mirrors the same layout faithfully
+ * - Loading performance: invoicesLoading guard on Records tab
  */
 
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import {
   FileText, ChevronDown, Download, User, Send, CheckCircle,
   AlertCircle, XCircle, Trash2, RefreshCw, Eye, AlertTriangle,
@@ -64,6 +68,7 @@ interface InvoiceSnapshot {
   clientOrganisation: string;
   clientContact: string;
   clientEmail: string;
+  clientPhone: string;
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -94,6 +99,19 @@ function getFortnightPeriodsForYear(year: number) {
   return periods;
 }
 
+/** Returns the index of the fortnight that contains today. */
+function getCurrentFortnightIdx(periods: ReturnType<typeof getFortnightPeriodsForYear>): number {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  for (let i = 0; i < periods.length; i++) {
+    const s = new Date(periods[i].start); s.setHours(0, 0, 0, 0);
+    const e = new Date(periods[i].end);   e.setHours(23, 59, 59, 999);
+    if (today >= s && today <= e) return i;
+  }
+  // fallback: last period
+  return periods.length - 1;
+}
+
 function formatDateISO(d: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
@@ -114,6 +132,23 @@ function isOverdue(invoice: InvoiceSummary): boolean {
   return new Date(invoice.due_date) < new Date();
 }
 function fmt$(n: number): string { return formatCurrency(n); }
+
+// ─── Accent palette (slate / dark — no blue for layout boxes) ────────────────
+const ACCENT = {
+  primary:     '#111827',  // near-black for strong text
+  secondary:   '#374151',  // dark grey
+  muted:       '#6B7280',  // medium grey
+  faint:       '#9CA3AF',  // lighter grey
+  border:      '#E5E7EB',
+  rowAlt:      '#FAFAFA',
+  highlight:   '#F9FAFB',
+  balanceBg:   '#111827',  // total row background
+  paymentBg:   '#F9FAFB',
+  paymentBdr:  '#E5E7EB',
+  green:       '#15803D',
+  greenBg:     '#F0FDF4',
+  greenBdr:    '#BBF7D0',
+};
 
 // ─── Status config ─────────────────────────────────────────────────────────────
 const STATUS_CFG: Record<string, { label: string; color: string; bg: string }> = {
@@ -139,240 +174,257 @@ const StatusBadge = ({ status }: { status: string }) => {
   );
 };
 
-// ─── PDF export — pure jsPDF vector text, no canvas ──────────────────────────
+// ─── PDF export — pure jsPDF vector, no canvas ────────────────────────────────
 async function exportToPDF(snap: InvoiceSnapshot, lineGroups: ReturnType<typeof groupShiftsForInvoice>) {
   const { jsPDF } = await import('jspdf');
   const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
 
-  const W = 210;          // A4 width mm
+  const W = 210;
   const MARGIN = 16;
-  const CONTENT_W = W - MARGIN * 2;
+  const CW = W - MARGIN * 2;   // content width
   let y = 0;
 
-  // ── helpers ──
   const rgb = (hex: string): [number, number, number] => {
     const n = parseInt(hex.replace('#', ''), 16);
     return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
   };
-  const setFont = (size: number, style: 'normal' | 'bold' = 'normal', color = '#111827') => {
+  const sf = (size: number, style: 'normal' | 'bold' = 'normal', color = '#111827') => {
     doc.setFontSize(size);
     doc.setFont('helvetica', style);
     doc.setTextColor(...rgb(color));
   };
-  const text = (t: string, x: number, yPos: number, opts?: Parameters<typeof doc.text>[3]) => {
-    doc.text(t, x, yPos, opts);
-  };
-  const line = (x1: number, y1: number, x2: number, y2: number, color = '#E5E7EB', lw = 0.2) => {
+  const tx = (t: string, x: number, yPos: number, opts?: Parameters<typeof doc.text>[3]) => doc.text(t, x, yPos, opts);
+  const ln = (x1: number, y1: number, x2: number, y2: number, color = ACCENT.border, lw = 0.2) => {
     doc.setDrawColor(...rgb(color));
     doc.setLineWidth(lw);
     doc.line(x1, y1, x2, y2);
   };
-  const rect = (x: number, yPos: number, w: number, h: number, fillHex: string, borderHex?: string) => {
-    doc.setFillColor(...rgb(fillHex));
-    if (borderHex) {
-      doc.setDrawColor(...rgb(borderHex));
-      doc.setLineWidth(0.2);
-      doc.roundedRect(x, yPos, w, h, 2, 2, borderHex ? 'FD' : 'F');
-    } else {
-      doc.roundedRect(x, yPos, w, h, 2, 2, 'F');
-    }
+  const box = (x: number, yPos: number, w: number, h: number, fill: string, border?: string) => {
+    doc.setFillColor(...rgb(fill));
+    if (border) { doc.setDrawColor(...rgb(border)); doc.setLineWidth(0.25); }
+    doc.roundedRect(x, yPos, w, h, 2, 2, border ? 'FD' : 'F');
   };
 
-  // ── Top accent bar ──
-  doc.setFillColor(...rgb('#1D4ED8'));
-  doc.rect(0, 0, W, 3, 'F');
+  // ── Thin top rule (dark slate, not blue) ──
+  doc.setFillColor(...rgb(ACCENT.primary));
+  doc.rect(0, 0, W, 2.5, 'F');
   y = 10;
 
-  // ── HEADER: issuer left, INVOICE right ──
-  setFont(16, 'bold', '#111827');
-  text(snap.issuerName || 'Your Business', MARGIN, y);
-
-  setFont(22, 'bold', '#111827');
-  text('INVOICE', W - MARGIN, y, { align: 'right' });
+  // ── HEADER ──
+  sf(17, 'bold', ACCENT.primary);
+  tx(snap.issuerName || 'Your Business', MARGIN, y);
+  sf(24, 'bold', ACCENT.primary);
+  tx('INVOICE', W - MARGIN, y, { align: 'right' });
   y += 5;
 
-  setFont(8, 'normal', '#6B7280');
-  if (snap.abn) { text(`ABN: ${snap.abn}`, MARGIN, y); y += 4; }
-  if (snap.phone) { text(`Ph: ${snap.phone}`, MARGIN, y); y += 4; }
-  if (snap.address) { text(snap.address, MARGIN, y); y += 4; }
+  sf(7.5, 'normal', ACCENT.muted);
+  if (snap.abn)     { tx(`ABN: ${snap.abn}`, MARGIN, y); y += 4; }
+  if (snap.phone)   { tx(`Ph: ${snap.phone}`, MARGIN, y); y += 4; }
+  if (snap.address) { tx(snap.address, MARGIN, y); y += 4; }
 
-  // Right-side invoice meta (re-sync y to original header baseline)
   const metaY = 15;
-  setFont(9, 'bold', '#1D4ED8');
-  text(snap.invoiceNumber, W - MARGIN, metaY, { align: 'right' });
-  setFont(7.5, 'normal', '#6B7280');
-  text(`Date: ${formatDateShort(snap.issueDate)}`, W - MARGIN, metaY + 5, { align: 'right' });
-  text(`Due:  ${formatDateShort(snap.dueDate)}`, W - MARGIN, metaY + 10, { align: 'right' });
+  sf(9, 'bold', ACCENT.secondary);
+  tx(snap.invoiceNumber, W - MARGIN, metaY, { align: 'right' });
+  sf(7.5, 'normal', ACCENT.muted);
+  tx(`Date: ${formatDateShort(snap.issueDate)}`, W - MARGIN, metaY + 5, { align: 'right' });
+  tx(`Due:  ${formatDateShort(snap.dueDate)}`,  W - MARGIN, metaY + 10, { align: 'right' });
 
   y = Math.max(y, metaY + 14) + 3;
-
-  // ── Divider ──
-  line(MARGIN, y, W - MARGIN, y, '#E5E7EB', 0.4);
+  ln(MARGIN, y, W - MARGIN, y, ACCENT.border, 0.5);
   y += 6;
 
-  // ── BILLING SECTION ──
-  const halfW = (CONTENT_W - 6) / 2;
+  // ── BILL TO + INVOICE DETAILS ──
+  const halfW = (CW - 6) / 2;
+  const billH = 34;
 
-  // Bill To box
-  rect(MARGIN, y, halfW, 30, '#F9FAFB', '#E5E7EB');
+  box(MARGIN, y, halfW, billH, ACCENT.highlight, ACCENT.border);
   let by = y + 5;
-  setFont(7, 'bold', '#6B7280');
-  text('BILL TO', MARGIN + 4, by);
+  sf(6.5, 'bold', ACCENT.muted);
+  tx('BILL TO', MARGIN + 4, by);
   by += 4;
+  const cx = snap as unknown as Record<string, string>;
   if (snap.clientOrganisation) {
-    setFont(8.5, 'bold', '#111827'); text(snap.clientOrganisation, MARGIN + 4, by); by += 4;
+    sf(8.5, 'bold', ACCENT.primary); tx(snap.clientOrganisation, MARGIN + 4, by); by += 4;
   }
-  setFont(8, snap.clientOrganisation ? 'normal' : 'bold', '#111827');
-  text(snap.clientName || 'Participant / Organisation', MARGIN + 4, by); by += 4;
-  setFont(7.5, 'normal', '#6B7280');
-  if (snap.clientContact) { text(`Contact: ${snap.clientContact}`, MARGIN + 4, by); by += 3.5; }
-  if (snap.clientAddress) { text(snap.clientAddress, MARGIN + 4, by); by += 3.5; }
-  if (snap.clientEmail) { text(snap.clientEmail, MARGIN + 4, by); by += 3.5; }
-  if (snap.clientParticipantNumber) { text(`NDIS No: ${snap.clientParticipantNumber}`, MARGIN + 4, by); }
+  sf(8, snap.clientOrganisation ? 'normal' : 'bold', ACCENT.primary);
+  tx(snap.clientName || 'Participant', MARGIN + 4, by); by += 4;
+  sf(7.5, 'normal', ACCENT.muted);
+  if (snap.clientContact) { tx(`Contact: ${snap.clientContact}`, MARGIN + 4, by); by += 3.5; }
+  if (snap.clientAddress) { tx(snap.clientAddress, MARGIN + 4, by); by += 3.5; }
+  if (snap.clientEmail)   { tx(snap.clientEmail, MARGIN + 4, by); by += 3.5; }
+  if (snap.clientPhone)   { tx(`Ph: ${snap.clientPhone}`, MARGIN + 4, by); by += 3.5; }
+  if (snap.clientParticipantNumber) { tx(`NDIS No: ${snap.clientParticipantNumber}`, MARGIN + 4, by); }
 
-  // Invoice Details box
   const rx = MARGIN + halfW + 6;
-  rect(rx, y, halfW, 30, '#F9FAFB', '#E5E7EB');
+  box(rx, y, halfW, billH, ACCENT.highlight, ACCENT.border);
   let dy = y + 5;
-  setFont(7, 'bold', '#6B7280');
-  text('INVOICE DETAILS', rx + 4, dy);
+  sf(6.5, 'bold', ACCENT.muted);
+  tx('INVOICE DETAILS', rx + 4, dy);
   dy += 4;
-  const details: [string, string, boolean?][] = [
+  const detailRows: [string, string, boolean?][] = [
     ['Service From', formatDateShort(snap.periodStart)],
     ['Service To',   formatDateShort(snap.periodEnd)],
     ['Due Date',     formatDateShort(snap.dueDate)],
     ['GST',          '0% (GST-Free)'],
-    ['Balance Due',  fmt$(snap.total), true],
+    ['BALANCE DUE',  fmt$(snap.total), true],
   ];
-  details.forEach(([lbl, val, highlight]) => {
-    setFont(7.5, 'normal', '#6B7280');
-    text(lbl, rx + 4, dy);
-    setFont(7.5, highlight ? 'bold' : 'normal', highlight ? '#16A34A' : '#374151');
-    text(val, rx + halfW - 4, dy, { align: 'right' });
+  detailRows.forEach(([lbl, val, highlight]) => {
+    sf(7.5, 'normal', ACCENT.muted);
+    tx(lbl, rx + 4, dy);
+    sf(7.5, highlight ? 'bold' : 'normal', highlight ? ACCENT.primary : ACCENT.secondary);
+    tx(val, rx + halfW - 4, dy, { align: 'right' });
     dy += 4;
   });
 
-  y += 34;
+  y += billH + 4;
 
-  // ── LINE ITEMS TABLE ──
-  setFont(7, 'bold', '#6B7280');
-  text('SERVICES RENDERED', MARGIN, y);
-  y += 4;
+  // ── SERVICES RENDERED TABLE ──
+  sf(6.5, 'bold', ACCENT.muted);
+  tx('SERVICES RENDERED', MARGIN, y);
+  y += 3;
 
-  // Table header row
+  // Table outer box
+  const tableStartY = y;
+  const rowH = 9.5;
+  const hdrH = 8;
+
+  // Column defs (x relative to MARGIN, w in mm)
   const cols = [
-    { label: '#',            x: MARGIN,      w: 6,  align: 'left'  as const },
-    { label: 'Description',  x: MARGIN + 6,  w: 42, align: 'left'  as const },
-    { label: 'Item Code',    x: MARGIN + 48, w: 28, align: 'left'  as const },
-    { label: 'Qty',          x: MARGIN + 76, w: 14, align: 'right' as const },
-    { label: 'Unit',         x: MARGIN + 90, w: 12, align: 'right' as const },
-    { label: 'Rate',         x: MARGIN + 102, w: 18, align: 'right' as const },
-    { label: 'Total (ex)',   x: MARGIN + 120, w: 22, align: 'right' as const },
-    { label: 'GST',          x: MARGIN + 142, w: 14, align: 'right' as const },
-    { label: 'Total (inc)',  x: MARGIN + 156, w: 22, align: 'right' as const },
+    { label: '#',           x: 0,    w: 6,   align: 'center' as const },
+    { label: 'DESCRIPTION', x: 6,    w: 50,  align: 'left'   as const },
+    { label: 'ITEM CODE',   x: 56,   w: 30,  align: 'left'   as const },
+    { label: 'QTY',         x: 86,   w: 14,  align: 'right'  as const },
+    { label: 'UNIT',        x: 100,  w: 12,  align: 'right'  as const },
+    { label: 'RATE',        x: 112,  w: 19,  align: 'right'  as const },
+    { label: 'TOTAL EX',    x: 131,  w: 22,  align: 'right'  as const },
+    { label: 'GST',         x: 153,  w: 12,  align: 'right'  as const },
+    { label: 'TOTAL INC',   x: 165,  w: 13,  align: 'right'  as const },
   ];
+  const totalTableH = hdrH + lineGroups.length * rowH + 0.5;
 
-  rect(MARGIN, y, CONTENT_W, 7, '#F3F4F6', '#E5E7EB');
-  const hY = y + 4.5;
+  // Outer border
+  doc.setDrawColor(...rgb(ACCENT.border));
+  doc.setLineWidth(0.3);
+  doc.roundedRect(MARGIN, y, CW, totalTableH, 2, 2, 'S');
+
+  // Header bg
+  doc.setFillColor(...rgb('#F3F4F6'));
+  doc.roundedRect(MARGIN, y, CW, hdrH, 2, 2, 'F');
+  // Re-draw top border of header so corners look right
+  const hY = y + 5;
   cols.forEach(c => {
-    setFont(6.5, 'bold', '#6B7280');
-    text(c.label, c.align === 'right' ? c.x + c.w : c.x, hY, { align: c.align });
+    sf(6, 'bold', ACCENT.muted);
+    const cx2 = MARGIN + c.x + (c.align === 'right' ? c.w : c.align === 'center' ? c.w / 2 : 0);
+    tx(c.label, cx2, hY, { align: c.align === 'center' ? 'center' : c.align });
   });
-  y += 7;
+  y += hdrH;
 
-  // Data rows
   lineGroups.forEach((group, idx) => {
-    const rowH = 9;
-    if (idx % 2 === 1) rect(MARGIN, y, CONTENT_W, rowH, '#FAFAFA');
+    if (idx % 2 === 1) {
+      doc.setFillColor(...rgb(ACCENT.rowAlt));
+      doc.rect(MARGIN, y, CW, rowH, 'F');
+    }
     const ry = y + 5.5;
     const unit = group.isSleepover ? 'night' : 'hr';
 
-    setFont(7, 'normal', '#9CA3AF');
-    text(String(idx + 1), MARGIN + 3, ry, { align: 'center' });
+    sf(7, 'normal', ACCENT.faint);
+    tx(String(idx + 1), MARGIN + cols[0].x + 3, ry, { align: 'center' });
 
-    setFont(7.5, 'bold', '#111827');
-    text(group.label, MARGIN + 6, ry - 1.5);
-    setFont(6.5, 'normal', '#9CA3AF');
-    text(`${group.shifts.length} shift${group.shifts.length !== 1 ? 's' : ''}`, MARGIN + 6, ry + 2.5);
+    sf(7.5, 'bold', ACCENT.primary);
+    tx(group.label, MARGIN + cols[1].x, ry - 1.5);
+    sf(6.5, 'normal', ACCENT.faint);
+    tx(`${group.shifts.length} shift${group.shifts.length !== 1 ? 's' : ''}`, MARGIN + cols[1].x, ry + 2.5);
 
-    setFont(7, 'normal', '#6B7280');
-    text(group.ndisCode ?? '', MARGIN + 48, ry, { maxWidth: 27 });
+    sf(7, 'normal', ACCENT.muted);
+    tx(group.ndisCode ?? '', MARGIN + cols[2].x, ry, { maxWidth: 29 });
 
-    setFont(7.5, 'normal', '#374151');
-    text(String(group.quantity), MARGIN + 76 + 14, ry, { align: 'right' });
-    setFont(7, 'normal', '#9CA3AF');
-    text(unit, MARGIN + 90 + 12, ry, { align: 'right' });
-    setFont(7.5, 'normal', '#374151');
-    text(fmt$(group.rate), MARGIN + 102 + 18, ry, { align: 'right' });
-    setFont(7.5, 'bold', '#374151');
-    text(fmt$(group.subtotal), MARGIN + 120 + 22, ry, { align: 'right' });
-    setFont(7, 'normal', '#9CA3AF');
-    text('$0.00', MARGIN + 142 + 14, ry, { align: 'right' });
-    setFont(7.5, 'bold', '#111827');
-    text(fmt$(group.subtotal), MARGIN + 156 + 22, ry, { align: 'right' });
+    sf(7.5, 'normal', ACCENT.secondary);
+    tx(String(group.quantity), MARGIN + cols[3].x + cols[3].w, ry, { align: 'right' });
+    sf(7, 'normal', ACCENT.faint);
+    tx(unit, MARGIN + cols[4].x + cols[4].w, ry, { align: 'right' });
+    sf(7.5, 'normal', ACCENT.secondary);
+    tx(fmt$(group.rate), MARGIN + cols[5].x + cols[5].w, ry, { align: 'right' });
+    sf(7.5, 'bold', ACCENT.secondary);
+    tx(fmt$(group.subtotal), MARGIN + cols[6].x + cols[6].w, ry, { align: 'right' });
+    sf(7, 'normal', ACCENT.faint);
+    tx('$0.00', MARGIN + cols[7].x + cols[7].w, ry, { align: 'right' });
+    sf(7.5, 'bold', ACCENT.primary);
+    tx(fmt$(group.subtotal), MARGIN + cols[8].x + cols[8].w, ry, { align: 'right' });
 
-    line(MARGIN, y + rowH, MARGIN + CONTENT_W, y + rowH, '#F3F4F6', 0.15);
+    if (idx < lineGroups.length - 1) {
+      ln(MARGIN, y + rowH, MARGIN + CW, y + rowH, '#F3F4F6', 0.15);
+    }
     y += rowH;
   });
   y += 4;
 
   // ── TOTALS ──
-  const totW = 60;
+  const totW = 64;
   const totX = W - MARGIN - totW;
 
-  rect(totX, y, totW, 6.5, '#F9FAFB', '#E5E7EB');
-  setFont(7, 'normal', '#6B7280'); text('Subtotal (ex GST)', totX + 3, y + 4.3);
-  setFont(7, 'normal', '#374151'); text(fmt$(snap.total), totX + totW - 3, y + 4.3, { align: 'right' });
+  box(totX, y, totW, 6.5, ACCENT.highlight, ACCENT.border);
+  sf(7.5, 'normal', ACCENT.muted); tx('SUBTOTAL (EX GST)', totX + 3, y + 4.4);
+  sf(7.5, 'normal', ACCENT.secondary); tx(fmt$(snap.total), totX + totW - 3, y + 4.4, { align: 'right' });
   y += 6.5;
-  rect(totX, y, totW, 6.5, '#F9FAFB', '#E5E7EB');
-  setFont(7, 'normal', '#6B7280'); text('GST', totX + 3, y + 4.3);
-  setFont(7, 'normal', '#374151'); text('$0.00', totX + totW - 3, y + 4.3, { align: 'right' });
+
+  box(totX, y, totW, 6.5, ACCENT.highlight, ACCENT.border);
+  sf(7.5, 'normal', ACCENT.muted); tx('GST', totX + 3, y + 4.4);
+  sf(7.5, 'normal', ACCENT.secondary); tx('$0.00', totX + totW - 3, y + 4.4, { align: 'right' });
   y += 6.5;
-  doc.setFillColor(...rgb('#1D4ED8'));
-  doc.roundedRect(totX, y, totW, 9, 2, 2, 'F');
-  setFont(7.5, 'bold', '#FFFFFF'); text('TOTAL (INC GST)', totX + 3, y + 5.7);
-  setFont(10, 'bold', '#FFFFFF'); text(fmt$(snap.total), totX + totW - 3, y + 5.7, { align: 'right' });
-  y += 13;
+
+  // BALANCE DUE — dark prominent row
+  doc.setFillColor(...rgb(ACCENT.primary));
+  doc.roundedRect(totX, y, totW, 10, 2, 2, 'F');
+  sf(8, 'bold', '#FFFFFF'); tx('BALANCE DUE', totX + 3, y + 6.5);
+  sf(11, 'bold', '#FFFFFF'); tx(fmt$(snap.total), totX + totW - 3, y + 6.5, { align: 'right' });
+  y += 14;
 
   // ── PAYMENT DETAILS ──
   if (snap.bankName || snap.bsb || snap.accountNumber) {
-    rect(MARGIN, y, CONTENT_W, 16, '#F0FDF4', '#BBF7D0');
-    setFont(7, 'bold', '#15803D'); text('PAYMENT DETAILS', MARGIN + 4, y + 5);
-    const fields: [string, string][] = [];
-    if (snap.accountName)  fields.push(['Account Name', snap.accountName]);
-    if (snap.bankName)     fields.push(['Bank', snap.bankName]);
-    if (snap.bsb)          fields.push(['BSB', snap.bsb]);
-    if (snap.accountNumber) fields.push(['Account No.', snap.accountNumber]);
-    const colW = CONTENT_W / Math.max(fields.length, 1);
-    fields.forEach(([k, v], i) => {
-      const fx = MARGIN + 4 + i * colW;
-      setFont(7, 'normal', '#6B7280'); text(k, fx, y + 9.5);
-      setFont(7.5, 'bold', '#111827'); text(v, fx, y + 13.5);
+    const payFields: [string, string][] = [
+      ...( snap.accountName   ? [['Account Name', snap.accountName]   as [string,string]] : [] ),
+      ...( snap.bankName      ? [['Bank',          snap.bankName]      as [string,string]] : [] ),
+      ...( snap.bsb           ? [['BSB',           snap.bsb]           as [string,string]] : [] ),
+      ...( snap.accountNumber ? [['Account No.',   snap.accountNumber] as [string,string]] : [] ),
+    ];
+    const payH = 12 + 10; // header + fields + reference
+    box(MARGIN, y, CW, payH, ACCENT.paymentBg, ACCENT.paymentBdr);
+
+    let py = y + 5;
+    sf(6.5, 'bold', ACCENT.muted); tx('PAYMENT DETAILS', MARGIN + 4, py); py += 5;
+
+    const colW2 = Math.min(CW / Math.max(payFields.length, 1), 50);
+    payFields.forEach(([k, v], i) => {
+      const fx = MARGIN + 4 + i * colW2;
+      sf(7, 'normal', ACCENT.muted); tx(k, fx, py);
+      sf(8, 'bold', ACCENT.primary); tx(v, fx, py + 4);
     });
-    y += 19;
-    setFont(7, 'normal', '#374151');
-    text(`Reference: ${snap.invoiceNumber} · Payment due within 7 days of invoice date.`, MARGIN, y);
-    y += 5;
+    py += 9;
+    // Reference line inside the box
+    ln(MARGIN + 4, py, MARGIN + CW - 4, py, ACCENT.border, 0.2);
+    py += 3;
+    sf(7, 'normal', ACCENT.secondary);
+    tx(`Reference: ${snap.invoiceNumber} · Payment due within 7 days of invoice date.`, MARGIN + 4, py);
+    y += payH + 4;
   }
 
   // ── NOTES ──
   if (snap.invoiceNotes) {
-    y += 2;
-    rect(MARGIN, y, CONTENT_W, 16, '#FFFFFF', '#E5E7EB');
-    setFont(7, 'bold', '#6B7280'); text('NOTES', MARGIN + 4, y + 5);
-    setFont(7, 'normal', '#6B7280');
-    const lines = doc.splitTextToSize(snap.invoiceNotes, CONTENT_W - 8);
-    lines.slice(0, 3).forEach((l: string, i: number) => text(l, MARGIN + 4, y + 9.5 + i * 4));
-    y += 18;
+    box(MARGIN, y, CW, 18, '#FFFFFF', ACCENT.border);
+    sf(6.5, 'bold', ACCENT.muted); tx('NOTES', MARGIN + 4, y + 5);
+    sf(7.5, 'normal', ACCENT.muted);
+    const noteLines = doc.splitTextToSize(snap.invoiceNotes, CW - 8);
+    noteLines.slice(0, 3).forEach((l: string, i: number) => tx(l, MARGIN + 4, y + 10 + i * 4));
+    y += 20;
   }
 
   // ── FOOTER ──
-  y = 285; // near bottom of A4 (297mm - margin)
-  line(MARGIN, y, W - MARGIN, y, '#E5E7EB', 0.3);
+  y = 285;
+  ln(MARGIN, y, W - MARGIN, y, ACCENT.border, 0.3);
   y += 4;
-  setFont(7, 'normal', '#9CA3AF');
-  text(`This invoice is GST-free under the NDIS.${snap.abn ? '  ABN: ' + snap.abn : ''}`, MARGIN, y);
-  text('Thank you for your payment.', W - MARGIN, y, { align: 'right' });
+  sf(7, 'normal', ACCENT.faint);
+  tx(`This invoice is GST-free under the NDIS.${snap.abn ? `  ABN: ${snap.abn}` : ''}`, MARGIN, y);
+  tx('Thank you for your payment.', W - MARGIN, y, { align: 'right' });
 
   doc.save(`${snap.invoiceNumber}.pdf`);
 }
@@ -454,29 +506,39 @@ const InvoicePanel = ({
   onUpdateStatus, onDeleteInvoice, onRefreshInvoices,
 }: InvoicePanelProps) => {
   const currentYear = new Date().getFullYear();
-  const [selectedYear, setSelectedYear]     = useState(currentYear);
-  const [selectedFnIdx, setSelectedFnIdx]   = useState(0);
+
+  const [selectedYear, setSelectedYear]         = useState(currentYear);
   const [selectedClientId, setSelectedClientId] = useState('');
-  const [generating, setGenerating]         = useState(false);
-  const [generateError, setGenerateError]   = useState<string | null>(null);
-  const [exporting, setExporting]           = useState(false);
-  const [exportError, setExportError]       = useState<string | null>(null);
-  const [preview, setPreview]               = useState<InvoiceSnapshot | null>(null);
-  const [activeTab, setActiveTab]           = useState<'generator' | 'list'>('generator');
-  const [statusFilter, setStatusFilter]     = useState<string>('all');
+  const [generating, setGenerating]             = useState(false);
+  const [generateError, setGenerateError]       = useState<string | null>(null);
+  const [exporting, setExporting]               = useState(false);
+  const [exportError, setExportError]           = useState<string | null>(null);
+  const [preview, setPreview]                   = useState<InvoiceSnapshot | null>(null);
+  const [activeTab, setActiveTab]               = useState<'generator' | 'list'>('generator');
+  const [statusFilter, setStatusFilter]         = useState<string>('all');
 
   const periods = useMemo(() => getFortnightPeriodsForYear(selectedYear), [selectedYear]);
+
+  // ── Default to current fortnight on mount / year change ──
+  const [selectedFnIdx, setSelectedFnIdx] = useState(() => getCurrentFortnightIdx(getFortnightPeriodsForYear(currentYear)));
+  useEffect(() => {
+    setSelectedFnIdx(getCurrentFortnightIdx(periods));
+    setPreview(null);
+    setGenerateError(null);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedYear]);
+
   const selectedPeriod = periods[selectedFnIdx] ?? periods[0];
   const selectedClient = clients.find(c => c.id === selectedClientId) ?? null;
 
   const rates: PayRates = {
-    rate_weekday:         settings?.rate_weekday         ?? DEFAULT_RATES.rate_weekday,
-    rate_saturday:        settings?.rate_saturday        ?? DEFAULT_RATES.rate_saturday,
-    rate_sunday:          settings?.rate_sunday          ?? DEFAULT_RATES.rate_sunday,
+    rate_weekday:           settings?.rate_weekday           ?? DEFAULT_RATES.rate_weekday,
+    rate_saturday:          settings?.rate_saturday          ?? DEFAULT_RATES.rate_saturday,
+    rate_sunday:            settings?.rate_sunday            ?? DEFAULT_RATES.rate_sunday,
     rate_sleepover_weekday: settings?.rate_sleepover_weekday ?? DEFAULT_RATES.rate_sleepover_weekday,
     rate_sleepover_weekend: settings?.rate_sleepover_weekend ?? DEFAULT_RATES.rate_sleepover_weekend,
-    rate_public_holiday:  settings?.rate_public_holiday  ?? DEFAULT_RATES.rate_public_holiday,
-    rate_evening:         settings?.rate_evening         ?? DEFAULT_RATES.rate_evening,
+    rate_public_holiday:    settings?.rate_public_holiday    ?? DEFAULT_RATES.rate_public_holiday,
+    rate_evening:           settings?.rate_evening           ?? DEFAULT_RATES.rate_evening,
   };
 
   const ndisCodesStr = (settings as unknown as { ndis_codes?: string })?.ndis_codes;
@@ -516,13 +578,25 @@ const InvoicePanel = ({
     ) ?? null;
   }, [invoices, selectedPeriod, selectedClientId]);
 
-  // ─ Build snapshot ─
+  // ─── Helper: cast client extra fields ──────────────────────────────────────
+  const clientExtra = useCallback((c: Client | null) => {
+    const cx = c as unknown as Record<string, string | undefined>;
+    return {
+      organisation: cx?.organisation_name ?? '',
+      contact:      cx?.billing_contact   ?? '',
+      email:        cx?.email             ?? '',
+      phone:        c?.phone              ?? '',
+    };
+  }, []);
+
+  // ─── Build snapshot ─────────────────────────────────────────────────────────
   const buildSnapshot = useCallback((
     invoiceId: string, invoiceNumber: string, issueDate: string, dueDate: string,
   ): InvoiceSnapshot => {
-    const s = settings as unknown as Record<string, string | null>;
-    const clientNotes = selectedClient?.invoice_notes ?? null;
-    const useDefaults = settings?.use_default_invoice_notes !== false;
+    const s   = settings as unknown as Record<string, string | null>;
+    const ext = clientExtra(selectedClient);
+    const clientNotes  = selectedClient?.invoice_notes ?? null;
+    const useDefaults  = settings?.use_default_invoice_notes !== false;
     return {
       invoiceNumber,
       invoiceId,
@@ -534,25 +608,26 @@ const InvoicePanel = ({
       periodEnd:   formatDateISO(selectedPeriod!.end),
       shifts:      periodShifts,
       total,
-      issuerName:    settings?.business_name ?? '',
-      abn:           settings?.abn ?? '',
-      phone:         (s?.phone as string) ?? '',
-      address:       (s?.address as string) ?? '',
-      bankName:      settings?.bank_name ?? '',
-      bsb:           settings?.bsb ?? '',
-      accountNumber: settings?.account_number ?? '',
-      accountName:   (s?.account_name as string) ?? '',
+      issuerName:    settings?.business_name    ?? '',
+      abn:           settings?.abn               ?? '',
+      phone:         (s?.phone  as string)        ?? '',
+      address:       (s?.address as string)       ?? '',
+      bankName:      settings?.bank_name          ?? '',
+      bsb:           settings?.bsb               ?? '',
+      accountNumber: settings?.account_number    ?? '',
+      accountName:   (s?.account_name as string)  ?? '',
       invoiceNotes:  clientNotes || (useDefaults ? settings?.invoice_notes : null) || '',
       clientName:    selectedClient?.invoice_label ?? selectedClient?.name ?? '',
       clientAddress: selectedClient?.address ?? '',
       clientParticipantNumber: selectedClient?.participant_number ?? '',
-      clientOrganisation: (selectedClient as unknown as { organisation_name?: string })?.organisation_name ?? '',
-      clientContact:      (selectedClient as unknown as { billing_contact?: string })?.billing_contact ?? '',
-      clientEmail:        (selectedClient as unknown as { email?: string })?.email ?? '',
+      clientOrganisation: ext.organisation,
+      clientContact:      ext.contact,
+      clientEmail:        ext.email,
+      clientPhone:        ext.phone,
     };
-  }, [settings, selectedClient, selectedPeriod, selectedYear, periodShifts, total]);
+  }, [settings, selectedClient, selectedPeriod, selectedYear, periodShifts, total, clientExtra]);
 
-  // ─ Generate invoice ─
+  // ─── Generate invoice ────────────────────────────────────────────────────────
   const generateInvoice = async () => {
     if (!selectedPeriod) return;
     setGenerating(true);
@@ -580,17 +655,17 @@ const InvoicePanel = ({
         const { data: newInv, error } = await supabase
           .from('invoices')
           .insert({
-            user_id:      session.user.id,
-            invoice_number: invoiceNumber,
-            status:       'generated',
-            total_amount: total,
-            period_start: formatDateISO(selectedPeriod.start),
-            period_end:   formatDateISO(selectedPeriod.end),
-            due_date:     dueDate,
+            user_id:          session.user.id,
+            invoice_number:   invoiceNumber,
+            status:           'generated',
+            total_amount:     total,
+            period_start:     formatDateISO(selectedPeriod.start),
+            period_end:       formatDateISO(selectedPeriod.end),
+            due_date:         dueDate,
             fortnight_number: selectedPeriod.fnNumber,
-            year:         selectedYear,
-            client_id:    selectedClientId || null,
-            notes:        '',
+            year:             selectedYear,
+            client_id:        selectedClientId || null,
+            notes:            '',
           })
           .select('id')
           .single();
@@ -608,7 +683,7 @@ const InvoicePanel = ({
     }
   };
 
-  // ─ Export PDF — pure jsPDF vector ─
+  // ─── Export PDF ──────────────────────────────────────────────────────────────
   const handleExportPDF = async () => {
     if (!preview) return;
     if (lineGroups.length === 0 && preview.total === 0) {
@@ -627,13 +702,14 @@ const InvoicePanel = ({
     }
   };
 
-  // ─ View existing invoice from Records tab ─
+  // ─── View existing invoice from Records tab ──────────────────────────────────
   const viewInvoiceFromList = useCallback((inv: InvoiceSummary) => {
     const issueDate = inv.created_at.split('T')[0];
     const dueDate   = inv.due_date ?? addDays(issueDate, 7);
-    const mc        = clients.find(c => c.id === inv.client_id);
+    const mc        = clients.find(c => c.id === inv.client_id) ?? null;
     const s         = settings as unknown as Record<string, string | null>;
     const useDefaults = settings?.use_default_invoice_notes !== false;
+    const ext       = clientExtra(mc);
 
     setPreview({
       invoiceNumber: inv.invoice_number,
@@ -646,32 +722,41 @@ const InvoicePanel = ({
       periodEnd:   inv.period_end,
       shifts:      [],
       total:       inv.total_amount,
-      issuerName:    settings?.business_name ?? '',
-      abn:           settings?.abn ?? '',
-      phone:         (s?.phone as string) ?? '',
-      address:       (s?.address as string) ?? '',
-      bankName:      settings?.bank_name ?? '',
-      bsb:           settings?.bsb ?? '',
-      accountNumber: settings?.account_number ?? '',
-      accountName:   (s?.account_name as string) ?? '',
+      issuerName:    settings?.business_name    ?? '',
+      abn:           settings?.abn               ?? '',
+      phone:         (s?.phone  as string)        ?? '',
+      address:       (s?.address as string)       ?? '',
+      bankName:      settings?.bank_name          ?? '',
+      bsb:           settings?.bsb               ?? '',
+      accountNumber: settings?.account_number    ?? '',
+      accountName:   (s?.account_name as string)  ?? '',
       invoiceNotes:  inv.notes || (useDefaults ? settings?.invoice_notes : null) || '',
       clientName:    mc?.invoice_label ?? mc?.name ?? '',
       clientAddress: mc?.address ?? '',
       clientParticipantNumber: mc?.participant_number ?? '',
-      clientOrganisation: (mc as unknown as { organisation_name?: string })?.organisation_name ?? '',
-      clientContact:      (mc as unknown as { billing_contact?: string })?.billing_contact ?? '',
-      clientEmail:        (mc as unknown as { email?: string })?.email ?? '',
+      clientOrganisation: ext.organisation,
+      clientContact:      ext.contact,
+      clientEmail:        ext.email,
+      clientPhone:        ext.phone,
     });
     setActiveTab('generator');
-  }, [clients, settings]);
+  }, [clients, settings, clientExtra]);
 
-  // ─ Compute effective status of the preview's stored invoice ─
+  // ─── Effective status of previewed invoice ───────────────────────────────────
   const previewInvoice = useMemo(
     () => preview ? (invoices.find(inv => inv.id === preview.invoiceId) ?? null) : null,
     [invoices, preview],
   );
 
-  // ─── Render ───────────────────────────────────────────────────────────────
+  // ─── Shared label style helpers ──────────────────────────────────────────────
+  const sectionTitle: React.CSSProperties = {
+    fontSize: 9, fontWeight: 700, textTransform: 'uppercase',
+    letterSpacing: '0.06em', color: '#6B7280', marginBottom: 4,
+  };
+  const cellLabel: React.CSSProperties = { fontSize: 9, color: '#6B7280' };
+  const cellValue: React.CSSProperties = { fontSize: 9, fontWeight: 600, color: '#374151' };
+
+  // ─── Render ──────────────────────────────────────────────────────────────────
   return (
     <div className="space-y-4">
       {/* Header */}
@@ -726,7 +811,7 @@ const InvoicePanel = ({
               <label className="text-xs text-muted-foreground shrink-0">Year</label>
               <div className="relative">
                 <select value={selectedYear}
-                  onChange={e => { setSelectedYear(Number(e.target.value)); setSelectedFnIdx(0); setPreview(null); setGenerateError(null); }}
+                  onChange={e => { setSelectedYear(Number(e.target.value)); setPreview(null); setGenerateError(null); }}
                   className="glass-input text-foreground min-h-[40px] text-sm appearance-none pr-8 pl-3">
                   {[currentYear - 1, currentYear, currentYear + 1].map(y => (
                     <option key={y} value={y}>{y}</option>
@@ -759,7 +844,6 @@ const InvoicePanel = ({
               <p className="text-lg font-bold money-text">{fmt$(total)}</p>
             </div>
 
-            {/* Generate error */}
             {generateError && (
               <div className="flex items-start gap-2 p-3 rounded-xl"
                 style={{ background: 'hsl(var(--destructive)/0.08)', border: '1px solid hsl(var(--destructive)/0.2)' }}>
@@ -784,7 +868,7 @@ const InvoicePanel = ({
           {/* ── Invoice Preview ── */}
           {preview && (
             <div className="space-y-3">
-              {/* Preview action bar */}
+              {/* Action bar */}
               <div className="flex items-center justify-between flex-wrap gap-2">
                 <div>
                   <p className="text-sm font-semibold text-foreground">{preview.invoiceNumber}</p>
@@ -814,7 +898,6 @@ const InvoicePanel = ({
                 </div>
               </div>
 
-              {/* Export error */}
               {exportError && (
                 <div className="flex items-start gap-2 p-3 rounded-xl"
                   style={{ background: 'hsl(var(--destructive)/0.08)', border: '1px solid hsl(var(--destructive)/0.2)' }}>
@@ -823,26 +906,31 @@ const InvoicePanel = ({
                 </div>
               )}
 
-              {/* ── Invoice preview card ── */}
+              {/* ────────────── Invoice Preview Card ────────────── */}
               <div className="glass-card overflow-hidden">
-                {/* Blue accent bar */}
-                <div style={{ height: 4, background: '#1D4ED8' }} />
+                {/* Thin top rule — slate, not blue */}
+                <div style={{ height: 3, background: '#111827' }} />
 
-                <div style={{ padding: '20px 22px', fontFamily: '"Helvetica Neue", Helvetica, Arial, sans-serif', fontSize: 11, color: '#111827', background: '#fff' }}>
+                <div style={{
+                  padding: '20px 20px',
+                  fontFamily: '"Helvetica Neue", Helvetica, Arial, sans-serif',
+                  fontSize: 11, color: '#111827',
+                  background: 'hsl(var(--card))',
+                }}>
 
-                  {/* HEADER */}
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
+                  {/* ── HEADER ── */}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 14 }}>
                     <div>
-                      <div style={{ fontSize: 18, fontWeight: 800, color: '#111827', letterSpacing: '-0.02em', marginBottom: 4 }}>
+                      <div style={{ fontSize: 17, fontWeight: 800, color: '#111827', letterSpacing: '-0.02em', marginBottom: 4 }}>
                         {preview.issuerName || 'Your Business Name'}
                       </div>
-                      {preview.abn && <div style={{ fontSize: 9, color: '#6B7280', marginBottom: 2 }}>ABN: {preview.abn}</div>}
-                      {preview.phone && <div style={{ fontSize: 9, color: '#6B7280', marginBottom: 2 }}>Ph: {preview.phone}</div>}
+                      {preview.abn     && <div style={{ fontSize: 9, color: '#6B7280', marginBottom: 2 }}>ABN: {preview.abn}</div>}
+                      {preview.phone   && <div style={{ fontSize: 9, color: '#6B7280', marginBottom: 2 }}>Ph: {preview.phone}</div>}
                       {preview.address && <div style={{ fontSize: 9, color: '#6B7280' }}>{preview.address}</div>}
                     </div>
                     <div style={{ textAlign: 'right' }}>
-                      <div style={{ fontSize: 22, fontWeight: 900, color: '#111827', letterSpacing: '-0.03em', marginBottom: 2 }}>INVOICE</div>
-                      <div style={{ fontSize: 11, fontWeight: 700, color: '#1D4ED8', marginBottom: 2 }}>{preview.invoiceNumber}</div>
+                      <div style={{ fontSize: 22, fontWeight: 900, color: '#111827', letterSpacing: '-0.03em', marginBottom: 3 }}>INVOICE</div>
+                      <div style={{ fontSize: 11, fontWeight: 700, color: '#374151', marginBottom: 2 }}>{preview.invoiceNumber}</div>
                       <div style={{ fontSize: 9, color: '#6B7280', marginBottom: 1 }}>Date: <strong style={{ color: '#374151' }}>{formatDateShort(preview.issueDate)}</strong></div>
                       <div style={{ fontSize: 9, color: '#6B7280' }}>Due: <strong style={{ color: '#374151' }}>{formatDateShort(preview.dueDate)}</strong></div>
                     </div>
@@ -850,118 +938,173 @@ const InvoicePanel = ({
 
                   <div style={{ borderTop: '1.5px solid #E5E7EB', marginBottom: 14 }} />
 
-                  {/* BILLING */}
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 16 }}>
+                  {/* ── BILL TO + INVOICE DETAILS ── */}
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 14 }}>
+                    {/* BILL TO */}
                     <div style={{ background: '#F9FAFB', borderRadius: 8, padding: '10px 12px', border: '1px solid #E5E7EB' }}>
-                      <div style={{ fontSize: 7, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: '#6B7280', marginBottom: 4 }}>Bill To</div>
-                      {preview.clientOrganisation && <div style={{ fontSize: 10, fontWeight: 700, color: '#111827', marginBottom: 2 }}>{preview.clientOrganisation}</div>}
-                      <div style={{ fontSize: 10, fontWeight: preview.clientOrganisation ? 400 : 700, color: '#111827', marginBottom: 2 }}>{preview.clientName || 'Participant / Organisation'}</div>
-                      {preview.clientContact && <div style={{ fontSize: 8.5, color: '#6B7280', marginBottom: 1 }}>Contact: {preview.clientContact}</div>}
-                      {preview.clientAddress && <div style={{ fontSize: 8.5, color: '#6B7280', marginBottom: 1 }}>{preview.clientAddress}</div>}
-                      {preview.clientEmail && <div style={{ fontSize: 8.5, color: '#6B7280', marginBottom: 1 }}>{preview.clientEmail}</div>}
-                      {preview.clientParticipantNumber && <div style={{ fontSize: 8.5, color: '#6B7280' }}>NDIS No: <strong style={{ color: '#374151' }}>{preview.clientParticipantNumber}</strong></div>}
+                      <div style={sectionTitle}>Bill To</div>
+                      {preview.clientOrganisation && (
+                        <div style={{ fontSize: 10, fontWeight: 700, color: '#111827', marginBottom: 2 }}>{preview.clientOrganisation}</div>
+                      )}
+                      <div style={{ fontSize: 10, fontWeight: preview.clientOrganisation ? 400 : 700, color: '#111827', marginBottom: 2 }}>
+                        {preview.clientName || 'Participant / Organisation'}
+                      </div>
+                      {preview.clientContact && (
+                        <div style={{ fontSize: 8.5, color: '#6B7280', marginBottom: 1 }}>Contact: {preview.clientContact}</div>
+                      )}
+                      {preview.clientAddress && (
+                        <div style={{ fontSize: 8.5, color: '#6B7280', marginBottom: 1 }}>{preview.clientAddress}</div>
+                      )}
+                      {preview.clientEmail && (
+                        <div style={{ fontSize: 8.5, color: '#6B7280', marginBottom: 1 }}>{preview.clientEmail}</div>
+                      )}
+                      {preview.clientPhone && (
+                        <div style={{ fontSize: 8.5, color: '#6B7280', marginBottom: 1 }}>Ph: {preview.clientPhone}</div>
+                      )}
+                      {preview.clientParticipantNumber && (
+                        <div style={{ fontSize: 8.5, color: '#6B7280' }}>NDIS No: <strong style={{ color: '#374151' }}>{preview.clientParticipantNumber}</strong></div>
+                      )}
                     </div>
+
+                    {/* INVOICE DETAILS */}
                     <div style={{ background: '#F9FAFB', borderRadius: 8, padding: '10px 12px', border: '1px solid #E5E7EB' }}>
-                      <div style={{ fontSize: 7, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: '#6B7280', marginBottom: 4 }}>Invoice Details</div>
+                      <div style={sectionTitle}>Invoice Details</div>
                       {[
                         ['Service From', formatDateShort(preview.periodStart)],
                         ['Service To',   formatDateShort(preview.periodEnd)],
                         ['Due Date',     formatDateShort(preview.dueDate)],
                         ['GST',          '0% (GST-Free)'],
-                        ['Balance Due',  fmt$(preview.total)],
                       ].map(([l, v]) => (
                         <div key={l} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 2.5 }}>
-                          <span style={{ fontSize: 8.5, color: '#6B7280' }}>{l}</span>
-                          <span style={{ fontSize: 8.5, fontWeight: 600, color: l === 'Balance Due' ? '#16A34A' : '#374151' }}>{v}</span>
+                          <span style={cellLabel}>{l}</span>
+                          <span style={cellValue}>{v}</span>
                         </div>
                       ))}
+                      {/* BALANCE DUE — prominent */}
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 6, paddingTop: 6, borderTop: '1px solid #E5E7EB' }}>
+                        <span style={{ fontSize: 9, fontWeight: 700, color: '#111827', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Balance Due</span>
+                        <span style={{ fontSize: 13, fontWeight: 900, color: '#111827' }}>{fmt$(preview.total)}</span>
+                      </div>
                     </div>
                   </div>
 
-                  {/* LINE ITEMS */}
+                  {/* ── SERVICES RENDERED ── */}
                   <div style={{ marginBottom: 14 }}>
-                    <div style={{ fontSize: 7, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: '#6B7280', marginBottom: 4 }}>Services Rendered</div>
-                    <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                      <thead>
-                        <tr>
-                          {['#', 'Description', 'Item Code', 'Qty', 'Unit', 'Rate', 'Total (ex)', 'GST', 'Total (inc)'].map((h, i) => (
-                            <th key={h} style={{ fontSize: 7, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: '#6B7280', padding: '5px 6px', background: '#F3F4F6', borderBottom: '1px solid #E5E7EB', whiteSpace: 'nowrap', textAlign: i >= 3 ? 'right' : 'left' }}>{h}</th>
-                          ))}
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {lineGroups.map((group, idx) => (
-                          <tr key={group.category} style={{ background: idx % 2 === 1 ? '#FAFAFA' : '#FFFFFF' }}>
-                            <td style={{ fontSize: 8.5, color: '#9CA3AF', padding: '6px 6px', borderBottom: '0.5px solid #F3F4F6' }}>{idx + 1}</td>
-                            <td style={{ fontSize: 9, fontWeight: 600, color: '#111827', padding: '6px 6px', borderBottom: '0.5px solid #F3F4F6' }}>
-                              {group.label}
-                              <div style={{ fontSize: 7.5, color: '#9CA3AF', fontWeight: 400, marginTop: 1 }}>{group.shifts.length} shift{group.shifts.length !== 1 ? 's' : ''}</div>
-                            </td>
-                            <td style={{ fontSize: 7.5, color: '#6B7280', fontFamily: 'monospace', padding: '6px 6px', borderBottom: '0.5px solid #F3F4F6' }}>{group.ndisCode}</td>
-                            <td style={{ fontSize: 9, color: '#374151', padding: '6px 6px', textAlign: 'right', borderBottom: '0.5px solid #F3F4F6' }}>{group.quantity}</td>
-                            <td style={{ fontSize: 8.5, color: '#9CA3AF', padding: '6px 6px', textAlign: 'right', borderBottom: '0.5px solid #F3F4F6' }}>{group.isSleepover ? 'night' : 'hr'}</td>
-                            <td style={{ fontSize: 9, color: '#374151', padding: '6px 6px', textAlign: 'right', borderBottom: '0.5px solid #F3F4F6' }}>{fmt$(group.rate)}</td>
-                            <td style={{ fontSize: 9, fontWeight: 600, color: '#374151', padding: '6px 6px', textAlign: 'right', borderBottom: '0.5px solid #F3F4F6' }}>{fmt$(group.subtotal)}</td>
-                            <td style={{ fontSize: 8.5, color: '#9CA3AF', padding: '6px 6px', textAlign: 'right', borderBottom: '0.5px solid #F3F4F6' }}>$0.00</td>
-                            <td style={{ fontSize: 9, fontWeight: 700, color: '#111827', padding: '6px 6px', textAlign: 'right', borderBottom: '0.5px solid #F3F4F6' }}>{fmt$(group.subtotal)}</td>
+                    <div style={sectionTitle}>Services Rendered</div>
+                    {/* Boxed table */}
+                    <div style={{ border: '1px solid #E5E7EB', borderRadius: 8, overflow: 'hidden' }}>
+                      <table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed' }}>
+                        <thead>
+                          <tr style={{ background: '#F3F4F6' }}>
+                            {[
+                              { h: '#',          w: '5%',  align: 'center' as const },
+                              { h: 'DESCRIPTION', w: '28%', align: 'left' as const },
+                              { h: 'ITEM CODE',  w: '18%', align: 'left' as const },
+                              { h: 'QTY',        w: '8%',  align: 'right' as const },
+                              { h: 'UNIT',       w: '7%',  align: 'right' as const },
+                              { h: 'RATE',       w: '11%', align: 'right' as const },
+                              { h: 'TOTAL EX',   w: '11%', align: 'right' as const },
+                              { h: 'GST',        w: '6%',  align: 'right' as const },
+                              { h: 'TOTAL INC',  w: '11%', align: 'right' as const },
+                            ].map(({ h, w, align }) => (
+                              <th key={h} style={{
+                                width: w, padding: '5px 6px',
+                                fontSize: 7, fontWeight: 700,
+                                textTransform: 'uppercase', letterSpacing: '0.05em',
+                                color: '#6B7280', textAlign: align,
+                                borderBottom: '1px solid #E5E7EB',
+                              }}>{h}</th>
+                            ))}
                           </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                        </thead>
+                        <tbody>
+                          {lineGroups.map((group, idx) => (
+                            <tr key={group.category} style={{ background: idx % 2 === 1 ? '#FAFAFA' : '#FFFFFF' }}>
+                              <td style={{ fontSize: 8.5, color: '#9CA3AF', padding: '7px 6px', textAlign: 'center', borderBottom: '0.5px solid #F3F4F6' }}>{idx + 1}</td>
+                              <td style={{ padding: '7px 6px', borderBottom: '0.5px solid #F3F4F6' }}>
+                                <div style={{ fontSize: 9, fontWeight: 600, color: '#111827' }}>{group.label}</div>
+                                <div style={{ fontSize: 7.5, color: '#9CA3AF', marginTop: 1 }}>{group.shifts.length} shift{group.shifts.length !== 1 ? 's' : ''}</div>
+                              </td>
+                              <td style={{ fontSize: 7.5, color: '#6B7280', fontFamily: 'monospace', padding: '7px 6px', borderBottom: '0.5px solid #F3F4F6' }}>{group.ndisCode}</td>
+                              <td style={{ fontSize: 9, color: '#374151', padding: '7px 6px', textAlign: 'right', borderBottom: '0.5px solid #F3F4F6', fontVariantNumeric: 'tabular-nums' }}>{group.quantity}</td>
+                              <td style={{ fontSize: 8.5, color: '#9CA3AF', padding: '7px 6px', textAlign: 'right', borderBottom: '0.5px solid #F3F4F6' }}>{group.isSleepover ? 'night' : 'hr'}</td>
+                              <td style={{ fontSize: 9, color: '#374151', padding: '7px 6px', textAlign: 'right', borderBottom: '0.5px solid #F3F4F6', fontVariantNumeric: 'tabular-nums' }}>{fmt$(group.rate)}</td>
+                              <td style={{ fontSize: 9, fontWeight: 600, color: '#374151', padding: '7px 6px', textAlign: 'right', borderBottom: '0.5px solid #F3F4F6', fontVariantNumeric: 'tabular-nums' }}>{fmt$(group.subtotal)}</td>
+                              <td style={{ fontSize: 8.5, color: '#9CA3AF', padding: '7px 6px', textAlign: 'right', borderBottom: '0.5px solid #F3F4F6' }}>$0.00</td>
+                              <td style={{ fontSize: 9, fontWeight: 700, color: '#111827', padding: '7px 6px', textAlign: 'right', borderBottom: '0.5px solid #F3F4F6', fontVariantNumeric: 'tabular-nums' }}>{fmt$(group.subtotal)}</td>
+                            </tr>
+                          ))}
+                          {lineGroups.length === 0 && (
+                            <tr>
+                              <td colSpan={9} style={{ padding: '12px 6px', textAlign: 'center', fontSize: 9, color: '#9CA3AF' }}>
+                                No line items — shifts will appear here after selecting a period.
+                              </td>
+                            </tr>
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
                   </div>
 
-                  {/* TOTALS */}
+                  {/* ── TOTALS ── */}
                   <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 14 }}>
-                    <div style={{ width: 220 }}>
-                      <div style={{ background: '#F9FAFB', borderRadius: 8, border: '1px solid #E5E7EB', overflow: 'hidden' }}>
-                        {[['Subtotal (ex GST)', fmt$(preview.total)], ['GST', '$0.00']].map(([l, v]) => (
+                    <div style={{ minWidth: 220, maxWidth: 260 }}>
+                      <div style={{ border: '1px solid #E5E7EB', borderRadius: 8, overflow: 'hidden' }}>
+                        {[
+                          ['SUBTOTAL (EX GST)', fmt$(preview.total)],
+                          ['GST',               '$0.00'],
+                        ].map(([l, v]) => (
                           <div key={l} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 10px', borderBottom: '0.5px solid #E5E7EB' }}>
-                            <span style={{ fontSize: 9, color: '#6B7280' }}>{l}</span>
-                            <span style={{ fontSize: 9, fontWeight: 600, color: '#374151' }}>{v}</span>
+                            <span style={cellLabel}>{l}</span>
+                            <span style={cellValue}>{v}</span>
                           </div>
                         ))}
-                        <div style={{ display: 'flex', justifyContent: 'space-between', padding: '9px 10px', background: '#1D4ED8' }}>
-                          <span style={{ fontSize: 9.5, fontWeight: 700, color: '#FFFFFF' }}>TOTAL (INC GST)</span>
-                          <span style={{ fontSize: 13, fontWeight: 900, color: '#FFFFFF' }}>{fmt$(preview.total)}</span>
+                        {/* BALANCE DUE row */}
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 10px', background: '#111827' }}>
+                          <span style={{ fontSize: 9, fontWeight: 700, color: '#FFFFFF', textTransform: 'uppercase', letterSpacing: '0.05em' }}>BALANCE DUE</span>
+                          <span style={{ fontSize: 15, fontWeight: 900, color: '#FFFFFF', fontVariantNumeric: 'tabular-nums' }}>{fmt$(preview.total)}</span>
                         </div>
                       </div>
                     </div>
                   </div>
 
-                  {/* PAYMENT DETAILS */}
+                  {/* ── PAYMENT DETAILS ── */}
                   {(preview.bankName || preview.bsb || preview.accountNumber) && (
-                    <div style={{ background: '#F0FDF4', borderRadius: 8, border: '1px solid #BBF7D0', padding: '10px 12px', marginBottom: 10 }}>
-                      <div style={{ fontSize: 7, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: '#15803D', marginBottom: 6 }}>Payment Details</div>
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8, marginBottom: 6 }}>
+                    <div style={{ background: '#F9FAFB', borderRadius: 8, border: '1px solid #E5E7EB', padding: '10px 12px', marginBottom: 10 }}>
+                      <div style={sectionTitle}>Payment Details</div>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8, marginBottom: 8 }}>
                         {[
-                          preview.accountName  && { k: 'Account Name', v: preview.accountName },
-                          preview.bankName     && { k: 'Bank',          v: preview.bankName },
-                          preview.bsb          && { k: 'BSB',           v: preview.bsb },
-                          preview.accountNumber && { k: 'Account No.',  v: preview.accountNumber },
+                          preview.accountName   && { k: 'Account Name', v: preview.accountName },
+                          preview.bankName      && { k: 'Bank',          v: preview.bankName },
+                          preview.bsb           && { k: 'BSB',           v: preview.bsb },
+                          preview.accountNumber && { k: 'Account No.',   v: preview.accountNumber },
                         ].filter(Boolean).map(item => item && (
                           <div key={item.k}>
-                            <div style={{ fontSize: 7.5, color: '#6B7280' }}>{item.k}</div>
-                            <div style={{ fontSize: 9, fontWeight: 600, color: '#111827' }}>{item.v}</div>
+                            <div style={cellLabel}>{item.k}</div>
+                            <div style={{ ...cellValue, fontSize: 9.5 }}>{item.v}</div>
                           </div>
                         ))}
                       </div>
-                      <div style={{ fontSize: 8, color: '#374151', borderTop: '0.5px solid #BBF7D0', paddingTop: 6 }}>
+                      {/* Reference — inside the payment box */}
+                      <div style={{ borderTop: '0.5px solid #E5E7EB', paddingTop: 6, fontSize: 8.5, color: '#374151' }}>
                         Reference: <strong>{preview.invoiceNumber}</strong> · Payment due within 7 days of invoice date.
                       </div>
                     </div>
                   )}
 
-                  {/* NOTES */}
+                  {/* ── NOTES ── */}
                   {preview.invoiceNotes && (
                     <div style={{ border: '1px solid #E5E7EB', borderRadius: 8, padding: '8px 10px', marginBottom: 10 }}>
-                      <div style={{ fontSize: 7, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: '#6B7280', marginBottom: 4 }}>Notes</div>
+                      <div style={sectionTitle}>Notes</div>
                       <p style={{ fontSize: 8.5, color: '#6B7280', whiteSpace: 'pre-line', margin: 0 }}>{preview.invoiceNotes}</p>
                     </div>
                   )}
 
-                  {/* FOOTER */}
+                  {/* ── FOOTER ── */}
                   <div style={{ borderTop: '1px solid #E5E7EB', paddingTop: 8, display: 'flex', justifyContent: 'space-between' }}>
-                    <p style={{ fontSize: 7.5, color: '#9CA3AF', margin: 0 }}>This invoice is GST-free under the NDIS.{preview.abn ? ` ABN: ${preview.abn}` : ''}</p>
+                    <p style={{ fontSize: 7.5, color: '#9CA3AF', margin: 0 }}>
+                      This invoice is GST-free under the NDIS.{preview.abn ? ` ABN: ${preview.abn}` : ''}
+                    </p>
                     <p style={{ fontSize: 7.5, color: '#9CA3AF', margin: 0 }}>Thank you for your payment.</p>
                   </div>
 
