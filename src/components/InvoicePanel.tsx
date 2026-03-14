@@ -167,10 +167,16 @@ const InvoicePanel = ({ shifts, clients, settings, onIncrementCounter }: Invoice
       const html2pdf = (await import('html2pdf.js')).default;
       const element = printRef.current;
       const opt = {
-        margin: [12, 14, 12, 14],
+        margin: [10, 12, 10, 12],
         filename: `${preview.invoiceNumber}.pdf`,
-        image: { type: 'jpeg', quality: 0.98 },
-        html2canvas: { scale: 2, useCORS: true, letterRendering: true },
+        image: { type: 'png' },
+        html2canvas: {
+          scale: 3,
+          useCORS: true,
+          letterRendering: true,
+          logging: false,
+          backgroundColor: '#ffffff',
+        },
         jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
         pagebreak: { mode: ['avoid-all', 'css', 'legacy'] },
       };
