@@ -407,17 +407,34 @@ const AppSettingsPanel = ({ settings, loading, onSave }: AppSettingsPanelProps) 
           onChange={v => set('abn', v)}
           placeholder="xx xxx xxx xxx"
         />
-        <div className="space-y-1.5">
-          <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Default Invoice Notes</label>
-          <textarea
-            value={String(val('invoice_notes', settings.invoice_notes) ?? '')}
-            onChange={e => set('invoice_notes', e.target.value)}
-            placeholder="e.g. GST-free supply – no GST charged. Payment due within 14 days."
-            rows={3}
-            className="glass-input w-full text-foreground resize-none"
-            style={{ boxSizing: 'border-box' }}
+        <div className="space-y-3">
+          <ToggleRowItem
+            label="Use Default Invoice Notes"
+            description="Automatically include the note template below on new invoices."
+            checked={val('use_default_invoice_notes', settings.use_default_invoice_notes ?? true) as boolean}
+            onChange={v => set('use_default_invoice_notes', v)}
           />
-          <p className="text-[10px] text-muted-foreground">Appears at the bottom of all invoices unless overridden per client.</p>
+          <div className="space-y-1.5">
+            <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Default Invoice Notes</label>
+            <textarea
+              value={String(val('invoice_notes', settings.invoice_notes) ?? '')}
+              onChange={e => set('invoice_notes', e.target.value)}
+              placeholder="e.g. GST-free supply – no GST charged. Payment due within 14 days."
+              rows={3}
+              className="glass-input w-full text-foreground resize-none"
+              style={{
+                boxSizing: 'border-box',
+                opacity: (val('use_default_invoice_notes', settings.use_default_invoice_notes ?? true) as boolean) ? 1 : 0.4,
+                pointerEvents: (val('use_default_invoice_notes', settings.use_default_invoice_notes ?? true) as boolean) ? 'auto' : 'none',
+                transition: 'opacity 0.2s ease',
+              }}
+            />
+            <p className="text-[10px] text-muted-foreground">
+              {(val('use_default_invoice_notes', settings.use_default_invoice_notes ?? true) as boolean)
+                ? 'Automatically appended to new invoices. Turn off to skip this note.'
+                : 'Notes are saved but will not be added to new invoices automatically.'}
+            </p>
+          </div>
         </div>
       </div>
 

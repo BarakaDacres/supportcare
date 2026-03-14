@@ -11,34 +11,60 @@ import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
-// Apply saved theme before any render to prevent flash
-const savedRaw = localStorage.getItem('income-ledger-data');
-if (savedRaw) {
+// ── Theme bootstrap (runs once before first paint) ──────────────────────────
+// Priority: explicit user override stored in localStorage > system preference
+;(() => {
   try {
-    const saved = JSON.parse(savedRaw);
-    if (saved?.theme === 'dark') document.documentElement.classList.add('dark');
-    else document.documentElement.classList.remove('dark');
+    const raw = localStorage.getItem('income-ledger-data');
+    const saved = raw ? JSON.parse(raw) : {};
+    if (saved?.themeOverride === 'dark') {
+      document.documentElement.classList.add('dark');
+    } else if (saved?.themeOverride === 'light') {
+      document.documentElement.classList.remove('dark');
+    } else {
+      // No explicit override → follow system (including legacy 'theme' key migration)
+      const legacyDark = saved?.theme === 'dark';
+      const systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      // If there's a legacy explicit key use it once, otherwise follow system
+      const isDark = (saved?.themeOverride === undefined && saved?.theme !== undefined)
+        ? legacyDark
+        : systemDark;
+      document.documentElement.classList.toggle('dark', isDark);
+    }
   } catch { /* ignore */ }
-}
+})();
 
 const AppRoutes = () => {
   const auth = useAuth();
 
-  // Keep dark class in sync when on the auth screen (store not mounted)
-  // Listens to both same-tab (theme-sync) and cross-tab (storage) changes
+  // Keep the dark class in sync:
+  //   1. When system appearance changes (and user has no override)
+  //   2. When the user explicitly toggles via app (theme-sync event)
+  //   3. Cross-tab (storage event)
   useEffect(() => {
-    const syncTheme = () => {
+    const applyTheme = () => {
       try {
         const raw = localStorage.getItem('income-ledger-data');
         const saved = raw ? JSON.parse(raw) : {};
-        document.documentElement.classList.toggle('dark', saved?.theme === 'dark');
+        if (saved?.themeOverride === 'dark') {
+          document.documentElement.classList.add('dark');
+        } else if (saved?.themeOverride === 'light') {
+          document.documentElement.classList.remove('dark');
+        } else {
+          const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+          document.documentElement.classList.toggle('dark', prefersDark);
+        }
       } catch { /* ignore */ }
     };
-    window.addEventListener('storage', syncTheme);
-    window.addEventListener('theme-sync', syncTheme);
+
+    const mq = window.matchMedia('(prefers-color-scheme: dark)');
+    mq.addEventListener('change', applyTheme);
+    window.addEventListener('storage', applyTheme);
+    window.addEventListener('theme-sync', applyTheme);
     return () => {
-      window.removeEventListener('storage', syncTheme);
-      window.removeEventListener('theme-sync', syncTheme);
+      mq.removeEventListener('change', applyTheme);
+      window.removeEventListener('storage', applyTheme);
+      window.removeEventListener('theme-sync', applyTheme);
     };
   }, []);
 
