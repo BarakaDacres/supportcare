@@ -47,24 +47,24 @@ const BottomTabBar = ({ activeTab, onTabChange, hidden = false }: BottomTabBarPr
       <div
         className="mx-auto"
         style={{
-          width: '87%',
-          maxWidth: 420,
-          height: 64,
-          borderRadius: 32,
+          width: '88%',
+          maxWidth: 430,
+          height: 68,
+          borderRadius: 34,
           display: 'flex',
           alignItems: 'center',
-          justifyContent: 'space-between',
-          paddingLeft: 6,
-          paddingRight: 6,
+          justifyContent: 'space-around',
+          paddingLeft: 8,
+          paddingRight: 8,
           marginBottom: 10,
           /* Glass surface */
           background: 'hsl(var(--lg-pill-bg))',
-          backdropFilter: 'blur(48px) saturate(200%)',
-          WebkitBackdropFilter: 'blur(48px) saturate(200%)',
+          backdropFilter: 'blur(48px) saturate(180%)',
+          WebkitBackdropFilter: 'blur(48px) saturate(180%)',
           border: '1px solid hsl(var(--lg-pill-border))',
           boxShadow:
-            '0 4px 24px hsl(var(--lg-pill-shadow-color)),' +
-            '0 1px 6px hsl(var(--lg-pill-shadow-color)),' +
+            '0 8px 32px hsl(var(--lg-pill-shadow-color)),' +
+            '0 2px 8px hsl(var(--lg-pill-shadow-color)),' +
             'inset 0 1px 0 hsl(var(--lg-specular)),' +
             'inset 0 -0.5px 0 hsl(var(--lg-pill-border))',
         }}
@@ -80,16 +80,15 @@ const BottomTabBar = ({ activeTab, onTabChange, hidden = false }: BottomTabBarPr
               aria-label={tab.label}
               onClick={() => onTabChange(tab.id)}
               style={{
-                /* Each tab takes equal space */
+                /* Each tab takes equal space, content centered */
                 flex: 1,
                 height: '100%',
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: 'center',
                 justifyContent: 'center',
-                gap: 3,
+                gap: 4,
                 position: 'relative',
-                borderRadius: 28,
                 userSelect: 'none',
                 WebkitTapHighlightColor: 'transparent',
                 transition: 'transform 0.15s cubic-bezier(0.34,1.2,0.64,1)',
@@ -104,23 +103,23 @@ const BottomTabBar = ({ activeTab, onTabChange, hidden = false }: BottomTabBarPr
               onPointerLeave={() => handlePointerUp(tab.id)}
               onPointerCancel={() => handlePointerUp(tab.id)}
             >
-              {/* ── Compact capsule/pill highlight — active only ── */}
+              {/* ── Active highlight: padding-based capsule so it auto-sizes to content ── */}
               {isActive && (
                 <span
                   aria-hidden="true"
                   style={{
                     position: 'absolute',
-                    /* Tight horizontal padding, fixed height — no overflow */
-                    left: '50%',
+                    /* Span full width of the flex cell minus small side margins */
+                    left: '10%',
+                    right: '10%',
                     top: '50%',
-                    transform: 'translate(-50%, -50%)',
-                    width: 52,
-                    height: 44,
-                    borderRadius: 16,
+                    transform: 'translateY(-50%)',
+                    height: 46,
+                    borderRadius: 14,
                     background: 'hsl(var(--lg-active-bg))',
                     border: '1px solid hsl(var(--lg-active-border))',
                     pointerEvents: 'none',
-                    transition: 'opacity 0.2s ease',
+                    transition: 'opacity 0.18s ease',
                   }}
                 />
               )}
@@ -132,9 +131,9 @@ const BottomTabBar = ({ activeTab, onTabChange, hidden = false }: BottomTabBarPr
                   zIndex: 1,
                   width: 20,
                   height: 20,
-                  strokeWidth: isActive ? 2.1 : 1.5,
+                  strokeWidth: isActive ? 2.2 : 1.6,
                   color: isActive ? 'hsl(var(--primary))' : 'hsl(var(--muted-foreground))',
-                  transition: 'color 0.18s ease, stroke-width 0.18s ease',
+                  transition: 'color 0.18s ease',
                   flexShrink: 0,
                 }}
               />
@@ -145,12 +144,13 @@ const BottomTabBar = ({ activeTab, onTabChange, hidden = false }: BottomTabBarPr
                   position: 'relative',
                   zIndex: 1,
                   fontSize: 10,
-                  fontWeight: isActive ? 600 : 500,
+                  fontWeight: isActive ? 650 : 500,
                   lineHeight: 1,
                   letterSpacing: '0.01em',
                   color: isActive ? 'hsl(var(--primary))' : 'hsl(var(--muted-foreground))',
-                  transition: 'color 0.18s ease',
+                  transition: 'color 0.18s ease, font-weight 0.18s ease',
                   flexShrink: 0,
+                  whiteSpace: 'nowrap',
                 }}
               >
                 {tab.label}

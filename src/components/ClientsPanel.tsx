@@ -28,6 +28,9 @@ const emptyForm = () => ({
   phone: '',
   address: '',
   participant_number: '',
+  organisation_name: '',
+  billing_contact: '',
+  email: '',
   default_service_note: '',
   default_start_time: '',
   default_end_time: '',
@@ -39,6 +42,7 @@ const emptyForm = () => ({
 type ClientForm = ReturnType<typeof emptyForm>;
 
 function clientToForm(c: Client): ClientForm {
+  const cx = c as unknown as Record<string, unknown>;
   return {
     name: c.name,
     display_name: c.display_name ?? '',
@@ -47,6 +51,9 @@ function clientToForm(c: Client): ClientForm {
     phone: c.phone ?? '',
     address: c.address ?? '',
     participant_number: c.participant_number ?? '',
+    organisation_name: (cx.organisation_name as string) ?? '',
+    billing_contact: (cx.billing_contact as string) ?? '',
+    email: (cx.email as string) ?? '',
     default_service_note: c.default_service_note ?? '',
     default_start_time: c.default_start_time ?? '',
     default_end_time: c.default_end_time ?? '',
@@ -256,8 +263,11 @@ const ClientFormSheet = ({
           {/* ── Billing Defaults ── */}
           <div className="space-y-3">
             <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Billing Details</p>
+            <FormField label="Organisation / NDIS Provider" value={form.organisation_name} onChange={v => set('organisation_name', v)} placeholder="e.g. Sunrise Support Services" hint="Appears as the organisation on invoices (Bill To)" />
+            <FormField label="Billing Contact" value={form.billing_contact} onChange={v => set('billing_contact', v)} placeholder="e.g. Jane Smith" />
             <FormField label="Participant / Reference Number" value={form.participant_number} onChange={v => set('participant_number', v)} placeholder="NDIS participant number" />
             <FormField label="Invoice Label" value={form.invoice_label} onChange={v => set('invoice_label', v)} placeholder="Name to use on invoices" hint="Override for how this client appears on invoices" />
+            <FormField label="Email" value={form.email} onChange={v => set('email', v)} placeholder="billing@email.com" type="email" />
             <div className="space-y-1.5">
               <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Invoice Notes for this Client</label>
               <textarea
