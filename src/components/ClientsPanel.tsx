@@ -67,6 +67,60 @@ function formatDateLabel(dateStr: string) {
   return `${days[d.getDay()]} ${d.getDate()} ${MONTH_NAMES[d.getMonth()]}`;
 }
 
+/* ══════════════════════════════════════════════════
+   HOISTED sub-components — defined OUTSIDE the form
+   so React never remounts them between renders,
+   which is what was causing focus-loss after 1 char
+════════════════════════════════════════════════════ */
+
+const FormField = ({
+  label, value, onChange, placeholder, type = 'text', hint,
+}: {
+  label: string; value: string; onChange: (v: string) => void;
+  placeholder?: string; type?: string; hint?: string;
+}) => (
+  <div className="space-y-1">
+    <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">{label}</label>
+    <input
+      type={type}
+      value={value}
+      onChange={e => onChange(e.target.value)}
+      placeholder={placeholder}
+      className="glass-input w-full text-foreground"
+      style={{ minHeight: 44 }}
+    />
+    {hint && <p className="text-[10px] text-muted-foreground">{hint}</p>}
+  </div>
+);
+
+const FormToggle = ({
+  label, checked, onChange, icon,
+}: {
+  label: string; checked: boolean; onChange: (v: boolean) => void; icon: React.ReactNode;
+}) => (
+  <button
+    type="button"
+    onClick={() => onChange(!checked)}
+    className="w-full flex items-center gap-3 rounded-2xl border transition-all duration-200 px-4"
+    style={{
+      minHeight: 44,
+      borderColor: checked ? 'hsl(var(--primary)/0.5)' : 'hsl(var(--border))',
+      background: checked ? 'hsl(var(--primary)/0.08)' : 'transparent',
+    }}
+  >
+    <span style={{ color: checked ? 'hsl(var(--primary))' : 'hsl(var(--muted-foreground))' }}>{icon}</span>
+    <span className="text-sm font-semibold flex-1 text-left"
+      style={{ color: checked ? 'hsl(var(--primary))' : 'hsl(var(--foreground))' }}>
+      {label}
+    </span>
+    <span className="relative shrink-0 rounded-full transition-all duration-200"
+      style={{ width: 42, height: 24, background: checked ? 'hsl(var(--primary))' : 'hsl(var(--muted))' }}>
+      <span className="absolute top-[3px] rounded-full bg-white shadow-sm transition-all duration-200"
+        style={{ width: 18, height: 18, left: checked ? 21 : 3 }} />
+    </span>
+  </button>
+);
+
 /* ═══════════════════════════════════════
    ClientForm component
 ═══════════════════════════════════════ */
@@ -84,6 +138,7 @@ const ClientFormSheet = ({
   const [form, setForm] = useState<ClientForm>(initial);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+
   const set = <K extends keyof ClientForm>(k: K, v: ClientForm[K]) =>
     setForm(prev => ({ ...prev, [k]: v }));
 
@@ -100,50 +155,6 @@ const ClientFormSheet = ({
       setSaving(false);
     }
   };
-
-  const Toggle = ({ label, fieldKey, icon }: { label: string; fieldKey: 'default_is_sleepover'; icon: React.ReactNode }) => (
-    <button
-      type="button"
-      onClick={() => set(fieldKey, !form[fieldKey])}
-      className="w-full flex items-center gap-3 rounded-2xl border transition-all duration-200 px-4"
-      style={{
-        minHeight: 44,
-        borderColor: form[fieldKey] ? 'hsl(var(--primary)/0.5)' : 'hsl(var(--border))',
-        background: form[fieldKey] ? 'hsl(var(--primary)/0.08)' : 'transparent',
-      }}
-    >
-      <span style={{ color: form[fieldKey] ? 'hsl(var(--primary))' : 'hsl(var(--muted-foreground))' }}>{icon}</span>
-      <span className="text-sm font-semibold flex-1 text-left"
-        style={{ color: form[fieldKey] ? 'hsl(var(--primary))' : 'hsl(var(--foreground))' }}>
-        {label}
-      </span>
-      <span className="relative shrink-0 rounded-full transition-all duration-200"
-        style={{ width: 42, height: 24, background: form[fieldKey] ? 'hsl(var(--primary))' : 'hsl(var(--muted))' }}>
-        <span className="absolute top-[3px] rounded-full bg-white shadow-sm transition-all duration-200"
-          style={{ width: 18, height: 18, left: form[fieldKey] ? 21 : 3 }} />
-      </span>
-    </button>
-  );
-
-  const Field = ({
-    label, value, onChange, placeholder, type = 'text', hint,
-  }: {
-    label: string; value: string; onChange: (v: string) => void;
-    placeholder?: string; type?: string; hint?: string;
-  }) => (
-    <div className="space-y-1">
-      <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">{label}</label>
-      <input
-        type={type}
-        value={value}
-        onChange={e => onChange(e.target.value)}
-        placeholder={placeholder}
-        className="glass-input w-full text-foreground"
-        style={{ minHeight: 44 }}
-      />
-      {hint && <p className="text-[10px] text-muted-foreground">{hint}</p>}
-    </div>
-  );
 
   return (
     <div
@@ -184,10 +195,10 @@ const ClientFormSheet = ({
           {/* ── Basic Details ── */}
           <div className="space-y-3">
             <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Basic Details</p>
-            <Field label="Full Name *" value={form.name} onChange={v => set('name', v)} placeholder="e.g. Alex Johnson" />
-            <Field label="Display / Short Name" value={form.display_name} onChange={v => set('display_name', v)} placeholder="e.g. Alex" hint="Used on shift cards and invoices when shorter name is preferred" />
-            <Field label="Phone" value={form.phone} onChange={v => set('phone', v)} placeholder="+61 4XX XXX XXX" type="tel" />
-            <Field label="Address / Location" value={form.address} onChange={v => set('address', v)} placeholder="Suburb or full address" />
+            <FormField label="Full Name *" value={form.name} onChange={v => set('name', v)} placeholder="e.g. Alex Johnson" />
+            <FormField label="Display / Short Name" value={form.display_name} onChange={v => set('display_name', v)} placeholder="e.g. Alex" hint="Used on shift cards and invoices when shorter name is preferred" />
+            <FormField label="Phone" value={form.phone} onChange={v => set('phone', v)} placeholder="+61 4XX XXX XXX" type="tel" />
+            <FormField label="Address / Location" value={form.address} onChange={v => set('address', v)} placeholder="Suburb or full address" />
             <div className="space-y-1.5">
               <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Notes</label>
               <textarea
@@ -221,7 +232,12 @@ const ClientFormSheet = ({
                   className="glass-input w-full text-foreground block" style={{ minHeight: 44, boxSizing: 'border-box' }} />
               </div>
             </div>
-            <Toggle label="Default Sleepover" fieldKey="default_is_sleepover" icon={<Moon className="w-4 h-4" />} />
+            <FormToggle
+              label="Default Sleepover"
+              checked={form.default_is_sleepover}
+              onChange={v => set('default_is_sleepover', v)}
+              icon={<Moon className="w-4 h-4" />}
+            />
             <div className="space-y-1.5">
               <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
                 <FileText className="w-3 h-3" /> Default Service Note
@@ -240,8 +256,8 @@ const ClientFormSheet = ({
           {/* ── Billing Defaults ── */}
           <div className="space-y-3">
             <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Billing Details</p>
-            <Field label="Participant / Reference Number" value={form.participant_number} onChange={v => set('participant_number', v)} placeholder="NDIS participant number" />
-            <Field label="Invoice Label" value={form.invoice_label} onChange={v => set('invoice_label', v)} placeholder="Name to use on invoices" hint="Override for how this client appears on invoices" />
+            <FormField label="Participant / Reference Number" value={form.participant_number} onChange={v => set('participant_number', v)} placeholder="NDIS participant number" />
+            <FormField label="Invoice Label" value={form.invoice_label} onChange={v => set('invoice_label', v)} placeholder="Name to use on invoices" hint="Override for how this client appears on invoices" />
             <div className="space-y-1.5">
               <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Invoice Notes for this Client</label>
               <textarea
@@ -304,8 +320,6 @@ const ClientProfile = ({
   const totalHours = clientShifts.filter(s => !s.is_sleepover).reduce((s, sh) => s + Number(sh.hours_worked), 0);
   const totalSleepovers = clientShifts.filter(s => s.is_sleepover).length;
   const recentShifts = clientShifts.slice(0, 5);
-
-  const labelName = client.invoice_label || client.display_name || client.name;
 
   return (
     <div className="space-y-4">
@@ -391,7 +405,8 @@ const ClientProfile = ({
                 {client.default_end_time ? formatTime12h(client.default_end_time) : '—'}
               </span>
               {client.default_is_sleepover && (
-                <span className="glass-chip text-[10px] py-0.5 px-2 gap-1"><Moon className="w-2.5 h-2.5" /> Sleepover</span>
+                <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full text-white"
+                  style={{ background: '#2563EB' }}>Sleepover</span>
               )}
             </div>
           )}
@@ -401,54 +416,24 @@ const ClientProfile = ({
         </div>
       )}
 
-      {/* Invoice info */}
-      {(client.invoice_label || client.participant_number || client.invoice_notes) && (
-        <div className="glass-card p-4 space-y-2">
-          <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Invoice Details</p>
-          {labelName !== client.name && (
-            <div className="flex gap-2 items-start">
-              <FileText className="w-3.5 h-3.5 text-muted-foreground shrink-0 mt-0.5" />
-              <span className="text-xs text-foreground">{labelName}</span>
-            </div>
-          )}
-          {client.invoice_notes && (
-            <p className="text-xs text-muted-foreground">{client.invoice_notes}</p>
-          )}
-        </div>
-      )}
-
       {/* Recent shifts */}
-      <div className="space-y-2">
-        <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
-          Recent Shifts ({clientShifts.length} total)
-        </p>
-        {recentShifts.length === 0 ? (
-          <div className="glass-card p-5 text-center">
-            <p className="text-xs text-muted-foreground">No shifts logged for this client yet.</p>
-          </div>
-        ) : (
-          recentShifts.map(s => (
-            <div key={s.id} className="glass-card p-3 flex items-center justify-between gap-3">
+      {recentShifts.length > 0 && (
+        <div className="glass-card p-4 space-y-3">
+          <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Recent Shifts</p>
+          {recentShifts.map(s => (
+            <div key={s.id} className="flex items-center justify-between gap-3 py-2 border-t border-border first:border-0 first:pt-0">
               <div className="min-w-0">
                 <p className="text-xs font-semibold text-foreground">{formatDateLabel(s.date)}</p>
                 <p className="text-[10px] text-muted-foreground">
                   {formatTime12h(s.start_time)} – {formatTime12h(s.end_time)}
-                  {s.is_sleepover && ' · Sleepover'}
-                  {s.is_public_holiday && ' · Public Holiday'}
+                  {s.is_sleepover ? ' · Sleepover' : ''}
                 </p>
               </div>
-              <p className="text-sm font-bold shrink-0" style={{ color: 'hsl(var(--money-green))' }}>
-                {formatCurrency(effectiveGrossPay(s))}
-              </p>
+              <span className="text-xs font-bold money-text shrink-0">{formatCurrency(effectiveGrossPay(s))}</span>
             </div>
-          ))
-        )}
-        {clientShifts.length > 5 && (
-          <p className="text-[10px] text-muted-foreground text-center">
-            + {clientShifts.length - 5} more shifts
-          </p>
-        )}
-      </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 };
@@ -457,39 +442,14 @@ const ClientProfile = ({
    Main ClientsPanel
 ═══════════════════════════════════════ */
 const ClientsPanel = ({ clients, shifts, loading, onAdd, onUpdate, onDelete }: ClientsPanelProps) => {
-  const [showAdd, setShowAdd] = useState(false);
-  const [editingClient, setEditingClient] = useState<Client | null>(null);
-  const [viewingClient, setViewingClient] = useState<Client | null>(null);
-  const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
-  const [showInactive, setShowInactive] = useState(false);
+  const [view, setView] = useState<'list' | 'profile' | 'add' | 'edit'>('list');
+  const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
+  const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
 
-  const activeClients = clients.filter(c => c.active);
-  const inactiveClients = clients.filter(c => !c.active);
-  const visibleClients = showInactive ? clients : activeClients;
+  const selectedClient = clients.find(c => c.id === selectedClientId) ?? null;
 
   const handleAdd = async (form: ClientForm) => {
     const result = await onAdd({
-      name: form.name.trim(),
-      display_name: form.display_name.trim() || null,
-      notes: form.notes.trim() || null,
-      active: true,
-      phone: form.phone.trim() || null,
-      address: form.address.trim() || null,
-      participant_number: form.participant_number.trim() || null,
-      default_service_note: form.default_service_note.trim() || null,
-      default_start_time: form.default_start_time || null,
-      default_end_time: form.default_end_time || null,
-      default_is_sleepover: form.default_is_sleepover,
-      invoice_label: form.invoice_label.trim() || null,
-      invoice_notes: form.invoice_notes.trim() || null,
-    });
-    if (!result) throw new Error('Failed to save client. Please try again.');
-    setShowAdd(false);
-  };
-
-  const handleEdit = async (form: ClientForm) => {
-    if (!editingClient) return;
-    await onUpdate(editingClient.id, {
       name: form.name.trim(),
       display_name: form.display_name.trim() || null,
       notes: form.notes.trim() || null,
@@ -504,203 +464,179 @@ const ClientsPanel = ({ clients, shifts, loading, onAdd, onUpdate, onDelete }: C
       invoice_label: form.invoice_label.trim() || null,
       invoice_notes: form.invoice_notes.trim() || null,
     });
-    setEditingClient(null);
-    if (viewingClient?.id === editingClient.id) {
-      setViewingClient(null);
+    if (result) {
+      setSelectedClientId(result.id);
+      setView('profile');
     }
   };
 
-  // If viewing a client profile
-  if (viewingClient) {
-    // Re-find from live clients list in case it was edited
-    const liveClient = clients.find(c => c.id === viewingClient.id) ?? viewingClient;
+  const handleEdit = async (form: ClientForm) => {
+    if (!selectedClientId) return;
+    await onUpdate(selectedClientId, {
+      name: form.name.trim(),
+      display_name: form.display_name.trim() || null,
+      notes: form.notes.trim() || null,
+      active: form.active,
+      phone: form.phone.trim() || null,
+      address: form.address.trim() || null,
+      participant_number: form.participant_number.trim() || null,
+      default_service_note: form.default_service_note.trim() || null,
+      default_start_time: form.default_start_time || null,
+      default_end_time: form.default_end_time || null,
+      default_is_sleepover: form.default_is_sleepover,
+      invoice_label: form.invoice_label.trim() || null,
+      invoice_notes: form.invoice_notes.trim() || null,
+    });
+    setView('profile');
+  };
+
+  const handleDeleteConfirm = async (id: string) => {
+    await onDelete(id);
+    setDeleteConfirm(null);
+    setView('list');
+    setSelectedClientId(null);
+  };
+
+  if (loading) {
     return (
-      <>
-        <ClientProfile
-          client={liveClient}
-          shifts={shifts}
-          onEdit={() => setEditingClient(liveClient)}
-          onBack={() => setViewingClient(null)}
-        />
-        {editingClient && (
-          <ClientFormSheet
-            title="Edit Client"
-            initial={clientToForm(editingClient)}
-            onSave={handleEdit}
-            onCancel={() => setEditingClient(null)}
-          />
-        )}
-      </>
+      <div className="flex items-center justify-center py-16">
+        <div className="w-8 h-8 rounded-full border-2 border-primary/30 border-t-primary animate-spin" />
+      </div>
     );
   }
 
   return (
     <div className="space-y-4">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <h2 className="text-lg font-bold text-foreground">Clients</h2>
-        <button
-          onClick={() => setShowAdd(true)}
-          className="flex items-center gap-2 rounded-2xl px-4 py-2.5 text-sm font-bold transition-all min-h-[40px]"
-          style={{ background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', boxShadow: '0 4px 16px hsl(var(--primary)/0.3)' }}
-        >
-          <Plus className="w-4 h-4" /> Add Client
-        </button>
-      </div>
-
-      {loading ? (
-        <div className="flex items-center justify-center py-10">
-          <div className="w-7 h-7 rounded-full border-2 border-primary/30 border-t-primary animate-spin" />
-        </div>
-      ) : clients.length === 0 ? (
-        <div className="glass-card p-10 text-center space-y-3">
-          <div className="w-14 h-14 rounded-full mx-auto flex items-center justify-center"
-            style={{ background: 'hsl(var(--primary)/0.1)' }}>
-            <User className="w-7 h-7" style={{ color: 'hsl(var(--primary))' }} />
-          </div>
-          <div>
-            <p className="text-sm font-semibold text-foreground">No clients yet</p>
-            <p className="text-xs text-muted-foreground mt-1 max-w-[220px] mx-auto">
-              Add your first client to start linking shifts and generating client invoices.
-            </p>
-          </div>
-          <button
-            onClick={() => setShowAdd(true)}
-            className="text-sm font-semibold"
-            style={{ color: 'hsl(var(--primary))' }}
-          >
-            Add first client →
-          </button>
-        </div>
-      ) : (
-        <>
-          {/* Client list */}
-          <div className="space-y-2">
-            {visibleClients.map(client => {
-              const clientShifts = shifts.filter(s => s.client_id === client.id);
-              const totalEarnings = clientShifts.reduce((s, sh) => s + effectiveGrossPay(sh), 0);
-              return (
-                <div key={client.id} className="glass-card p-4">
-                  <div className="flex items-center gap-3">
-                    {/* Avatar */}
-                    <div className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold shrink-0"
-                      style={{ background: 'hsl(var(--primary)/0.12)', color: 'hsl(var(--primary))' }}>
-                      {client.name[0].toUpperCase()}
-                    </div>
-
-                    {/* Info */}
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-sm font-semibold text-foreground">{client.name}</span>
-                        {!client.active && (
-                          <span className="text-[10px] text-muted-foreground glass-chip py-0.5 px-2">Inactive</span>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-3 mt-0.5">
-                        <span className="text-xs text-muted-foreground">
-                          {clientShifts.length} shift{clientShifts.length !== 1 ? 's' : ''}
-                        </span>
-                        {totalEarnings > 0 && (
-                          <span className="text-xs font-semibold" style={{ color: 'hsl(var(--money-green))' }}>
-                            {formatCurrency(totalEarnings)}
-                          </span>
-                        )}
-                        {client.participant_number && (
-                          <span className="text-[10px] text-muted-foreground hidden sm:inline">
-                            #{client.participant_number}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Actions */}
-                    <div className="flex items-center gap-1 shrink-0">
-                      <button
-                        onClick={() => setViewingClient(client)}
-                        className="glass-chip py-1.5 px-3 text-xs gap-1"
-                      >
-                        View <ChevronRight className="w-3 h-3" />
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Quick actions row */}
-                  <div className="flex gap-2 mt-3 pt-2.5 border-t border-border">
-                    <button
-                      onClick={() => setEditingClient(client)}
-                      className="glass-chip text-xs py-1.5 flex-1 justify-center gap-1.5"
-                    >
-                      <Pencil className="w-3 h-3" /> Edit
-                    </button>
-                    <button
-                      onClick={() => onUpdate(client.id, { active: !client.active })}
-                      className="glass-chip text-xs py-1.5 flex-1 justify-center"
-                    >
-                      {client.active ? 'Mark Inactive' : 'Mark Active'}
-                    </button>
-                    <button
-                      onClick={() => setConfirmDelete(client.id)}
-                      className="glass-chip text-xs py-1.5 px-3 justify-center"
-                      style={{ color: 'hsl(var(--destructive))' }}
-                    >
-                      <Trash2 className="w-3 h-3" />
-                    </button>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-
-          {/* Show/hide inactive */}
-          {inactiveClients.length > 0 && (
-            <button
-              onClick={() => setShowInactive(p => !p)}
-              className="w-full text-xs text-muted-foreground py-2 font-semibold"
-            >
-              {showInactive
-                ? `Hide ${inactiveClients.length} inactive`
-                : `Show ${inactiveClients.length} inactive client${inactiveClients.length !== 1 ? 's' : ''}`}
-            </button>
-          )}
-        </>
-      )}
-
-      {/* Add form */}
-      {showAdd && (
+      {/* Add form modal */}
+      {view === 'add' && (
         <ClientFormSheet
           title="Add Client"
           initial={emptyForm()}
           onSave={handleAdd}
-          onCancel={() => setShowAdd(false)}
+          onCancel={() => setView('list')}
         />
       )}
 
-      {/* Edit form */}
-      {editingClient && !viewingClient && (
+      {/* Edit form modal */}
+      {view === 'edit' && selectedClient && (
         <ClientFormSheet
           title="Edit Client"
-          initial={clientToForm(editingClient)}
+          initial={clientToForm(selectedClient)}
           onSave={handleEdit}
-          onCancel={() => setEditingClient(null)}
+          onCancel={() => setView('profile')}
         />
       )}
 
-      {/* Delete confirm */}
-      {confirmDelete && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/20 backdrop-blur-sm p-4">
-          <div className="glass-card p-6 w-full max-w-sm space-y-4 text-center">
-            <p className="font-semibold text-foreground">Remove this client?</p>
-            <p className="text-sm text-muted-foreground">Their shifts won't be deleted.</p>
-            <div className="flex gap-3">
-              <button onClick={() => setConfirmDelete(null)}
-                className="flex-1 glass-chip min-h-[44px] justify-center text-sm font-semibold">Cancel</button>
+      {/* Delete confirmation modal */}
+      {deleteConfirm && (
+        <div
+          className="fixed inset-0 z-[70] flex items-center justify-center p-4"
+          style={{ background: 'hsl(var(--foreground)/0.5)', backdropFilter: 'blur(4px)' }}
+        >
+          <div className="w-full max-w-sm glass-card p-6 space-y-4">
+            <p className="text-base font-bold text-foreground">Delete client?</p>
+            <p className="text-sm text-muted-foreground">
+              This removes the client record. Their assigned shifts won't be deleted.
+            </p>
+            <div className="flex gap-2.5">
               <button
-                onClick={async () => { await onDelete(confirmDelete); setConfirmDelete(null); }}
-                className="flex-1 min-h-[44px] rounded-2xl text-sm font-bold"
-                style={{ background: 'hsl(var(--destructive))', color: 'white' }}
-              >Delete</button>
+                onClick={() => setDeleteConfirm(null)}
+                className="flex-1 rounded-2xl text-sm font-semibold"
+                style={{ minHeight: 48, background: 'hsl(var(--muted))', color: 'hsl(var(--muted-foreground))' }}>
+                Cancel
+              </button>
+              <button
+                onClick={() => handleDeleteConfirm(deleteConfirm)}
+                className="flex-1 rounded-2xl text-sm font-bold text-white"
+                style={{ minHeight: 48, background: 'hsl(var(--destructive))' }}>
+                Delete
+              </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Profile view */}
+      {view === 'profile' && selectedClient ? (
+        <ClientProfile
+          client={selectedClient}
+          shifts={shifts}
+          onEdit={() => setView('edit')}
+          onBack={() => { setView('list'); setSelectedClientId(null); }}
+        />
+      ) : (
+        /* List view */
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-bold text-foreground">Clients</h2>
+            <button
+              onClick={() => setView('add')}
+              className="flex items-center gap-1.5 rounded-2xl px-4 py-2.5 text-sm font-bold transition-all duration-200"
+              style={{
+                background: 'hsl(var(--primary))',
+                color: 'hsl(var(--primary-foreground))',
+                boxShadow: '0 4px 16px hsl(var(--primary)/0.3)',
+              }}
+            >
+              <Plus className="w-4 h-4" /> Add Client
+            </button>
+          </div>
+
+          {clients.length === 0 ? (
+            <div className="glass-card p-10 text-center space-y-3">
+              <User className="w-10 h-10 mx-auto text-muted-foreground opacity-40" />
+              <p className="text-sm font-semibold text-foreground">No clients yet</p>
+              <p className="text-xs text-muted-foreground">Add a client to assign them to shifts and generate targeted invoices.</p>
+              <button
+                onClick={() => setView('add')}
+                className="mt-2 px-5 py-2.5 rounded-2xl text-sm font-bold"
+                style={{ background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))' }}>
+                Add your first client
+              </button>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {clients.map(client => {
+                const clientShifts = shifts.filter(s => s.client_id === client.id);
+                const earned = clientShifts.reduce((s, sh) => s + effectiveGrossPay(sh), 0);
+                return (
+                  <div
+                    key={client.id}
+                    className="glass-card p-4 flex items-center gap-3 cursor-pointer active:scale-[0.99] transition-transform duration-100"
+                    onClick={() => { setSelectedClientId(client.id); setView('profile'); }}
+                  >
+                    <div className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold shrink-0"
+                      style={{ background: 'hsl(var(--primary)/0.12)', color: 'hsl(var(--primary))' }}>
+                      {client.name[0].toUpperCase()}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-foreground truncate">{client.name}</p>
+                      <p className="text-[10px] text-muted-foreground">
+                        {clientShifts.length} shift{clientShifts.length !== 1 ? 's' : ''}
+                        {earned > 0 ? ` · ${formatCurrency(earned)}` : ''}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      {!client.active && (
+                        <span className="text-[9px] font-semibold px-2 py-0.5 rounded-full"
+                          style={{ background: 'hsl(var(--muted))', color: 'hsl(var(--muted-foreground))' }}>
+                          Inactive
+                        </span>
+                      )}
+                      <button
+                        onClick={e => { e.stopPropagation(); setDeleteConfirm(client.id); }}
+                        className="w-7 h-7 flex items-center justify-center rounded-full transition-colors hover:bg-destructive/10"
+                        style={{ color: 'hsl(var(--muted-foreground))' }}
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                      <ChevronRight className="w-4 h-4 text-muted-foreground" />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       )}
     </div>

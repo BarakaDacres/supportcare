@@ -9,6 +9,126 @@ interface AppSettingsPanelProps {
   onSave: (updates: Partial<Omit<UserSettings, 'id' | 'user_id'>>) => Promise<void>;
 }
 
+/* ════════════════════════════════════════════════════
+   HOISTED sub-components — defined OUTSIDE the panel
+   so React never remounts inputs between renders.
+   This was the root cause of focus-loss after 1 char.
+════════════════════════════════════════════════════ */
+
+const RateInputRow = ({
+  label, subLabel, value, onChange, unit = '$/hr',
+}: {
+  label: string; subLabel?: string; value: number;
+  onChange: (v: number) => void; unit?: string;
+}) => (
+  <div className="space-y-1">
+    <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider leading-tight">
+      {label}
+    </label>
+    {subLabel && <p className="text-[9px] text-muted-foreground leading-none">{subLabel}</p>}
+    <div className="flex items-center gap-1.5">
+      <span className="text-sm text-muted-foreground shrink-0">$</span>
+      <input
+        type="number"
+        min={0}
+        step={0.5}
+        value={value}
+        onChange={e => onChange(parseFloat(e.target.value) || 0)}
+        className="glass-input flex-1 min-w-0 text-foreground text-sm"
+        style={{ minHeight: 40 }}
+      />
+      {unit && <span className="text-[10px] text-muted-foreground shrink-0">{unit}</span>}
+    </div>
+  </div>
+);
+
+const ToggleRowItem = ({
+  label, description, checked, onChange,
+}: {
+  label: string; description?: string; checked: boolean; onChange: (v: boolean) => void;
+}) => (
+  <div className="flex items-center justify-between gap-3">
+    <div className="flex-1 min-w-0">
+      <p className="text-sm font-semibold text-foreground">{label}</p>
+      {description && <p className="text-[10px] text-muted-foreground mt-0.5">{description}</p>}
+    </div>
+    <button
+      type="button"
+      onClick={() => onChange(!checked)}
+      className="relative shrink-0 rounded-full transition-all duration-200"
+      style={{ width: 44, height: 26, background: checked ? 'hsl(var(--primary))' : 'hsl(var(--muted))' }}
+    >
+      <span
+        className="absolute top-[3px] rounded-full bg-white shadow-sm transition-all duration-200"
+        style={{ width: 20, height: 20, left: checked ? 21 : 3 }}
+      />
+    </button>
+  </div>
+);
+
+const TextInput = ({
+  label, value, onChange, placeholder, hint,
+}: {
+  label: string; value: string; onChange: (v: string) => void;
+  placeholder?: string; hint?: string;
+}) => (
+  <div className="space-y-1.5">
+    <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">{label}</label>
+    <input
+      type="text"
+      value={value}
+      onChange={e => onChange(e.target.value)}
+      placeholder={placeholder}
+      className="glass-input w-full text-foreground"
+      style={{ minHeight: 44 }}
+    />
+    {hint && <p className="text-[10px] text-muted-foreground">{hint}</p>}
+  </div>
+);
+
+const NumberInput = ({
+  label, value, onChange, placeholder, hint, prefix,
+}: {
+  label: string; value: string; onChange: (v: string) => void;
+  placeholder?: string; hint?: string; prefix?: string;
+}) => (
+  <div className="space-y-1.5">
+    <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">{label}</label>
+    <div className="flex items-center gap-1.5">
+      {prefix && <span className="text-sm text-muted-foreground shrink-0">{prefix}</span>}
+      <input
+        type="number"
+        min={0}
+        step={1}
+        value={value}
+        onChange={e => onChange(e.target.value)}
+        placeholder={placeholder}
+        className="glass-input flex-1 min-w-0 text-foreground"
+        style={{ minHeight: 44 }}
+      />
+    </div>
+    {hint && <p className="text-[10px] text-muted-foreground">{hint}</p>}
+  </div>
+);
+
+const NdisCodeInput = ({
+  label, value, onChange, placeholder,
+}: {
+  label: string; value: string; onChange: (v: string) => void; placeholder?: string;
+}) => (
+  <div className="space-y-1">
+    <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider leading-tight">{label}</label>
+    <input
+      type="text"
+      value={value}
+      onChange={e => onChange(e.target.value)}
+      placeholder={placeholder ?? '01_XXX_XXXX_1_1'}
+      className="glass-input w-full text-foreground text-xs font-mono"
+      style={{ minHeight: 40 }}
+    />
+  </div>
+);
+
 const AppSettingsPanel = ({ settings, loading, onSave }: AppSettingsPanelProps) => {
   const [form, setForm] = useState<Partial<Omit<UserSettings, 'id' | 'user_id'>>>({});
   const [saving, setSaving] = useState(false);
@@ -68,76 +188,16 @@ const AppSettingsPanel = ({ settings, loading, onSave }: AppSettingsPanelProps) 
 
   const handleSave = async () => {
     setSaving(true);
-    await onSave(form);
-    setForm({});
-    setSaving(false);
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2500);
-  };
-
-  /* ── Reusable rate input row ── */
-  const RateInput = ({
-    label,
-    subLabel,
-    fieldKey,
-    unit = '$/hr',
-  }: {
-    label: string;
-    subLabel?: string;
-    fieldKey: keyof Omit<UserSettings, 'id' | 'user_id'>;
-    unit?: string;
-  }) => (
-    <div className="space-y-1">
-      <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider leading-tight">
-        {label}
-      </label>
-      {subLabel && <p className="text-[9px] text-muted-foreground leading-none">{subLabel}</p>}
-      <div className="flex items-center gap-1.5">
-        <span className="text-sm text-muted-foreground shrink-0">$</span>
-        <input
-          type="number"
-          min={0}
-          step={0.5}
-          value={val(fieldKey, settings[fieldKey] as number) as number}
-          onChange={e => set(fieldKey, parseFloat(e.target.value) || 0)}
-          className="glass-input flex-1 min-w-0 text-foreground text-sm"
-          style={{ minHeight: 40 }}
-        />
-        {unit && <span className="text-[10px] text-muted-foreground shrink-0">{unit}</span>}
-      </div>
-    </div>
-  );
-
-  /* ── Toggle row ── */
-  const ToggleRow = ({
-    label,
-    description,
-    fieldKey,
-  }: {
-    label: string;
-    description?: string;
-    fieldKey: keyof Omit<UserSettings, 'id' | 'user_id'>;
-  }) => {
-    const checked = val(fieldKey, settings[fieldKey] as boolean) as boolean;
-    return (
-      <div className="flex items-center justify-between gap-3">
-        <div className="flex-1 min-w-0">
-          <p className="text-sm font-semibold text-foreground">{label}</p>
-          {description && <p className="text-[10px] text-muted-foreground mt-0.5">{description}</p>}
-        </div>
-        <button
-          type="button"
-          onClick={() => set(fieldKey, !checked)}
-          className="relative shrink-0 rounded-full transition-all duration-200"
-          style={{ width: 44, height: 26, background: checked ? 'hsl(var(--primary))' : 'hsl(var(--muted))' }}
-        >
-          <span
-            className="absolute top-[3px] rounded-full bg-white shadow-sm transition-all duration-200"
-            style={{ width: 20, height: 20, left: checked ? 21 : 3 }}
-          />
-        </button>
-      </div>
-    );
+    try {
+      await onSave(form);
+      setForm({});
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2500);
+    } catch (e) {
+      console.error('Settings save error:', e);
+    } finally {
+      setSaving(false);
+    }
   };
 
   const showTax = val('show_tax_estimate', settings.show_tax_estimate) as boolean;
@@ -154,13 +214,29 @@ const AppSettingsPanel = ({ settings, loading, onSave }: AppSettingsPanelProps) 
 
         {/* Hourly rates — 2-col grid */}
         <div className="grid grid-cols-2 gap-3">
-          <RateInput label="Mon – Fri" fieldKey="rate_weekday" />
-          <RateInput label="Saturday" fieldKey="rate_saturday" />
-          <RateInput label="Sunday" fieldKey="rate_sunday" />
-          <RateInput label="Public Holiday" fieldKey="rate_public_holiday" />
+          <RateInputRow
+            label="Mon – Fri"
+            value={val('rate_weekday', settings.rate_weekday) as number}
+            onChange={v => set('rate_weekday', v)}
+          />
+          <RateInputRow
+            label="Saturday"
+            value={val('rate_saturday', settings.rate_saturday) as number}
+            onChange={v => set('rate_saturday', v)}
+          />
+          <RateInputRow
+            label="Sunday"
+            value={val('rate_sunday', settings.rate_sunday) as number}
+            onChange={v => set('rate_sunday', v)}
+          />
+          <RateInputRow
+            label="Public Holiday"
+            value={val('rate_public_holiday', settings.rate_public_holiday) as number}
+            onChange={v => set('rate_public_holiday', v)}
+          />
         </div>
 
-        {/* Evening rate — full width with clear labelling */}
+        {/* Evening rate */}
         <div
           className="rounded-2xl p-3 space-y-2"
           style={{ background: 'hsl(38 90% 52% / 0.07)', border: '1px solid hsl(38 90% 52% / 0.2)' }}
@@ -171,13 +247,12 @@ const AppSettingsPanel = ({ settings, loading, onSave }: AppSettingsPanelProps) 
               Evening Rate
             </span>
           </div>
-          <div className="grid grid-cols-1 gap-2">
-            <RateInput
-              label="Mon–Fri 18:00–22:00"
-              subLabel="Overrides weekday rate for evening hours only. Sat/Sun use their own rates."
-              fieldKey="rate_evening"
-            />
-          </div>
+          <RateInputRow
+            label="Mon–Fri 18:00–22:00"
+            subLabel="Overrides weekday rate for evening hours only. Sat/Sun use their own rates."
+            value={val('rate_evening', settings.rate_evening) as number}
+            onChange={v => set('rate_evening', v)}
+          />
         </div>
 
         <div className="border-t border-border pt-3 space-y-1">
@@ -185,201 +260,174 @@ const AppSettingsPanel = ({ settings, loading, onSave }: AppSettingsPanelProps) 
             Sleepover Flat Rates
           </p>
           <div className="grid grid-cols-2 gap-3">
-            <RateInput
+            <RateInputRow
               label="Weekday night"
               subLabel="Mon – Fri"
-              fieldKey="rate_sleepover_weekday"
+              value={val('rate_sleepover_weekday', settings.rate_sleepover_weekday) as number}
+              onChange={v => set('rate_sleepover_weekday', v)}
               unit="flat"
             />
-            <RateInput
+            <RateInputRow
               label="Weekend night"
               subLabel="Sat & Sun only"
-              fieldKey="rate_sleepover_weekend"
+              value={val('rate_sleepover_weekend', settings.rate_sleepover_weekend) as number}
+              onChange={v => set('rate_sleepover_weekend', v)}
               unit="flat"
             />
           </div>
-          <p className="text-[9px] text-muted-foreground pt-1">
-            Friday sleepovers use the weekday flat rate.
-          </p>
         </div>
-      </div>
-
-      {/* ── Tax Estimate ── */}
-      <div className="glass-card p-4 space-y-3">
-        <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-          Tax Estimate
-        </h3>
-        <p className="text-[10px] text-muted-foreground">For personal planning only — not applied to invoices.</p>
-        <ToggleRow
-          label="Show Tax Estimates"
-          description="Display estimated tax deductions and take-home on Overview and Analytics."
-          fieldKey="show_tax_estimate"
-        />
-        {showTax && (
-          <div className="space-y-1 pt-1">
-            <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Tax Rate</label>
-            <div className="flex items-center gap-2">
-              <input
-                type="number"
-                min={0}
-                max={100}
-                step={0.5}
-                value={val('tax_rate', settings.tax_rate) as number}
-                onChange={e => set('tax_rate', parseFloat(e.target.value) || 0)}
-                className="glass-input w-20 text-center text-foreground"
-                style={{ minHeight: 44 }}
-              />
-              <span className="text-sm font-semibold text-muted-foreground">%</span>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* ── Income Goals ── */}
-      <div className="glass-card p-4 space-y-3">
-        <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
-          <Target className="w-3.5 h-3.5" /> Income Goals
-        </h3>
-        <div className="space-y-3">
-          {([
-            { label: 'Weekly Goal', key: 'weekly_goal' as const },
-            { label: 'Monthly Goal', key: 'monthly_goal' as const },
-            { label: 'Yearly Goal', key: 'yearly_goal' as const },
-          ] as const).map(({ label, key }) => (
-            <div key={key} className="space-y-1">
-              <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">{label}</label>
-              <div className="flex items-center gap-1.5">
-                <span className="text-sm text-muted-foreground shrink-0">$</span>
-                <input
-                  type="number"
-                  min={0}
-                  step={100}
-                  value={(val(key, settings[key]) as number | null) ?? ''}
-                  placeholder="Not set"
-                  onChange={e => set(key, e.target.value ? parseFloat(e.target.value) : null)}
-                  className="glass-input flex-1 min-w-0 text-foreground text-sm"
-                  style={{ minHeight: 40 }}
-                />
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* ── Invoice Issuer ── */}
-      <div className="glass-card p-4 space-y-3">
-        <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
-          <Building2 className="w-3.5 h-3.5" /> Invoice Issuer
-        </h3>
-        <p className="text-[10px] text-muted-foreground">Appears on your invoices. GST-free supply.</p>
-        {([
-          { label: 'Business / Your Name', key: 'business_name' as const, placeholder: 'Your Name' },
-          { label: 'ABN', key: 'abn' as const, placeholder: '12 345 678 901' },
-        ] as const).map(({ label, key, placeholder }) => (
-          <div key={key} className="space-y-1">
-            <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">{label}</label>
-            <input
-              type="text"
-              value={(val(key, settings[key]) as string | null) ?? ''}
-              placeholder={placeholder}
-              onChange={e => set(key, e.target.value || null)}
-              className="glass-input w-full text-foreground"
-              style={{ minHeight: 44 }}
-            />
-          </div>
-        ))}
-      </div>
-
-      {/* ── Bank Details ── */}
-      <div className="glass-card p-4 space-y-3">
-        <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
-          <CreditCard className="w-3.5 h-3.5" /> Bank Details
-        </h3>
-        {([
-          { label: 'Bank Name', key: 'bank_name' as const, placeholder: 'Commonwealth Bank' },
-          { label: 'BSB', key: 'bsb' as const, placeholder: '000-000' },
-          { label: 'Account Number', key: 'account_number' as const, placeholder: '12345678' },
-        ] as const).map(({ label, key, placeholder }) => (
-          <div key={key} className="space-y-1">
-            <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">{label}</label>
-            <input
-              type="text"
-              value={(val(key, settings[key]) as string | null) ?? ''}
-              placeholder={placeholder}
-              onChange={e => set(key, e.target.value || null)}
-              className="glass-input w-full text-foreground"
-              style={{ minHeight: 44 }}
-            />
-          </div>
-        ))}
-      </div>
-
-      {/* ── Invoice Notes ── */}
-      <div className="glass-card p-4 space-y-3">
-        <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
-          <FileText className="w-3.5 h-3.5" /> Default Invoice Notes
-        </h3>
-        <textarea
-          value={(val('invoice_notes', settings.invoice_notes) as string | null) ?? ''}
-          onChange={e => set('invoice_notes', e.target.value || null)}
-          placeholder="e.g. GST-free supply – no GST charged."
-          rows={3}
-          className="glass-input w-full text-foreground resize-none"
-        />
       </div>
 
       {/* ── NDIS Item Codes ── */}
-      <div className="glass-card p-4 space-y-3">
+      <div className="glass-card p-4 space-y-4">
         <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
           <Code2 className="w-3.5 h-3.5" /> NDIS Item Codes
         </h3>
-        <p className="text-[10px] text-muted-foreground">These codes appear on grouped invoice line items.</p>
-        <div className="space-y-2">
-          {(Object.entries(ndisCodes) as [keyof NdisItemCodes, string][]).map(([key, value]) => {
-            const labels: Record<keyof NdisItemCodes, string> = {
-              daily:             'Daily Support',
-              evening:           'Evening Support',
-              saturday:          'Saturday Support',
-              sunday:            'Sunday Support',
-              weekday_sleepover: 'Weekday Sleepover',
-              saturday_sleepover:'Saturday Sleepover',
-              sunday_sleepover:  'Sunday Sleepover',
-              public_holiday:    'Public Holiday',
-            };
-            return (
-              <div key={key} className="grid grid-cols-2 gap-2 items-center">
-                <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider leading-tight">{labels[key]}</label>
-                <input
-                  type="text"
-                  value={value}
-                  onChange={e => setCode(key, e.target.value)}
-                  className="glass-input text-foreground text-xs font-mono"
-                  style={{ minHeight: 36 }}
-                />
-              </div>
-            );
-          })}
+        <p className="text-[10px] text-muted-foreground -mt-2">
+          These codes appear on your invoices. Edit them to match your plan management requirements.
+        </p>
+        <div className="grid grid-cols-1 gap-3">
+          <NdisCodeInput label="Daily Support (Weekday)" value={ndisCodes.daily} onChange={v => setCode('daily', v)} />
+          <NdisCodeInput label="Evening Support" value={ndisCodes.evening} onChange={v => setCode('evening', v)} />
+          <NdisCodeInput label="Saturday Support" value={ndisCodes.saturday} onChange={v => setCode('saturday', v)} />
+          <NdisCodeInput label="Sunday Support" value={ndisCodes.sunday} onChange={v => setCode('sunday', v)} />
+          <NdisCodeInput label="Public Holiday Support" value={ndisCodes.publicHoliday} onChange={v => setCode('publicHoliday', v)} />
+          <NdisCodeInput label="Weekday Sleepover" value={ndisCodes.sleeperWeekday} onChange={v => setCode('sleeperWeekday', v)} />
+          <NdisCodeInput label="Weekend Sleepover" value={ndisCodes.sleeperWeekend} onChange={v => setCode('sleeperWeekend', v)} />
         </div>
       </div>
 
-      {/* Save button */}
+      {/* ── Goals ── */}
+      <div className="glass-card p-4 space-y-4">
+        <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+          <Target className="w-3.5 h-3.5" /> Income Goals
+        </h3>
+        <div className="grid grid-cols-1 gap-3">
+          <NumberInput
+            label="Weekly Goal"
+            prefix="$"
+            value={String(val('weekly_goal', settings.weekly_goal) ?? '')}
+            onChange={v => set('weekly_goal', v === '' ? null : parseFloat(v) || null)}
+            placeholder="e.g. 800"
+          />
+          <NumberInput
+            label="Monthly Goal"
+            prefix="$"
+            value={String(val('monthly_goal', settings.monthly_goal) ?? '')}
+            onChange={v => set('monthly_goal', v === '' ? null : parseFloat(v) || null)}
+            placeholder="e.g. 3200"
+          />
+          <NumberInput
+            label="Yearly Goal"
+            prefix="$"
+            value={String(val('yearly_goal', settings.yearly_goal) ?? '')}
+            onChange={v => set('yearly_goal', v === '' ? null : parseFloat(v) || null)}
+            placeholder="e.g. 38000"
+          />
+        </div>
+      </div>
+
+      {/* ── Tax ── */}
+      <div className="glass-card p-4 space-y-4">
+        <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+          <FileText className="w-3.5 h-3.5" /> Tax Estimate
+        </h3>
+        <ToggleRowItem
+          label="Show Tax Estimate"
+          description="Display an estimated tax deduction on the Overview screen."
+          checked={showTax}
+          onChange={v => set('show_tax_estimate', v)}
+        />
+        {showTax && (
+          <RateInputRow
+            label="Tax Rate"
+            value={val('tax_rate', settings.tax_rate) as number}
+            onChange={v => set('tax_rate', v)}
+            unit="%"
+          />
+        )}
+      </div>
+
+      {/* ── Business ── */}
+      <div className="glass-card p-4 space-y-4">
+        <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+          <Building2 className="w-3.5 h-3.5" /> Business Details
+        </h3>
+        <TextInput
+          label="Business / Trading Name"
+          value={String(val('business_name', settings.business_name) ?? '')}
+          onChange={v => set('business_name', v)}
+          placeholder="Your name or business name"
+        />
+        <TextInput
+          label="ABN"
+          value={String(val('abn', settings.abn) ?? '')}
+          onChange={v => set('abn', v)}
+          placeholder="xx xxx xxx xxx"
+        />
+        <div className="space-y-1.5">
+          <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Default Invoice Notes</label>
+          <textarea
+            value={String(val('invoice_notes', settings.invoice_notes) ?? '')}
+            onChange={e => set('invoice_notes', e.target.value)}
+            placeholder="e.g. GST-free supply – no GST charged. Payment due within 14 days."
+            rows={3}
+            className="glass-input w-full text-foreground resize-none"
+            style={{ boxSizing: 'border-box' }}
+          />
+          <p className="text-[10px] text-muted-foreground">Appears at the bottom of all invoices unless overridden per client.</p>
+        </div>
+      </div>
+
+      {/* ── Banking ── */}
+      <div className="glass-card p-4 space-y-4">
+        <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+          <CreditCard className="w-3.5 h-3.5" /> Bank Details
+        </h3>
+        <p className="text-[10px] text-muted-foreground -mt-2">Shown on invoices for payment instructions.</p>
+        <TextInput
+          label="Bank Name"
+          value={String(val('bank_name', settings.bank_name) ?? '')}
+          onChange={v => set('bank_name', v)}
+          placeholder="e.g. Commonwealth Bank"
+        />
+        <div className="grid grid-cols-2 gap-3">
+          <TextInput
+            label="BSB"
+            value={String(val('bsb', settings.bsb) ?? '')}
+            onChange={v => set('bsb', v)}
+            placeholder="xxx-xxx"
+          />
+          <TextInput
+            label="Account Number"
+            value={String(val('account_number', settings.account_number) ?? '')}
+            onChange={v => set('account_number', v)}
+            placeholder="xxxxxxxxx"
+          />
+        </div>
+      </div>
+
+      {/* ── Save button ── */}
       <button
         onClick={handleSave}
-        disabled={saving || Object.keys(form).length === 0}
-        className="w-full flex items-center justify-center gap-2 min-h-[50px] rounded-2xl text-sm font-bold transition-all duration-200 disabled:opacity-40"
+        disabled={saving}
+        className="w-full flex items-center justify-center gap-2 min-h-[52px] rounded-2xl text-sm font-bold transition-all duration-200 disabled:opacity-50"
         style={{
-          background: saved ? 'hsl(var(--money-green)/0.15)' : 'hsl(var(--primary))',
-          color: saved ? 'hsl(var(--money-green))' : 'hsl(var(--primary-foreground))',
-          boxShadow: saved ? '0 0 20px hsl(var(--money-green)/0.25)' : '0 4px 16px hsl(var(--primary)/0.35)',
+          background: saved ? 'hsl(var(--stat-green))' : 'hsl(var(--primary))',
+          color: 'hsl(var(--primary-foreground))',
+          boxShadow: saving ? 'none' : '0 4px 16px hsl(var(--primary)/0.3)',
         }}
       >
-        {saved
-          ? '✓ Saved!'
-          : saving
-          ? <><Loader2 className="w-4 h-4 animate-spin" /> Saving…</>
-          : <><Save className="w-4 h-4" /> Save Settings</>
-        }
+        {saving ? (
+          <><Loader2 className="w-4 h-4 animate-spin" /> Saving…</>
+        ) : saved ? (
+          '✓ Saved'
+        ) : (
+          <><Save className="w-4 h-4" /> Save Settings</>
+        )}
       </button>
+
+      <div className="h-4" />
     </div>
   );
 };
