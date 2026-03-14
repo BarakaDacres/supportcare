@@ -394,18 +394,21 @@ async function exportToPDF(snap: InvoiceSnapshot, lineGroups: ReturnType<typeof 
   ];
   const totH = totRows.length * 7.5 + 1;
 
-  rect(totX, y, totW, totH, P.bg, P.border);
+  rect(totX, y, totW, totH, P.bg, P.accentBorder);
   let ty = y + 6;
   totRows.forEach(([lbl, val, isBal], ri) => {
     if (isBal) {
-      // Dark row bg for BALANCE DUE
-      doc.setFillColor(...rgb(P.balanceBg));
+      // Blue accent bg for BALANCE DUE row
+      doc.setFillColor(...rgb(P.accentLight));
       doc.roundedRect(totX, y + ri * 7.5, totW, 7.5 + 1, 2, 2, 'F');
-      sf(8, 'bold', P.white); tx(lbl, totX + 4, ty);
-      sf(10, 'bold', P.white); tx(val, totX + totW - 4, ty, { align: 'right' });
+      // Left accent bar
+      doc.setFillColor(...rgb(P.accent));
+      doc.rect(totX, y + ri * 7.5, 2.5, 8.5, 'F');
+      sf(8.5, 'bold', P.accent); tx(lbl, totX + 6, ty);
+      sf(11, 'bold', P.accent);  tx(val, totX + totW - 4, ty, { align: 'right' });
     } else {
       sf(7.5, 'normal', P.muted); tx(lbl, totX + 4, ty);
-      sf(7.5, 'normal', P.mid);   tx(val, totX + totW - 4, ty, { align: 'right' });
+      sf(7.5, 'bold',   P.mid);   tx(val, totX + totW - 4, ty, { align: 'right' });
       // Separator
       doc.setDrawColor(...rgb(P.border)); doc.setLineWidth(0.2);
       doc.line(totX, ty + 3.5, totX + totW, ty + 3.5);
