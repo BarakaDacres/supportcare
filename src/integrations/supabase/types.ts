@@ -18,17 +18,20 @@ export type Database = {
         Row: {
           active: boolean
           address: string | null
+          billing_contact: string | null
           created_at: string
           default_end_time: string | null
           default_is_sleepover: boolean
           default_service_note: string | null
           default_start_time: string | null
           display_name: string | null
+          email: string | null
           id: string
           invoice_label: string | null
           invoice_notes: string | null
           name: string
           notes: string | null
+          organisation_name: string | null
           participant_number: string | null
           phone: string | null
           updated_at: string
@@ -37,17 +40,20 @@ export type Database = {
         Insert: {
           active?: boolean
           address?: string | null
+          billing_contact?: string | null
           created_at?: string
           default_end_time?: string | null
           default_is_sleepover?: boolean
           default_service_note?: string | null
           default_start_time?: string | null
           display_name?: string | null
+          email?: string | null
           id?: string
           invoice_label?: string | null
           invoice_notes?: string | null
           name: string
           notes?: string | null
+          organisation_name?: string | null
           participant_number?: string | null
           phone?: string | null
           updated_at?: string
@@ -56,17 +62,20 @@ export type Database = {
         Update: {
           active?: boolean
           address?: string | null
+          billing_contact?: string | null
           created_at?: string
           default_end_time?: string | null
           default_is_sleepover?: boolean
           default_service_note?: string | null
           default_start_time?: string | null
           display_name?: string | null
+          email?: string | null
           id?: string
           invoice_label?: string | null
           invoice_notes?: string | null
           name?: string
           notes?: string | null
+          organisation_name?: string | null
           participant_number?: string | null
           phone?: string | null
           updated_at?: string
@@ -148,42 +157,68 @@ export type Database = {
       }
       invoices: {
         Row: {
+          client_id: string | null
           created_at: string
+          due_date: string | null
+          fortnight_number: number | null
           id: string
           invoice_number: string
           notes: string | null
+          paid_at: string | null
           period_end: string
           period_start: string
+          sent_at: string | null
           status: string
           total_amount: number
           updated_at: string
           user_id: string
+          year: number | null
         }
         Insert: {
+          client_id?: string | null
           created_at?: string
+          due_date?: string | null
+          fortnight_number?: number | null
           id?: string
           invoice_number: string
           notes?: string | null
+          paid_at?: string | null
           period_end: string
           period_start: string
+          sent_at?: string | null
           status?: string
           total_amount?: number
           updated_at?: string
           user_id: string
+          year?: number | null
         }
         Update: {
+          client_id?: string | null
           created_at?: string
+          due_date?: string | null
+          fortnight_number?: number | null
           id?: string
           invoice_number?: string
           notes?: string | null
+          paid_at?: string | null
           period_end?: string
           period_start?: string
+          sent_at?: string | null
           status?: string
           total_amount?: number
           updated_at?: string
           user_id?: string
+          year?: number | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "invoices_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {
