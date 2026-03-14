@@ -101,7 +101,7 @@ const AnimatedCurrency = ({
   );
 };
 
-// ── Compact day popup (anchored inline, like reference images) ────────────────
+// ── Compact day popup (anchored inline) ──────────────────────────────────────
 const DayPopup = ({
   dateStr, shifts, onClose,
 }: {
@@ -127,17 +127,17 @@ const DayPopup = ({
           '0 4px 24px hsl(var(--foreground)/0.12),' +
           '0 1px 4px hsl(var(--foreground)/0.06),' +
           'inset 0 0.5px 0 hsl(0 0% 100% / 0.08)',
-        minWidth: 220,
-        maxWidth: 280,
+        // Take full available width — the calendar grid constrains it naturally
+        width: '100%',
       }}
       onClick={e => e.stopPropagation()}
     >
       {/* Header */}
       <div
-        className="flex items-center justify-between px-4 py-3"
+        className="flex items-center justify-between px-3 py-2.5"
         style={{ borderBottom: '0.5px solid hsl(var(--border))' }}
       >
-        <div>
+        <div className="min-w-0">
           <p className="text-xs font-bold text-foreground">{label}</p>
           {dayShifts.length > 0 && (
             <p className="text-[10px] text-muted-foreground mt-0.5">
@@ -148,30 +148,38 @@ const DayPopup = ({
         </div>
         <button
           onClick={onClose}
-          className="w-6 h-6 flex items-center justify-center rounded-full"
+          aria-label="Close"
+          className="w-6 h-6 flex items-center justify-center rounded-full shrink-0 ml-2"
           style={{ background: 'hsl(var(--muted))', color: 'hsl(var(--muted-foreground))' }}
         >
           <X className="w-3 h-3" />
         </button>
       </div>
-      {/* Shifts */}
-      <div className="py-2 px-3 space-y-1.5 max-h-48 overflow-y-auto">
+
+      {/* Shift rows */}
+      <div className="py-1.5 px-3 space-y-0 max-h-52 overflow-y-auto">
         {dayShifts.length === 0 ? (
-          <p className="text-[10px] text-muted-foreground py-2 text-center">No shifts recorded.</p>
+          <p className="text-[10px] text-muted-foreground py-3 text-center">No shifts recorded.</p>
         ) : (
-          dayShifts.map(s => (
-            <div key={s.id} className="flex items-center justify-between gap-3 py-1.5">
-              <div className="min-w-0">
-                <p className="text-[10px] font-semibold text-foreground">
-                  {formatTime(s.start_time)} – {formatTime(s.end_time)}
-                </p>
-                <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+          dayShifts.map(s => {
+            const hasEvening = shiftHasEveningHours(s.start_time, s.end_time);
+            return (
+              <div key={s.id} className="py-2" style={{ borderBottom: '0.5px solid hsl(var(--border)/0.4)' }}>
+                {/* Row 1: time + amount */}
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-[10px] font-semibold text-foreground">
+                    {formatTime(s.start_time)} – {formatTime(s.end_time)}
+                  </p>
+                  <span className="text-[10px] font-bold money-text shrink-0">{formatCurrency(effectiveGrossPay(s))}</span>
+                </div>
+                {/* Row 2: client + type badges — wraps cleanly */}
+                <div className="flex items-center gap-1.5 mt-1 flex-wrap">
                   {s.client_name && (
                     <span className="text-[9px] text-muted-foreground">{s.client_name}</span>
                   )}
                   {s.is_sleepover && (
                     <span
-                      className="text-[8px] font-bold px-1.5 py-0.5 rounded-full text-white"
+                      className="text-[9px] font-bold px-2 py-0.5 rounded-full text-white whitespace-nowrap"
                       style={{ background: 'hsl(var(--sleepover-color))' }}
                     >
                       Sleepover
@@ -179,25 +187,24 @@ const DayPopup = ({
                   )}
                   {s.is_public_holiday && (
                     <span
-                      className="text-[8px] font-bold px-1.5 py-0.5 rounded-full"
+                      className="text-[9px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap"
                       style={{ background: 'hsl(var(--stat-amber)/0.18)', color: 'hsl(var(--stat-amber))' }}
                     >
-                      PH
+                      Public Holiday
                     </span>
                   )}
-                  {!s.is_sleepover && shiftHasEveningHours(s.start_time, s.end_time) && (
+                  {!s.is_sleepover && hasEvening && (
                     <span
-                      className="text-[8px] font-bold px-1.5 py-0.5 rounded-full"
+                      className="text-[9px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap"
                       style={{ background: 'hsl(var(--evening-color)/0.18)', color: 'hsl(var(--evening-color))' }}
                     >
-                      Eve
+                      Evening
                     </span>
                   )}
                 </div>
               </div>
-              <span className="text-[10px] font-bold money-text shrink-0">{formatCurrency(effectiveGrossPay(s))}</span>
-            </div>
-          ))
+            );
+          })
         )}
       </div>
     </div>
