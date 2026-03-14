@@ -1,0 +1,1 @@
+ALTER TABLE public.user_settings ADD COLUMN IF NOT EXISTS use_default_invoice_notes boolean NOT NULL DEFAULT true;

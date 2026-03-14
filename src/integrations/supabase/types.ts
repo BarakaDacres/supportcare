@@ -331,6 +331,7 @@ export type Database = {
           show_tax_estimate: boolean
           tax_rate: number
           updated_at: string
+          use_default_invoice_notes: boolean
           user_id: string
           weekly_goal: number | null
           yearly_goal: number | null
@@ -359,6 +360,7 @@ export type Database = {
           show_tax_estimate?: boolean
           tax_rate?: number
           updated_at?: string
+          use_default_invoice_notes?: boolean
           user_id: string
           weekly_goal?: number | null
           yearly_goal?: number | null
@@ -387,6 +389,7 @@ export type Database = {
           show_tax_estimate?: boolean
           tax_rate?: number
           updated_at?: string
+          use_default_invoice_notes?: boolean
           user_id?: string
           weekly_goal?: number | null
           yearly_goal?: number | null
