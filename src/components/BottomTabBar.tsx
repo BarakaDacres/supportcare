@@ -18,53 +18,53 @@ const tabs: { id: TabId; label: string; icon: typeof LayoutDashboard }[] = [
 ];
 
 const BottomTabBar = ({ activeTab, onTabChange, hidden = false }: BottomTabBarProps) => {
-  const pressTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
+  const btnRefs = useRef<Record<string, HTMLButtonElement | null>>({});
 
-  const handlePointerDown = (id: string, el: HTMLButtonElement) => {
-    pressTimers.current[id] = setTimeout(() => {}, 0);
-    el.style.transform = 'scale(0.86)';
+  const handlePointerDown = (id: string) => {
+    const el = btnRefs.current[id];
+    if (el) el.style.transform = 'scale(0.88)';
   };
-
-  const handlePointerUp = (el: HTMLButtonElement) => {
-    el.style.transform = 'scale(1)';
+  const handlePointerUp = (id: string) => {
+    const el = btnRefs.current[id];
+    if (el) el.style.transform = 'scale(1)';
   };
 
   return (
     <nav
       className="fixed bottom-0 inset-x-0 z-50 md:hidden no-print"
       style={{
-        paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+        paddingBottom: 'max(env(safe-area-inset-bottom, 0px), 8px)',
         opacity: hidden ? 0 : 1,
         pointerEvents: hidden ? 'none' : 'auto',
-        transform: hidden ? 'translateY(100%)' : 'translateY(0)',
-        transition: 'opacity 0.22s ease, transform 0.28s cubic-bezier(0.4,0,0.2,1)',
+        transform: hidden ? 'translateY(110%)' : 'translateY(0)',
+        transition: 'opacity 0.2s ease, transform 0.25s cubic-bezier(0.4,0,0.2,1)',
       }}
       aria-hidden={hidden}
       role="tablist"
       aria-label="Main navigation"
     >
-      {/* ── Floating pill ── */}
+      {/* ── Floating pill container ── */}
       <div
-        className="mx-auto mb-3"
+        className="mx-auto"
         style={{
-          width: '88%',
-          maxWidth: 430,
-          height: 72,
-          borderRadius: 36,
-          position: 'relative',
+          width: '87%',
+          maxWidth: 420,
+          height: 64,
+          borderRadius: 32,
           display: 'flex',
           alignItems: 'center',
-          justifyContent: 'space-around',
-          paddingLeft: 8,
-          paddingRight: 8,
+          justifyContent: 'space-between',
+          paddingLeft: 6,
+          paddingRight: 6,
+          marginBottom: 10,
           /* Glass surface */
           background: 'hsl(var(--lg-pill-bg))',
-          backdropFilter: 'blur(40px) saturate(180%)',
-          WebkitBackdropFilter: 'blur(40px) saturate(180%)',
+          backdropFilter: 'blur(48px) saturate(200%)',
+          WebkitBackdropFilter: 'blur(48px) saturate(200%)',
           border: '1px solid hsl(var(--lg-pill-border))',
           boxShadow:
-            '0 8px 32px hsl(var(--lg-pill-shadow-color)),' +
-            '0 2px 8px hsl(var(--lg-pill-shadow-color)),' +
+            '0 4px 24px hsl(var(--lg-pill-shadow-color)),' +
+            '0 1px 6px hsl(var(--lg-pill-shadow-color)),' +
             'inset 0 1px 0 hsl(var(--lg-specular)),' +
             'inset 0 -0.5px 0 hsl(var(--lg-pill-border))',
         }}
@@ -74,65 +74,68 @@ const BottomTabBar = ({ activeTab, onTabChange, hidden = false }: BottomTabBarPr
           return (
             <button
               key={tab.id}
-              data-tab={tab.id}
+              ref={el => { btnRefs.current[tab.id] = el; }}
               role="tab"
               aria-selected={isActive}
               aria-label={tab.label}
               onClick={() => onTabChange(tab.id)}
               style={{
-                position: 'relative',
+                /* Each tab takes equal space */
+                flex: 1,
+                height: '100%',
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: 'center',
                 justifyContent: 'center',
-                gap: 4,
-                zIndex: 10,
-                flex: 1,
-                height: '100%',
+                gap: 3,
+                position: 'relative',
                 borderRadius: 28,
                 userSelect: 'none',
                 WebkitTapHighlightColor: 'transparent',
-                transition: 'transform 0.14s cubic-bezier(0.34,1.3,0.64,1)',
+                transition: 'transform 0.15s cubic-bezier(0.34,1.2,0.64,1)',
                 cursor: 'pointer',
                 background: 'transparent',
                 border: 'none',
                 outline: 'none',
                 padding: 0,
               }}
-              onPointerDown={e => handlePointerDown(tab.id, e.currentTarget)}
-              onPointerUp={e => handlePointerUp(e.currentTarget)}
-              onPointerLeave={e => handlePointerUp(e.currentTarget)}
-              onPointerCancel={e => handlePointerUp(e.currentTarget)}
+              onPointerDown={() => handlePointerDown(tab.id)}
+              onPointerUp={() => handlePointerUp(tab.id)}
+              onPointerLeave={() => handlePointerUp(tab.id)}
+              onPointerCancel={() => handlePointerUp(tab.id)}
             >
-              {/* ── Circular active highlight ── */}
-              <span
-                aria-hidden="true"
-                style={{
-                  position: 'absolute',
-                  top: '50%',
-                  left: '50%',
-                  transform: 'translate(-50%, -54%)',
-                  width: 46,
-                  height: 46,
-                  borderRadius: '50%',
-                  background: isActive ? 'hsl(var(--lg-active-bg))' : 'transparent',
-                  border: isActive ? '1px solid hsl(var(--lg-active-border))' : '1px solid transparent',
-                  transition: 'background 0.25s ease, border-color 0.25s ease, transform 0.25s cubic-bezier(0.34,1.3,0.64,1)',
-                  pointerEvents: 'none',
-                }}
-              />
+              {/* ── Compact capsule/pill highlight — active only ── */}
+              {isActive && (
+                <span
+                  aria-hidden="true"
+                  style={{
+                    position: 'absolute',
+                    /* Tight horizontal padding, fixed height — no overflow */
+                    left: '50%',
+                    top: '50%',
+                    transform: 'translate(-50%, -50%)',
+                    width: 52,
+                    height: 44,
+                    borderRadius: 16,
+                    background: 'hsl(var(--lg-active-bg))',
+                    border: '1px solid hsl(var(--lg-active-border))',
+                    pointerEvents: 'none',
+                    transition: 'opacity 0.2s ease',
+                  }}
+                />
+              )}
 
               {/* ── Icon ── */}
               <tab.icon
                 style={{
                   position: 'relative',
                   zIndex: 1,
-                  width: isActive ? 22 : 20,
-                  height: isActive ? 22 : 20,
-                  strokeWidth: isActive ? 2.2 : 1.6,
+                  width: 20,
+                  height: 20,
+                  strokeWidth: isActive ? 2.1 : 1.5,
                   color: isActive ? 'hsl(var(--primary))' : 'hsl(var(--muted-foreground))',
-                  transition: 'color 0.2s ease, stroke-width 0.2s ease, width 0.2s ease, height 0.2s ease',
-                  marginBottom: -1,
+                  transition: 'color 0.18s ease, stroke-width 0.18s ease',
+                  flexShrink: 0,
                 }}
               />
 
@@ -141,13 +144,13 @@ const BottomTabBar = ({ activeTab, onTabChange, hidden = false }: BottomTabBarPr
                 style={{
                   position: 'relative',
                   zIndex: 1,
-                  fontSize: '0.5625rem',
-                  fontWeight: isActive ? 700 : 500,
+                  fontSize: 10,
+                  fontWeight: isActive ? 600 : 500,
                   lineHeight: 1,
-                  letterSpacing: isActive ? '0.01em' : '0',
+                  letterSpacing: '0.01em',
                   color: isActive ? 'hsl(var(--primary))' : 'hsl(var(--muted-foreground))',
-                  transition: 'color 0.2s ease',
-                  marginTop: 1,
+                  transition: 'color 0.18s ease',
+                  flexShrink: 0,
                 }}
               >
                 {tab.label}

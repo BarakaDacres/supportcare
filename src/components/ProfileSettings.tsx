@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { User, Camera, LogOut, Save, Loader2, Building2, CreditCard, FileText, MapPin } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import type { AuthState } from '@/hooks/useAuth';
@@ -10,13 +10,23 @@ interface ProfileSettingsProps {
   onSaveSettings: (updates: Partial<Omit<UserSettings, 'id' | 'user_id'>>) => Promise<void>;
 }
 
-/* ── HOISTED outside component so React never remounts on re-render ── */
-const Field = ({
-  label, value, onChange, placeholder, type = 'text', hint,
-}: {
-  label: string; value: string; onChange: (v: string) => void;
-  placeholder?: string; type?: string; hint?: string;
-}) => (
+/* ─────────────────────────────────────────────────────────────────────────
+   CRITICAL: ALL sub-components are defined at MODULE LEVEL (outside any
+   component body). Defining them inside a component causes React to treat
+   them as new component types on every render, which unmounts → remounts
+   the input DOM node, immediately stealing focus after 1 character.
+───────────────────────────────────────────────────────────────────────── */
+
+interface FieldProps {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  placeholder?: string;
+  type?: string;
+  hint?: string;
+}
+
+const Field = ({ label, value, onChange, placeholder, type = 'text', hint }: FieldProps) => (
   <div className="space-y-1">
     <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">{label}</label>
     <input
@@ -31,6 +41,43 @@ const Field = ({
   </div>
 );
 
+interface AddressFieldProps {
+  value: string;
+  onChange: (v: string) => void;
+}
+
+const AddressField = ({ value, onChange }: AddressFieldProps) => (
+  <div className="space-y-1">
+    <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
+      <MapPin className="w-3 h-3" /> Address
+    </label>
+    <input
+      type="text"
+      value={value}
+      onChange={e => onChange(e.target.value)}
+      placeholder="Suburb, State"
+      className="glass-input w-full text-foreground"
+      style={{ minHeight: 44 }}
+    />
+  </div>
+);
+
+interface NotesTextareaProps {
+  value: string;
+  onChange: (v: string) => void;
+}
+
+const NotesTextarea = ({ value, onChange }: NotesTextareaProps) => (
+  <textarea
+    value={value}
+    onChange={e => onChange(e.target.value)}
+    placeholder="e.g. GST-free supply – no GST charged. Payment due within 14 days."
+    rows={3}
+    className="glass-input w-full text-foreground resize-none"
+  />
+);
+
+/* ── Main component ── */
 const ProfileSettings = ({ auth, settings, onSaveSettings }: ProfileSettingsProps) => {
   const [displayName, setDisplayName] = useState(auth.displayName ?? '');
   const [avatarUrl, setAvatarUrl] = useState(auth.avatarUrl ?? null);
@@ -54,17 +101,20 @@ const ProfileSettings = ({ auth, settings, onSaveSettings }: ProfileSettingsProp
   const [bizSaved, setBizSaved] = useState(false);
   const [bizSaving, setBizSaving] = useState(false);
 
-  // Sync from settings when loaded
+  // Sync from settings only once when loaded (prevent clobbering typed value)
+  const settingsLoaded = useRef(false);
   useEffect(() => {
-    if (!settings) return;
+    if (!settings || settingsLoaded.current) return;
+    settingsLoaded.current = true;
+    const s = settings as unknown as Record<string, string | null>;
     setBusinessName(settings.business_name ?? '');
     setAbn(settings.abn ?? '');
-    setPhone((settings as unknown as Record<string, string>).phone ?? '');
-    setAddress((settings as unknown as Record<string, string>).address ?? '');
+    setPhone(s.phone ?? '');
+    setAddress(s.address ?? '');
     setBankName(settings.bank_name ?? '');
     setBsb(settings.bsb ?? '');
     setAccountNumber(settings.account_number ?? '');
-    setAccountName((settings as unknown as Record<string, string>).account_name ?? '');
+    setAccountName(s.account_name ?? '');
     setInvoiceNotes(settings.invoice_notes ?? '');
   }, [settings]);
 
@@ -103,6 +153,7 @@ const ProfileSettings = ({ auth, settings, onSaveSettings }: ProfileSettingsProp
 
   const handleSaveBusiness = async () => {
     setBizSaving(true);
+    const s = settings as unknown as Record<string, unknown>;
     await onSaveSettings({
       business_name: businessName.trim() || null,
       abn: abn.trim() || null,
@@ -110,7 +161,6 @@ const ProfileSettings = ({ auth, settings, onSaveSettings }: ProfileSettingsProp
       bsb: bsb.trim() || null,
       account_number: accountNumber.trim() || null,
       invoice_notes: invoiceNotes.trim() || null,
-      // Extended fields — cast as any since types.ts is auto-generated
       ...({ phone: phone.trim() || null, address: address.trim() || null, account_name: accountName.trim() || null } as unknown as Partial<Omit<UserSettings, 'id' | 'user_id'>>),
     });
     setBizSaving(false);
@@ -123,8 +173,6 @@ const ProfileSettings = ({ auth, settings, onSaveSettings }: ProfileSettingsProp
     await supabase.auth.signOut();
     window.dispatchEvent(new CustomEvent('theme-sync'));
   };
-
-  // Field is now defined at module level above — no inline definition to avoid remounting
 
   return (
     <div className="space-y-6">
@@ -200,19 +248,7 @@ const ProfileSettings = ({ auth, settings, onSaveSettings }: ProfileSettingsProp
         <Field label="Business / Your Name" value={businessName} onChange={setBusinessName} placeholder="Your Name or Business Name" hint="Shown at the top of every invoice" />
         <Field label="ABN" value={abn} onChange={setAbn} placeholder="12 345 678 901" />
         <Field label="Phone" value={phone} onChange={setPhone} placeholder="+61 4XX XXX XXX" type="tel" />
-        <div className="space-y-1">
-          <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
-            <MapPin className="w-3 h-3" /> Address
-          </label>
-          <input
-            type="text"
-            value={address}
-            onChange={e => setAddress(e.target.value)}
-            placeholder="Suburb, State"
-            className="glass-input w-full text-foreground"
-            style={{ minHeight: 44 }}
-          />
-        </div>
+        <AddressField value={address} onChange={setAddress} />
       </div>
 
       {/* ── Banking ── */}
@@ -236,13 +272,7 @@ const ProfileSettings = ({ auth, settings, onSaveSettings }: ProfileSettingsProp
           <FileText className="w-3.5 h-3.5 text-muted-foreground" />
           <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Default Invoice Notes</p>
         </div>
-        <textarea
-          value={invoiceNotes}
-          onChange={e => setInvoiceNotes(e.target.value)}
-          placeholder="e.g. GST-free supply – no GST charged. Payment due within 14 days."
-          rows={3}
-          className="glass-input w-full text-foreground resize-none"
-        />
+        <NotesTextarea value={invoiceNotes} onChange={setInvoiceNotes} />
       </div>
 
       {/* Save business info */}
