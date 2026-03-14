@@ -124,25 +124,7 @@ const ProfileSettings = ({ auth, settings, onSaveSettings }: ProfileSettingsProp
     window.dispatchEvent(new CustomEvent('theme-sync'));
   };
 
-  const Field = ({
-    label, value, onChange, placeholder, type = 'text', hint,
-  }: {
-    label: string; value: string; onChange: (v: string) => void;
-    placeholder?: string; type?: string; hint?: string;
-  }) => (
-    <div className="space-y-1">
-      <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">{label}</label>
-      <input
-        type={type}
-        value={value}
-        onChange={e => onChange(e.target.value)}
-        placeholder={placeholder}
-        className="glass-input w-full text-foreground"
-        style={{ minHeight: 44 }}
-      />
-      {hint && <p className="text-[10px] text-muted-foreground">{hint}</p>}
-    </div>
-  );
+  // Field is now defined at module level above — no inline definition to avoid remounting
 
   return (
     <div className="space-y-6">
