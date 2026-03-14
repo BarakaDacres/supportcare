@@ -957,45 +957,46 @@ const InvoicePanel = ({
 
               {/* ────────────── Invoice Preview Card ────────────── */}
               <div className="glass-card overflow-hidden">
-                {/* Top rule — dark slate */}
-                <div style={{ height: 3, background: P.ink }} />
+                {/* Top rule — blue accent */}
+                <div style={{ height: 4, background: P.accent }} />
 
                 <div style={{
-                  padding: '18px 18px 16px',
+                  padding: '20px 18px 16px',
                   fontFamily: '"Helvetica Neue", Helvetica, Arial, sans-serif',
                   fontSize: 11, color: P.ink,
                   background: 'hsl(var(--card))',
                 }}>
 
                   {/* ── HEADER: issuer left / INVOICE right ── */}
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 14 }}>
                     {/* Left — issuer */}
                     <div>
-                      <div style={{ fontSize: 16, fontWeight: 800, color: P.ink, letterSpacing: '-0.02em', marginBottom: 4 }}>
+                      <div style={{ fontSize: 15, fontWeight: 800, color: P.ink, letterSpacing: '-0.02em', marginBottom: 5 }}>
                         {preview.issuerName || 'Your Business Name'}
                       </div>
-                      {preview.abn     && <div style={{ fontSize: 9, color: P.muted, marginBottom: 2 }}>ABN: {preview.abn}</div>}
-                      {preview.phone   && <div style={{ fontSize: 9, color: P.muted, marginBottom: 2 }}>Phone: {preview.phone}</div>}
-                      {preview.address && <div style={{ fontSize: 9, color: P.muted }}>{preview.address}</div>}
+                      {preview.abn          && <div style={{ fontSize: 9, color: P.muted, marginBottom: 2 }}>ABN: {preview.abn}</div>}
+                      {preview.issuerEmail  && <div style={{ fontSize: 9, color: P.muted, marginBottom: 2 }}>{preview.issuerEmail}</div>}
+                      {preview.phone        && <div style={{ fontSize: 9, color: P.muted, marginBottom: 2 }}>Phone: {preview.phone}</div>}
+                      {preview.address      && <div style={{ fontSize: 9, color: P.muted }}>{preview.address}</div>}
                     </div>
                     {/* Right — INVOICE title + meta */}
                     <div style={{ textAlign: 'right' }}>
-                      <div style={{ fontSize: 22, fontWeight: 900, color: P.ink, letterSpacing: '-0.03em', marginBottom: 3 }}>INVOICE</div>
+                      <div style={{ fontSize: 20, fontWeight: 900, color: P.accent, letterSpacing: '-0.03em', marginBottom: 4 }}>INVOICE</div>
                       <div style={{ fontSize: 10, fontWeight: 700, color: P.mid, marginBottom: 2 }}>{preview.invoiceNumber}</div>
                       <div style={{ fontSize: 8.5, color: P.muted, marginBottom: 1.5 }}>Submitted: <strong style={{ color: P.mid }}>{formatDateShort(preview.issueDate)}</strong></div>
                       <div style={{ fontSize: 8.5, color: P.muted }}>Due: <strong style={{ color: P.mid }}>{formatDateShort(preview.dueDate)}</strong></div>
                     </div>
                   </div>
 
-                  {/* Divider */}
-                  <div style={{ borderTop: '1.5px solid ' + P.border, marginBottom: 12 }} />
+                  {/* Divider — blue accent */}
+                  <div style={{ borderTop: `1.5px solid ${P.accentBorder}`, marginBottom: 13 }} />
 
                   {/* ── BILL TO + INVOICE DETAILS ── */}
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 12 }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 13 }}>
 
                     {/* BILL TO */}
-                    <div style={{ background: P.bg, borderRadius: 8, padding: '10px 12px', border: '1px solid ' + P.border }}>
-                      <div style={{ fontSize: 8.5, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.07em', color: P.muted, marginBottom: 6 }}>BILL TO</div>
+                    <div style={{ background: P.accentLight, borderRadius: 8, padding: '10px 12px 10px 14px', border: `1px solid ${P.accentBorder}`, borderLeft: `3px solid ${P.accent}` }}>
+                      <div style={{ fontSize: 8, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.07em', color: P.accent, marginBottom: 6 }}>BILL TO</div>
                       {preview.clientOrganisation && (
                         <div style={{ fontSize: 10, fontWeight: 700, color: P.ink, marginBottom: 2 }}>{preview.clientOrganisation}</div>
                       )}
@@ -1007,39 +1008,39 @@ const InvoicePanel = ({
                       {preview.clientEmail   && <div style={{ fontSize: 8.5, color: P.muted, marginBottom: 1.5 }}>{preview.clientEmail}</div>}
                       {preview.clientPhone   && <div style={{ fontSize: 8.5, color: P.muted, marginBottom: 1.5 }}>Ph: {preview.clientPhone}</div>}
                       {preview.clientParticipantNumber && (
-                        <div style={{ fontSize: 8.5, color: P.muted }}>NDIS No: <strong style={{ color: P.mid }}>{preview.clientParticipantNumber}</strong></div>
+                        <div style={{ fontSize: 8.5, color: P.accent, fontWeight: 600 }}>NDIS No: {preview.clientParticipantNumber}</div>
                       )}
                     </div>
 
                     {/* INVOICE DETAILS */}
-                    <div style={{ background: P.bg, borderRadius: 8, padding: '10px 12px', border: '1px solid ' + P.border }}>
-                      <div style={{ fontSize: 8.5, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.07em', color: P.muted, marginBottom: 6 }}>INVOICE DETAILS</div>
+                    <div style={{ background: P.accentLight, borderRadius: 8, padding: '10px 12px 10px 14px', border: `1px solid ${P.accentBorder}`, borderLeft: `3px solid ${P.accent}` }}>
+                      <div style={{ fontSize: 8, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.07em', color: P.accent, marginBottom: 6 }}>INVOICE DETAILS</div>
                       {[
                         ['Service From', formatDateShort(preview.periodStart)],
                         ['Service To',   formatDateShort(preview.periodEnd)],
                         ['Due Date',     formatDateShort(preview.dueDate)],
                         ['GST Rate',     '0% (GST-Free)'],
                       ].map(([l, v]) => (
-                        <div key={l} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 3 }}>
+                        <div key={l} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 3.5 }}>
                           <span style={{ fontSize: 8.5, color: P.muted }}>{l}</span>
                           <span style={{ fontSize: 8.5, fontWeight: 600, color: P.mid }}>{v}</span>
                         </div>
                       ))}
-                      {/* Separator + BALANCE DUE */}
-                      <div style={{ borderTop: '1px solid ' + P.border, marginTop: 6, paddingTop: 6, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <span style={{ fontSize: 8.5, fontWeight: 700, color: P.ink, textTransform: 'uppercase' as const, letterSpacing: '0.05em' }}>BALANCE DUE</span>
-                        <span style={{ fontSize: 13, fontWeight: 900, color: P.ink, fontVariantNumeric: 'tabular-nums' }}>{fmt$(preview.total)}</span>
+                      {/* Separator + BALANCE DUE — blue accent, more space */}
+                      <div style={{ borderTop: `1.5px solid ${P.accentBorder}`, marginTop: 8, paddingTop: 8, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span style={{ fontSize: 8.5, fontWeight: 800, color: P.accent, textTransform: 'uppercase' as const, letterSpacing: '0.06em' }}>BALANCE DUE</span>
+                        <span style={{ fontSize: 14, fontWeight: 900, color: P.accent, fontVariantNumeric: 'tabular-nums' }}>{fmt$(preview.total)}</span>
                       </div>
                     </div>
                   </div>
 
                   {/* ── SERVICES RENDERED ── */}
                   <div style={{ marginBottom: 12 }}>
-                    <div style={{ fontSize: 8.5, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.07em', color: P.muted, marginBottom: 5 }}>SERVICES RENDERED</div>
-                    <div style={{ border: '1px solid ' + P.border, borderRadius: 8, overflow: 'hidden' }}>
+                    <div style={{ fontSize: 8, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.07em', color: P.accent, marginBottom: 5 }}>SERVICES RENDERED</div>
+                    <div style={{ border: `1px solid ${P.accentBorder}`, borderRadius: 8, overflow: 'hidden' }}>
                       <table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed' }}>
                         <thead>
-                          <tr style={{ background: '#F3F4F6' }}>
+                          <tr style={{ background: P.accentLight }}>
                             {[
                               { h: '#',           w: '5%',  a: 'center' as const },
                               { h: 'DESCRIPTION', w: '27%', a: 'left'   as const },
@@ -1055,8 +1056,8 @@ const InvoicePanel = ({
                                 width: w, padding: '5px 5px',
                                 fontSize: 6.5, fontWeight: 700,
                                 textTransform: 'uppercase', letterSpacing: '0.04em',
-                                color: P.muted, textAlign: a,
-                                borderBottom: '1px solid ' + P.border,
+                                color: P.accent, textAlign: a,
+                                borderBottom: `1px solid ${P.accentBorder}`,
                               }}>{h}</th>
                             ))}
                           </tr>
@@ -1064,18 +1065,18 @@ const InvoicePanel = ({
                         <tbody>
                           {lineGroups.map((group, idx) => (
                             <tr key={group.category} style={{ background: idx % 2 === 1 ? P.rowAlt : P.white }}>
-                              <td style={{ fontSize: 8, color: P.faint, padding: '6px 5px', textAlign: 'center', borderBottom: '0.5px solid #F3F4F6' }}>{idx + 1}</td>
-                              <td style={{ padding: '6px 5px', borderBottom: '0.5px solid #F3F4F6' }}>
+                              <td style={{ fontSize: 8, color: P.faint, padding: '6px 5px', textAlign: 'center', borderBottom: `1px solid ${P.border}` }}>{idx + 1}</td>
+                              <td style={{ padding: '6px 5px', borderBottom: `1px solid ${P.border}` }}>
                                 <div style={{ fontSize: 8.5, fontWeight: 600, color: P.ink }}>{group.label}</div>
                                 <div style={{ fontSize: 7, color: P.faint, marginTop: 1 }}>{group.shifts.length} shift{group.shifts.length !== 1 ? 's' : ''}</div>
                               </td>
-                              <td style={{ fontSize: 7, color: P.muted, fontFamily: 'monospace', padding: '6px 5px', borderBottom: '0.5px solid #F3F4F6' }}>{group.ndisCode}</td>
-                              <td style={{ fontSize: 8.5, color: P.mid, padding: '6px 5px', textAlign: 'right', borderBottom: '0.5px solid #F3F4F6', fontVariantNumeric: 'tabular-nums' }}>{group.quantity}</td>
-                              <td style={{ fontSize: 7.5, color: P.faint, padding: '6px 5px', textAlign: 'right', borderBottom: '0.5px solid #F3F4F6' }}>{group.isSleepover ? 'night' : 'hr'}</td>
-                              <td style={{ fontSize: 8.5, color: P.mid, padding: '6px 5px', textAlign: 'right', borderBottom: '0.5px solid #F3F4F6', fontVariantNumeric: 'tabular-nums' }}>{fmt$(group.rate)}</td>
-                              <td style={{ fontSize: 8.5, fontWeight: 600, color: P.mid, padding: '6px 5px', textAlign: 'right', borderBottom: '0.5px solid #F3F4F6', fontVariantNumeric: 'tabular-nums' }}>{fmt$(group.subtotal)}</td>
-                              <td style={{ fontSize: 7.5, color: P.faint, padding: '6px 5px', textAlign: 'right', borderBottom: '0.5px solid #F3F4F6' }}>$0.00</td>
-                              <td style={{ fontSize: 8.5, fontWeight: 700, color: P.ink, padding: '6px 5px', textAlign: 'right', borderBottom: '0.5px solid #F3F4F6', fontVariantNumeric: 'tabular-nums' }}>{fmt$(group.subtotal)}</td>
+                              <td style={{ fontSize: 7, color: P.muted, fontFamily: 'monospace', padding: '6px 5px', borderBottom: `1px solid ${P.border}` }}>{group.ndisCode}</td>
+                              <td style={{ fontSize: 8.5, color: P.mid, padding: '6px 5px', textAlign: 'right', borderBottom: `1px solid ${P.border}`, fontVariantNumeric: 'tabular-nums' }}>{group.quantity}</td>
+                              <td style={{ fontSize: 7.5, color: P.faint, padding: '6px 5px', textAlign: 'right', borderBottom: `1px solid ${P.border}` }}>{group.isSleepover ? 'night' : 'hr'}</td>
+                              <td style={{ fontSize: 8.5, color: P.mid, padding: '6px 5px', textAlign: 'right', borderBottom: `1px solid ${P.border}`, fontVariantNumeric: 'tabular-nums' }}>{fmt$(group.rate)}</td>
+                              <td style={{ fontSize: 8.5, fontWeight: 600, color: P.mid, padding: '6px 5px', textAlign: 'right', borderBottom: `1px solid ${P.border}`, fontVariantNumeric: 'tabular-nums' }}>{fmt$(group.subtotal)}</td>
+                              <td style={{ fontSize: 7.5, color: P.faint, padding: '6px 5px', textAlign: 'right', borderBottom: `1px solid ${P.border}` }}>$0.00</td>
+                              <td style={{ fontSize: 8.5, fontWeight: 700, color: P.ink, padding: '6px 5px', textAlign: 'right', borderBottom: `1px solid ${P.border}`, fontVariantNumeric: 'tabular-nums' }}>{fmt$(group.subtotal)}</td>
                             </tr>
                           ))}
                           {lineGroups.length === 0 && (
@@ -1092,33 +1093,33 @@ const InvoicePanel = ({
 
                   {/* ── TOTALS CONTAINER ── */}
                   <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 12 }}>
-                    <div style={{ minWidth: 220, maxWidth: 260, border: '1px solid ' + P.border, borderRadius: 8, overflow: 'hidden' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 10px', borderBottom: '1px solid ' + P.border }}>
+                    <div style={{ minWidth: 230, maxWidth: 270, border: `1px solid ${P.accentBorder}`, borderRadius: 8, overflow: 'hidden' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', padding: '7px 12px', borderBottom: `1px solid ${P.border}` }}>
                         <span style={{ fontSize: 8.5, color: P.muted }}>SUBTOTAL (EX GST)</span>
                         <span style={{ fontSize: 8.5, fontWeight: 600, color: P.mid, fontVariantNumeric: 'tabular-nums' }}>{fmt$(preview.total)}</span>
                       </div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 10px', borderBottom: '1px solid ' + P.border }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', padding: '7px 12px', borderBottom: `1px solid ${P.accentBorder}` }}>
                         <span style={{ fontSize: 8.5, color: P.muted }}>GST</span>
                         <span style={{ fontSize: 8.5, fontWeight: 600, color: P.mid }}>$0.00</span>
                       </div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '9px 10px', background: P.accentLight, borderLeft: `3px solid ${P.accent}` }}>
-                        <span style={{ fontSize: 8.5, fontWeight: 700, color: P.accent, textTransform: 'uppercase' as const, letterSpacing: '0.05em' }}>BALANCE DUE</span>
-                        <span style={{ fontSize: 14, fontWeight: 900, color: P.accent, fontVariantNumeric: 'tabular-nums' }}>{fmt$(preview.total)}</span>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '9px 12px', background: P.accentLight, borderLeft: `3px solid ${P.accent}` }}>
+                        <span style={{ fontSize: 8.5, fontWeight: 800, color: P.accent, textTransform: 'uppercase' as const, letterSpacing: '0.06em' }}>BALANCE DUE</span>
+                        <span style={{ fontSize: 15, fontWeight: 900, color: P.accent, fontVariantNumeric: 'tabular-nums' }}>{fmt$(preview.total)}</span>
                       </div>
                     </div>
                   </div>
 
                   {/* ── PAYMENT DETAILS ── */}
                   {(preview.accountName || preview.bankName || preview.bsb || preview.accountNumber) && (
-                    <div style={{ background: P.bg, borderRadius: 8, border: '1px solid ' + P.border, padding: '10px 12px', marginBottom: 10 }}>
-                      <div style={{ fontSize: 8.5, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.07em', color: P.muted, marginBottom: 8 }}>PAYMENT DETAILS</div>
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 8, marginBottom: 8 }}>
+                    <div style={{ background: P.accentLight, borderRadius: 8, border: `1px solid ${P.accentBorder}`, borderLeft: `3px solid ${P.accent}`, padding: '10px 12px 10px 14px', marginBottom: 10 }}>
+                      <div style={{ fontSize: 8, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.07em', color: P.accent, marginBottom: 9 }}>PAYMENT DETAILS</div>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 10, marginBottom: 9 }}>
                         {[
                           preview.accountName   && { k: 'Account Name', v: preview.accountName },
                           preview.bankName      && { k: 'Bank',          v: preview.bankName },
                           preview.bsb           && { k: 'BSB',           v: preview.bsb },
                           preview.accountNumber && { k: 'Account No.',   v: preview.accountNumber },
-                          { k: 'Reference', v: preview.invoiceNumber },
+                          { k: 'Reference',       v: preview.invoiceNumber },
                         ].filter(Boolean).map(item => item && (
                           <div key={item.k}>
                             <div style={{ fontSize: 7.5, color: P.muted, marginBottom: 2 }}>{item.k}</div>
@@ -1126,7 +1127,7 @@ const InvoicePanel = ({
                           </div>
                         ))}
                       </div>
-                      <div style={{ borderTop: '0.5px solid ' + P.border, paddingTop: 6, fontSize: 8, color: P.muted }}>
+                      <div style={{ borderTop: `1px solid ${P.accentBorder}`, paddingTop: 7, fontSize: 8, color: P.muted }}>
                         Payment due within 7 days of invoice date.
                       </div>
                     </div>
@@ -1134,14 +1135,14 @@ const InvoicePanel = ({
 
                   {/* ── NOTES ── */}
                   {preview.invoiceNotes && (
-                    <div style={{ border: '1px solid ' + P.border, borderRadius: 8, padding: '8px 10px', marginBottom: 10 }}>
-                      <div style={{ fontSize: 8.5, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.07em', color: P.muted, marginBottom: 5 }}>NOTES</div>
+                    <div style={{ border: `1px solid ${P.border}`, borderRadius: 8, padding: '8px 10px', marginBottom: 10 }}>
+                      <div style={{ fontSize: 8, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.07em', color: P.muted, marginBottom: 5 }}>NOTES</div>
                       <p style={{ fontSize: 8.5, color: P.muted, whiteSpace: 'pre-line', margin: 0 }}>{preview.invoiceNotes}</p>
                     </div>
                   )}
 
                   {/* ── FOOTER ── */}
-                  <div style={{ borderTop: '1px solid ' + P.border, paddingTop: 7, display: 'flex', justifyContent: 'space-between' }}>
+                  <div style={{ borderTop: `1px solid ${P.accentBorder}`, paddingTop: 7, display: 'flex', justifyContent: 'space-between' }}>
                     <p style={{ fontSize: 7.5, color: P.faint, margin: 0 }}>
                       This invoice is GST-free under the NDIS.{preview.abn ? ` ABN: ${preview.abn}` : ''}
                     </p>
