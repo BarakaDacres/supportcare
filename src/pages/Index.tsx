@@ -41,7 +41,7 @@ const Index = ({ auth }: IndexProps) => {
     : undefined;
 
   const { shifts, loading: shiftsLoading, addShift, updateShift, deleteShift, duplicateShift } = useShifts(rates);
-  const { invoices } = useInvoices();
+  const { invoices, loading: invoicesLoading, fetchInvoices, updateInvoiceStatus, deleteInvoice } = useInvoices();
   const { clients, loading: clientsLoading, addClient, updateClient, deleteClient } = useClients();
 
   const locked = store.isMonthLocked(store.year, store.month);
