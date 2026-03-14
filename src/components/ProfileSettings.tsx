@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { User, Camera, LogOut, Save, Loader2, Building2, CreditCard, FileText, Phone, MapPin } from 'lucide-react';
+import { User, Camera, LogOut, Save, Loader2, Building2, CreditCard, FileText, MapPin } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import type { AuthState } from '@/hooks/useAuth';
 import type { UserSettings } from '@/hooks/useUserSettings';
@@ -9,6 +9,27 @@ interface ProfileSettingsProps {
   settings: UserSettings | null;
   onSaveSettings: (updates: Partial<Omit<UserSettings, 'id' | 'user_id'>>) => Promise<void>;
 }
+
+/* ── HOISTED outside component so React never remounts on re-render ── */
+const Field = ({
+  label, value, onChange, placeholder, type = 'text', hint,
+}: {
+  label: string; value: string; onChange: (v: string) => void;
+  placeholder?: string; type?: string; hint?: string;
+}) => (
+  <div className="space-y-1">
+    <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">{label}</label>
+    <input
+      type={type}
+      value={value}
+      onChange={e => onChange(e.target.value)}
+      placeholder={placeholder}
+      className="glass-input w-full text-foreground"
+      style={{ minHeight: 44 }}
+    />
+    {hint && <p className="text-[10px] text-muted-foreground">{hint}</p>}
+  </div>
+);
 
 const ProfileSettings = ({ auth, settings, onSaveSettings }: ProfileSettingsProps) => {
   const [displayName, setDisplayName] = useState(auth.displayName ?? '');
