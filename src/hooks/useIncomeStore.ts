@@ -14,7 +14,13 @@ interface StoreState {
   weeklyEntries: Record<string, Record<string, number[]>>;
   fortnightlyEntries: Record<string, Record<string, number[]>>;
   lockedMonths: Record<string, string[]>;
-  theme: 'light' | 'dark';
+  /**
+   * 'light' | 'dark'  → explicit user override
+   * 'system'           → follow prefers-color-scheme (default)
+   */
+  themeOverride: 'light' | 'dark' | 'system';
+  /** @deprecated kept for migration only */
+  theme?: 'light' | 'dark';
 }
 
 const STORAGE_KEY = 'income-ledger-data';
@@ -29,8 +35,15 @@ function defaultState(): StoreState {
     weeklyEntries: {},
     fortnightlyEntries: {},
     lockedMonths: {},
-    theme: 'light',
+    themeOverride: 'system',
   };
+}
+
+function resolveTheme(override: 'light' | 'dark' | 'system'): 'light' | 'dark' {
+  if (override === 'system') {
+    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  }
+  return override;
 }
 
 function loadLocalState(): StoreState {
