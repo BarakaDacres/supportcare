@@ -42,7 +42,6 @@ const emptyForm = () => ({
 type ClientForm = ReturnType<typeof emptyForm>;
 
 function clientToForm(c: Client): ClientForm {
-  const cx = c as unknown as Record<string, unknown>;
   return {
     name: c.name,
     display_name: c.display_name ?? '',
@@ -51,9 +50,9 @@ function clientToForm(c: Client): ClientForm {
     phone: c.phone ?? '',
     address: c.address ?? '',
     participant_number: c.participant_number ?? '',
-    organisation_name: (cx.organisation_name as string) ?? '',
-    billing_contact: (cx.billing_contact as string) ?? '',
-    email: (cx.email as string) ?? '',
+    organisation_name: c.organisation_name ?? '',
+    billing_contact: c.billing_contact ?? '',
+    email: c.email ?? '',
     default_service_note: c.default_service_note ?? '',
     default_start_time: c.default_start_time ?? '',
     default_end_time: c.default_end_time ?? '',
