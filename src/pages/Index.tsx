@@ -237,6 +237,11 @@ const Index = ({ auth }: IndexProps) => {
               clients={clients}
               settings={settings}
               onIncrementCounter={incrementInvoiceCounter}
+              invoices={invoices}
+              invoicesLoading={invoicesLoading}
+              onUpdateStatus={updateInvoiceStatus}
+              onDeleteInvoice={deleteInvoice}
+              onRefreshInvoices={fetchInvoices}
             />
           )}
 
