@@ -691,8 +691,7 @@ const InvoicePanel = ({
         issueDate     = existingInvoice.created_at.split('T')[0];
         dueDate       = existingInvoice.due_date ?? addDays(issueDate, 7);
       } else {
-        await onIncrementCounter();
-        invoiceNumber = buildInvoiceNumber(selectedYear, selectedPeriod.fnNumber);
+        invoiceNumber = buildInvoiceNumber(await onIncrementCounter());
         issueDate     = formatDateISO(new Date());
         dueDate       = addDays(issueDate, 7);
 
