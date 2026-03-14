@@ -509,22 +509,27 @@ const ClientsPanel = ({ clients, shifts, loading, onAdd, onUpdate, onDelete }: C
 
   const selectedClient = clients.find(c => c.id === selectedClientId) ?? null;
 
+  const buildClientPayload = (form: ClientForm) => ({
+    name: form.name.trim(),
+    display_name: form.display_name.trim() || null,
+    notes: form.notes.trim() || null,
+    active: form.active,
+    phone: form.phone.trim() || null,
+    address: form.address.trim() || null,
+    participant_number: form.participant_number.trim() || null,
+    organisation_name: form.organisation_name.trim() || null,
+    billing_contact: form.billing_contact.trim() || null,
+    email: form.email.trim() || null,
+    default_service_note: form.default_service_note.trim() || null,
+    default_start_time: form.default_start_time || null,
+    default_end_time: form.default_end_time || null,
+    default_is_sleepover: form.default_is_sleepover,
+    invoice_label: form.invoice_label.trim() || null,
+    invoice_notes: form.invoice_notes.trim() || null,
+  });
+
   const handleAdd = async (form: ClientForm) => {
-    const result = await onAdd({
-      name: form.name.trim(),
-      display_name: form.display_name.trim() || null,
-      notes: form.notes.trim() || null,
-      active: form.active,
-      phone: form.phone.trim() || null,
-      address: form.address.trim() || null,
-      participant_number: form.participant_number.trim() || null,
-      default_service_note: form.default_service_note.trim() || null,
-      default_start_time: form.default_start_time || null,
-      default_end_time: form.default_end_time || null,
-      default_is_sleepover: form.default_is_sleepover,
-      invoice_label: form.invoice_label.trim() || null,
-      invoice_notes: form.invoice_notes.trim() || null,
-    });
+    const result = await onAdd(buildClientPayload(form));
     if (result) {
       setSelectedClientId(result.id);
       setView('profile');
@@ -533,21 +538,7 @@ const ClientsPanel = ({ clients, shifts, loading, onAdd, onUpdate, onDelete }: C
 
   const handleEdit = async (form: ClientForm) => {
     if (!selectedClientId) return;
-    await onUpdate(selectedClientId, {
-      name: form.name.trim(),
-      display_name: form.display_name.trim() || null,
-      notes: form.notes.trim() || null,
-      active: form.active,
-      phone: form.phone.trim() || null,
-      address: form.address.trim() || null,
-      participant_number: form.participant_number.trim() || null,
-      default_service_note: form.default_service_note.trim() || null,
-      default_start_time: form.default_start_time || null,
-      default_end_time: form.default_end_time || null,
-      default_is_sleepover: form.default_is_sleepover,
-      invoice_label: form.invoice_label.trim() || null,
-      invoice_notes: form.invoice_notes.trim() || null,
-    });
+    await onUpdate(selectedClientId, buildClientPayload(form));
     setView('profile');
   };
 
