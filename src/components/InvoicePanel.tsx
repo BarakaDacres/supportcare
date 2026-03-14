@@ -300,7 +300,7 @@ async function exportToPDF(snap: InvoiceSnapshot, lineGroups: ReturnType<typeof 
   y += cardH + 7;
 
   // ── SERVICES RENDERED ─────────────────────────────────────────────────────
-  sf(6, 'bold', P.muted);
+  sf(6, 'bold', P.accent);
   tx('SERVICES RENDERED', M, y);
   y += 3;
 
@@ -309,18 +309,17 @@ async function exportToPDF(snap: InvoiceSnapshot, lineGroups: ReturnType<typeof 
   const nRows = Math.max(lineGroups.length, 1);
   const tableH = hdrH + nRows * rowH;
 
-  // Outer border
-  doc.setDrawColor(...rgb(P.border)); doc.setLineWidth(0.3);
+  // Outer border — blue accent
+  doc.setDrawColor(...rgb(P.accentBorder)); doc.setLineWidth(0.4);
   doc.roundedRect(M, y, CW, tableH, 2, 2, 'S');
 
-  // Header bg
-  doc.setFillColor(...rgb('#F3F4F6'));
+  // Header bg — light blue
+  doc.setFillColor(...rgb(P.accentLight));
   doc.roundedRect(M, y, CW, hdrH, 2, 2, 'F');
-  // Cover bottom-rounded corners of header with a flat fill strip
-  doc.setFillColor(...rgb('#F3F4F6'));
+  doc.setFillColor(...rgb(P.accentLight));
   doc.rect(M, y + hdrH - 2, CW, 2, 'F');
 
-  // Column definitions [label, x-offset from M, width, align]
+  // Column definitions
   type ColDef = { lbl: string; x: number; w: number; al: 'left' | 'right' | 'center' };
   const cols: ColDef[] = [
     { lbl: '#',           x: 0,   w: 7,   al: 'center' },
@@ -335,13 +334,13 @@ async function exportToPDF(snap: InvoiceSnapshot, lineGroups: ReturnType<typeof 
   ];
   const hY = y + 5;
   cols.forEach(c => {
-    sf(5.5, 'bold', P.muted);
+    sf(5.5, 'bold', P.accent);
     const cx = M + c.x + (c.al === 'right' ? c.w : c.al === 'center' ? c.w / 2 : 0);
     tx(c.lbl, cx, hY, { align: c.al === 'center' ? 'center' : c.al });
   });
 
-  // Header / body separator
-  doc.setDrawColor(...rgb(P.border)); doc.setLineWidth(0.25);
+  // Header / body separator — clean line
+  doc.setDrawColor(...rgb(P.accentBorder)); doc.setLineWidth(0.3);
   doc.line(M, y + hdrH, M + CW, y + hdrH);
   y += hdrH;
 
@@ -380,8 +379,9 @@ async function exportToPDF(snap: InvoiceSnapshot, lineGroups: ReturnType<typeof 
       right(7, '$0.00', 7, 'normal', P.faint);
       right(8, fmt$(group.subtotal), 7.5, 'bold', P.ink);
 
+      // Clean solid line separator (no gradient)
       if (idx < lineGroups.length - 1) {
-        doc.setDrawColor(...rgb('#F3F4F6')); doc.setLineWidth(0.15);
+        doc.setDrawColor(...rgb(P.border)); doc.setLineWidth(0.2);
         doc.line(M, y + rowH, M + CW, y + rowH);
       }
       y += rowH;
