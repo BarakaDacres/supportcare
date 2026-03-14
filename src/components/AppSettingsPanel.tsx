@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { Save, Loader2, Target, Building2, CreditCard, FileText, Sliders, AlertCircle, Sunset, Code2 } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { Save, Loader2, Target, Building2, CreditCard, FileText, Sliders, AlertCircle, Sunset, Code2, RefreshCw } from 'lucide-react';
 import type { UserSettings } from '@/hooks/useUserSettings';
 import { DEFAULT_NDIS_CODES, type NdisItemCodes } from '@/lib/invoiceGrouping';
 
@@ -10,17 +10,22 @@ interface AppSettingsPanelProps {
 }
 
 /* ════════════════════════════════════════════════════
-   HOISTED sub-components — defined OUTSIDE the panel
-   so React never remounts inputs between renders.
-   This was the root cause of focus-loss after 1 char.
+   ALL sub-components HOISTED to module scope.
+   This is the root-cause fix for focus-loss:
+   if defined inside the panel body, React sees a new
+   component type each render → unmounts → remounts
+   the <input> → focus stolen after every keystroke.
 ════════════════════════════════════════════════════ */
 
-const RateInputRow = ({
-  label, subLabel, value, onChange, unit = '$/hr',
-}: {
-  label: string; subLabel?: string; value: number;
-  onChange: (v: number) => void; unit?: string;
-}) => (
+interface RateInputRowProps {
+  label: string;
+  subLabel?: string;
+  value: number;
+  onChange: (v: number) => void;
+  unit?: string;
+}
+
+const RateInputRow = ({ label, subLabel, value, onChange, unit = '$/hr' }: RateInputRowProps) => (
   <div className="space-y-1">
     <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider leading-tight">
       {label}
@@ -42,11 +47,14 @@ const RateInputRow = ({
   </div>
 );
 
-const ToggleRowItem = ({
-  label, description, checked, onChange,
-}: {
-  label: string; description?: string; checked: boolean; onChange: (v: boolean) => void;
-}) => (
+interface ToggleRowItemProps {
+  label: string;
+  description?: string;
+  checked: boolean;
+  onChange: (v: boolean) => void;
+}
+
+const ToggleRowItem = ({ label, description, checked, onChange }: ToggleRowItemProps) => (
   <div className="flex items-center justify-between gap-3">
     <div className="flex-1 min-w-0">
       <p className="text-sm font-semibold text-foreground">{label}</p>
@@ -66,12 +74,15 @@ const ToggleRowItem = ({
   </div>
 );
 
-const TextInput = ({
-  label, value, onChange, placeholder, hint,
-}: {
-  label: string; value: string; onChange: (v: string) => void;
-  placeholder?: string; hint?: string;
-}) => (
+interface TextInputProps {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  placeholder?: string;
+  hint?: string;
+}
+
+const TextInput = ({ label, value, onChange, placeholder, hint }: TextInputProps) => (
   <div className="space-y-1.5">
     <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">{label}</label>
     <input
@@ -86,12 +97,16 @@ const TextInput = ({
   </div>
 );
 
-const NumberInput = ({
-  label, value, onChange, placeholder, hint, prefix,
-}: {
-  label: string; value: string; onChange: (v: string) => void;
-  placeholder?: string; hint?: string; prefix?: string;
-}) => (
+interface NumberInputProps {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  placeholder?: string;
+  hint?: string;
+  prefix?: string;
+}
+
+const NumberInput = ({ label, value, onChange, placeholder, hint, prefix }: NumberInputProps) => (
   <div className="space-y-1.5">
     <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">{label}</label>
     <div className="flex items-center gap-1.5">
@@ -111,11 +126,14 @@ const NumberInput = ({
   </div>
 );
 
-const NdisCodeInput = ({
-  label, value, onChange, placeholder,
-}: {
-  label: string; value: string; onChange: (v: string) => void; placeholder?: string;
-}) => (
+interface NdisCodeInputProps {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  placeholder?: string;
+}
+
+const NdisCodeInput = ({ label, value, onChange, placeholder }: NdisCodeInputProps) => (
   <div className="space-y-1">
     <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider leading-tight">{label}</label>
     <input
@@ -129,39 +147,60 @@ const NdisCodeInput = ({
   </div>
 );
 
+/* ── Main panel ── */
 const AppSettingsPanel = ({ settings, loading, onSave }: AppSettingsPanelProps) => {
   const [form, setForm] = useState<Partial<Omit<UserSettings, 'id' | 'user_id'>>>({});
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [timedOut, setTimedOut] = useState(false);
-  // NDIS codes stored locally (persisted via invoice_notes workaround until DB migration)
-  const [ndisCodes, setNdisCodes] = useState<NdisItemCodes>(DEFAULT_NDIS_CODES);
+  const [retryKey, setRetryKey] = useState(0);
+  const ndisCodes = useRef<NdisItemCodes>({ ...DEFAULT_NDIS_CODES });
+  const [ndisCodesState, setNdisCodesState] = useState<NdisItemCodes>({ ...DEFAULT_NDIS_CODES });
 
+  // Loading timeout — reset when loading resolves or on retry
   useEffect(() => {
     if (!loading) {
       setTimedOut(false);
       return;
     }
-    // Reduce timeout from 8s to 5s and provide a retry
-    const t = setTimeout(() => setTimedOut(true), 5000);
+    const t = setTimeout(() => setTimedOut(true), 6000);
     return () => clearTimeout(t);
-  }, [loading]);
+  }, [loading, retryKey]);
+
+  const handleRetry = () => {
+    setTimedOut(false);
+    setRetryKey(k => k + 1);
+    window.location.reload();
+  };
 
   if (loading) {
     if (timedOut) {
       return (
-        <div className="flex flex-col items-center justify-center py-12 gap-3 text-center">
-          <AlertCircle className="w-8 h-8 text-muted-foreground" />
-          <p className="text-sm font-semibold text-foreground">Settings unavailable</p>
-          <p className="text-xs text-muted-foreground max-w-[240px]">
-            Could not load your settings. Please check your connection or try refreshing.
-          </p>
+        <div className="flex flex-col items-center justify-center py-12 gap-4 text-center">
+          <div className="w-12 h-12 rounded-2xl flex items-center justify-center"
+            style={{ background: 'hsl(var(--muted))' }}>
+            <AlertCircle className="w-6 h-6 text-muted-foreground" />
+          </div>
+          <div>
+            <p className="text-sm font-semibold text-foreground">Settings unavailable</p>
+            <p className="text-xs text-muted-foreground mt-1 max-w-[220px]">
+              Could not load your settings. Check your connection and try again.
+            </p>
+          </div>
+          <button
+            onClick={handleRetry}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all"
+            style={{ background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))' }}
+          >
+            <RefreshCw className="w-4 h-4" /> Retry
+          </button>
         </div>
       );
     }
     return (
-      <div className="flex items-center justify-center py-12">
+      <div className="flex flex-col items-center justify-center py-12 gap-3">
         <div className="w-8 h-8 rounded-full border-2 border-primary/30 border-t-primary animate-spin" />
+        <p className="text-xs text-muted-foreground">Loading settings…</p>
       </div>
     );
   }
@@ -172,7 +211,7 @@ const AppSettingsPanel = ({ settings, loading, onSave }: AppSettingsPanelProps) 
         <AlertCircle className="w-8 h-8 text-muted-foreground" />
         <p className="text-sm font-semibold text-foreground">Settings not found</p>
         <p className="text-xs text-muted-foreground max-w-[240px]">
-          Try signing out and back in.
+          Try signing out and back in to reload your settings.
         </p>
       </div>
     );
@@ -184,8 +223,10 @@ const AppSettingsPanel = ({ settings, loading, onSave }: AppSettingsPanelProps) 
   const set = <K extends keyof typeof form>(key: K, value: typeof form[K]) =>
     setForm(prev => ({ ...prev, [key]: value }));
 
-  const setCode = (key: keyof NdisItemCodes, value: string) =>
-    setNdisCodes(prev => ({ ...prev, [key]: value }));
+  const setCode = (key: keyof NdisItemCodes, value: string) => {
+    ndisCodes.current = { ...ndisCodes.current, [key]: value };
+    setNdisCodesState(prev => ({ ...prev, [key]: value }));
+  };
 
   const handleSave = async () => {
     setSaving(true);
@@ -213,7 +254,6 @@ const AppSettingsPanel = ({ settings, loading, onSave }: AppSettingsPanelProps) 
           <Sliders className="w-3.5 h-3.5" /> Pay Rates
         </h3>
 
-        {/* Hourly rates — 2-col grid */}
         <div className="grid grid-cols-2 gap-3">
           <RateInputRow
             label="Mon – Fri"
@@ -288,14 +328,14 @@ const AppSettingsPanel = ({ settings, loading, onSave }: AppSettingsPanelProps) 
           These codes appear on your invoices. Edit them to match your plan management requirements.
         </p>
         <div className="grid grid-cols-1 gap-3">
-          <NdisCodeInput label="Daily Support (Weekday)" value={ndisCodes.daily} onChange={v => setCode('daily', v)} />
-          <NdisCodeInput label="Evening Support" value={ndisCodes.evening} onChange={v => setCode('evening', v)} />
-          <NdisCodeInput label="Saturday Support" value={ndisCodes.saturday} onChange={v => setCode('saturday', v)} />
-          <NdisCodeInput label="Sunday Support" value={ndisCodes.sunday} onChange={v => setCode('sunday', v)} />
-          <NdisCodeInput label="Public Holiday Support" value={ndisCodes.public_holiday} onChange={v => setCode('public_holiday', v)} />
-          <NdisCodeInput label="Weekday Sleepover" value={ndisCodes.weekday_sleepover} onChange={v => setCode('weekday_sleepover', v)} />
-          <NdisCodeInput label="Weekend Sleepover (Sat)" value={ndisCodes.saturday_sleepover} onChange={v => setCode('saturday_sleepover', v)} />
-          <NdisCodeInput label="Weekend Sleepover (Sun)" value={ndisCodes.sunday_sleepover} onChange={v => setCode('sunday_sleepover', v)} />
+          <NdisCodeInput label="Daily Support (Weekday)" value={ndisCodesState.daily} onChange={v => setCode('daily', v)} />
+          <NdisCodeInput label="Evening Support" value={ndisCodesState.evening} onChange={v => setCode('evening', v)} />
+          <NdisCodeInput label="Saturday Support" value={ndisCodesState.saturday} onChange={v => setCode('saturday', v)} />
+          <NdisCodeInput label="Sunday Support" value={ndisCodesState.sunday} onChange={v => setCode('sunday', v)} />
+          <NdisCodeInput label="Public Holiday Support" value={ndisCodesState.public_holiday} onChange={v => setCode('public_holiday', v)} />
+          <NdisCodeInput label="Weekday Sleepover" value={ndisCodesState.weekday_sleepover} onChange={v => setCode('weekday_sleepover', v)} />
+          <NdisCodeInput label="Weekend Sleepover (Sat)" value={ndisCodesState.saturday_sleepover} onChange={v => setCode('saturday_sleepover', v)} />
+          <NdisCodeInput label="Weekend Sleepover (Sun)" value={ndisCodesState.sunday_sleepover} onChange={v => setCode('sunday_sleepover', v)} />
         </div>
       </div>
 
