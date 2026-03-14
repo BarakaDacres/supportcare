@@ -1096,9 +1096,9 @@ const InvoicePanel = ({
                         <span style={{ fontSize: 8.5, color: P.muted }}>GST</span>
                         <span style={{ fontSize: 8.5, fontWeight: 600, color: P.mid }}>$0.00</span>
                       </div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '9px 10px', background: P.balanceBg }}>
-                        <span style={{ fontSize: 8.5, fontWeight: 700, color: P.white, textTransform: 'uppercase' as const, letterSpacing: '0.05em' }}>BALANCE DUE</span>
-                        <span style={{ fontSize: 14, fontWeight: 900, color: P.white, fontVariantNumeric: 'tabular-nums' }}>{fmt$(preview.total)}</span>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '9px 10px', background: P.accentLight, borderLeft: `3px solid ${P.accent}` }}>
+                        <span style={{ fontSize: 8.5, fontWeight: 700, color: P.accent, textTransform: 'uppercase' as const, letterSpacing: '0.05em' }}>BALANCE DUE</span>
+                        <span style={{ fontSize: 14, fontWeight: 900, color: P.accent, fontVariantNumeric: 'tabular-nums' }}>{fmt$(preview.total)}</span>
                       </div>
                     </div>
                   </div>
