@@ -384,7 +384,7 @@ const ClientProfile = ({
         const contact = client.billing_contact;
         const email   = client.email;
         const pn      = client.participant_number;
-        if (!org && !contact && !email && !pn) return null;
+        if (!org && !contact && !email && !pn && !client.phone) return null;
         return (
           <div className="glass-card p-4 space-y-2">
             <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Participant &amp; Billing</p>
