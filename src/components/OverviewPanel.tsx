@@ -101,120 +101,104 @@ const AnimatedCurrency = ({
   );
 };
 
-// ── Day detail centered modal ─────────────────────────────────────────────────
-const DayShiftSheet = ({
-  open, onClose, dateStr, shifts,
+// ── Compact day popup (anchored inline, like reference images) ────────────────
+const DayPopup = ({
+  dateStr, shifts, onClose,
 }: {
-  open: boolean;
-  onClose: () => void;
-  dateStr: string | null;
+  dateStr: string;
   shifts: Shift[];
+  onClose: () => void;
 }) => {
-  const dayShifts = useMemo(() => {
-    if (!dateStr) return [];
-    return shifts.filter(s => s.date === dateStr);
-  }, [dateStr, shifts]);
-
+  const dayShifts = useMemo(() => shifts.filter(s => s.date === dateStr), [dateStr, shifts]);
   const total = dayShifts.reduce((s, sh) => s + effectiveGrossPay(sh), 0);
 
   const label = useMemo(() => {
-    if (!dateStr) return '';
     const d = parseDate(dateStr);
-    return d.toLocaleDateString('en-AU', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+    return d.toLocaleDateString('en-AU', { weekday: 'short', day: 'numeric', month: 'short' });
   }, [dateStr]);
-
-  if (!open) return null;
 
   return (
     <div
-      className="fixed inset-0 z-[60] flex items-center justify-center p-4"
-      style={{ background: 'hsl(var(--foreground)/0.45)', backdropFilter: 'blur(4px)' }}
-      onClick={onClose}
+      className="rounded-2xl overflow-hidden"
+      style={{
+        background: 'hsl(var(--card))',
+        border: '1px solid hsl(var(--border))',
+        boxShadow:
+          '0 4px 24px hsl(var(--foreground)/0.12),' +
+          '0 1px 4px hsl(var(--foreground)/0.06),' +
+          'inset 0 0.5px 0 hsl(0 0% 100% / 0.08)',
+        minWidth: 220,
+        maxWidth: 280,
+      }}
+      onClick={e => e.stopPropagation()}
     >
+      {/* Header */}
       <div
-        className="w-full flex flex-col"
-        style={{
-          maxWidth: 420,
-          maxHeight: '80dvh',
-          background: 'hsl(var(--card))',
-          borderRadius: 24,
-          boxShadow:
-            '0 2px 8px hsl(var(--foreground)/0.08), ' +
-            '0 16px 48px hsl(var(--foreground)/0.18), ' +
-            '0 0 0 0.5px hsl(var(--border))',
-          overflow: 'hidden',
-        }}
-        onClick={e => e.stopPropagation()}
+        className="flex items-center justify-between px-4 py-3"
+        style={{ borderBottom: '0.5px solid hsl(var(--border))' }}
       >
-        {/* Header */}
-        <div
-          className="flex items-center justify-between px-5 py-4 shrink-0"
-          style={{ borderBottom: '0.5px solid hsl(var(--border))' }}
-        >
-          <div>
-            <p className="text-base font-bold text-foreground">{label}</p>
-            {dayShifts.length > 0 && (
-              <p className="text-xs text-muted-foreground mt-0.5">
-                {dayShifts.length} shift{dayShifts.length !== 1 ? 's' : ''} ·{' '}
-                <span className="font-semibold money-text">{formatCurrency(total)}</span>
-              </p>
-            )}
-          </div>
-          <button
-            onClick={onClose}
-            className="w-8 h-8 flex items-center justify-center rounded-full transition-colors shrink-0"
-            style={{ background: 'hsl(var(--muted))', color: 'hsl(var(--muted-foreground))' }}
-          >
-            <X className="w-3.5 h-3.5" />
-          </button>
+        <div>
+          <p className="text-xs font-bold text-foreground">{label}</p>
+          {dayShifts.length > 0 && (
+            <p className="text-[10px] text-muted-foreground mt-0.5">
+              {dayShifts.length} shift{dayShifts.length !== 1 ? 's' : ''} ·{' '}
+              <span className="font-semibold money-text">{formatCurrency(total)}</span>
+            </p>
+          )}
         </div>
-
-        {/* Body */}
-        <div className="flex-1 overflow-y-auto overscroll-contain p-4 space-y-3">
-          {dayShifts.length === 0 ? (
-            <div className="py-8 text-center">
-              <p className="text-sm text-muted-foreground">No shifts recorded for this day.</p>
-            </div>
-          ) : (
-            dayShifts.map(s => (
-              <div key={s.id} className="glass-card p-3 space-y-1">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-semibold text-foreground">
-                    {formatTime(s.start_time)} – {formatTime(s.end_time)}
-                  </span>
-                  <span className="text-sm font-bold money-text">{formatCurrency(effectiveGrossPay(s))}</span>
-                </div>
-                <div className="flex items-center gap-2 flex-wrap">
+        <button
+          onClick={onClose}
+          className="w-6 h-6 flex items-center justify-center rounded-full"
+          style={{ background: 'hsl(var(--muted))', color: 'hsl(var(--muted-foreground))' }}
+        >
+          <X className="w-3 h-3" />
+        </button>
+      </div>
+      {/* Shifts */}
+      <div className="py-2 px-3 space-y-1.5 max-h-48 overflow-y-auto">
+        {dayShifts.length === 0 ? (
+          <p className="text-[10px] text-muted-foreground py-2 text-center">No shifts recorded.</p>
+        ) : (
+          dayShifts.map(s => (
+            <div key={s.id} className="flex items-center justify-between gap-3 py-1.5">
+              <div className="min-w-0">
+                <p className="text-[10px] font-semibold text-foreground">
+                  {formatTime(s.start_time)} – {formatTime(s.end_time)}
+                </p>
+                <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
                   {s.client_name && (
-                    <span className="text-xs text-muted-foreground">{s.client_name}</span>
+                    <span className="text-[9px] text-muted-foreground">{s.client_name}</span>
                   )}
                   {s.is_sleepover && (
-                    <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full text-white"
-                      style={{ background: '#2563EB' }}>
+                    <span
+                      className="text-[8px] font-bold px-1.5 py-0.5 rounded-full text-white"
+                      style={{ background: 'hsl(var(--sleepover-color))' }}
+                    >
                       Sleepover
                     </span>
                   )}
                   {s.is_public_holiday && (
-                    <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full"
-                      style={{ background: 'hsl(34 97% 52% / 0.15)', color: 'hsl(34 97% 40%)' }}>
-                      Public Holiday
+                    <span
+                      className="text-[8px] font-bold px-1.5 py-0.5 rounded-full"
+                      style={{ background: 'hsl(var(--stat-amber)/0.18)', color: 'hsl(var(--stat-amber))' }}
+                    >
+                      PH
                     </span>
                   )}
-                  {!s.is_sleepover && !s.is_public_holiday && shiftHasEveningHours(s.start_time, s.end_time) && (
-                    <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full"
-                      style={{ background: 'hsl(38 90% 52% / 0.18)', color: 'hsl(38 90% 38%)' }}>
-                      Evening Shift
+                  {!s.is_sleepover && shiftHasEveningHours(s.start_time, s.end_time) && (
+                    <span
+                      className="text-[8px] font-bold px-1.5 py-0.5 rounded-full"
+                      style={{ background: 'hsl(var(--evening-color)/0.18)', color: 'hsl(var(--evening-color))' }}
+                    >
+                      Eve
                     </span>
-                  )}
-                  {!s.is_sleepover && (
-                    <span className="text-xs text-muted-foreground">{Number(s.hours_worked).toFixed(1)}h</span>
                   )}
                 </div>
-                {s.notes && <p className="text-xs text-muted-foreground">{s.notes}</p>}
               </div>
-            ))
-          )}
-        </div>
+              <span className="text-[10px] font-bold money-text shrink-0">{formatCurrency(effectiveGrossPay(s))}</span>
+            </div>
+          ))
+        )}
       </div>
     </div>
   );
@@ -310,17 +294,19 @@ const MonthNavigator = ({
   );
 };
 
-// ── Interactive Earnings Calendar ─────────────────────────────────────────────
+// ── Interactive Earnings Calendar with inline tile popup ─────────────────────
 const EarningsCalendarHeatmap = ({
-  shifts, year, month, onDayTap,
+  shifts, year, month,
 }: {
   shifts: Shift[];
   year: number;
   month: number;
-  onDayTap: (dateStr: string) => void;
 }) => {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
+
+  const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  const [popupPos, setPopupPos] = useState<{ row: number; col: number } | null>(null);
 
   const grossByDate = useMemo(() => {
     const map: Record<string, number> = {};
@@ -352,72 +338,168 @@ const EarningsCalendarHeatmap = ({
   const offsetDays = startDow === 0 ? 6 : startDow - 1;
   const totalCells = offsetDays + lastDay.getDate();
   const rows = Math.ceil(totalCells / 7);
-  const days = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+  const DAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+
+  const handleDayClick = (dateStr: string, cellIndex: number) => {
+    if (selectedDate === dateStr) {
+      setSelectedDate(null);
+      setPopupPos(null);
+      return;
+    }
+    const rowIdx = Math.floor(cellIndex / 7);
+    const colIdx = cellIndex % 7;
+    setSelectedDate(dateStr);
+    setPopupPos({ row: rowIdx, col: colIdx });
+  };
 
   return (
-    <div className="card-elevated" style={{ padding: '20px 18px' }}>
-      <div className="flex items-center justify-between mb-4">
+    <div className="card-elevated" style={{ padding: '18px 16px' }}>
+      {/* Header */}
+      <div className="flex items-center justify-between mb-3">
         <p className="section-label">Earnings Calendar</p>
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-1">
           <span className="text-[9px] text-muted-foreground">Low</span>
           {[0.15, 0.35, 0.55, 0.75, 1].map((o, i) => (
-            <div key={i} className="w-2.5 h-2.5 rounded-sm" style={{ background: `hsl(var(--money-green) / ${o})` }} />
+            <div key={i} className="w-2 h-2 rounded-[3px]" style={{ background: `hsl(var(--money-green) / ${o})` }} />
           ))}
           <span className="text-[9px] text-muted-foreground">High</span>
         </div>
       </div>
 
-      <div className="grid grid-cols-7 gap-1.5 mb-2">
-        {days.map((d, i) => (
-          <div key={i} className="text-center text-[9px] font-bold text-muted-foreground">{d}</div>
+      {/* Day headers */}
+      <div className="grid grid-cols-7 gap-1 mb-1.5">
+        {DAY_LABELS.map(d => (
+          <div key={d} className="text-center" style={{ fontSize: 8, fontWeight: 700, color: 'hsl(var(--muted-foreground))' }}>
+            {d}
+          </div>
         ))}
       </div>
 
-      <div className="grid grid-cols-7 gap-1.5">
-        {Array.from({ length: rows * 7 }).map((_, i) => {
-          const dayNum = i - offsetDays + 1;
-          if (dayNum < 1 || dayNum > lastDay.getDate()) return <div key={i} className="aspect-square" />;
+      {/* Grid + inline popup rows */}
+      {Array.from({ length: rows }).map((_, rowIdx) => {
+        const showPopupAfterRow =
+          selectedDate !== null &&
+          popupPos !== null &&
+          popupPos.row === rowIdx;
 
-          const dateStr = formatDateISO(new Date(year, month, dayNum));
-          const gross = grossByDate[dateStr] ?? 0;
-          const count = shiftsByDate[dateStr] ?? 0;
-          const intensity = gross > 0 ? Math.max(0.18, gross / maxGross) : 0;
-          const isToday =
-            today.getFullYear() === year &&
-            today.getMonth() === month &&
-            today.getDate() === dayNum;
+        return (
+          <div key={rowIdx}>
+            {/* Row of 7 tiles */}
+            <div className="grid grid-cols-7 gap-1 mb-1">
+              {Array.from({ length: 7 }).map((_, colIdx) => {
+                const cellIndex = rowIdx * 7 + colIdx;
+                const dayNum = cellIndex - offsetDays + 1;
 
-          return (
-            <button
-              key={i}
-              onClick={() => onDayTap(dateStr)}
-              className="aspect-square rounded-xl flex flex-col items-center justify-center relative transition-all duration-150 active:scale-90"
-              style={{
-                background: gross > 0 ? `hsl(var(--money-green) / ${intensity.toFixed(2)})` : 'hsl(var(--muted) / 0.5)',
-                outline: isToday ? '2px solid hsl(var(--primary))' : undefined,
-                outlineOffset: isToday ? '-1px' : undefined,
-              }}
-              aria-label={`${dayNum} ${MONTH_NAMES[month]}, ${gross > 0 ? formatCurrency(gross) : 'no shifts'}`}
-            >
-              <span
-                className="text-[9px] font-semibold leading-none"
-                style={{ color: intensity > 0.5 ? 'hsl(var(--money-green-fg))' : 'hsl(var(--muted-foreground))' }}
+                if (dayNum < 1 || dayNum > lastDay.getDate()) {
+                  return (
+                    <div
+                      key={colIdx}
+                      style={{
+                        aspectRatio: '1',
+                        borderRadius: 10,
+                        background: 'hsl(var(--muted)/0.15)',
+                      }}
+                    />
+                  );
+                }
+
+                const dateStr = formatDateISO(new Date(year, month, dayNum));
+                const gross = grossByDate[dateStr] ?? 0;
+                const count = shiftsByDate[dateStr] ?? 0;
+                const intensity = gross > 0 ? Math.max(0.18, gross / maxGross) : 0;
+                const isToday =
+                  today.getFullYear() === year &&
+                  today.getMonth() === month &&
+                  today.getDate() === dayNum;
+                const isSelected = selectedDate === dateStr;
+
+                return (
+                  <button
+                    key={colIdx}
+                    onClick={() => handleDayClick(dateStr, cellIndex)}
+                    aria-label={`${dayNum} ${MONTH_NAMES[month]}, ${gross > 0 ? formatCurrency(gross) : 'no shifts'}`}
+                    style={{
+                      aspectRatio: '1',
+                      borderRadius: 10,
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: 1,
+                      position: 'relative',
+                      transition: 'transform 0.12s ease, box-shadow 0.12s ease',
+                      background: gross > 0
+                        ? `hsl(var(--money-green) / ${intensity.toFixed(2)})`
+                        : 'hsl(var(--muted) / 0.45)',
+                      outline: isToday
+                        ? '1.5px solid hsl(var(--primary))'
+                        : isSelected
+                        ? '1.5px solid hsl(var(--foreground)/0.5)'
+                        : 'none',
+                      outlineOffset: '-1px',
+                      boxShadow: isSelected
+                        ? '0 2px 8px hsl(var(--foreground)/0.12)'
+                        : 'none',
+                      transform: isSelected ? 'scale(0.94)' : 'scale(1)',
+                      cursor: 'pointer',
+                      border: 'none',
+                      WebkitTapHighlightColor: 'transparent',
+                    }}
+                  >
+                    <span
+                      style={{
+                        fontSize: 9,
+                        fontWeight: 600,
+                        lineHeight: 1,
+                        color: intensity > 0.5
+                          ? 'hsl(var(--money-green-fg))'
+                          : 'hsl(var(--muted-foreground))',
+                      }}
+                    >
+                      {dayNum}
+                    </span>
+                    {count > 0 && (
+                      <span
+                        style={{
+                          width: 4,
+                          height: 4,
+                          borderRadius: '50%',
+                          background: intensity > 0.5
+                            ? 'hsl(var(--money-green-fg))'
+                            : 'hsl(var(--money-green))',
+                        }}
+                      />
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Inline popup anchored below the row */}
+            {showPopupAfterRow && selectedDate && (
+              <div
+                style={{
+                  marginBottom: 8,
+                  animation: 'fadeSlideIn 0.18s ease',
+                }}
               >
-                {dayNum}
-              </span>
-              {count > 1 && (
-                <span
-                  className="text-[6px] leading-none mt-0.5 font-bold"
-                  style={{ color: intensity > 0.5 ? 'hsl(var(--money-green-fg))' : 'hsl(var(--muted-foreground))' }}
-                >
-                  ×{count}
-                </span>
-              )}
-            </button>
-          );
-        })}
-      </div>
-      <p className="text-[9px] text-muted-foreground text-center mt-3">Tap a day to see shift details</p>
+                <DayPopup
+                  dateStr={selectedDate}
+                  shifts={shifts}
+                  onClose={() => { setSelectedDate(null); setPopupPos(null); }}
+                />
+              </div>
+            )}
+          </div>
+        );
+      })}
+
+      <style>{`
+        @keyframes fadeSlideIn {
+          from { opacity: 0; transform: translateY(-6px); }
+          to   { opacity: 1; transform: translateY(0); }
+        }
+      `}</style>
     </div>
   );
 };
