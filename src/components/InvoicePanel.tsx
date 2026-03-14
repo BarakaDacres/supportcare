@@ -362,21 +362,18 @@ const InvoicePanel = ({
         issueDate = formatDateISO(new Date());
         dueDate = addDays(issueDate, 7);
 
+        const insertPayload = {
+          user_id: session.user.id,
+          invoice_number: invoiceNumber,
+          status: 'generated',
+          total_amount: total,
+          period_start: formatDateISO(selectedPeriod.start),
+          period_end: formatDateISO(selectedPeriod.end),
+          notes: '',
+        };
         const { data: newInv, error } = await supabase
           .from('invoices')
-          .insert({
-            user_id: session.user.id,
-            invoice_number: invoiceNumber,
-            status: 'generated',
-            total_amount: total,
-            period_start: formatDateISO(selectedPeriod.start),
-            period_end: formatDateISO(selectedPeriod.end),
-            due_date: dueDate,
-            client_id: selectedClientId || null,
-            fortnight_number: selectedPeriod.fnNumber,
-            year: selectedYear,
-            notes: '',
-          } as Record<string, unknown>)
+          .insert(insertPayload)
           .select('id')
           .single();
 
