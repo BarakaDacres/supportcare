@@ -1123,7 +1123,6 @@ const OverviewPanel = ({
         shifts={shifts}
         year={selectedYear}
         month={selectedMonth}
-        onDayTap={handleDayTap}
       />
 
       {/* ── Monthly trend mini chart ── */}
@@ -1162,14 +1161,6 @@ const OverviewPanel = ({
           })}
         </div>
       </ElevatedCard>
-
-      {/* ── Day shift detail sheet ── */}
-      <DayShiftSheet
-        open={!!daySheetDate}
-        onClose={() => setDaySheetDate(null)}
-        dateStr={daySheetDate}
-        shifts={shifts}
-      />
 
     </div>
   );
