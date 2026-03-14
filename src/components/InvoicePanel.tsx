@@ -1,7 +1,6 @@
 import { useState, useMemo, useRef } from 'react';
-import { FileText, ChevronDown, Download, User, Code2 } from 'lucide-react';
+import { FileText, ChevronDown, Download, User } from 'lucide-react';
 import { formatCurrency } from '@/lib/formatUtils';
-import { formatTime12h } from '@/lib/shiftCalculator';
 import type { Shift } from '@/hooks/useShifts';
 import { effectiveGrossPay } from '@/hooks/useShifts';
 import type { UserSettings } from '@/hooks/useUserSettings';
@@ -75,19 +74,12 @@ function formatDateISO(d: Date): string {
   return `${y}-${m}-${dd}`;
 }
 
-function formatDateFull(dateStr: string): string {
-  const [y, m, d] = dateStr.split('-').map(Number);
-  const date = new Date(y, m - 1, d);
-  const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-  return `${days[date.getDay()]} ${d} ${MONTH_NAMES[m - 1]} ${y}`;
-}
-
 function formatDateShort(dateStr: string): string {
   const [y, m, d] = dateStr.split('-').map(Number);
   return `${d} ${MONTH_NAMES[m - 1].slice(0, 3)} ${y}`;
 }
 
-const InvoicePanel = ({ shifts, clients, settings, onIncrementCounter: _onIncrementCounter }: InvoicePanelProps) => {
+const InvoicePanel = ({ shifts, clients, settings, onIncrementCounter }: InvoicePanelProps) => {
   const currentYear = new Date().getFullYear();
   const [selectedYear, setSelectedYear] = useState(currentYear);
   const [selectedFnIdx, setSelectedFnIdx] = useState(0);
@@ -111,8 +103,6 @@ const InvoicePanel = ({ shifts, clients, settings, onIncrementCounter: _onIncrem
     rate_evening: settings?.rate_evening ?? DEFAULT_RATES.rate_evening,
   };
 
-  // Parse NDIS codes from settings invoice_notes field or use defaults
-  // We store them as JSON in a special field — for now use defaults
   const ndisCodesStr = (settings as unknown as { ndis_codes?: string })?.ndis_codes;
   const ndisCodes: Partial<NdisItemCodes> = ndisCodesStr ? JSON.parse(ndisCodesStr) : {};
 
@@ -139,34 +129,35 @@ const InvoicePanel = ({ shifts, clients, settings, onIncrementCounter: _onIncrem
   const generateInvoice = async () => {
     if (!selectedPeriod) return;
     setGenerating(true);
+    try {
+      // New format: INV-006 (zero-padded sequential counter)
+      const counter = await onIncrementCounter();
+      const invoiceNumber = `INV-${String(counter).padStart(3, '0')}`;
+      const today = new Date();
+      const clientInvoiceNotes = selectedClient?.invoice_notes ?? null;
 
-    const pad = (n: number) => String(n).padStart(2, '0');
-    const clientSuffix = selectedClient ? `-${selectedClient.name.replace(/\s+/g, '').slice(0, 8).toUpperCase()}` : '';
-    const invoiceNumber = `INV-${selectedYear}-FN${pad(selectedPeriod.fnNumber)}${clientSuffix}`;
-    const today = new Date();
+      const data: InvoiceData = {
+        invoiceNumber,
+        issueDate: formatDateISO(today),
+        fnIndex: selectedPeriod.fnNumber,
+        periodStart: formatDateISO(selectedPeriod.start),
+        periodEnd: formatDateISO(selectedPeriod.end),
+        shifts: periodShifts,
+        total,
+        issuerName: settings?.business_name ?? '',
+        abn: settings?.abn ?? '',
+        bankName: settings?.bank_name ?? '',
+        bsb: settings?.bsb ?? '',
+        accountNumber: settings?.account_number ?? '',
+        invoiceNotes: clientInvoiceNotes || settings?.invoice_notes || 'GST-free supply – no GST charged. Payment due within 14 days.',
+        clientName: selectedClient?.invoice_label ?? selectedClient?.name ?? '',
+        clientParticipantNumber: selectedClient?.participant_number ?? '',
+      };
 
-    const clientInvoiceNotes = selectedClient?.invoice_notes ?? null;
-
-    const data: InvoiceData = {
-      invoiceNumber,
-      issueDate: formatDateISO(today),
-      fnIndex: selectedPeriod.fnNumber,
-      periodStart: formatDateISO(selectedPeriod.start),
-      periodEnd: formatDateISO(selectedPeriod.end),
-      shifts: periodShifts,
-      total,
-      issuerName: settings?.business_name ?? '',
-      abn: settings?.abn ?? '',
-      bankName: settings?.bank_name ?? '',
-      bsb: settings?.bsb ?? '',
-      accountNumber: settings?.account_number ?? '',
-      invoiceNotes: clientInvoiceNotes || settings?.invoice_notes || 'GST-free supply – no GST charged. Payment due within 14 days.',
-      clientName: selectedClient?.invoice_label ?? selectedClient?.name ?? '',
-      clientParticipantNumber: selectedClient?.participant_number ?? '',
-    };
-
-    setPreview(data);
-    setGenerating(false);
+      setPreview(data);
+    } finally {
+      setGenerating(false);
+    }
   };
 
   const handleExportPDF = async () => {
@@ -176,7 +167,7 @@ const InvoicePanel = ({ shifts, clients, settings, onIncrementCounter: _onIncrem
       const html2pdf = (await import('html2pdf.js')).default;
       const element = printRef.current;
       const opt = {
-        margin: [10, 10, 10, 10],
+        margin: [12, 14, 12, 14],
         filename: `${preview.invoiceNumber}.pdf`,
         image: { type: 'jpeg', quality: 0.98 },
         html2canvas: { scale: 2, useCORS: true, letterRendering: true },
@@ -300,202 +291,262 @@ const InvoicePanel = ({ shifts, clients, settings, onIncrementCounter: _onIncrem
           </div>
 
           {/* ══════════════════════════════════════════
-              PRINTABLE INVOICE
+              PRINTABLE INVOICE — compact single-page layout
+              Only grouped category rows, no per-day detail.
           ══════════════════════════════════════════ */}
-          <div ref={printRef} id="invoice-preview" className="invoice-print-area glass-card overflow-hidden">
-
+          <div
+            ref={printRef}
+            id="invoice-preview"
+            className="invoice-print-area glass-card overflow-hidden"
+            style={{ fontFamily: 'system-ui, -apple-system, sans-serif' }}
+          >
             {/* ── Top accent bar ── */}
-            <div className="h-1.5 w-full" style={{ background: 'hsl(var(--primary))' }} />
+            <div className="h-1 w-full" style={{ background: 'hsl(var(--primary))' }} />
 
-            <div className="p-6 space-y-6">
+            <div style={{ padding: '20px 24px' }}>
 
-              {/* ── Header: Invoice title + Issuer ── */}
-              <div className="flex items-start justify-between gap-4 pb-4 border-b border-border">
+              {/* ── Header row ── */}
+              <div
+                className="flex items-start justify-between gap-4"
+                style={{ paddingBottom: 14, marginBottom: 14, borderBottom: '1px solid hsl(var(--border))' }}
+              >
                 <div>
-                  <h1 className="text-3xl font-bold tracking-tight text-foreground">Invoice</h1>
-                  <p className="text-xs text-muted-foreground mt-1">NDIS Support Services — GST-Free Supply</p>
+                  <h1 style={{ fontSize: 24, fontWeight: 800, color: 'hsl(var(--foreground))', margin: 0, letterSpacing: '-0.02em' }}>
+                    Invoice
+                  </h1>
+                  <p style={{ fontSize: 10, color: 'hsl(var(--muted-foreground))', marginTop: 2 }}>
+                    NDIS Support Services — GST-Free Supply
+                  </p>
                 </div>
-                <div className="text-right">
-                  <p className="text-base font-bold text-foreground">{preview.issuerName || 'Your Name'}</p>
+                <div style={{ textAlign: 'right' }}>
+                  <p style={{ fontSize: 13, fontWeight: 700, color: 'hsl(var(--foreground))', margin: 0 }}>
+                    {preview.issuerName || 'Your Name'}
+                  </p>
                   {preview.abn && (
-                    <p className="text-xs text-muted-foreground mt-0.5">ABN {preview.abn}</p>
+                    <p style={{ fontSize: 10, color: 'hsl(var(--muted-foreground))', marginTop: 2 }}>
+                      ABN {preview.abn}
+                    </p>
                   )}
                 </div>
               </div>
 
-              {/* ── Invoice meta ── */}
-              <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-                <div>
-                  <p className="text-[9px] font-semibold text-muted-foreground uppercase tracking-widest mb-0.5">Invoice No.</p>
-                  <p className="text-sm font-bold text-foreground">{preview.invoiceNumber}</p>
-                </div>
-                <div>
-                  <p className="text-[9px] font-semibold text-muted-foreground uppercase tracking-widest mb-0.5">Issue Date</p>
-                  <p className="text-sm font-semibold text-foreground">{formatDateShort(preview.issueDate)}</p>
-                </div>
-                <div className="col-span-2 sm:col-span-2">
-                  <p className="text-[9px] font-semibold text-muted-foreground uppercase tracking-widest mb-0.5">Service Period</p>
-                  <p className="text-sm font-semibold text-foreground">
-                    {formatDateShort(preview.periodStart)} – {formatDateShort(preview.periodEnd)}
-                  </p>
-                </div>
+              {/* ── Meta row ── */}
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(4, 1fr)',
+                  gap: 8,
+                  marginBottom: 14,
+                }}
+              >
+                {[
+                  { label: 'Invoice No.', value: preview.invoiceNumber },
+                  { label: 'Issue Date', value: formatDateShort(preview.issueDate) },
+                  { label: 'Period From', value: formatDateShort(preview.periodStart) },
+                  { label: 'Period To', value: formatDateShort(preview.periodEnd) },
+                ].map(m => (
+                  <div key={m.label}>
+                    <p style={{ fontSize: 8, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'hsl(var(--muted-foreground))', marginBottom: 2 }}>
+                      {m.label}
+                    </p>
+                    <p style={{ fontSize: 11, fontWeight: 700, color: 'hsl(var(--foreground))' }}>{m.value}</p>
+                  </div>
+                ))}
               </div>
 
-              {/* ── Bill to (if client) ── */}
+              {/* ── Bill To ── */}
               {preview.clientName && (
-                <div className="rounded-xl p-3 space-y-0.5" style={{ background: 'hsl(var(--muted)/0.5)' }}>
-                  <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest">Bill To / Participant</p>
-                  <p className="text-sm font-bold text-foreground">{preview.clientName}</p>
+                <div
+                  style={{
+                    background: 'hsl(var(--muted)/0.5)',
+                    borderRadius: 10,
+                    padding: '10px 14px',
+                    marginBottom: 14,
+                  }}
+                >
+                  <p style={{ fontSize: 8, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'hsl(var(--muted-foreground))', marginBottom: 3 }}>
+                    Participant / Bill To
+                  </p>
+                  <p style={{ fontSize: 12, fontWeight: 700, color: 'hsl(var(--foreground))', margin: 0 }}>{preview.clientName}</p>
                   {preview.clientParticipantNumber && (
-                    <p className="text-xs text-muted-foreground">NDIS Participant No: {preview.clientParticipantNumber}</p>
+                    <p style={{ fontSize: 10, color: 'hsl(var(--muted-foreground))', marginTop: 2 }}>
+                      NDIS Participant No: {preview.clientParticipantNumber}
+                    </p>
                   )}
                 </div>
               )}
 
-              {/* ── Grouped Line Items ── */}
-              <div>
+              {/* ── Line items table — grouped categories only ── */}
+              <div style={{ marginBottom: 14 }}>
                 {/* Table header */}
                 <div
-                  className="grid gap-2 py-2 px-3 rounded-t-xl"
                   style={{
-                    gridTemplateColumns: '1fr 130px 56px 56px 80px',
+                    display: 'grid',
+                    gridTemplateColumns: '2fr 1.6fr 60px 60px 72px',
+                    gap: 6,
+                    padding: '7px 12px',
                     background: 'hsl(var(--primary)/0.1)',
+                    borderRadius: '8px 8px 0 0',
                   }}
                 >
-                  <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest">Support Type</span>
-                  <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest">NDIS Code</span>
-                  <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest text-center">Qty</span>
-                  <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest text-right">Rate</span>
-                  <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest text-right">Subtotal</span>
+                  {['Support Category', 'NDIS Item Code', 'Qty', 'Rate', 'Subtotal'].map((h, i) => (
+                    <span
+                      key={h}
+                      style={{
+                        fontSize: 8,
+                        fontWeight: 700,
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.08em',
+                        color: 'hsl(var(--muted-foreground))',
+                        textAlign: i >= 2 ? 'right' : 'left',
+                      }}
+                    >
+                      {h}
+                    </span>
+                  ))}
                 </div>
 
-                {/* Grouped rows */}
-                <div className="border border-t-0 border-border rounded-b-xl overflow-hidden">
+                {/* Category rows — no per-day breakdown */}
+                <div
+                  style={{
+                    border: '1px solid hsl(var(--border))',
+                    borderTop: 'none',
+                    borderRadius: '0 0 8px 8px',
+                    overflow: 'hidden',
+                  }}
+                >
                   {lineGroups.map((group, idx) => (
-                    <div key={group.category}>
-                      {/* Group summary row */}
-                      <div
-                        className="grid gap-2 py-3 px-3 items-center"
-                        style={{
-                          gridTemplateColumns: '1fr 130px 56px 56px 80px',
-                          background: idx % 2 === 1 ? 'hsl(var(--muted)/0.2)' : 'transparent',
-                        }}
-                      >
-                        <div>
-                          <p className="text-xs font-bold text-foreground">{group.label}</p>
-                          <p className="text-[10px] text-muted-foreground mt-0.5">
-                            {group.shifts.length} shift{group.shifts.length !== 1 ? 's' : ''}
-                          </p>
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <Code2 className="w-2.5 h-2.5 text-muted-foreground shrink-0" />
-                          <p className="text-[9px] font-mono text-muted-foreground leading-tight break-all">{group.ndisCode}</p>
-                        </div>
-                        <p className="text-[11px] text-muted-foreground text-center">
-                          {group.isSleepover
-                            ? `${group.quantity} night${group.quantity !== 1 ? 's' : ''}`
-                            : `${group.quantity}h`}
+                    <div
+                      key={group.category}
+                      style={{
+                        display: 'grid',
+                        gridTemplateColumns: '2fr 1.6fr 60px 60px 72px',
+                        gap: 6,
+                        padding: '10px 12px',
+                        background: idx % 2 === 1 ? 'hsl(var(--muted)/0.18)' : 'transparent',
+                        borderTop: idx === 0 ? 'none' : '0.5px solid hsl(var(--border)/0.5)',
+                        alignItems: 'center',
+                      }}
+                    >
+                      <div>
+                        <p style={{ fontSize: 11, fontWeight: 700, color: 'hsl(var(--foreground))', margin: 0 }}>
+                          {group.label}
                         </p>
-                        <p className="text-[11px] text-muted-foreground text-right">
-                          {group.isSleepover
-                            ? `${formatCurrency(group.rate)} flat`
-                            : `$${group.rate}/hr`}
+                        <p style={{ fontSize: 9, color: 'hsl(var(--muted-foreground))', marginTop: 1 }}>
+                          {group.shifts.length} shift{group.shifts.length !== 1 ? 's' : ''}
                         </p>
-                        <p className="text-xs font-bold money-text text-right">{formatCurrency(group.subtotal)}</p>
                       </div>
-
-                      {/* Shift detail rows (collapsed, subtle) */}
-                      {group.shifts.map((shift) => (
-                        <div
-                          key={shift.id}
-                          className="grid gap-2 py-1.5 px-3 items-center border-t"
-                          style={{
-                            gridTemplateColumns: '1fr 130px 56px 56px 80px',
-                            borderColor: 'hsl(var(--border)/0.4)',
-                            background: 'hsl(var(--muted)/0.06)',
-                          }}
-                        >
-                          <div className="pl-2">
-                            <p className="text-[10px] text-muted-foreground">{formatDateFull(shift.date)}</p>
-                          </div>
-                          <p className="text-[10px] text-muted-foreground">
-                            {formatTime12h(shift.start_time)}–{formatTime12h(shift.end_time)}
-                          </p>
-                          <p className="text-[10px] text-muted-foreground text-center">
-                            {shift.is_sleepover ? '1 night' : `${Number(shift.hours_worked).toFixed(1)}h`}
-                          </p>
-                          <p className="text-[10px] text-muted-foreground text-right">—</p>
-                          <p className="text-[10px] text-muted-foreground text-right">
-                            {formatCurrency(effectiveGrossPay(shift))}
-                          </p>
-                        </div>
-                      ))}
+                      <p style={{ fontSize: 9, fontFamily: 'monospace', color: 'hsl(var(--muted-foreground))' }}>
+                        {group.ndisCode}
+                      </p>
+                      <p style={{ fontSize: 11, color: 'hsl(var(--foreground))', textAlign: 'right' }}>
+                        {group.isSleepover
+                          ? `${group.quantity}n`
+                          : `${group.quantity}h`}
+                      </p>
+                      <p style={{ fontSize: 11, color: 'hsl(var(--muted-foreground))', textAlign: 'right' }}>
+                        {group.isSleepover ? `$${group.rate}` : `$${group.rate}/h`}
+                      </p>
+                      <p style={{ fontSize: 11, fontWeight: 700, color: 'hsl(var(--money-green))', textAlign: 'right' }}>
+                        {formatCurrency(group.subtotal)}
+                      </p>
                     </div>
                   ))}
                 </div>
               </div>
 
               {/* ── Totals ── */}
-              <div className="space-y-2">
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Subtotal</span>
-                  <span className="font-semibold text-foreground">{formatCurrency(preview.total)}</span>
+              <div
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 6,
+                  marginBottom: 14,
+                }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11 }}>
+                  <span style={{ color: 'hsl(var(--muted-foreground))' }}>Subtotal</span>
+                  <span style={{ fontWeight: 600, color: 'hsl(var(--foreground))' }}>{formatCurrency(preview.total)}</span>
                 </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">GST</span>
-                  <span className="font-semibold text-muted-foreground">$0.00 (GST-free)</span>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11 }}>
+                  <span style={{ color: 'hsl(var(--muted-foreground))' }}>GST</span>
+                  <span style={{ color: 'hsl(var(--muted-foreground))' }}>$0.00 (GST-free)</span>
                 </div>
                 <div
-                  className="flex justify-between items-center py-3 px-4 rounded-xl mt-1"
-                  style={{ background: 'hsl(var(--money-green)/0.1)', border: '1px solid hsl(var(--money-green)/0.25)' }}
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    padding: '10px 14px',
+                    borderRadius: 10,
+                    background: 'hsl(var(--money-green)/0.1)',
+                    border: '1px solid hsl(var(--money-green)/0.25)',
+                    marginTop: 4,
+                  }}
                 >
-                  <span className="text-sm font-bold text-foreground">Total Amount Due (AUD)</span>
-                  <span className="text-xl font-bold money-text">{formatCurrency(preview.total)}</span>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: 'hsl(var(--foreground))' }}>
+                    Total Amount Due (AUD)
+                  </span>
+                  <span style={{ fontSize: 18, fontWeight: 800, color: 'hsl(var(--money-green))' }}>
+                    {formatCurrency(preview.total)}
+                  </span>
                 </div>
               </div>
 
-              {/* ── Payment details + Notes ── */}
-              {(preview.bankName || preview.invoiceNotes) && (
-                <div className="space-y-3">
-                  {preview.bankName && (
-                    <div className="rounded-xl border border-border p-4 space-y-2">
-                      <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest">Payment Details</p>
-                      <div className="grid grid-cols-1 gap-1 sm:grid-cols-3 sm:gap-3">
-                        <div>
-                          <p className="text-[9px] text-muted-foreground uppercase tracking-wider">Bank</p>
-                          <p className="text-xs font-semibold text-foreground">{preview.bankName}</p>
-                        </div>
-                        {preview.bsb && (
-                          <div>
-                            <p className="text-[9px] text-muted-foreground uppercase tracking-wider">BSB</p>
-                            <p className="text-xs font-semibold text-foreground">{preview.bsb}</p>
-                          </div>
-                        )}
-                        {preview.accountNumber && (
-                          <div>
-                            <p className="text-[9px] text-muted-foreground uppercase tracking-wider">Account</p>
-                            <p className="text-xs font-semibold text-foreground">{preview.accountNumber}</p>
-                          </div>
-                        )}
+              {/* ── Payment details ── */}
+              {preview.bankName && (
+                <div
+                  style={{
+                    border: '1px solid hsl(var(--border))',
+                    borderRadius: 10,
+                    padding: '10px 14px',
+                    marginBottom: 10,
+                  }}
+                >
+                  <p style={{ fontSize: 8, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'hsl(var(--muted-foreground))', marginBottom: 6 }}>
+                    Payment Details
+                  </p>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
+                    <div>
+                      <p style={{ fontSize: 8, color: 'hsl(var(--muted-foreground))' }}>Bank</p>
+                      <p style={{ fontSize: 11, fontWeight: 600, color: 'hsl(var(--foreground))' }}>{preview.bankName}</p>
+                    </div>
+                    {preview.bsb && (
+                      <div>
+                        <p style={{ fontSize: 8, color: 'hsl(var(--muted-foreground))' }}>BSB</p>
+                        <p style={{ fontSize: 11, fontWeight: 600, color: 'hsl(var(--foreground))' }}>{preview.bsb}</p>
                       </div>
-                      <p className="text-[10px] text-muted-foreground pt-1 border-t border-border">
-                        Please use invoice number <strong>{preview.invoiceNumber}</strong> as the payment reference.
-                      </p>
-                    </div>
-                  )}
+                    )}
+                    {preview.accountNumber && (
+                      <div>
+                        <p style={{ fontSize: 8, color: 'hsl(var(--muted-foreground))' }}>Account</p>
+                        <p style={{ fontSize: 11, fontWeight: 600, color: 'hsl(var(--foreground))' }}>{preview.accountNumber}</p>
+                      </div>
+                    )}
+                  </div>
+                  <p style={{ fontSize: 9, color: 'hsl(var(--muted-foreground))', marginTop: 6, paddingTop: 6, borderTop: '0.5px solid hsl(var(--border))' }}>
+                    Please use <strong>{preview.invoiceNumber}</strong> as the payment reference.
+                  </p>
+                </div>
+              )}
 
-                  {preview.invoiceNotes && (
-                    <div className="rounded-xl border border-border p-3">
-                      <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest mb-1">Notes</p>
-                      <p className="text-xs text-muted-foreground whitespace-pre-line">{preview.invoiceNotes}</p>
-                    </div>
-                  )}
+              {/* ── Notes ── */}
+              {preview.invoiceNotes && (
+                <div
+                  style={{
+                    border: '1px solid hsl(var(--border))',
+                    borderRadius: 10,
+                    padding: '8px 14px',
+                    marginBottom: 10,
+                  }}
+                >
+                  <p style={{ fontSize: 9, color: 'hsl(var(--muted-foreground))', whiteSpace: 'pre-line' }}>{preview.invoiceNotes}</p>
                 </div>
               )}
 
               {/* ── Footer ── */}
-              <div className="pt-2 border-t border-border text-center">
-                <p className="text-[9px] text-muted-foreground">
+              <div style={{ paddingTop: 8, borderTop: '0.5px solid hsl(var(--border))', textAlign: 'center' }}>
+                <p style={{ fontSize: 8, color: 'hsl(var(--muted-foreground))' }}>
                   This invoice is GST-free. No GST is charged on NDIS disability support services.
                   {preview.abn ? ` ABN: ${preview.abn}.` : ''}
                 </p>
