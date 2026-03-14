@@ -652,6 +652,7 @@ const InvoicePanel = ({
       shifts:      periodShifts,
       total,
       issuerName:    settings?.business_name    ?? '',
+      issuerEmail:   settings?.email             ?? '',
       abn:           settings?.abn               ?? '',
       phone:         (s?.phone  as string)        ?? '',
       address:       (s?.address as string)       ?? '',
