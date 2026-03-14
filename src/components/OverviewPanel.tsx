@@ -512,8 +512,7 @@ const OverviewPanel = ({
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
-  const [daySheetDate, setDaySheetDate] = useState<string | null>(null);
-  const handleDayTap = useCallback((dateStr: string) => setDaySheetDate(dateStr), []);
+  // Day popup is now handled inline inside EarningsCalendarHeatmap
 
   const stats = useMemo(() => {
     const weekStart = getMondayOf(today);
