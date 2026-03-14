@@ -316,6 +316,7 @@ export type Database = {
           bsb: string | null
           business_name: string | null
           created_at: string
+          email: string | null
           id: string
           invoice_counter: number
           invoice_notes: string | null
@@ -345,6 +346,7 @@ export type Database = {
           bsb?: string | null
           business_name?: string | null
           created_at?: string
+          email?: string | null
           id?: string
           invoice_counter?: number
           invoice_notes?: string | null
@@ -374,6 +376,7 @@ export type Database = {
           bsb?: string | null
           business_name?: string | null
           created_at?: string
+          email?: string | null
           id?: string
           invoice_counter?: number
           invoice_notes?: string | null

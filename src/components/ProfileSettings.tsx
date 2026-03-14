@@ -90,6 +90,7 @@ const ProfileSettings = ({ auth, settings, onSaveSettings }: ProfileSettingsProp
   // Business/invoice fields — backed by user_settings
   const [businessName, setBusinessName] = useState('');
   const [abn, setAbn] = useState('');
+  const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [address, setAddress] = useState('');
   const [bankName, setBankName] = useState('');
@@ -109,6 +110,7 @@ const ProfileSettings = ({ auth, settings, onSaveSettings }: ProfileSettingsProp
     const s = settings as unknown as Record<string, string | null>;
     setBusinessName(settings.business_name ?? '');
     setAbn(settings.abn ?? '');
+    setEmail(settings.email ?? '');
     setPhone(s.phone ?? '');
     setAddress(s.address ?? '');
     setBankName(settings.bank_name ?? '');
@@ -153,7 +155,6 @@ const ProfileSettings = ({ auth, settings, onSaveSettings }: ProfileSettingsProp
 
   const handleSaveBusiness = async () => {
     setBizSaving(true);
-    const s = settings as unknown as Record<string, unknown>;
     await onSaveSettings({
       business_name: businessName.trim() || null,
       abn: abn.trim() || null,
@@ -161,7 +162,7 @@ const ProfileSettings = ({ auth, settings, onSaveSettings }: ProfileSettingsProp
       bsb: bsb.trim() || null,
       account_number: accountNumber.trim() || null,
       invoice_notes: invoiceNotes.trim() || null,
-      ...({ phone: phone.trim() || null, address: address.trim() || null, account_name: accountName.trim() || null } as unknown as Partial<Omit<UserSettings, 'id' | 'user_id'>>),
+      ...({ email: email.trim() || null, phone: phone.trim() || null, address: address.trim() || null, account_name: accountName.trim() || null } as unknown as Partial<Omit<UserSettings, 'id' | 'user_id'>>),
     });
     setBizSaving(false);
     setBizSaved(true);
@@ -247,6 +248,7 @@ const ProfileSettings = ({ auth, settings, onSaveSettings }: ProfileSettingsProp
         <p className="text-[10px] text-muted-foreground">This information appears on your invoices.</p>
         <Field label="Business / Your Name" value={businessName} onChange={setBusinessName} placeholder="Your Name or Business Name" hint="Shown at the top of every invoice" />
         <Field label="ABN" value={abn} onChange={setAbn} placeholder="12 345 678 901" />
+        <Field label="Email" value={email} onChange={setEmail} placeholder="invoices@yourbusiness.com.au" type="email" hint="Shown in invoice header" />
         <Field label="Phone" value={phone} onChange={setPhone} placeholder="+61 4XX XXX XXX" type="tel" />
         <AddressField value={address} onChange={setAddress} />
       </div>

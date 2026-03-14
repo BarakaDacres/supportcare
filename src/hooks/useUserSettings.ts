@@ -7,6 +7,7 @@ export interface UserSettings {
   user_id: string;
   business_name: string | null;
   abn: string | null;
+  email: string | null;
   phone: string | null;
   address: string | null;
   bank_name: string | null;
@@ -34,6 +35,7 @@ export interface UserSettings {
 export const DEFAULT_SETTINGS: Omit<UserSettings, 'id' | 'user_id'> = {
   business_name: null,
   abn: null,
+  email: null,
   phone: null,
   address: null,
   bank_name: null,
