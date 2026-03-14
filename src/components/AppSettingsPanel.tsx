@@ -291,9 +291,10 @@ const AppSettingsPanel = ({ settings, loading, onSave }: AppSettingsPanelProps) 
           <NdisCodeInput label="Evening Support" value={ndisCodes.evening} onChange={v => setCode('evening', v)} />
           <NdisCodeInput label="Saturday Support" value={ndisCodes.saturday} onChange={v => setCode('saturday', v)} />
           <NdisCodeInput label="Sunday Support" value={ndisCodes.sunday} onChange={v => setCode('sunday', v)} />
-          <NdisCodeInput label="Public Holiday Support" value={ndisCodes.publicHoliday} onChange={v => setCode('publicHoliday', v)} />
-          <NdisCodeInput label="Weekday Sleepover" value={ndisCodes.sleeperWeekday} onChange={v => setCode('sleeperWeekday', v)} />
-          <NdisCodeInput label="Weekend Sleepover" value={ndisCodes.sleeperWeekend} onChange={v => setCode('sleeperWeekend', v)} />
+          <NdisCodeInput label="Public Holiday Support" value={ndisCodes.public_holiday} onChange={v => setCode('public_holiday', v)} />
+          <NdisCodeInput label="Weekday Sleepover" value={ndisCodes.weekday_sleepover} onChange={v => setCode('weekday_sleepover', v)} />
+          <NdisCodeInput label="Weekend Sleepover (Sat)" value={ndisCodes.saturday_sleepover} onChange={v => setCode('saturday_sleepover', v)} />
+          <NdisCodeInput label="Weekend Sleepover (Sun)" value={ndisCodes.sunday_sleepover} onChange={v => setCode('sunday_sleepover', v)} />
         </div>
       </div>
 
