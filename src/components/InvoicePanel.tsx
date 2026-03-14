@@ -72,8 +72,8 @@ interface InvoiceSnapshot {
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
-function buildInvoiceNumber(year: number, fnNumber: number): string {
-  return `INV-${year}-FN${String(fnNumber).padStart(2, '0')}`;
+function buildInvoiceNumber(counter: number): string {
+  return `INV-${String(counter).padStart(3, '0')}`;
 }
 
 function getFortnightPeriodsForYear(year: number) {
