@@ -49,7 +49,14 @@ function resolveTheme(override: 'light' | 'dark' | 'system'): 'light' | 'dark' {
 function loadLocalState(): StoreState {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) return { ...defaultState(), ...JSON.parse(raw) };
+    if (!raw) return defaultState();
+    const parsed = JSON.parse(raw);
+    const base = { ...defaultState(), ...parsed };
+    // Migrate legacy 'theme' key → themeOverride (only if no themeOverride exists yet)
+    if (base.themeOverride === 'system' && parsed.theme && !parsed.themeOverride) {
+      base.themeOverride = parsed.theme as 'light' | 'dark';
+    }
+    return base;
   } catch { /* ignore */ }
   return defaultState();
 }
@@ -69,10 +76,8 @@ export function useIncomeStore() {
       if (cancelled) return;
 
       if (cloud && Object.keys(cloud).length > 0) {
-        // Cloud has data — use it
         setState(prev => ({ ...prev, ...(cloud as Partial<StoreState>) }));
       } else {
-        // Cloud is empty — migrate local data up
         const local = loadLocalState();
         const { data: { session } } = await supabase.auth.getSession();
         if (session) debouncedSave(local as unknown as Record<string, unknown>);
@@ -91,7 +96,6 @@ export function useIncomeStore() {
         if (cloud && Object.keys(cloud).length > 0) {
           setState(prev => ({ ...prev, ...(cloud as Partial<StoreState>) }));
         } else {
-          // migrate local
           const local = loadLocalState();
           debouncedSave(local as unknown as Record<string, unknown>);
         }
@@ -115,11 +119,25 @@ export function useIncomeStore() {
     }
   }, [state, cloudSynced]);
 
-  // Apply theme class and fire event for cross-component sync
+  // Apply theme class whenever themeOverride changes or system preference fires
   useEffect(() => {
-    document.documentElement.classList.toggle('dark', state.theme === 'dark');
-    window.dispatchEvent(new CustomEvent('theme-sync'));
-  }, [state.theme]);
+    const applyTheme = () => {
+      const isDark = state.themeOverride === 'system'
+        ? window.matchMedia('(prefers-color-scheme: dark)').matches
+        : state.themeOverride === 'dark';
+      document.documentElement.classList.toggle('dark', isDark);
+      window.dispatchEvent(new CustomEvent('theme-sync'));
+    };
+
+    applyTheme();
+
+    // Also respond to OS-level changes when override is 'system'
+    if (state.themeOverride === 'system') {
+      const mq = window.matchMedia('(prefers-color-scheme: dark)');
+      mq.addEventListener('change', applyTheme);
+      return () => mq.removeEventListener('change', applyTheme);
+    }
+  }, [state.themeOverride]);
 
   const update = useCallback((partial: Partial<StoreState>) => {
     setState(prev => ({ ...prev, ...partial }));
@@ -137,10 +155,7 @@ export function useIncomeStore() {
         ...prev,
         weeklyEntries: {
           ...prev.weeklyEntries,
-          [yearKey]: {
-            ...prev.weeklyEntries[yearKey],
-            [monthKey]: updated,
-          },
+          [yearKey]: { ...prev.weeklyEntries[yearKey], [monthKey]: updated },
         },
       };
     });
@@ -158,10 +173,7 @@ export function useIncomeStore() {
         ...prev,
         fortnightlyEntries: {
           ...prev.fortnightlyEntries,
-          [yearKey]: {
-            ...prev.fortnightlyEntries[yearKey],
-            [monthKey]: updated,
-          },
+          [yearKey]: { ...prev.fortnightlyEntries[yearKey], [monthKey]: updated },
         },
       };
     });
@@ -181,9 +193,7 @@ export function useIncomeStore() {
         if (fnVal && fnVal > 0) {
           total += fnVal;
         } else {
-          const w1 = safeNum(weekly[fi * 2]);
-          const w2 = safeNum(weekly[fi * 2 + 1]);
-          total += w1 + w2;
+          total += safeNum(weekly[fi * 2]) + safeNum(weekly[fi * 2 + 1]);
         }
       }
       return total;
@@ -219,12 +229,27 @@ export function useIncomeStore() {
     });
   }, []);
 
+  /**
+   * Cycles: system → light → dark → system
+   * This lets users override, or reset back to system-follow.
+   */
   const toggleTheme = useCallback(() => {
-    setState(prev => ({ ...prev, theme: prev.theme === 'light' ? 'dark' : 'light' }));
+    setState(prev => {
+      const next: Record<string, 'light' | 'dark' | 'system'> = {
+        system: 'light',
+        light: 'dark',
+        dark: 'system',
+      };
+      return { ...prev, themeOverride: next[prev.themeOverride] ?? 'system' };
+    });
   }, []);
+
+  // Derived theme for consumers that need 'light' | 'dark' (e.g. MobileHeader icon)
+  const theme: 'light' | 'dark' = resolveTheme(state.themeOverride);
 
   return {
     ...state,
+    theme,
     cloudSynced,
     update,
     setWeeklyValue,
