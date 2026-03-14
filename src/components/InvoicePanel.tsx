@@ -133,18 +133,21 @@ function isOverdue(invoice: InvoiceSummary): boolean {
 }
 function fmt$(n: number): string { return formatCurrency(n); }
 
-// ─── Accent palette ───────────────────────────────────────────────────────────
+// ─── Accent palette — blue-accent professional ────────────────────────────────
 const P = {
+  accent:     '#1D4ED8',   // blue-700
+  accentMid:  '#3B82F6',   // blue-500
+  accentLight:'#EFF6FF',   // blue-50
+  accentBorder:'#BFDBFE',  // blue-200
   ink:        '#111827',
   dark:       '#1F2937',
   mid:        '#374151',
   muted:      '#6B7280',
   faint:      '#9CA3AF',
   border:     '#E5E7EB',
-  rowAlt:     '#FAFAFA',
+  rowAlt:     '#F8FAFF',   // very faint blue tint for alt rows
   bg:         '#F9FAFB',
   white:      '#FFFFFF',
-  balanceBg:  '#1F2937',
 };
 
 // ─── Status config ─────────────────────────────────────────────────────────────
