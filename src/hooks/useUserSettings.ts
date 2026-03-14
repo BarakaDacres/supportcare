@@ -7,10 +7,15 @@ export interface UserSettings {
   user_id: string;
   business_name: string | null;
   abn: string | null;
+  phone: string | null;
+  address: string | null;
   bank_name: string | null;
   bsb: string | null;
   account_number: string | null;
+  account_name: string | null;
   invoice_notes: string | null;
+  /** When true, invoice_notes is auto-applied to new invoices */
+  use_default_invoice_notes: boolean;
   tax_rate: number;
   show_tax_estimate: boolean;
   weekly_goal: number | null;
@@ -29,10 +34,14 @@ export interface UserSettings {
 export const DEFAULT_SETTINGS: Omit<UserSettings, 'id' | 'user_id'> = {
   business_name: null,
   abn: null,
+  phone: null,
+  address: null,
   bank_name: null,
   bsb: null,
   account_number: null,
+  account_name: null,
   invoice_notes: null,
+  use_default_invoice_notes: true,
   tax_rate: 30,
   show_tax_estimate: false,
   weekly_goal: null,
