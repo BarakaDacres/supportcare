@@ -90,6 +90,7 @@ const ProfileSettings = ({ auth, settings, onSaveSettings }: ProfileSettingsProp
   // Business/invoice fields — backed by user_settings
   const [businessName, setBusinessName] = useState('');
   const [abn, setAbn] = useState('');
+  const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [address, setAddress] = useState('');
   const [bankName, setBankName] = useState('');
@@ -109,6 +110,7 @@ const ProfileSettings = ({ auth, settings, onSaveSettings }: ProfileSettingsProp
     const s = settings as unknown as Record<string, string | null>;
     setBusinessName(settings.business_name ?? '');
     setAbn(settings.abn ?? '');
+    setEmail(settings.email ?? '');
     setPhone(s.phone ?? '');
     setAddress(s.address ?? '');
     setBankName(settings.bank_name ?? '');
