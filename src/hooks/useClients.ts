@@ -15,12 +15,15 @@ export interface Client {
   default_start_time: string | null;
   default_end_time: string | null;
   default_is_sleepover: boolean;
-  // Billing defaults
+  // Billing / participant details
   invoice_label: string | null;
   invoice_notes: string | null;
   participant_number: string | null;
   phone: string | null;
   address: string | null;
+  organisation_name: string | null;
+  billing_contact: string | null;
+  email: string | null;
 }
 
 export function useClients() {
