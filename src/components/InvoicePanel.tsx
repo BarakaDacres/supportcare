@@ -133,21 +133,18 @@ function isOverdue(invoice: InvoiceSummary): boolean {
 }
 function fmt$(n: number): string { return formatCurrency(n); }
 
-// ─── Accent palette (slate / dark — no blue for layout boxes) ────────────────
-const ACCENT = {
-  primary:     '#111827',  // near-black for strong text
-  secondary:   '#374151',  // dark grey
-  muted:       '#6B7280',  // medium grey
-  faint:       '#9CA3AF',  // lighter grey
-  border:      '#E5E7EB',
-  rowAlt:      '#FAFAFA',
-  highlight:   '#F9FAFB',
-  balanceBg:   '#111827',  // total row background
-  paymentBg:   '#F9FAFB',
-  paymentBdr:  '#E5E7EB',
-  green:       '#15803D',
-  greenBg:     '#F0FDF4',
-  greenBdr:    '#BBF7D0',
+// ─── Accent palette ───────────────────────────────────────────────────────────
+const P = {
+  ink:        '#111827',
+  dark:       '#1F2937',
+  mid:        '#374151',
+  muted:      '#6B7280',
+  faint:      '#9CA3AF',
+  border:     '#E5E7EB',
+  rowAlt:     '#FAFAFA',
+  bg:         '#F9FAFB',
+  white:      '#FFFFFF',
+  balanceBg:  '#1F2937',
 };
 
 // ─── Status config ─────────────────────────────────────────────────────────────
