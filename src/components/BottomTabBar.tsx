@@ -21,6 +21,7 @@ const BottomTabBar = ({ activeTab, onTabChange, hidden = false }: BottomTabBarPr
   const indicatorRef = useRef<HTMLSpanElement>(null);
   const pillRef = useRef<HTMLDivElement>(null);
   const prevTabRef = useRef<TabId>(activeTab);
+  const mountedRef = useRef(false);
 
   useEffect(() => {
     const pill = pillRef.current;
@@ -35,12 +36,15 @@ const BottomTabBar = ({ activeTab, onTabChange, hidden = false }: BottomTabBarPr
     const left = btnRect.left - pillRect.left;
     const width = btnRect.width;
 
-    // No transition on first mount
-    if (prevTabRef.current === activeTab && !indicator.style.transform) {
+    if (!mountedRef.current) {
+      // No transition on very first mount
       indicator.style.transition = 'none';
+      mountedRef.current = true;
     } else {
-      indicator.style.transition = 'transform 0.3s cubic-bezier(0.34, 1.2, 0.64, 1), width 0.22s ease, opacity 0.15s ease';
+      indicator.style.transition =
+        'transform 0.32s cubic-bezier(0.34, 1.3, 0.64, 1), width 0.24s ease, opacity 0.15s ease';
     }
+
     indicator.style.transform = `translateX(${left}px)`;
     indicator.style.width = `${width}px`;
     prevTabRef.current = activeTab;
@@ -60,28 +64,53 @@ const BottomTabBar = ({ activeTab, onTabChange, hidden = false }: BottomTabBarPr
       role="tablist"
       aria-label="Main navigation"
     >
-      {/* outer glow fade */}
+      {/* Pill container — floating, sculpted, glass morphic */}
       <div
-        aria-hidden="true"
+        className="mx-4 mb-3"
+        ref={pillRef}
         style={{
-          position: 'absolute',
-          inset: 0,
-          background: 'linear-gradient(to top, hsl(var(--background) / 0.6) 0%, transparent 100%)',
-          pointerEvents: 'none',
+          position: 'relative',
+          borderRadius: 36,
+          background: 'hsl(var(--lg-pill-bg))',
+          backdropFilter: 'blur(48px) saturate(200%) brightness(1.04)',
+          WebkitBackdropFilter: 'blur(48px) saturate(200%) brightness(1.04)',
+          border: '1px solid hsl(var(--lg-pill-border))',
+          boxShadow:
+            '0 12px 40px hsl(var(--lg-pill-shadow-color)),' +
+            '0 4px 12px hsl(var(--lg-pill-shadow-color)),' +
+            'inset 0 1px 0 hsl(var(--lg-specular)),' +
+            'inset 0 -0.5px 0 hsl(var(--lg-pill-border))',
+          overflow: 'hidden',
         }}
-      />
-
-      {/* Pill container */}
-      <div className="mx-3 mb-2.5 rounded-[28px] ios26-tab-pill relative overflow-hidden" ref={pillRef}>
-        {/* Sliding active background */}
+      >
+        {/* Sliding active background — lives inside the pill */}
         <span
           ref={indicatorRef}
           aria-hidden="true"
-          className="absolute top-[5px] h-[42px] rounded-[20px] ios26-active-pill pointer-events-none"
-          style={{ willChange: 'transform, width' }}
+          style={{
+            position: 'absolute',
+            top: 5,
+            height: 44,
+            borderRadius: 28,
+            background: 'hsl(var(--lg-active-bg))',
+            border: '1px solid hsl(var(--lg-active-border))',
+            boxShadow: 'inset 0 0.5px 0 hsl(var(--lg-specular))',
+            willChange: 'transform, width',
+            pointerEvents: 'none',
+          }}
         />
 
-        <div className="flex items-center justify-around h-[52px] px-1 relative">
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-around',
+            height: 56,
+            paddingLeft: 4,
+            paddingRight: 4,
+            position: 'relative',
+          }}
+        >
           {tabs.map((tab) => {
             const isActive = activeTab === tab.id;
             return (
@@ -92,19 +121,38 @@ const BottomTabBar = ({ activeTab, onTabChange, hidden = false }: BottomTabBarPr
                 aria-selected={isActive}
                 aria-label={tab.label}
                 onClick={() => onTabChange(tab.id)}
-                className="relative flex flex-col items-center justify-center gap-[2px] z-10 min-h-[44px] min-w-[56px] px-2 rounded-[20px] select-none"
-                style={{ transition: 'transform 0.12s ease', WebkitTapHighlightColor: 'transparent' }}
-                onPointerDown={e => (e.currentTarget.style.transform = 'scale(0.92)')}
+                style={{
+                  position: 'relative',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 3,
+                  zIndex: 10,
+                  minHeight: 44,
+                  minWidth: 56,
+                  paddingLeft: 8,
+                  paddingRight: 8,
+                  borderRadius: 28,
+                  userSelect: 'none',
+                  WebkitTapHighlightColor: 'transparent',
+                  transition: 'transform 0.1s ease',
+                  cursor: 'pointer',
+                  background: 'transparent',
+                  border: 'none',
+                  outline: 'none',
+                }}
+                onPointerDown={e => (e.currentTarget.style.transform = 'scale(0.88)')}
                 onPointerUp={e => (e.currentTarget.style.transform = 'scale(1)')}
                 onPointerLeave={e => (e.currentTarget.style.transform = 'scale(1)')}
               >
                 <tab.icon
                   style={{
-                    width: isActive ? 19 : 18,
-                    height: isActive ? 19 : 18,
-                    strokeWidth: isActive ? 2.3 : 1.6,
+                    width: isActive ? 20 : 18,
+                    height: isActive ? 20 : 18,
+                    strokeWidth: isActive ? 2.4 : 1.6,
                     color: isActive ? 'hsl(var(--primary))' : 'hsl(var(--muted-foreground))',
-                    transition: 'color 0.2s ease, stroke-width 0.2s ease, width 0.2s ease',
+                    transition: 'color 0.22s ease, stroke-width 0.22s ease, width 0.22s ease, height 0.22s ease',
                   }}
                 />
                 <span
@@ -114,7 +162,7 @@ const BottomTabBar = ({ activeTab, onTabChange, hidden = false }: BottomTabBarPr
                     lineHeight: 1,
                     letterSpacing: isActive ? '0.01em' : '0',
                     color: isActive ? 'hsl(var(--primary))' : 'hsl(var(--muted-foreground))',
-                    transition: 'color 0.2s ease, font-weight 0.2s ease',
+                    transition: 'color 0.22s ease, font-weight 0.1s ease',
                   }}
                 >
                   {tab.label}
