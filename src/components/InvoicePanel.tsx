@@ -54,6 +54,7 @@ interface InvoiceSnapshot {
   shifts: Shift[];
   total: number;
   issuerName: string;
+  issuerEmail: string;
   abn: string;
   phone: string;
   address: string;
