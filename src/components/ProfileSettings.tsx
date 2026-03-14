@@ -155,7 +155,6 @@ const ProfileSettings = ({ auth, settings, onSaveSettings }: ProfileSettingsProp
 
   const handleSaveBusiness = async () => {
     setBizSaving(true);
-    const s = settings as unknown as Record<string, unknown>;
     await onSaveSettings({
       business_name: businessName.trim() || null,
       abn: abn.trim() || null,
@@ -163,7 +162,7 @@ const ProfileSettings = ({ auth, settings, onSaveSettings }: ProfileSettingsProp
       bsb: bsb.trim() || null,
       account_number: accountNumber.trim() || null,
       invoice_notes: invoiceNotes.trim() || null,
-      ...({ phone: phone.trim() || null, address: address.trim() || null, account_name: accountName.trim() || null } as unknown as Partial<Omit<UserSettings, 'id' | 'user_id'>>),
+      ...({ email: email.trim() || null, phone: phone.trim() || null, address: address.trim() || null, account_name: accountName.trim() || null } as unknown as Partial<Omit<UserSettings, 'id' | 'user_id'>>),
     });
     setBizSaving(false);
     setBizSaved(true);
