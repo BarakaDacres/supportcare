@@ -424,6 +424,15 @@ const ClientProfile = ({
                 </div>
               </div>
             )}
+            {client.phone && (
+              <div className="flex items-start gap-2">
+                <Phone className="w-3.5 h-3.5 text-muted-foreground shrink-0 mt-0.5" />
+                <div className="min-w-0">
+                  <p className="text-[9px] text-muted-foreground uppercase tracking-wider mb-0.5">Phone</p>
+                  <p className="text-xs font-semibold text-foreground">{client.phone}</p>
+                </div>
+              </div>
+            )}
           </div>
         );
       })()}
