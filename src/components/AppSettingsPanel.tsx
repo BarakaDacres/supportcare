@@ -142,7 +142,8 @@ const AppSettingsPanel = ({ settings, loading, onSave }: AppSettingsPanelProps) 
       setTimedOut(false);
       return;
     }
-    const t = setTimeout(() => setTimedOut(true), 8000);
+    // Reduce timeout from 8s to 5s and provide a retry
+    const t = setTimeout(() => setTimedOut(true), 5000);
     return () => clearTimeout(t);
   }, [loading]);
 
