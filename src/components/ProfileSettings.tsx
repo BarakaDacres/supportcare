@@ -248,6 +248,7 @@ const ProfileSettings = ({ auth, settings, onSaveSettings }: ProfileSettingsProp
         <p className="text-[10px] text-muted-foreground">This information appears on your invoices.</p>
         <Field label="Business / Your Name" value={businessName} onChange={setBusinessName} placeholder="Your Name or Business Name" hint="Shown at the top of every invoice" />
         <Field label="ABN" value={abn} onChange={setAbn} placeholder="12 345 678 901" />
+        <Field label="Email" value={email} onChange={setEmail} placeholder="invoices@yourbusiness.com.au" type="email" hint="Shown in invoice header" />
         <Field label="Phone" value={phone} onChange={setPhone} placeholder="+61 4XX XXX XXX" type="tel" />
         <AddressField value={address} onChange={setAddress} />
       </div>
