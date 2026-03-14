@@ -380,10 +380,9 @@ const ClientProfile = ({
 
       {/* Billing / participant details */}
       {(() => {
-        const cx = client as unknown as Record<string, string | undefined>;
-        const org     = cx.organisation_name;
-        const contact = cx.billing_contact;
-        const email   = cx.email;
+        const org     = client.organisation_name;
+        const contact = client.billing_contact;
+        const email   = client.email;
         const pn      = client.participant_number;
         if (!org && !contact && !email && !pn) return null;
         return (
