@@ -177,6 +177,296 @@ async function exportToPDF(snap: InvoiceSnapshot, lineGroups: ReturnType<typeof 
   const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
 
   const W = 210;
+  const M = 16;           // margin
+  const CW = W - M * 2;  // content width = 178mm
+  let y = 0;
+
+  // Helpers
+  const rgb = (hex: string): [number, number, number] => {
+    const n = parseInt(hex.replace('#', ''), 16);
+    return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+  };
+  const sf = (size: number, style: 'normal' | 'bold' = 'normal', color = P.ink) => {
+    doc.setFontSize(size);
+    doc.setFont('helvetica', style);
+    doc.setTextColor(...rgb(color));
+  };
+  const tx = (t: string, x: number, yp: number, opts?: Parameters<typeof doc.text>[3]) =>
+    doc.text(t, x, yp, opts);
+  const hln = (y1: number, color = P.border, lw = 0.25) => {
+    doc.setDrawColor(...rgb(color)); doc.setLineWidth(lw);
+    doc.line(M, y1, W - M, y1);
+  };
+  const rect = (x: number, yp: number, w: number, h: number, fill: string, stroke?: string) => {
+    doc.setFillColor(...rgb(fill));
+    if (stroke) { doc.setDrawColor(...rgb(stroke)); doc.setLineWidth(0.25); doc.roundedRect(x, yp, w, h, 2, 2, 'FD'); }
+    else { doc.roundedRect(x, yp, w, h, 2, 2, 'F'); }
+  };
+
+  // ── TOP RULE (dark slate) ──────────────────────────────────────────────────
+  doc.setFillColor(...rgb(P.ink));
+  doc.rect(0, 0, W, 2.5, 'F');
+  y = 11;
+
+  // ── HEADER: left = issuer details, right = INVOICE + number + date ─────────
+  const headerLeftX = M;
+  const headerRightX = W - M;
+
+  sf(16, 'bold', P.ink);
+  tx(snap.issuerName || 'Your Business', headerLeftX, y);
+
+  sf(22, 'bold', P.ink);
+  tx('INVOICE', headerRightX, y, { align: 'right' });
+  y += 5;
+
+  sf(7.5, 'normal', P.muted);
+  const issuerLines: string[] = [];
+  if (snap.abn)     issuerLines.push(`ABN: ${snap.abn}`);
+  if (snap.phone)   issuerLines.push(`Phone: ${snap.phone}`);
+  if (snap.address) issuerLines.push(snap.address);
+  issuerLines.forEach(line => { tx(line, headerLeftX, y); y += 3.8; });
+
+  // Right-side meta (pinned from original top)
+  const metaTopY = 16;
+  sf(9.5, 'bold', P.mid);
+  tx(snap.invoiceNumber, headerRightX, metaTopY, { align: 'right' });
+  sf(7.5, 'normal', P.muted);
+  tx(`Submitted: ${formatDateShort(snap.issueDate)}`, headerRightX, metaTopY + 4.5, { align: 'right' });
+  tx(`Due: ${formatDateShort(snap.dueDate)}`,          headerRightX, metaTopY + 9,   { align: 'right' });
+
+  y = Math.max(y, metaTopY + 13) + 4;
+
+  // Divider
+  hln(y, P.border, 0.4);
+  y += 7;
+
+  // ── BILL TO + INVOICE DETAILS (side by side cards) ────────────────────────
+  const halfW = (CW - 6) / 2;
+  // Measure content height for both cards
+  const billLines: [string, 'bold' | 'normal', string][] = [];
+  if (snap.clientOrganisation) billLines.push([snap.clientOrganisation, 'bold', P.ink]);
+  billLines.push([snap.clientName || 'Participant', snap.clientOrganisation ? 'normal' : 'bold', P.ink]);
+  if (snap.clientContact)          billLines.push([`Contact: ${snap.clientContact}`, 'normal', P.muted]);
+  if (snap.clientAddress)          billLines.push([snap.clientAddress,               'normal', P.muted]);
+  if (snap.clientEmail)            billLines.push([snap.clientEmail,                 'normal', P.muted]);
+  if (snap.clientPhone)            billLines.push([`Ph: ${snap.clientPhone}`,         'normal', P.muted]);
+  if (snap.clientParticipantNumber) billLines.push([`NDIS No: ${snap.clientParticipantNumber}`, 'normal', P.muted]);
+  const cardH = Math.max(40, 12 + billLines.length * 4.2);
+
+  // BILL TO card
+  rect(M, y, halfW, cardH, P.bg, P.border);
+  let cy = y + 6;
+  sf(6, 'bold', P.muted); tx('BILL TO', M + 4, cy); cy += 4.5;
+  billLines.forEach(([text, weight, color]) => {
+    sf(weight === 'bold' ? 8.5 : 8, weight, color);
+    tx(text, M + 4, cy); cy += 4;
+  });
+
+  // INVOICE DETAILS card
+  const rx = M + halfW + 6;
+  rect(rx, y, halfW, cardH, P.bg, P.border);
+  let dy = y + 6;
+  sf(6, 'bold', P.muted); tx('INVOICE DETAILS', rx + 4, dy); dy += 4.5;
+
+  const detailPairs: [string, string][] = [
+    ['Service From', formatDateShort(snap.periodStart)],
+    ['Service To',   formatDateShort(snap.periodEnd)],
+    ['Due Date',     formatDateShort(snap.dueDate)],
+    ['GST Rate',     '0% (GST-Free)'],
+  ];
+  detailPairs.forEach(([lbl, val]) => {
+    sf(7.5, 'normal', P.muted);       tx(lbl, rx + 4, dy);
+    sf(7.5, 'normal', P.mid);         tx(val, rx + halfW - 4, dy, { align: 'right' });
+    dy += 4;
+  });
+
+  // Separator then BALANCE DUE
+  dy += 1;
+  doc.setDrawColor(...rgb(P.border)); doc.setLineWidth(0.25);
+  doc.line(rx + 4, dy, rx + halfW - 4, dy);
+  dy += 4;
+  sf(7.5, 'bold', P.ink);   tx('BALANCE DUE', rx + 4, dy);
+  sf(10, 'bold', P.ink);    tx(fmt$(snap.total), rx + halfW - 4, dy, { align: 'right' });
+
+  y += cardH + 6;
+
+  // ── SERVICES RENDERED ─────────────────────────────────────────────────────
+  sf(6, 'bold', P.muted);
+  tx('SERVICES RENDERED', M, y);
+  y += 3;
+
+  const hdrH  = 7.5;
+  const rowH  = 9;
+  const nRows = Math.max(lineGroups.length, 1);
+  const tableH = hdrH + nRows * rowH;
+
+  // Outer border
+  doc.setDrawColor(...rgb(P.border)); doc.setLineWidth(0.3);
+  doc.roundedRect(M, y, CW, tableH, 2, 2, 'S');
+
+  // Header bg
+  doc.setFillColor(...rgb('#F3F4F6'));
+  doc.roundedRect(M, y, CW, hdrH, 2, 2, 'F');
+  // Cover bottom-rounded corners of header with a flat fill strip
+  doc.setFillColor(...rgb('#F3F4F6'));
+  doc.rect(M, y + hdrH - 2, CW, 2, 'F');
+
+  // Column definitions [label, x-offset from M, width, align]
+  type ColDef = { lbl: string; x: number; w: number; al: 'left' | 'right' | 'center' };
+  const cols: ColDef[] = [
+    { lbl: '#',           x: 0,   w: 7,   al: 'center' },
+    { lbl: 'DESCRIPTION', x: 7,   w: 54,  al: 'left'   },
+    { lbl: 'ITEM CODE',   x: 61,  w: 34,  al: 'left'   },
+    { lbl: 'QTY',         x: 95,  w: 12,  al: 'right'  },
+    { lbl: 'UNIT',        x: 107, w: 11,  al: 'right'  },
+    { lbl: 'RATE',        x: 118, w: 18,  al: 'right'  },
+    { lbl: 'TOTAL EX',    x: 136, w: 20,  al: 'right'  },
+    { lbl: 'GST',         x: 156, w: 10,  al: 'right'  },
+    { lbl: 'TOTAL INC',   x: 166, w: 12,  al: 'right'  },
+  ];
+  const hY = y + 5;
+  cols.forEach(c => {
+    sf(5.5, 'bold', P.muted);
+    const cx = M + c.x + (c.al === 'right' ? c.w : c.al === 'center' ? c.w / 2 : 0);
+    tx(c.label, cx, hY, { align: c.al === 'center' ? 'center' : c.al });
+  });
+
+  // Header / body separator
+  doc.setDrawColor(...rgb(P.border)); doc.setLineWidth(0.25);
+  doc.line(M, y + hdrH, M + CW, y + hdrH);
+  y += hdrH;
+
+  if (lineGroups.length === 0) {
+    sf(7.5, 'normal', P.faint);
+    tx('No services — select a period with shifts', M + CW / 2, y + rowH / 2 + 2, { align: 'center' });
+    y += rowH;
+  } else {
+    lineGroups.forEach((group, idx) => {
+      if (idx % 2 === 1) {
+        doc.setFillColor(...rgb(P.rowAlt));
+        doc.rect(M, y, CW, rowH, 'F');
+      }
+      const ry = y + 5.5;
+      const unit = group.isSleepover ? 'night' : 'hr';
+
+      sf(7, 'normal', P.faint);
+      tx(String(idx + 1), M + cols[0].x + 3.5, ry, { align: 'center' });
+
+      sf(7.5, 'bold', P.ink);
+      tx(group.label, M + cols[1].x, ry - 1.5);
+      sf(6, 'normal', P.faint);
+      tx(`${group.shifts.length} shift${group.shifts.length !== 1 ? 's' : ''}`, M + cols[1].x, ry + 2.5);
+
+      sf(6.5, 'normal', P.muted);
+      tx(group.ndisCode ?? '', M + cols[2].x, ry, { maxWidth: 33 });
+
+      const right = (ci: number, val: string, sz = 7.5, wt: 'normal' | 'bold' = 'normal', col = P.mid) => {
+        sf(sz, wt, col);
+        tx(val, M + cols[ci].x + cols[ci].w, ry, { align: 'right' });
+      };
+      right(3, String(group.quantity));
+      right(4, unit, 7, 'normal', P.faint);
+      right(5, fmt$(group.rate));
+      right(6, fmt$(group.subtotal), 7.5, 'bold');
+      right(7, '$0.00', 7, 'normal', P.faint);
+      right(8, fmt$(group.subtotal), 7.5, 'bold', P.ink);
+
+      if (idx < lineGroups.length - 1) {
+        doc.setDrawColor(...rgb('#F3F4F6')); doc.setLineWidth(0.15);
+        doc.line(M, y + rowH, M + CW, y + rowH);
+      }
+      y += rowH;
+    });
+  }
+  y += 5;
+
+  // ── TOTALS CONTAINER ──────────────────────────────────────────────────────
+  const totW = 70;
+  const totX = W - M - totW;
+  const totRows: [string, string, boolean?][] = [
+    ['SUBTOTAL (EX GST)', fmt$(snap.total)],
+    ['GST',               '$0.00'],
+    ['BALANCE DUE',       fmt$(snap.total), true],
+  ];
+  const totH = totRows.length * 7.5 + 1;
+
+  rect(totX, y, totW, totH, P.bg, P.border);
+  let ty = y + 6;
+  totRows.forEach(([lbl, val, isBal], ri) => {
+    if (isBal) {
+      // Dark row bg for BALANCE DUE
+      doc.setFillColor(...rgb(P.balanceBg));
+      doc.roundedRect(totX, y + ri * 7.5, totW, 7.5 + 1, 2, 2, 'F');
+      sf(8, 'bold', P.white); tx(lbl, totX + 4, ty);
+      sf(10, 'bold', P.white); tx(val, totX + totW - 4, ty, { align: 'right' });
+    } else {
+      sf(7.5, 'normal', P.muted); tx(lbl, totX + 4, ty);
+      sf(7.5, 'normal', P.mid);   tx(val, totX + totW - 4, ty, { align: 'right' });
+      // Separator
+      doc.setDrawColor(...rgb(P.border)); doc.setLineWidth(0.2);
+      doc.line(totX, ty + 3.5, totX + totW, ty + 3.5);
+    }
+    ty += 7.5;
+  });
+  y += totH + 6;
+
+  // ── PAYMENT DETAILS ───────────────────────────────────────────────────────
+  if (snap.accountName || snap.bsb || snap.accountNumber || snap.bankName) {
+    const payRows: [string, string][] = [];
+    if (snap.accountName)   payRows.push(['Account Name', snap.accountName]);
+    if (snap.bankName)      payRows.push(['Bank',          snap.bankName]);
+    if (snap.bsb)           payRows.push(['BSB',           snap.bsb]);
+    if (snap.accountNumber) payRows.push(['Account No.',   snap.accountNumber]);
+    payRows.push(['Reference', snap.invoiceNumber]);
+
+    const numCols = Math.min(payRows.length, 5);
+    const colW3   = CW / numCols;
+    const payH    = 22;
+
+    rect(M, y, CW, payH, P.bg, P.border);
+    let py = y + 5.5;
+    sf(6, 'bold', P.muted); tx('PAYMENT DETAILS', M + 4, py); py += 5;
+
+    payRows.forEach(([k, v], i) => {
+      const fx = M + 4 + i * colW3;
+      sf(7, 'normal', P.muted);  tx(k, fx, py);
+      sf(8.5, 'bold', P.ink);    tx(v, fx, py + 4.5);
+    });
+
+    py += 10;
+    doc.setDrawColor(...rgb(P.border)); doc.setLineWidth(0.2);
+    doc.line(M + 4, py, M + CW - 4, py);
+    py += 3.5;
+    sf(7, 'normal', P.muted);
+    tx('Payment due within 7 days of invoice date.', M + 4, py);
+    y += payH + 5;
+  }
+
+  // ── NOTES ─────────────────────────────────────────────────────────────────
+  if (snap.invoiceNotes) {
+    const noteLines = doc.splitTextToSize(snap.invoiceNotes, CW - 10);
+    const notH = 12 + noteLines.slice(0, 4).length * 4;
+    rect(M, y, CW, notH, P.white, P.border);
+    sf(6, 'bold', P.muted); tx('NOTES', M + 4, y + 5.5);
+    sf(7.5, 'normal', P.muted);
+    noteLines.slice(0, 4).forEach((l: string, i: number) => tx(l, M + 4, y + 10 + i * 4));
+    y += notH + 5;
+  }
+
+  // ── FOOTER ────────────────────────────────────────────────────────────────
+  const footY = 285;
+  doc.setDrawColor(...rgb(P.border)); doc.setLineWidth(0.3);
+  doc.line(M, footY, W - M, footY);
+  sf(7, 'normal', P.faint);
+  tx(`This invoice is GST-free under the NDIS.${snap.abn ? `  ABN: ${snap.abn}` : ''}`, M, footY + 4);
+  tx('Thank you for your payment.', W - M, footY + 4, { align: 'right' });
+
+  doc.save(`${snap.invoiceNumber}.pdf`);
+}
+  const { jsPDF } = await import('jspdf');
+  const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+
+  const W = 210;
   const MARGIN = 16;
   const CW = W - MARGIN * 2;   // content width
   let y = 0;
