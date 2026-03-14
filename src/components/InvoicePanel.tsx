@@ -326,7 +326,7 @@ const InvoicePanel = ({
       bsb: settings?.bsb ?? '',
       accountNumber: settings?.account_number ?? '',
       accountName: (s?.account_name as string) ?? '',
-      invoiceNotes: clientInvoiceNotes || settings?.invoice_notes || 'GST-free supply – no GST charged. Payment due within 7 days.',
+      invoiceNotes: clientInvoiceNotes || (settings?.use_default_invoice_notes !== false ? settings?.invoice_notes : null) || '',
       clientName: selectedClient?.invoice_label ?? selectedClient?.name ?? '',
       clientAddress: selectedClient?.address ?? '',
       clientParticipantNumber: selectedClient?.participant_number ?? '',
