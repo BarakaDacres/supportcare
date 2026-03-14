@@ -384,7 +384,7 @@ const ClientProfile = ({
         const contact = client.billing_contact;
         const email   = client.email;
         const pn      = client.participant_number;
-        if (!org && !contact && !email && !pn) return null;
+        if (!org && !contact && !email && !pn && !client.phone) return null;
         return (
           <div className="glass-card p-4 space-y-2">
             <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Participant &amp; Billing</p>
@@ -421,6 +421,15 @@ const ClientProfile = ({
                 <div className="min-w-0">
                   <p className="text-[9px] text-muted-foreground uppercase tracking-wider mb-0.5">NDIS Participant No.</p>
                   <p className="text-xs font-semibold text-foreground">{pn}</p>
+                </div>
+              </div>
+            )}
+            {client.phone && (
+              <div className="flex items-start gap-2">
+                <Phone className="w-3.5 h-3.5 text-muted-foreground shrink-0 mt-0.5" />
+                <div className="min-w-0">
+                  <p className="text-[9px] text-muted-foreground uppercase tracking-wider mb-0.5">Phone</p>
+                  <p className="text-xs font-semibold text-foreground">{client.phone}</p>
                 </div>
               </div>
             )}
