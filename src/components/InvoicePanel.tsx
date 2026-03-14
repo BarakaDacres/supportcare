@@ -433,24 +433,27 @@ async function exportToPDF(snap: InvoiceSnapshot, lineGroups: ReturnType<typeof 
 
     const numCols = Math.min(payRows.length, 5);
     const colW3   = CW / numCols;
-    const payH    = 22;
+    const payH    = 30;  // taller to include "Payment due within 7 days" line
 
-    rect(M, y, CW, payH, P.bg, P.border);
-    let py = y + 5.5;
-    sf(6, 'bold', P.muted); tx('PAYMENT DETAILS', M + 4, py); py += 5;
+    rect(M, y, CW, payH, P.accentLight, P.accentBorder);
+    // Blue left accent bar
+    doc.setFillColor(...rgb(P.accent));
+    doc.rect(M, y, 2.5, payH, 'F');
+    let py = y + 6;
+    sf(6, 'bold', P.accent); tx('PAYMENT DETAILS', M + 6, py); py += 5.5;
 
     payRows.forEach(([k, v], i) => {
-      const fx = M + 4 + i * colW3;
+      const fx = M + 6 + i * colW3;
       sf(7, 'normal', P.muted);  tx(k, fx, py);
       sf(8.5, 'bold', P.ink);    tx(v, fx, py + 4.5);
     });
 
     py += 10;
-    doc.setDrawColor(...rgb(P.border)); doc.setLineWidth(0.2);
-    doc.line(M + 4, py, M + CW - 4, py);
-    py += 3.5;
+    doc.setDrawColor(...rgb(P.accentBorder)); doc.setLineWidth(0.25);
+    doc.line(M + 6, py, M + CW - 4, py);
+    py += 4;
     sf(7, 'normal', P.muted);
-    tx('Payment due within 7 days of invoice date.', M + 4, py);
+    tx('Payment due within 7 days of invoice date.', M + 6, py);
     y += payH + 5;
   }
 
