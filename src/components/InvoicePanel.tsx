@@ -629,16 +629,13 @@ const InvoicePanel = ({
     ) ?? null;
   }, [invoices, selectedPeriod, selectedClientId]);
 
-  // ─── Helper: cast client extra fields ──────────────────────────────────────
-  const clientExtra = useCallback((c: Client | null) => {
-    const cx = c as unknown as Record<string, string | undefined>;
-    return {
-      organisation: cx?.organisation_name ?? '',
-      contact:      cx?.billing_contact   ?? '',
-      email:        cx?.email             ?? '',
-      phone:        c?.phone              ?? '',
-    };
-  }, []);
+  // ─── Helper: extract client billing fields ──────────────────────────────────
+  const clientExtra = useCallback((c: Client | null) => ({
+    organisation: c?.organisation_name ?? '',
+    contact:      c?.billing_contact   ?? '',
+    email:        c?.email             ?? '',
+    phone:        c?.phone             ?? '',
+  }), []);
 
   // ─── Build snapshot ─────────────────────────────────────────────────────────
   const buildSnapshot = useCallback((
