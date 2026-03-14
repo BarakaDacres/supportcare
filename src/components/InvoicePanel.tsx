@@ -207,42 +207,43 @@ async function exportToPDF(snap: InvoiceSnapshot, lineGroups: ReturnType<typeof 
     else { doc.roundedRect(x, yp, w, h, 2, 2, 'F'); }
   };
 
-  // ── TOP RULE (dark slate) ──────────────────────────────────────────────────
-  doc.setFillColor(...rgb(P.ink));
-  doc.rect(0, 0, W, 2.5, 'F');
-  y = 11;
+  // ── TOP RULE (blue accent) ────────────────────────────────────────────────
+  doc.setFillColor(...rgb(P.accent));
+  doc.rect(0, 0, W, 3, 'F');
+  y = 18;  // generous top padding
 
   // ── HEADER: left = issuer details, right = INVOICE + number + date ─────────
   const headerLeftX = M;
   const headerRightX = W - M;
 
-  sf(16, 'bold', P.ink);
+  sf(15, 'bold', P.ink);
   tx(snap.issuerName || 'Your Business', headerLeftX, y);
 
-  sf(22, 'bold', P.ink);
+  sf(20, 'bold', P.accent);
   tx('INVOICE', headerRightX, y, { align: 'right' });
-  y += 5;
+  y += 5.5;
 
   sf(7.5, 'normal', P.muted);
   const issuerLines: string[] = [];
-  if (snap.abn)     issuerLines.push(`ABN: ${snap.abn}`);
-  if (snap.phone)   issuerLines.push(`Phone: ${snap.phone}`);
-  if (snap.address) issuerLines.push(snap.address);
-  issuerLines.forEach(line => { tx(line, headerLeftX, y); y += 3.8; });
+  if (snap.abn)         issuerLines.push(`ABN: ${snap.abn}`);
+  if (snap.issuerEmail) issuerLines.push(snap.issuerEmail);
+  if (snap.phone)       issuerLines.push(`Phone: ${snap.phone}`);
+  if (snap.address)     issuerLines.push(snap.address);
+  issuerLines.forEach(line => { tx(line, headerLeftX, y); y += 4; });
 
   // Right-side meta (pinned from original top)
-  const metaTopY = 16;
-  sf(9.5, 'bold', P.mid);
+  const metaTopY = 24;
+  sf(9, 'bold', P.mid);
   tx(snap.invoiceNumber, headerRightX, metaTopY, { align: 'right' });
   sf(7.5, 'normal', P.muted);
-  tx(`Submitted: ${formatDateShort(snap.issueDate)}`, headerRightX, metaTopY + 4.5, { align: 'right' });
-  tx(`Due: ${formatDateShort(snap.dueDate)}`,          headerRightX, metaTopY + 9,   { align: 'right' });
+  tx(`Submitted: ${formatDateShort(snap.issueDate)}`, headerRightX, metaTopY + 5, { align: 'right' });
+  tx(`Due: ${formatDateShort(snap.dueDate)}`,          headerRightX, metaTopY + 10, { align: 'right' });
 
-  y = Math.max(y, metaTopY + 13) + 4;
+  y = Math.max(y, metaTopY + 14) + 5;
 
-  // Divider
-  hln(y, P.border, 0.4);
-  y += 7;
+  // Divider — blue accent
+  hln(y, P.accentBorder, 0.5);
+  y += 8;
 
   // ── BILL TO + INVOICE DETAILS (side by side cards) ────────────────────────
   const halfW = (CW - 6) / 2;
