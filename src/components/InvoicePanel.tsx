@@ -247,31 +247,35 @@ async function exportToPDF(snap: InvoiceSnapshot, lineGroups: ReturnType<typeof 
 
   // ── BILL TO + INVOICE DETAILS (side by side cards) ────────────────────────
   const halfW = (CW - 6) / 2;
-  // Measure content height for both cards
   const billLines: [string, 'bold' | 'normal', string][] = [];
   if (snap.clientOrganisation) billLines.push([snap.clientOrganisation, 'bold', P.ink]);
   billLines.push([snap.clientName || 'Participant', snap.clientOrganisation ? 'normal' : 'bold', P.ink]);
-  if (snap.clientContact)          billLines.push([`Contact: ${snap.clientContact}`, 'normal', P.muted]);
-  if (snap.clientAddress)          billLines.push([snap.clientAddress,               'normal', P.muted]);
-  if (snap.clientEmail)            billLines.push([snap.clientEmail,                 'normal', P.muted]);
-  if (snap.clientPhone)            billLines.push([`Ph: ${snap.clientPhone}`,         'normal', P.muted]);
-  if (snap.clientParticipantNumber) billLines.push([`NDIS No: ${snap.clientParticipantNumber}`, 'normal', P.muted]);
-  const cardH = Math.max(40, 12 + billLines.length * 4.2);
+  if (snap.clientContact)           billLines.push([`Contact: ${snap.clientContact}`, 'normal', P.muted]);
+  if (snap.clientAddress)           billLines.push([snap.clientAddress,               'normal', P.muted]);
+  if (snap.clientEmail)             billLines.push([snap.clientEmail,                 'normal', P.muted]);
+  if (snap.clientPhone)             billLines.push([`Ph: ${snap.clientPhone}`,         'normal', P.muted]);
+  if (snap.clientParticipantNumber) billLines.push([`NDIS No: ${snap.clientParticipantNumber}`, 'normal', P.accent]);
+  const cardH = Math.max(48, 14 + billLines.length * 4.5);
 
-  // BILL TO card
-  rect(M, y, halfW, cardH, P.bg, P.border);
-  let cy = y + 6;
-  sf(6, 'bold', P.muted); tx('BILL TO', M + 4, cy); cy += 4.5;
+  // BILL TO card — blue accent border
+  rect(M, y, halfW, cardH, P.accentLight, P.accentBorder);
+  // Blue left accent bar
+  doc.setFillColor(...rgb(P.accent));
+  doc.rect(M, y, 2.5, cardH, 'F');
+  let cy = y + 7;
+  sf(6, 'bold', P.accent); tx('BILL TO', M + 6, cy); cy += 5;
   billLines.forEach(([text, weight, color]) => {
     sf(weight === 'bold' ? 8.5 : 8, weight, color);
-    tx(text, M + 4, cy); cy += 4;
+    tx(text, M + 6, cy); cy += 4.5;
   });
 
-  // INVOICE DETAILS card
+  // INVOICE DETAILS card — blue accent border
   const rx = M + halfW + 6;
-  rect(rx, y, halfW, cardH, P.bg, P.border);
-  let dy = y + 6;
-  sf(6, 'bold', P.muted); tx('INVOICE DETAILS', rx + 4, dy); dy += 4.5;
+  rect(rx, y, halfW, cardH, P.accentLight, P.accentBorder);
+  doc.setFillColor(...rgb(P.accent));
+  doc.rect(rx, y, 2.5, cardH, 'F');
+  let dy = y + 7;
+  sf(6, 'bold', P.accent); tx('INVOICE DETAILS', rx + 6, dy); dy += 5;
 
   const detailPairs: [string, string][] = [
     ['Service From', formatDateShort(snap.periodStart)],
@@ -280,20 +284,20 @@ async function exportToPDF(snap: InvoiceSnapshot, lineGroups: ReturnType<typeof 
     ['GST Rate',     '0% (GST-Free)'],
   ];
   detailPairs.forEach(([lbl, val]) => {
-    sf(7.5, 'normal', P.muted);       tx(lbl, rx + 4, dy);
-    sf(7.5, 'normal', P.mid);         tx(val, rx + halfW - 4, dy, { align: 'right' });
-    dy += 4;
+    sf(7.5, 'normal', P.muted);       tx(lbl, rx + 6, dy);
+    sf(7.5, 'bold',   P.mid);         tx(val, rx + halfW - 4, dy, { align: 'right' });
+    dy += 4.5;
   });
 
-  // Separator then BALANCE DUE
-  dy += 1;
-  doc.setDrawColor(...rgb(P.border)); doc.setLineWidth(0.25);
-  doc.line(rx + 4, dy, rx + halfW - 4, dy);
-  dy += 4;
-  sf(7.5, 'bold', P.ink);   tx('BALANCE DUE', rx + 4, dy);
-  sf(10, 'bold', P.ink);    tx(fmt$(snap.total), rx + halfW - 4, dy, { align: 'right' });
+  // Separator then BALANCE DUE — more spacing + blue accent
+  dy += 3;
+  doc.setDrawColor(...rgb(P.accentBorder)); doc.setLineWidth(0.4);
+  doc.line(rx + 6, dy, rx + halfW - 4, dy);
+  dy += 6;
+  sf(8, 'bold', P.accent);   tx('BALANCE DUE', rx + 6, dy);
+  sf(11, 'bold', P.accent);  tx(fmt$(snap.total), rx + halfW - 4, dy, { align: 'right' });
 
-  y += cardH + 6;
+  y += cardH + 7;
 
   // ── SERVICES RENDERED ─────────────────────────────────────────────────────
   sf(6, 'bold', P.muted);
