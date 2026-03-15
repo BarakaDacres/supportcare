@@ -131,19 +131,19 @@ function isOverdue(invoice: InvoiceSummary): boolean {
 }
 function fmt$(n: number): string { return formatCurrency(n); }
 
-// ─── Palette — dark minimal, no blue fills ───────────────────────────────────
+// ─── Palette — reference style: blue accents on name/title, clean rows ────────
 const P = {
-  accent:      '#111827',   // near-black for headings
-  accentMid:   '#374151',   // dark mid
-  accentLight: '#F9FAFB',   // off-white
-  accentBorder:'#D1D5DB',  // neutral gray-300 border
+  accent:      '#1D4ED8',   // blue — used for issuer name, INVOICE title, final total
+  accentMid:   '#374151',
+  accentLight: '#F9FAFB',
+  accentBorder:'#D1D5DB',
   ink:         '#111827',
   dark:        '#1F2937',
   mid:         '#374151',
   muted:       '#6B7280',
   faint:       '#9CA3AF',
   border:      '#E5E7EB',
-  rowAlt:      '#F9FAFB',
+  rowAlt:      '#FFFFFF',   // no alternating tint — all rows plain white
   bg:          '#F9FAFB',
   white:       '#FFFFFF',
 };
@@ -226,12 +226,12 @@ async function exportToPDF(snap: InvoiceSnapshot, lineGroups: ReturnType<typeof 
     ['Invoice #:', snap.invoiceNumber],
   ];
 
-  // Draw issuer name (left)
-  sf(HEADER_FONT, 'bold', P.ink);
+  // Draw issuer name (left) — blue
+  sf(HEADER_FONT, 'bold', P.accent);
   tx(issuerName, M, y);
 
-  // Draw INVOICE (right) — same size
-  sf(HEADER_FONT, 'bold', P.ink);
+  // Draw INVOICE (right) — same size, blue
+  sf(HEADER_FONT, 'bold', P.accent);
   tx('INVOICE', W - M, y, { align: 'right' });
   y += 5.5;
 
@@ -373,8 +373,9 @@ async function exportToPDF(snap: InvoiceSnapshot, lineGroups: ReturnType<typeof 
     y += rowH;
   } else {
     lineGroups.forEach((group, idx) => {
+      // No alternating row fill — all rows plain white
       if (idx % 2 === 1) {
-        doc.setFillColor(248, 250, 255);
+        doc.setFillColor(255, 255, 255);
         doc.rect(M, y, CW, rowH, 'F');
       }
       const ry = y + 6;
@@ -431,8 +432,8 @@ async function exportToPDF(snap: InvoiceSnapshot, lineGroups: ReturnType<typeof 
   let ty = y + 7;
   totRows.forEach(([lbl, val, isFinal]) => {
     if (isFinal) {
-      sf(8.5, 'bold', P.ink);  tx(lbl, totX + 5, ty);
-      sf(10,  'bold', P.ink);  tx(val, totX + totW - 4, ty, { align: 'right' });
+      sf(8.5, 'bold', P.accent); tx(lbl, totX + 5, ty);
+      sf(10,  'bold', P.accent); tx(val, totX + totW - 4, ty, { align: 'right' });
     } else {
       sf(7.5, 'normal', P.muted); tx(lbl, totX + 5, ty);
       sf(7.5, 'bold',   P.mid);   tx(val, totX + totW - 4, ty, { align: 'right' });
@@ -982,7 +983,7 @@ const InvoicePanel = ({
 
                     {/* Left — issuer name + meta, no bold on ABN/P/E values, no justification */}
                     <div>
-                      <div style={{ fontSize: 14, fontWeight: 800, color: P.ink, letterSpacing: '-0.02em', marginBottom: 6 }}>
+                      <div style={{ fontSize: 14, fontWeight: 800, color: P.accent, letterSpacing: '-0.02em', marginBottom: 6 }}>
                         {preview.issuerName || 'Your Business Name'}
                       </div>
                       {preview.abn && (
@@ -998,7 +999,7 @@ const InvoicePanel = ({
 
                     {/* Right — INVOICE same size as name, then meta below */}
                     <div style={{ textAlign: 'right' }}>
-                      <div style={{ fontSize: 14, fontWeight: 800, color: P.ink, letterSpacing: '-0.02em', marginBottom: 6 }}>
+                      <div style={{ fontSize: 14, fontWeight: 800, color: P.accent, letterSpacing: '-0.02em', marginBottom: 6 }}>
                         INVOICE
                       </div>
                       <div style={{ fontSize: 8.5, color: P.muted, marginBottom: 3 }}>
@@ -1141,10 +1142,10 @@ const InvoicePanel = ({
                         <span style={{ fontSize: 8.5, color: P.muted }}>GST</span>
                         <span style={{ fontSize: 8.5, fontWeight: 600, color: P.mid }}>$0.00</span>
                       </div>
-                      {/* TOTALS (AUD) — prominent, no blue fill */}
+                      {/* TOTALS (AUD) — prominent, blue accent */}
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '9px 12px' }}>
-                        <span style={{ fontSize: 9, fontWeight: 800, color: P.ink, textTransform: 'uppercase' as const, letterSpacing: '0.04em' }}>TOTALS (AUD)</span>
-                        <span style={{ fontSize: 15, fontWeight: 900, color: P.ink, fontVariantNumeric: 'tabular-nums' }}>{fmt$(preview.total)}</span>
+                        <span style={{ fontSize: 9, fontWeight: 800, color: P.accent, textTransform: 'uppercase' as const, letterSpacing: '0.04em' }}>TOTALS (AUD)</span>
+                        <span style={{ fontSize: 15, fontWeight: 900, color: P.accent, fontVariantNumeric: 'tabular-nums' }}>{fmt$(preview.total)}</span>
                       </div>
                     </div>
                   </div>
