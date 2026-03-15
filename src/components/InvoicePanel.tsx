@@ -373,8 +373,9 @@ async function exportToPDF(snap: InvoiceSnapshot, lineGroups: ReturnType<typeof 
     y += rowH;
   } else {
     lineGroups.forEach((group, idx) => {
+      // No alternating row fill — all rows plain white
       if (idx % 2 === 1) {
-        doc.setFillColor(248, 250, 255);
+        doc.setFillColor(255, 255, 255);
         doc.rect(M, y, CW, rowH, 'F');
       }
       const ry = y + 6;
