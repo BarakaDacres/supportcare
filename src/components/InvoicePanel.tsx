@@ -131,19 +131,19 @@ function isOverdue(invoice: InvoiceSummary): boolean {
 }
 function fmt$(n: number): string { return formatCurrency(n); }
 
-// ─── Palette — minimal blue-accent, NO filled blue blocks ────────────────────
+// ─── Palette — dark minimal, no blue fills ───────────────────────────────────
 const P = {
-  accent:      '#1D4ED8',   // blue-700
-  accentMid:   '#3B82F6',   // blue-500
-  accentLight: '#F0F6FF',   // very faint blue tint (borders/bg hints only)
-  accentBorder:'#BFDBFE',  // blue-200
+  accent:      '#111827',   // near-black for headings
+  accentMid:   '#374151',   // dark mid
+  accentLight: '#F9FAFB',   // off-white
+  accentBorder:'#D1D5DB',  // neutral gray-300 border
   ink:         '#111827',
   dark:        '#1F2937',
   mid:         '#374151',
   muted:       '#6B7280',
   faint:       '#9CA3AF',
   border:      '#E5E7EB',
-  rowAlt:      '#F8FAFF',
+  rowAlt:      '#F9FAFB',
   bg:          '#F9FAFB',
   white:       '#FFFFFF',
 };
