@@ -304,13 +304,13 @@ async function exportToPDF(snap: InvoiceSnapshot, lineGroups: ReturnType<typeof 
   doc.setDrawColor(...rgb(P.border)); doc.setLineWidth(0.3);
   doc.line(rx + 6, dy, rx + halfW - 6, dy);
   dy += 6;
-  sf(8, 'bold', P.accent);  tx('BALANCE DUE', rx + 6, dy);
-  sf(11, 'bold', P.accent); tx(fmt$(snap.total), rx + halfW - 4, dy, { align: 'right' });
+  sf(8, 'bold', P.mid);  tx('BALANCE DUE', rx + 6, dy);
+  sf(11, 'bold', P.ink); tx(fmt$(snap.total), rx + halfW - 4, dy, { align: 'right' });
 
   y += cardH + 8;
 
   // ── SERVICES RENDERED ────────────────────────────────────────────────────
-  sf(6.5, 'bold', P.accent);
+  sf(6.5, 'bold', P.muted);
   tx('SERVICES RENDERED', M, y);
   y += 4;
 
@@ -340,19 +340,18 @@ async function exportToPDF(snap: InvoiceSnapshot, lineGroups: ReturnType<typeof 
   const nRows = Math.max(lineGroups.length, 1);
   const tableH = hdrH + nRows * rowH;
 
-  // Table outer border
-  box(M, y, CW, tableH, P.accentBorder, 0.4);
+  // Table outer border — neutral
+  box(M, y, CW, tableH, P.border, 0.4);
 
-  // Header bg — very faint tint (not filled blue)
-  doc.setFillColor(240, 246, 255);
+  // Header bg — off-white, no blue tint
+  doc.setFillColor(245, 245, 245);
   doc.roundedRect(M, y, CW, hdrH, 2, 2, 'F');
-  // Ensure bottom portion of header bg is square (no rounding clash)
   doc.rect(M, y + hdrH - 3, CW, 3, 'F');
 
   // Header labels
   const hY = y + 5.5;
   cols.forEach((c, i) => {
-    sf(5.5, 'bold', P.accent);
+    sf(5.5, 'bold', P.muted);
     const baseX = M + colX[i];
     if (c.al === 'right') {
       tx(c.lbl, baseX + c.w - 1, hY, { align: 'right' });
@@ -364,7 +363,7 @@ async function exportToPDF(snap: InvoiceSnapshot, lineGroups: ReturnType<typeof 
   });
 
   // Header/body separator
-  doc.setDrawColor(...rgb(P.accentBorder)); doc.setLineWidth(0.3);
+  doc.setDrawColor(...rgb(P.border)); doc.setLineWidth(0.3);
   doc.line(M, y + hdrH, M + CW, y + hdrH);
   y += hdrH;
 
