@@ -199,13 +199,9 @@ async function exportToPDF(snap: InvoiceSnapshot, lineGroups: ReturnType<typeof 
     doc.setDrawColor(...rgb(stroke)); doc.setLineWidth(lw);
     doc.roundedRect(x, yp, w, h, 2, 2, 'S');
   };
-  const leftBar = (x: number, yp: number, h: number) => {
-    doc.setFillColor(...rgb(P.accent)); doc.rect(x, yp, 2.5, h, 'F');
-  };
+  // leftBar removed — no solid accent bars
 
-  // ── Thin top rule (accent) ────────────────────────────────────────────────
-  doc.setFillColor(...rgb(P.accent));
-  doc.rect(0, 0, W, 2.5, 'F');
+  // ── No top rule — clean start ─────────────────────────────────────────────
   y = 22; // generous top padding
 
   // ── HEADER ────────────────────────────────────────────────────────────────
@@ -216,7 +212,7 @@ async function exportToPDF(snap: InvoiceSnapshot, lineGroups: ReturnType<typeof 
   const HEADER_FONT = 12; // same size for issuer name AND "INVOICE"
   const META_FONT   = 8;
 
-  // Left column label+value pairs (label light, value bold)
+  // Left column label+value pairs — no justification, no bold
   const issuerName = snap.issuerName || 'Your Business';
   const leftMeta: Array<[string, string]> = [];
   if (snap.abn)         leftMeta.push(['ABN:', snap.abn]);
