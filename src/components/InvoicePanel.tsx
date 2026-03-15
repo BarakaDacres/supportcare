@@ -131,19 +131,19 @@ function isOverdue(invoice: InvoiceSummary): boolean {
 }
 function fmt$(n: number): string { return formatCurrency(n); }
 
-// ─── Palette — dark minimal, no blue fills ───────────────────────────────────
+// ─── Palette — reference style: blue accents on name/title, clean rows ────────
 const P = {
-  accent:      '#111827',   // near-black for headings
-  accentMid:   '#374151',   // dark mid
-  accentLight: '#F9FAFB',   // off-white
-  accentBorder:'#D1D5DB',  // neutral gray-300 border
+  accent:      '#1D4ED8',   // blue — used for issuer name, INVOICE title, final total
+  accentMid:   '#374151',
+  accentLight: '#F9FAFB',
+  accentBorder:'#D1D5DB',
   ink:         '#111827',
   dark:        '#1F2937',
   mid:         '#374151',
   muted:       '#6B7280',
   faint:       '#9CA3AF',
   border:      '#E5E7EB',
-  rowAlt:      '#F9FAFB',
+  rowAlt:      '#FFFFFF',   // no alternating tint — all rows plain white
   bg:          '#F9FAFB',
   white:       '#FFFFFF',
 };
