@@ -272,22 +272,20 @@ async function exportToPDF(snap: InvoiceSnapshot, lineGroups: ReturnType<typeof 
 
   const cardH = Math.max(50, 14 + billLines.length * 5);
 
-  // BILL TO box — border only, left accent bar
-  box(M, y, halfW, cardH, P.accentBorder);
-  leftBar(M, y, cardH);
+  // BILL TO box — border only, no accent bar
+  box(M, y, halfW, cardH, P.border);
   let cy = y + 7;
-  sf(6, 'bold', P.accent); tx('BILL TO', M + 6, cy); cy += 5.5;
+  sf(6, 'bold', P.muted); tx('BILL TO', M + 5, cy); cy += 5.5;
   billLines.forEach(([text, weight, color]) => {
     sf(weight === 'bold' ? 8.5 : 8, weight, color);
-    tx(text, M + 6, cy); cy += 5;
+    tx(text, M + 5, cy); cy += 5;
   });
 
-  // INVOICE DETAILS box — border only, left accent bar
+  // INVOICE DETAILS box — border only, no accent bar
   const rx = M + halfW + 6;
-  box(rx, y, halfW, cardH, P.accentBorder);
-  leftBar(rx, y, cardH);
+  box(rx, y, halfW, cardH, P.border);
   let dy = y + 7;
-  sf(6, 'bold', P.accent); tx('INVOICE DETAILS', rx + 6, dy); dy += 5.5;
+  sf(6, 'bold', P.muted); tx('INVOICE DETAILS', rx + 5, dy); dy += 5.5;
 
   const detailPairs: [string, string][] = [
     ['Service From', formatDateShort(snap.periodStart)],
