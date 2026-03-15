@@ -1023,25 +1023,23 @@ const InvoicePanel = ({
                   {/* ── BILL TO + INVOICE DETAILS ── */}
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 13 }}>
 
-                    {/* BILL TO — clean border, no left bar, no accent color */}
-                    <div style={{
-                      borderRadius: 8, padding: '10px 12px',
-                      border: `1px solid ${P.border}`,
-                    }}>
-                      <div style={{ fontSize: 7.5, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.07em', color: P.muted, marginBottom: 6 }}>BILL TO</div>
-                      {preview.clientOrganisation && (
-                        <div style={{ fontSize: 10, fontWeight: 700, color: P.ink, marginBottom: 2 }}>{preview.clientOrganisation}</div>
-                      )}
-                      <div style={{ fontSize: 10, fontWeight: preview.clientOrganisation ? 400 : 700, color: P.ink, marginBottom: 3 }}>
-                        {preview.clientName || 'Participant / Organisation'}
-                      </div>
-                      {preview.clientContact && <div style={{ fontSize: 8.5, color: P.muted, marginBottom: 2 }}>Contact: {preview.clientContact}</div>}
-                      {preview.clientAddress && <div style={{ fontSize: 8.5, color: P.muted, marginBottom: 2 }}>{preview.clientAddress}</div>}
-                      {preview.clientEmail   && <div style={{ fontSize: 8.5, color: P.muted, marginBottom: 2 }}>{preview.clientEmail}</div>}
-                      {preview.clientPhone   && <div style={{ fontSize: 8.5, color: P.muted, marginBottom: 2 }}>Ph: {preview.clientPhone}</div>}
-                      {preview.clientParticipantNumber && (
-                        <div style={{ fontSize: 8.5, color: P.mid, fontWeight: 600 }}>NDIS No: {preview.clientParticipantNumber}</div>
-                      )}
+                    {/* BILL TO — label/value rows matching reference */}
+                    <div style={{ borderRadius: 8, padding: '10px 12px', border: `1px solid ${P.border}` }}>
+                      <div style={{ fontSize: 7.5, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.07em', color: P.muted, marginBottom: 7 }}>BILL TO</div>
+                      {[
+                        preview.clientOrganisation ? { label: 'Organisation', value: preview.clientOrganisation, bold: true } : null,
+                        preview.clientName         ? { label: 'Participant',   value: preview.clientName,         bold: false } : null,
+                        preview.clientAddress      ? { label: 'Address',      value: preview.clientAddress,      bold: false } : null,
+                        preview.clientContact      ? { label: 'Contact',      value: preview.clientContact,      bold: false } : null,
+                        preview.clientEmail        ? { label: 'Email',        value: preview.clientEmail,        bold: false } : null,
+                        preview.clientPhone        ? { label: 'Phone',        value: preview.clientPhone,        bold: false } : null,
+                        preview.clientParticipantNumber ? { label: 'NDIS No', value: preview.clientParticipantNumber, bold: false } : null,
+                      ].filter(Boolean).map(row => row && (
+                        <div key={row.label} style={{ display: 'flex', gap: 6, marginBottom: 3, alignItems: 'flex-start' }}>
+                          <span style={{ fontSize: 8, color: P.muted, minWidth: 58, flexShrink: 0 }}>{row.label}</span>
+                          <span style={{ fontSize: 8, fontWeight: row.bold ? 700 : 400, color: P.ink }}>{row.value}</span>
+                        </div>
+                      ))}
                     </div>
 
                     {/* INVOICE DETAILS — clean border, no left bar */}
