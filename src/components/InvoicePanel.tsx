@@ -983,7 +983,7 @@ const InvoicePanel = ({
 
                     {/* Left — issuer name + meta, no bold on ABN/P/E values, no justification */}
                     <div>
-                      <div style={{ fontSize: 14, fontWeight: 800, color: P.ink, letterSpacing: '-0.02em', marginBottom: 6 }}>
+                      <div style={{ fontSize: 14, fontWeight: 800, color: P.accent, letterSpacing: '-0.02em', marginBottom: 6 }}>
                         {preview.issuerName || 'Your Business Name'}
                       </div>
                       {preview.abn && (
