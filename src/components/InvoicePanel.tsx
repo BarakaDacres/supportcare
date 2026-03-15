@@ -226,12 +226,12 @@ async function exportToPDF(snap: InvoiceSnapshot, lineGroups: ReturnType<typeof 
     ['Invoice #:', snap.invoiceNumber],
   ];
 
-  // Draw issuer name (left)
-  sf(HEADER_FONT, 'bold', P.ink);
+  // Draw issuer name (left) — blue
+  sf(HEADER_FONT, 'bold', P.accent);
   tx(issuerName, M, y);
 
-  // Draw INVOICE (right) — same size
-  sf(HEADER_FONT, 'bold', P.ink);
+  // Draw INVOICE (right) — same size, blue
+  sf(HEADER_FONT, 'bold', P.accent);
   tx('INVOICE', W - M, y, { align: 'right' });
   y += 5.5;
 
