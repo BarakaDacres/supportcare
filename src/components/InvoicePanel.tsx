@@ -261,24 +261,30 @@ async function exportToPDF(snap: InvoiceSnapshot, lineGroups: ReturnType<typeof 
   // ── BILL TO + INVOICE DETAILS ─────────────────────────────────────────────
   const halfW = (CW - 6) / 2;
 
-  const billLines: Array<[string, 'bold' | 'normal', string]> = [];
-  if (snap.clientOrganisation) billLines.push([snap.clientOrganisation, 'bold', P.ink]);
-  billLines.push([snap.clientName || 'Participant', snap.clientOrganisation ? 'normal' : 'bold', P.ink]);
-  if (snap.clientContact)           billLines.push([`Contact: ${snap.clientContact}`, 'normal', P.muted]);
-  if (snap.clientAddress)           billLines.push([snap.clientAddress,               'normal', P.muted]);
-  if (snap.clientEmail)             billLines.push([snap.clientEmail,                 'normal', P.muted]);
-  if (snap.clientPhone)             billLines.push([`Ph: ${snap.clientPhone}`,         'normal', P.muted]);
-  if (snap.clientParticipantNumber) billLines.push([`NDIS No: ${snap.clientParticipantNumber}`, 'normal', P.accent]);
+  // BILL TO label/value rows matching reference layout
+  type BillRow = { label: string; value: string; valueBold?: boolean };
+  const billRows: BillRow[] = [];
+  if (snap.clientOrganisation)      billRows.push({ label: 'Organisation', value: snap.clientOrganisation, valueBold: true });
+  if (snap.clientName)              billRows.push({ label: 'Participant',   value: snap.clientName });
+  if (snap.clientAddress)           billRows.push({ label: 'Address',      value: snap.clientAddress });
+  if (snap.clientContact)           billRows.push({ label: 'Contact',      value: snap.clientContact });
+  if (snap.clientEmail)             billRows.push({ label: 'Email',        value: snap.clientEmail });
+  if (snap.clientPhone)             billRows.push({ label: 'Phone',        value: snap.clientPhone });
+  if (snap.clientParticipantNumber) billRows.push({ label: 'NDIS No',      value: snap.clientParticipantNumber });
 
-  const cardH = Math.max(50, 14 + billLines.length * 5);
+  const cardH = Math.max(50, 14 + billRows.length * 5.5);
+  const lblW  = 22; // label column width
 
-  // BILL TO box — border only, no accent bar
+  // BILL TO box — border only
   box(M, y, halfW, cardH, P.border);
   let cy = y + 7;
-  sf(6, 'bold', P.muted); tx('BILL TO', M + 5, cy); cy += 5.5;
-  billLines.forEach(([text, weight, color]) => {
-    sf(weight === 'bold' ? 8.5 : 8, weight, color);
-    tx(text, M + 5, cy); cy += 5;
+  sf(6, 'bold', P.muted); tx('BILL TO', M + 5, cy); cy += 6;
+  billRows.forEach(({ label, value, valueBold }) => {
+    sf(7, 'normal', P.muted);
+    tx(label, M + 5, cy);
+    sf(7, valueBold ? 'bold' : 'normal', P.ink);
+    tx(value, M + 5 + lblW, cy, { maxWidth: halfW - lblW - 6 });
+    cy += 5.5;
   });
 
   // INVOICE DETAILS box — border only, no accent bar
@@ -1017,25 +1023,23 @@ const InvoicePanel = ({
                   {/* ── BILL TO + INVOICE DETAILS ── */}
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 13 }}>
 
-                    {/* BILL TO — clean border, no left bar, no accent color */}
-                    <div style={{
-                      borderRadius: 8, padding: '10px 12px',
-                      border: `1px solid ${P.border}`,
-                    }}>
-                      <div style={{ fontSize: 7.5, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.07em', color: P.muted, marginBottom: 6 }}>BILL TO</div>
-                      {preview.clientOrganisation && (
-                        <div style={{ fontSize: 10, fontWeight: 700, color: P.ink, marginBottom: 2 }}>{preview.clientOrganisation}</div>
-                      )}
-                      <div style={{ fontSize: 10, fontWeight: preview.clientOrganisation ? 400 : 700, color: P.ink, marginBottom: 3 }}>
-                        {preview.clientName || 'Participant / Organisation'}
-                      </div>
-                      {preview.clientContact && <div style={{ fontSize: 8.5, color: P.muted, marginBottom: 2 }}>Contact: {preview.clientContact}</div>}
-                      {preview.clientAddress && <div style={{ fontSize: 8.5, color: P.muted, marginBottom: 2 }}>{preview.clientAddress}</div>}
-                      {preview.clientEmail   && <div style={{ fontSize: 8.5, color: P.muted, marginBottom: 2 }}>{preview.clientEmail}</div>}
-                      {preview.clientPhone   && <div style={{ fontSize: 8.5, color: P.muted, marginBottom: 2 }}>Ph: {preview.clientPhone}</div>}
-                      {preview.clientParticipantNumber && (
-                        <div style={{ fontSize: 8.5, color: P.mid, fontWeight: 600 }}>NDIS No: {preview.clientParticipantNumber}</div>
-                      )}
+                    {/* BILL TO — label/value rows matching reference */}
+                    <div style={{ borderRadius: 8, padding: '10px 12px', border: `1px solid ${P.border}` }}>
+                      <div style={{ fontSize: 7.5, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.07em', color: P.muted, marginBottom: 7 }}>BILL TO</div>
+                      {[
+                        preview.clientOrganisation ? { label: 'Organisation', value: preview.clientOrganisation, bold: true } : null,
+                        preview.clientName         ? { label: 'Participant',   value: preview.clientName,         bold: false } : null,
+                        preview.clientAddress      ? { label: 'Address',      value: preview.clientAddress,      bold: false } : null,
+                        preview.clientContact      ? { label: 'Contact',      value: preview.clientContact,      bold: false } : null,
+                        preview.clientEmail        ? { label: 'Email',        value: preview.clientEmail,        bold: false } : null,
+                        preview.clientPhone        ? { label: 'Phone',        value: preview.clientPhone,        bold: false } : null,
+                        preview.clientParticipantNumber ? { label: 'NDIS No', value: preview.clientParticipantNumber, bold: false } : null,
+                      ].filter(Boolean).map(row => row && (
+                        <div key={row.label} style={{ display: 'flex', gap: 6, marginBottom: 3, alignItems: 'flex-start' }}>
+                          <span style={{ fontSize: 8, color: P.muted, minWidth: 58, flexShrink: 0 }}>{row.label}</span>
+                          <span style={{ fontSize: 8, fontWeight: row.bold ? 700 : 400, color: P.ink }}>{row.value}</span>
+                        </div>
+                      ))}
                     </div>
 
                     {/* INVOICE DETAILS — clean border, no left bar */}
