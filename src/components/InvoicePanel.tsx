@@ -1142,10 +1142,10 @@ const InvoicePanel = ({
                         <span style={{ fontSize: 8.5, color: P.muted }}>GST</span>
                         <span style={{ fontSize: 8.5, fontWeight: 600, color: P.mid }}>$0.00</span>
                       </div>
-                      {/* TOTALS (AUD) — prominent, no blue fill */}
+                      {/* TOTALS (AUD) — prominent, blue accent */}
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '9px 12px' }}>
-                        <span style={{ fontSize: 9, fontWeight: 800, color: P.ink, textTransform: 'uppercase' as const, letterSpacing: '0.04em' }}>TOTALS (AUD)</span>
-                        <span style={{ fontSize: 15, fontWeight: 900, color: P.ink, fontVariantNumeric: 'tabular-nums' }}>{fmt$(preview.total)}</span>
+                        <span style={{ fontSize: 9, fontWeight: 800, color: P.accent, textTransform: 'uppercase' as const, letterSpacing: '0.04em' }}>TOTALS (AUD)</span>
+                        <span style={{ fontSize: 15, fontWeight: 900, color: P.accent, fontVariantNumeric: 'tabular-nums' }}>{fmt$(preview.total)}</span>
                       </div>
                     </div>
                   </div>
