@@ -999,7 +999,7 @@ const InvoicePanel = ({
 
                     {/* Right — INVOICE same size as name, then meta below */}
                     <div style={{ textAlign: 'right' }}>
-                      <div style={{ fontSize: 14, fontWeight: 800, color: P.ink, letterSpacing: '-0.02em', marginBottom: 6 }}>
+                      <div style={{ fontSize: 14, fontWeight: 800, color: P.accent, letterSpacing: '-0.02em', marginBottom: 6 }}>
                         INVOICE
                       </div>
                       <div style={{ fontSize: 8.5, color: P.muted, marginBottom: 3 }}>
