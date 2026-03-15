@@ -969,8 +969,6 @@ const InvoicePanel = ({
 
               {/* ────────────── Invoice Preview Card ────────────── */}
               <div className="glass-card overflow-hidden">
-                {/* Thin top rule — accent only */}
-                <div style={{ height: 3, background: P.accent }} />
 
                 <div style={{
                   padding: '22px 18px 16px',
@@ -982,29 +980,19 @@ const InvoicePanel = ({
                   {/* ── HEADER: issuer left / INVOICE right ── */}
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 14 }}>
 
-                    {/* Left — issuer name + meta */}
+                    {/* Left — issuer name + meta, no bold on ABN/P/E values, no justification */}
                     <div>
                       <div style={{ fontSize: 14, fontWeight: 800, color: P.ink, letterSpacing: '-0.02em', marginBottom: 6 }}>
                         {preview.issuerName || 'Your Business Name'}
                       </div>
-                      {/* ABN: / P: / E: rows with bold values */}
                       {preview.abn && (
-                        <div style={{ fontSize: 8.5, color: P.muted, marginBottom: 3, display: 'flex', gap: 4 }}>
-                          <span style={{ minWidth: 26 }}>ABN:</span>
-                          <span style={{ fontWeight: 700, color: P.mid }}>{preview.abn}</span>
-                        </div>
+                        <div style={{ fontSize: 8.5, color: P.muted, marginBottom: 3 }}>ABN: {preview.abn}</div>
                       )}
                       {preview.phone && (
-                        <div style={{ fontSize: 8.5, color: P.muted, marginBottom: 3, display: 'flex', gap: 4 }}>
-                          <span style={{ minWidth: 26 }}>P:</span>
-                          <span style={{ fontWeight: 700, color: P.mid }}>{preview.phone}</span>
-                        </div>
+                        <div style={{ fontSize: 8.5, color: P.muted, marginBottom: 3 }}>P: {preview.phone}</div>
                       )}
                       {preview.issuerEmail && (
-                        <div style={{ fontSize: 8.5, color: P.muted, marginBottom: 3, display: 'flex', gap: 4 }}>
-                          <span style={{ minWidth: 26 }}>E:</span>
-                          <span style={{ fontWeight: 700, color: P.mid }}>{preview.issuerEmail}</span>
-                        </div>
+                        <div style={{ fontSize: 8.5, color: P.muted, marginBottom: 3 }}>E: {preview.issuerEmail}</div>
                       )}
                     </div>
 
@@ -1013,31 +1001,27 @@ const InvoicePanel = ({
                       <div style={{ fontSize: 14, fontWeight: 800, color: P.ink, letterSpacing: '-0.02em', marginBottom: 6 }}>
                         INVOICE
                       </div>
-                      {/* Submitted: / Invoice #: rows with bold values */}
-                      <div style={{ fontSize: 8.5, color: P.muted, marginBottom: 3, display: 'flex', justifyContent: 'flex-end', gap: 4 }}>
-                        <span>Submitted:</span>
-                        <span style={{ fontWeight: 700, color: P.mid }}>{formatDateShort(preview.issueDate)}</span>
+                      <div style={{ fontSize: 8.5, color: P.muted, marginBottom: 3 }}>
+                        Submitted: {formatDateShort(preview.issueDate)}
                       </div>
-                      <div style={{ fontSize: 8.5, color: P.muted, marginBottom: 3, display: 'flex', justifyContent: 'flex-end', gap: 4 }}>
-                        <span>Invoice #:</span>
-                        <span style={{ fontWeight: 700, color: P.mid }}>{preview.invoiceNumber}</span>
+                      <div style={{ fontSize: 8.5, color: P.muted, marginBottom: 3 }}>
+                        Invoice #: {preview.invoiceNumber}
                       </div>
                     </div>
                   </div>
 
-                  {/* Divider */}
-                  <div style={{ borderTop: `1.5px solid ${P.accentBorder}`, marginBottom: 13 }} />
+                  {/* Divider — neutral */}
+                  <div style={{ borderTop: `1px solid ${P.border}`, marginBottom: 13 }} />
 
                   {/* ── BILL TO + INVOICE DETAILS ── */}
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 13 }}>
 
-                    {/* BILL TO — border + left accent bar, no fill */}
+                    {/* BILL TO — clean border, no left bar, no accent color */}
                     <div style={{
-                      borderRadius: 8, padding: '10px 12px 10px 14px',
-                      border: `1px solid ${P.accentBorder}`,
-                      borderLeft: `3px solid ${P.accent}`,
+                      borderRadius: 8, padding: '10px 12px',
+                      border: `1px solid ${P.border}`,
                     }}>
-                      <div style={{ fontSize: 7.5, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.07em', color: P.accent, marginBottom: 6 }}>BILL TO</div>
+                      <div style={{ fontSize: 7.5, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.07em', color: P.muted, marginBottom: 6 }}>BILL TO</div>
                       {preview.clientOrganisation && (
                         <div style={{ fontSize: 10, fontWeight: 700, color: P.ink, marginBottom: 2 }}>{preview.clientOrganisation}</div>
                       )}
@@ -1049,17 +1033,16 @@ const InvoicePanel = ({
                       {preview.clientEmail   && <div style={{ fontSize: 8.5, color: P.muted, marginBottom: 2 }}>{preview.clientEmail}</div>}
                       {preview.clientPhone   && <div style={{ fontSize: 8.5, color: P.muted, marginBottom: 2 }}>Ph: {preview.clientPhone}</div>}
                       {preview.clientParticipantNumber && (
-                        <div style={{ fontSize: 8.5, color: P.accent, fontWeight: 600 }}>NDIS No: {preview.clientParticipantNumber}</div>
+                        <div style={{ fontSize: 8.5, color: P.mid, fontWeight: 600 }}>NDIS No: {preview.clientParticipantNumber}</div>
                       )}
                     </div>
 
-                    {/* INVOICE DETAILS — border + left accent bar, no fill */}
+                    {/* INVOICE DETAILS — clean border, no left bar */}
                     <div style={{
-                      borderRadius: 8, padding: '10px 12px 10px 14px',
-                      border: `1px solid ${P.accentBorder}`,
-                      borderLeft: `3px solid ${P.accent}`,
+                      borderRadius: 8, padding: '10px 12px',
+                      border: `1px solid ${P.border}`,
                     }}>
-                      <div style={{ fontSize: 7.5, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.07em', color: P.accent, marginBottom: 6 }}>INVOICE DETAILS</div>
+                      <div style={{ fontSize: 7.5, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.07em', color: P.muted, marginBottom: 6 }}>INVOICE DETAILS</div>
                       {[
                         ['Service From', formatDateShort(preview.periodStart)],
                         ['Service To',   formatDateShort(preview.periodEnd)],
@@ -1068,21 +1051,21 @@ const InvoicePanel = ({
                       ].map(([l, v]) => (
                         <div key={l} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
                           <span style={{ fontSize: 8.5, color: P.muted }}>{l}</span>
-                          <span style={{ fontSize: 8.5, fontWeight: 700, color: P.mid }}>{v}</span>
+                          <span style={{ fontSize: 8.5, fontWeight: 600, color: P.mid }}>{v}</span>
                         </div>
                       ))}
-                      {/* Separator + BALANCE DUE — no fill */}
+                      {/* Separator + BALANCE DUE */}
                       <div style={{ borderTop: `1px solid ${P.border}`, marginTop: 8, paddingTop: 8, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <span style={{ fontSize: 8, fontWeight: 800, color: P.accent, textTransform: 'uppercase' as const, letterSpacing: '0.06em' }}>BALANCE DUE</span>
-                        <span style={{ fontSize: 13, fontWeight: 900, color: P.accent }}>{fmt$(preview.total)}</span>
+                        <span style={{ fontSize: 8, fontWeight: 700, color: P.mid, textTransform: 'uppercase' as const, letterSpacing: '0.06em' }}>BALANCE DUE</span>
+                        <span style={{ fontSize: 13, fontWeight: 800, color: P.ink }}>{fmt$(preview.total)}</span>
                       </div>
                     </div>
                   </div>
 
                   {/* ── SERVICES RENDERED ── */}
                   <div style={{ marginBottom: 12 }}>
-                    <div style={{ fontSize: 7.5, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.07em', color: P.accent, marginBottom: 5 }}>SERVICES RENDERED</div>
-                    <div style={{ border: `1px solid ${P.accentBorder}`, borderRadius: 8, overflow: 'hidden' }}>
+                    <div style={{ fontSize: 7.5, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.07em', color: P.muted, marginBottom: 5 }}>SERVICES RENDERED</div>
+                    <div style={{ border: `1px solid ${P.border}`, borderRadius: 8, overflow: 'hidden' }}>
                       <table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed' }}>
                         <colgroup>
                           <col style={{ width: '4%' }} />
@@ -1112,8 +1095,8 @@ const InvoicePanel = ({
                                 padding: '5px 4px',
                                 fontSize: 6.5, fontWeight: 700,
                                 textTransform: 'uppercase', letterSpacing: '0.04em',
-                                color: P.accent, textAlign: a,
-                                borderBottom: `1px solid ${P.accentBorder}`,
+                                color: P.muted, textAlign: a,
+                                borderBottom: `1px solid ${P.border}`,
                               }}>{h}</th>
                             ))}
                           </tr>
@@ -1147,21 +1130,21 @@ const InvoicePanel = ({
                     </div>
                   </div>
 
-                  {/* ── TOTALS — no filled bg ── */}
+                  {/* ── TOTALS — neutral borders, no blue ── */}
                   <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 12 }}>
-                    <div style={{ minWidth: 230, maxWidth: 270, border: `1px solid ${P.accentBorder}`, borderRadius: 8, overflow: 'hidden' }}>
+                    <div style={{ minWidth: 230, maxWidth: 270, border: `1px solid ${P.border}`, borderRadius: 8, overflow: 'hidden' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', padding: '7px 12px', borderBottom: `1px solid ${P.border}` }}>
                         <span style={{ fontSize: 8.5, color: P.muted }}>SUBTOTAL</span>
                         <span style={{ fontSize: 8.5, fontWeight: 600, color: P.mid, fontVariantNumeric: 'tabular-nums' }}>{fmt$(preview.total)}</span>
                       </div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', padding: '7px 12px', borderBottom: `1px solid ${P.accentBorder}` }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', padding: '7px 12px', borderBottom: `1px solid ${P.border}` }}>
                         <span style={{ fontSize: 8.5, color: P.muted }}>GST</span>
                         <span style={{ fontSize: 8.5, fontWeight: 600, color: P.mid }}>$0.00</span>
                       </div>
                       {/* TOTALS (AUD) — prominent, no blue fill */}
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '9px 12px' }}>
                         <span style={{ fontSize: 9, fontWeight: 800, color: P.ink, textTransform: 'uppercase' as const, letterSpacing: '0.04em' }}>TOTALS (AUD)</span>
-                        <span style={{ fontSize: 15, fontWeight: 900, color: P.accent, fontVariantNumeric: 'tabular-nums' }}>{fmt$(preview.total)}</span>
+                        <span style={{ fontSize: 15, fontWeight: 900, color: P.ink, fontVariantNumeric: 'tabular-nums' }}>{fmt$(preview.total)}</span>
                       </div>
                     </div>
                   </div>
@@ -1170,12 +1153,11 @@ const InvoicePanel = ({
                   {(preview.accountName || preview.bankName || preview.bsb || preview.accountNumber) && (
                     <div style={{
                       borderRadius: 8,
-                      border: `1px solid ${P.accentBorder}`,
-                      borderLeft: `3px solid ${P.accent}`,
-                      padding: '10px 12px 10px 14px',
+                      border: `1px solid ${P.border}`,
+                      padding: '10px 12px',
                       marginBottom: 10,
                     }}>
-                      <div style={{ fontSize: 7.5, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.07em', color: P.accent, marginBottom: 9 }}>PAYMENT DETAILS</div>
+                      <div style={{ fontSize: 7.5, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.07em', color: P.muted, marginBottom: 9 }}>PAYMENT DETAILS</div>
                       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 10, marginBottom: 9 }}>
                         {[
                           preview.accountName   ? { k: 'Account Name', v: preview.accountName }   : null,
