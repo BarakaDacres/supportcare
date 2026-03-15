@@ -235,22 +235,20 @@ async function exportToPDF(snap: InvoiceSnapshot, lineGroups: ReturnType<typeof 
   tx('INVOICE', W - M, y, { align: 'right' });
   y += 5.5;
 
-  // Left meta rows
+  // Left meta rows — no justification, no bold, plain left-to-right
   const leftMetaStartY = y;
   let lmy = leftMetaStartY;
-  const labelColW = 14; // width for "ABN:" etc
   leftMeta.forEach(([lbl, val]) => {
-    sf(META_FONT, 'normal', P.muted); tx(lbl, M, lmy);
-    sf(META_FONT, 'bold',   P.mid);   tx(val, M + labelColW, lmy);
+    sf(META_FONT, 'normal', P.muted);
+    tx(`${lbl} ${val}`, M, lmy);
     lmy += 4.5;
   });
 
-  // Right meta rows (right-aligned, label light, value bold)
+  // Right meta rows — label + value on same line, right-aligned
   let rmy = leftMetaStartY;
-  const valOffset = 38; // space for right-col labels
   rightMeta.forEach(([lbl, val]) => {
-    sf(META_FONT, 'normal', P.muted); tx(lbl, W - M - valOffset, rmy);
-    sf(META_FONT, 'bold',   P.mid);   tx(val, W - M, rmy, { align: 'right' });
+    sf(META_FONT, 'normal', P.muted);
+    tx(`${lbl} ${val}`, W - M, rmy, { align: 'right' });
     rmy += 4.5;
   });
 
