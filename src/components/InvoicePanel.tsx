@@ -454,15 +454,14 @@ async function exportToPDF(snap: InvoiceSnapshot, lineGroups: ReturnType<typeof 
     if (snap.accountNumber) payRows.push(['Account No.',   snap.accountNumber]);
     payRows.push(['Reference', snap.invoiceNumber]);
 
-    // Payment box: rows stacked vertically (2 per line, 2 lines max) + separator + "Payment due" line
+    // Payment box — no left bar
     const colsPerRow = Math.min(payRows.length, 5);
     const colW3 = CW / colsPerRow;
     const payH  = 40;
 
-    box(M, y, CW, payH, P.accentBorder);
-    leftBar(M, y, payH);
+    box(M, y, CW, payH, P.border);
     let py = y + 6;
-    sf(6, 'bold', P.accent); tx('PAYMENT DETAILS', M + 6, py); py += 6;
+    sf(6, 'bold', P.muted); tx('PAYMENT DETAILS', M + 5, py); py += 6;
 
     payRows.forEach(([k, v], i) => {
       const fx = M + 6 + i * colW3;
