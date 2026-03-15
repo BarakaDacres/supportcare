@@ -1,15 +1,14 @@
 /**
  * InvoicePanel — Invoice generator + records list
  *
- * Fixes applied in this version:
- * - Generator auto-selects the CURRENT FORTNIGHT on every mount
- * - Participant / billing details fully pulled from client
- * - Invoice preview: all section titles CAPITALISED, boxed services table,
- *   consistent accent (slate/dark), BALANCE DUE bold + prominent,
- *   reference inside PAYMENT DETAILS, no stray blue print line,
- *   all numeric columns right-aligned
- * - jsPDF export mirrors the same layout faithfully
- * - Loading performance: invoicesLoading guard on Records tab
+ * Layout corrections applied:
+ * - Header: left=Name/ABN:/P:/E: right=INVOICE/Submitted:/Invoice #: — same font size, values bold
+ * - Due date always = issueDate + 7 days
+ * - No filled blue blocks — light borders/accents only
+ * - Services table: optimised column widths, no clipping
+ * - Bottom totals: SUBTOTAL / GST / TOTALS (AUD) — no filled bg
+ * - Payment details: structured rows, "Payment due..." on own line
+ * - Participant details flow correctly to BILL TO
  */
 
 import { useState, useMemo, useCallback, useEffect } from 'react';
@@ -100,7 +99,6 @@ function getFortnightPeriodsForYear(year: number) {
   return periods;
 }
 
-/** Returns the index of the fortnight that contains today. */
 function getCurrentFortnightIdx(periods: ReturnType<typeof getFortnightPeriodsForYear>): number {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -109,7 +107,6 @@ function getCurrentFortnightIdx(periods: ReturnType<typeof getFortnightPeriodsFo
     const e = new Date(periods[i].end);   e.setHours(23, 59, 59, 999);
     if (today >= s && today <= e) return i;
   }
-  // fallback: last period
   return periods.length - 1;
 }
 
@@ -134,21 +131,21 @@ function isOverdue(invoice: InvoiceSummary): boolean {
 }
 function fmt$(n: number): string { return formatCurrency(n); }
 
-// ─── Accent palette — blue-accent professional ────────────────────────────────
+// ─── Palette — minimal blue-accent, NO filled blue blocks ────────────────────
 const P = {
-  accent:     '#1D4ED8',   // blue-700
-  accentMid:  '#3B82F6',   // blue-500
-  accentLight:'#EFF6FF',   // blue-50
+  accent:      '#1D4ED8',   // blue-700
+  accentMid:   '#3B82F6',   // blue-500
+  accentLight: '#F0F6FF',   // very faint blue tint (borders/bg hints only)
   accentBorder:'#BFDBFE',  // blue-200
-  ink:        '#111827',
-  dark:       '#1F2937',
-  mid:        '#374151',
-  muted:      '#6B7280',
-  faint:      '#9CA3AF',
-  border:     '#E5E7EB',
-  rowAlt:     '#F8FAFF',   // very faint blue tint for alt rows
-  bg:         '#F9FAFB',
-  white:      '#FFFFFF',
+  ink:         '#111827',
+  dark:        '#1F2937',
+  mid:         '#374151',
+  muted:       '#6B7280',
+  faint:       '#9CA3AF',
+  border:      '#E5E7EB',
+  rowAlt:      '#F8FAFF',
+  bg:          '#F9FAFB',
+  white:       '#FFFFFF',
 };
 
 // ─── Status config ─────────────────────────────────────────────────────────────
@@ -175,25 +172,22 @@ const StatusBadge = ({ status }: { status: string }) => {
   );
 };
 
-// ─── PDF export — pure jsPDF vector, no canvas ────────────────────────────────
+// ─── PDF export ───────────────────────────────────────────────────────────────
 async function exportToPDF(snap: InvoiceSnapshot, lineGroups: ReturnType<typeof groupShiftsForInvoice>) {
   const { jsPDF } = await import('jspdf');
   const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
 
-  const W = 210;
-  const M = 16;           // margin
-  const CW = W - M * 2;  // content width = 178mm
+  const W  = 210;
+  const M  = 16;           // left/right margin
+  const CW = W - M * 2;   // 178 mm content width
   let y = 0;
 
-  // Helpers
   const rgb = (hex: string): [number, number, number] => {
     const n = parseInt(hex.replace('#', ''), 16);
     return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
   };
   const sf = (size: number, style: 'normal' | 'bold' = 'normal', color = P.ink) => {
-    doc.setFontSize(size);
-    doc.setFont('helvetica', style);
-    doc.setTextColor(...rgb(color));
+    doc.setFontSize(size); doc.setFont('helvetica', style); doc.setTextColor(...rgb(color));
   };
   const tx = (t: string, x: number, yp: number, opts?: Parameters<typeof doc.text>[3]) =>
     doc.text(t, x, yp, opts);
@@ -201,53 +195,79 @@ async function exportToPDF(snap: InvoiceSnapshot, lineGroups: ReturnType<typeof 
     doc.setDrawColor(...rgb(color)); doc.setLineWidth(lw);
     doc.line(M, y1, W - M, y1);
   };
-  const rect = (x: number, yp: number, w: number, h: number, fill: string, stroke?: string) => {
-    doc.setFillColor(...rgb(fill));
-    if (stroke) { doc.setDrawColor(...rgb(stroke)); doc.setLineWidth(0.25); doc.roundedRect(x, yp, w, h, 2, 2, 'FD'); }
-    else { doc.roundedRect(x, yp, w, h, 2, 2, 'F'); }
+  const box = (x: number, yp: number, w: number, h: number, stroke: string, lw = 0.3) => {
+    doc.setDrawColor(...rgb(stroke)); doc.setLineWidth(lw);
+    doc.roundedRect(x, yp, w, h, 2, 2, 'S');
+  };
+  const leftBar = (x: number, yp: number, h: number) => {
+    doc.setFillColor(...rgb(P.accent)); doc.rect(x, yp, 2.5, h, 'F');
   };
 
-  // ── TOP RULE (blue accent) ────────────────────────────────────────────────
+  // ── Thin top rule (accent) ────────────────────────────────────────────────
   doc.setFillColor(...rgb(P.accent));
-  doc.rect(0, 0, W, 3, 'F');
-  y = 18;  // generous top padding
+  doc.rect(0, 0, W, 2.5, 'F');
+  y = 22; // generous top padding
 
-  // ── HEADER: left = issuer details, right = INVOICE + number + date ─────────
-  const headerLeftX = M;
-  const headerRightX = W - M;
+  // ── HEADER ────────────────────────────────────────────────────────────────
+  // Left block: Name / ABN: val / P: val / E: val
+  // Right block: INVOICE / Submitted: val / Invoice #: val
+  // Both start at same y; INVOICE same font size as issuer name
 
-  sf(15, 'bold', P.ink);
-  tx(snap.issuerName || 'Your Business', headerLeftX, y);
+  const HEADER_FONT = 12; // same size for issuer name AND "INVOICE"
+  const META_FONT   = 8;
 
-  sf(20, 'bold', P.accent);
-  tx('INVOICE', headerRightX, y, { align: 'right' });
+  // Left column label+value pairs (label light, value bold)
+  const issuerName = snap.issuerName || 'Your Business';
+  const leftMeta: Array<[string, string]> = [];
+  if (snap.abn)         leftMeta.push(['ABN:', snap.abn]);
+  if (snap.phone)       leftMeta.push(['P:', snap.phone]);
+  if (snap.issuerEmail) leftMeta.push(['E:', snap.issuerEmail]);
+
+  // Right column
+  const issueDate = formatDateShort(snap.issueDate);
+  const rightMeta: Array<[string, string]> = [
+    ['Submitted:', issueDate],
+    ['Invoice #:', snap.invoiceNumber],
+  ];
+
+  // Draw issuer name (left)
+  sf(HEADER_FONT, 'bold', P.ink);
+  tx(issuerName, M, y);
+
+  // Draw INVOICE (right) — same size
+  sf(HEADER_FONT, 'bold', P.ink);
+  tx('INVOICE', W - M, y, { align: 'right' });
   y += 5.5;
 
-  sf(7.5, 'normal', P.muted);
-  const issuerLines: string[] = [];
-  if (snap.abn)         issuerLines.push(`ABN: ${snap.abn}`);
-  if (snap.issuerEmail) issuerLines.push(snap.issuerEmail);
-  if (snap.phone)       issuerLines.push(`Phone: ${snap.phone}`);
-  if (snap.address)     issuerLines.push(snap.address);
-  issuerLines.forEach(line => { tx(line, headerLeftX, y); y += 4; });
+  // Left meta rows
+  const leftMetaStartY = y;
+  let lmy = leftMetaStartY;
+  const labelColW = 14; // width for "ABN:" etc
+  leftMeta.forEach(([lbl, val]) => {
+    sf(META_FONT, 'normal', P.muted); tx(lbl, M, lmy);
+    sf(META_FONT, 'bold',   P.mid);   tx(val, M + labelColW, lmy);
+    lmy += 4.5;
+  });
 
-  // Right-side meta (pinned from original top)
-  const metaTopY = 24;
-  sf(9, 'bold', P.mid);
-  tx(snap.invoiceNumber, headerRightX, metaTopY, { align: 'right' });
-  sf(7.5, 'normal', P.muted);
-  tx(`Submitted: ${formatDateShort(snap.issueDate)}`, headerRightX, metaTopY + 5, { align: 'right' });
-  tx(`Due: ${formatDateShort(snap.dueDate)}`,          headerRightX, metaTopY + 10, { align: 'right' });
+  // Right meta rows (right-aligned, label light, value bold)
+  let rmy = leftMetaStartY;
+  const valOffset = 38; // space for right-col labels
+  rightMeta.forEach(([lbl, val]) => {
+    sf(META_FONT, 'normal', P.muted); tx(lbl, W - M - valOffset, rmy);
+    sf(META_FONT, 'bold',   P.mid);   tx(val, W - M, rmy, { align: 'right' });
+    rmy += 4.5;
+  });
 
-  y = Math.max(y, metaTopY + 14) + 5;
+  y = Math.max(lmy, rmy) + 6;
 
-  // Divider — blue accent
+  // Divider
   hln(y, P.accentBorder, 0.5);
   y += 8;
 
-  // ── BILL TO + INVOICE DETAILS (side by side cards) ────────────────────────
+  // ── BILL TO + INVOICE DETAILS ─────────────────────────────────────────────
   const halfW = (CW - 6) / 2;
-  const billLines: [string, 'bold' | 'normal', string][] = [];
+
+  const billLines: Array<[string, 'bold' | 'normal', string]> = [];
   if (snap.clientOrganisation) billLines.push([snap.clientOrganisation, 'bold', P.ink]);
   billLines.push([snap.clientName || 'Participant', snap.clientOrganisation ? 'normal' : 'bold', P.ink]);
   if (snap.clientContact)           billLines.push([`Contact: ${snap.clientContact}`, 'normal', P.muted]);
@@ -255,27 +275,25 @@ async function exportToPDF(snap: InvoiceSnapshot, lineGroups: ReturnType<typeof 
   if (snap.clientEmail)             billLines.push([snap.clientEmail,                 'normal', P.muted]);
   if (snap.clientPhone)             billLines.push([`Ph: ${snap.clientPhone}`,         'normal', P.muted]);
   if (snap.clientParticipantNumber) billLines.push([`NDIS No: ${snap.clientParticipantNumber}`, 'normal', P.accent]);
-  const cardH = Math.max(48, 14 + billLines.length * 4.5);
 
-  // BILL TO card — blue accent border
-  rect(M, y, halfW, cardH, P.accentLight, P.accentBorder);
-  // Blue left accent bar
-  doc.setFillColor(...rgb(P.accent));
-  doc.rect(M, y, 2.5, cardH, 'F');
+  const cardH = Math.max(50, 14 + billLines.length * 5);
+
+  // BILL TO box — border only, left accent bar
+  box(M, y, halfW, cardH, P.accentBorder);
+  leftBar(M, y, cardH);
   let cy = y + 7;
-  sf(6, 'bold', P.accent); tx('BILL TO', M + 6, cy); cy += 5;
+  sf(6, 'bold', P.accent); tx('BILL TO', M + 6, cy); cy += 5.5;
   billLines.forEach(([text, weight, color]) => {
     sf(weight === 'bold' ? 8.5 : 8, weight, color);
-    tx(text, M + 6, cy); cy += 4.5;
+    tx(text, M + 6, cy); cy += 5;
   });
 
-  // INVOICE DETAILS card — blue accent border
+  // INVOICE DETAILS box — border only, left accent bar
   const rx = M + halfW + 6;
-  rect(rx, y, halfW, cardH, P.accentLight, P.accentBorder);
-  doc.setFillColor(...rgb(P.accent));
-  doc.rect(rx, y, 2.5, cardH, 'F');
+  box(rx, y, halfW, cardH, P.accentBorder);
+  leftBar(rx, y, cardH);
   let dy = y + 7;
-  sf(6, 'bold', P.accent); tx('INVOICE DETAILS', rx + 6, dy); dy += 5;
+  sf(6, 'bold', P.accent); tx('INVOICE DETAILS', rx + 6, dy); dy += 5.5;
 
   const detailPairs: [string, string][] = [
     ['Service From', formatDateShort(snap.periodStart)],
@@ -284,62 +302,76 @@ async function exportToPDF(snap: InvoiceSnapshot, lineGroups: ReturnType<typeof 
     ['GST Rate',     '0% (GST-Free)'],
   ];
   detailPairs.forEach(([lbl, val]) => {
-    sf(7.5, 'normal', P.muted);       tx(lbl, rx + 6, dy);
-    sf(7.5, 'bold',   P.mid);         tx(val, rx + halfW - 4, dy, { align: 'right' });
-    dy += 4.5;
+    sf(7.5, 'normal', P.muted); tx(lbl, rx + 6, dy);
+    sf(7.5, 'bold',   P.mid);   tx(val, rx + halfW - 4, dy, { align: 'right' });
+    dy += 5;
   });
 
-  // Separator then BALANCE DUE — more spacing + blue accent
+  // Separator + BALANCE DUE — no fill, just text emphasis
   dy += 3;
-  doc.setDrawColor(...rgb(P.accentBorder)); doc.setLineWidth(0.4);
-  doc.line(rx + 6, dy, rx + halfW - 4, dy);
+  doc.setDrawColor(...rgb(P.border)); doc.setLineWidth(0.3);
+  doc.line(rx + 6, dy, rx + halfW - 6, dy);
   dy += 6;
-  sf(8, 'bold', P.accent);   tx('BALANCE DUE', rx + 6, dy);
-  sf(11, 'bold', P.accent);  tx(fmt$(snap.total), rx + halfW - 4, dy, { align: 'right' });
+  sf(8, 'bold', P.accent);  tx('BALANCE DUE', rx + 6, dy);
+  sf(11, 'bold', P.accent); tx(fmt$(snap.total), rx + halfW - 4, dy, { align: 'right' });
 
-  y += cardH + 7;
+  y += cardH + 8;
 
-  // ── SERVICES RENDERED ─────────────────────────────────────────────────────
-  sf(6, 'bold', P.accent);
+  // ── SERVICES RENDERED ────────────────────────────────────────────────────
+  sf(6.5, 'bold', P.accent);
   tx('SERVICES RENDERED', M, y);
-  y += 3;
+  y += 4;
 
-  const hdrH  = 7.5;
-  const rowH  = 9;
+  // Column widths (must sum to CW = 178)
+  // #(6) DESC(46) ITEMCODE(36) QTY(12) UNIT(11) RATE(20) TOTALEX(20) GST(12) TOTALINC(15)
+  // sum: 6+46+36+12+11+20+20+12+15 = 178 ✓
+  type Col = { lbl: string; w: number; al: 'left' | 'right' | 'center' };
+  const cols: Col[] = [
+    { lbl: '#',          w: 6,  al: 'center' },
+    { lbl: 'DESCRIPTION',w: 46, al: 'left'   },
+    { lbl: 'ITEM CODE',  w: 36, al: 'left'   },
+    { lbl: 'QTY',        w: 12, al: 'right'  },
+    { lbl: 'UNIT',       w: 11, al: 'right'  },
+    { lbl: 'RATE',       w: 20, al: 'right'  },
+    { lbl: 'TOTAL EX',   w: 20, al: 'right'  },
+    { lbl: 'GST',        w: 12, al: 'right'  },
+    { lbl: 'TOTAL INC',  w: 15, al: 'right'  },
+  ];
+
+  // Pre-compute x offsets
+  const colX: number[] = [];
+  let cx2 = 0;
+  cols.forEach(c => { colX.push(cx2); cx2 += c.w; });
+
+  const hdrH = 8;
+  const rowH = 10;
   const nRows = Math.max(lineGroups.length, 1);
   const tableH = hdrH + nRows * rowH;
 
-  // Outer border — blue accent
-  doc.setDrawColor(...rgb(P.accentBorder)); doc.setLineWidth(0.4);
-  doc.roundedRect(M, y, CW, tableH, 2, 2, 'S');
+  // Table outer border
+  box(M, y, CW, tableH, P.accentBorder, 0.4);
 
-  // Header bg — light blue
-  doc.setFillColor(...rgb(P.accentLight));
+  // Header bg — very faint tint (not filled blue)
+  doc.setFillColor(240, 246, 255);
   doc.roundedRect(M, y, CW, hdrH, 2, 2, 'F');
-  doc.setFillColor(...rgb(P.accentLight));
-  doc.rect(M, y + hdrH - 2, CW, 2, 'F');
+  // Ensure bottom portion of header bg is square (no rounding clash)
+  doc.rect(M, y + hdrH - 3, CW, 3, 'F');
 
-  // Column definitions
-  type ColDef = { lbl: string; x: number; w: number; al: 'left' | 'right' | 'center' };
-  const cols: ColDef[] = [
-    { lbl: '#',           x: 0,   w: 7,   al: 'center' },
-    { lbl: 'DESCRIPTION', x: 7,   w: 54,  al: 'left'   },
-    { lbl: 'ITEM CODE',   x: 61,  w: 34,  al: 'left'   },
-    { lbl: 'QTY',         x: 95,  w: 12,  al: 'right'  },
-    { lbl: 'UNIT',        x: 107, w: 11,  al: 'right'  },
-    { lbl: 'RATE',        x: 118, w: 18,  al: 'right'  },
-    { lbl: 'TOTAL EX',    x: 136, w: 20,  al: 'right'  },
-    { lbl: 'GST',         x: 156, w: 10,  al: 'right'  },
-    { lbl: 'TOTAL INC',   x: 166, w: 12,  al: 'right'  },
-  ];
-  const hY = y + 5;
-  cols.forEach(c => {
+  // Header labels
+  const hY = y + 5.5;
+  cols.forEach((c, i) => {
     sf(5.5, 'bold', P.accent);
-    const cx = M + c.x + (c.al === 'right' ? c.w : c.al === 'center' ? c.w / 2 : 0);
-    tx(c.lbl, cx, hY, { align: c.al === 'center' ? 'center' : c.al });
+    const baseX = M + colX[i];
+    if (c.al === 'right') {
+      tx(c.lbl, baseX + c.w - 1, hY, { align: 'right' });
+    } else if (c.al === 'center') {
+      tx(c.lbl, baseX + c.w / 2, hY, { align: 'center' });
+    } else {
+      tx(c.lbl, baseX + 1, hY);
+    }
   });
 
-  // Header / body separator — clean line
+  // Header/body separator
   doc.setDrawColor(...rgb(P.accentBorder)); doc.setLineWidth(0.3);
   doc.line(M, y + hdrH, M + CW, y + hdrH);
   y += hdrH;
@@ -351,35 +383,39 @@ async function exportToPDF(snap: InvoiceSnapshot, lineGroups: ReturnType<typeof 
   } else {
     lineGroups.forEach((group, idx) => {
       if (idx % 2 === 1) {
-        doc.setFillColor(...rgb(P.rowAlt));
+        doc.setFillColor(248, 250, 255);
         doc.rect(M, y, CW, rowH, 'F');
       }
-      const ry = y + 5.5;
+      const ry = y + 6;
       const unit = group.isSleepover ? 'night' : 'hr';
 
+      // #
       sf(7, 'normal', P.faint);
-      tx(String(idx + 1), M + cols[0].x + 3.5, ry, { align: 'center' });
+      tx(String(idx + 1), M + colX[0] + cols[0].w / 2, ry, { align: 'center' });
 
+      // Description
       sf(7.5, 'bold', P.ink);
-      tx(group.label, M + cols[1].x, ry - 1.5);
+      tx(group.label, M + colX[1] + 1, ry - 1.5);
       sf(6, 'normal', P.faint);
-      tx(`${group.shifts.length} shift${group.shifts.length !== 1 ? 's' : ''}`, M + cols[1].x, ry + 2.5);
+      tx(`${group.shifts.length} shift${group.shifts.length !== 1 ? 's' : ''}`, M + colX[1] + 1, ry + 2.5);
 
-      sf(6.5, 'normal', P.muted);
-      tx(group.ndisCode ?? '', M + cols[2].x, ry, { maxWidth: 33 });
+      // Item code — monospace-ish, smaller, no clipping
+      sf(5.5, 'normal', P.muted);
+      tx(group.ndisCode ?? '', M + colX[2] + 1, ry, { maxWidth: cols[2].w - 2 });
 
-      const right = (ci: number, val: string, sz = 7.5, wt: 'normal' | 'bold' = 'normal', col = P.mid) => {
+      // Numeric right-aligned columns
+      const rCol = (ci: number, val: string, sz = 7.5, wt: 'normal' | 'bold' = 'normal', col = P.mid) => {
         sf(sz, wt, col);
-        tx(val, M + cols[ci].x + cols[ci].w, ry, { align: 'right' });
+        tx(val, M + colX[ci] + cols[ci].w - 1, ry, { align: 'right' });
       };
-      right(3, String(group.quantity));
-      right(4, unit, 7, 'normal', P.faint);
-      right(5, fmt$(group.rate));
-      right(6, fmt$(group.subtotal), 7.5, 'bold');
-      right(7, '$0.00', 7, 'normal', P.faint);
-      right(8, fmt$(group.subtotal), 7.5, 'bold', P.ink);
+      rCol(3, String(group.quantity));
+      rCol(4, unit, 7, 'normal', P.faint);
+      rCol(5, fmt$(group.rate));
+      rCol(6, fmt$(group.subtotal), 7.5, 'bold');
+      rCol(7, '$0.00', 7, 'normal', P.faint);
+      rCol(8, fmt$(group.subtotal), 7.5, 'bold', P.ink);
 
-      // Clean solid line separator (no gradient)
+      // Row separator
       if (idx < lineGroups.length - 1) {
         doc.setDrawColor(...rgb(P.border)); doc.setLineWidth(0.2);
         doc.line(M, y + rowH, M + CW, y + rowH);
@@ -387,71 +423,65 @@ async function exportToPDF(snap: InvoiceSnapshot, lineGroups: ReturnType<typeof 
       y += rowH;
     });
   }
-  y += 5;
+  y += 6;
 
-  // ── TOTALS CONTAINER ──────────────────────────────────────────────────────
-  const totW = 70;
+  // ── TOTALS — no filled bg, just bordered box + lines ─────────────────────
+  const totW = 72;
   const totX = W - M - totW;
-  const totRows: [string, string, boolean?][] = [
-    ['SUBTOTAL (EX GST)', fmt$(snap.total)],
-    ['GST',               '$0.00'],
-    ['BALANCE DUE',       fmt$(snap.total), true],
+  const totRows: Array<[string, string, boolean]> = [
+    ['SUBTOTAL', fmt$(snap.total), false],
+    ['GST',      '$0.00',          false],
+    ['TOTALS (AUD)', fmt$(snap.total), true],
   ];
-  const totH = totRows.length * 7.5 + 1;
+  const totRowH = 8.5;
+  const totH = totRows.length * totRowH + 2;
 
-  rect(totX, y, totW, totH, P.bg, P.accentBorder);
-  let ty = y + 6;
-  totRows.forEach(([lbl, val, isBal], ri) => {
-    if (isBal) {
-      // Blue accent bg for BALANCE DUE row
-      doc.setFillColor(...rgb(P.accentLight));
-      doc.roundedRect(totX, y + ri * 7.5, totW, 7.5 + 1, 2, 2, 'F');
-      // Left accent bar
-      doc.setFillColor(...rgb(P.accent));
-      doc.rect(totX, y + ri * 7.5, 2.5, 8.5, 'F');
-      sf(8.5, 'bold', P.accent); tx(lbl, totX + 6, ty);
-      sf(11, 'bold', P.accent);  tx(val, totX + totW - 4, ty, { align: 'right' });
+  box(totX, y, totW, totH, P.accentBorder, 0.3);
+  let ty = y + 7;
+  totRows.forEach(([lbl, val, isFinal], ri) => {
+    if (isFinal) {
+      sf(8.5, 'bold', P.ink);    tx(lbl, totX + 5, ty);
+      sf(10,  'bold', P.accent); tx(val, totX + totW - 4, ty, { align: 'right' });
     } else {
-      sf(7.5, 'normal', P.muted); tx(lbl, totX + 4, ty);
+      sf(7.5, 'normal', P.muted); tx(lbl, totX + 5, ty);
       sf(7.5, 'bold',   P.mid);   tx(val, totX + totW - 4, ty, { align: 'right' });
       // Separator
       doc.setDrawColor(...rgb(P.border)); doc.setLineWidth(0.2);
-      doc.line(totX, ty + 3.5, totX + totW, ty + 3.5);
+      doc.line(totX + 2, ty + 3, totX + totW - 2, ty + 3);
     }
-    ty += 7.5;
+    ty += totRowH;
   });
-  y += totH + 6;
+  y += totH + 7;
 
   // ── PAYMENT DETAILS ───────────────────────────────────────────────────────
   if (snap.accountName || snap.bsb || snap.accountNumber || snap.bankName) {
-    const payRows: [string, string][] = [];
+    const payRows: Array<[string, string]> = [];
     if (snap.accountName)   payRows.push(['Account Name', snap.accountName]);
     if (snap.bankName)      payRows.push(['Bank',          snap.bankName]);
     if (snap.bsb)           payRows.push(['BSB',           snap.bsb]);
     if (snap.accountNumber) payRows.push(['Account No.',   snap.accountNumber]);
     payRows.push(['Reference', snap.invoiceNumber]);
 
-    const numCols = Math.min(payRows.length, 5);
-    const colW3   = CW / numCols;
-    const payH    = 30;  // taller to include "Payment due within 7 days" line
+    // Payment box: rows stacked vertically (2 per line, 2 lines max) + separator + "Payment due" line
+    const colsPerRow = Math.min(payRows.length, 5);
+    const colW3 = CW / colsPerRow;
+    const payH  = 40;
 
-    rect(M, y, CW, payH, P.accentLight, P.accentBorder);
-    // Blue left accent bar
-    doc.setFillColor(...rgb(P.accent));
-    doc.rect(M, y, 2.5, payH, 'F');
+    box(M, y, CW, payH, P.accentBorder);
+    leftBar(M, y, payH);
     let py = y + 6;
-    sf(6, 'bold', P.accent); tx('PAYMENT DETAILS', M + 6, py); py += 5.5;
+    sf(6, 'bold', P.accent); tx('PAYMENT DETAILS', M + 6, py); py += 6;
 
     payRows.forEach(([k, v], i) => {
       const fx = M + 6 + i * colW3;
-      sf(7, 'normal', P.muted);  tx(k, fx, py);
-      sf(8.5, 'bold', P.ink);    tx(v, fx, py + 4.5);
+      sf(7, 'normal', P.muted); tx(k,  fx, py);
+      sf(8.5, 'bold', P.ink);   tx(v,  fx, py + 4.5);
     });
-
     py += 10;
-    doc.setDrawColor(...rgb(P.accentBorder)); doc.setLineWidth(0.25);
+
+    doc.setDrawColor(...rgb(P.border)); doc.setLineWidth(0.2);
     doc.line(M + 6, py, M + CW - 4, py);
-    py += 4;
+    py += 4.5;
     sf(7, 'normal', P.muted);
     tx('Payment due within 7 days of invoice date.', M + 6, py);
     y += payH + 5;
@@ -461,7 +491,7 @@ async function exportToPDF(snap: InvoiceSnapshot, lineGroups: ReturnType<typeof 
   if (snap.invoiceNotes) {
     const noteLines = doc.splitTextToSize(snap.invoiceNotes, CW - 10);
     const notH = 12 + noteLines.slice(0, 4).length * 4;
-    rect(M, y, CW, notH, P.white, P.border);
+    box(M, y, CW, notH, P.border, 0.25);
     sf(6, 'bold', P.muted); tx('NOTES', M + 4, y + 5.5);
     sf(7.5, 'normal', P.muted);
     noteLines.slice(0, 4).forEach((l: string, i: number) => tx(l, M + 4, y + 10 + i * 4));
@@ -478,7 +508,6 @@ async function exportToPDF(snap: InvoiceSnapshot, lineGroups: ReturnType<typeof 
 
   doc.save(`${snap.invoiceNumber}.pdf`);
 }
-
 
 // ─── Invoice list card ─────────────────────────────────────────────────────────
 const InvoiceCard = ({
@@ -570,7 +599,6 @@ const InvoicePanel = ({
 
   const periods = useMemo(() => getFortnightPeriodsForYear(selectedYear), [selectedYear]);
 
-  // ── Default to current fortnight on mount / year change ──
   const [selectedFnIdx, setSelectedFnIdx] = useState(() => getCurrentFortnightIdx(getFortnightPeriodsForYear(currentYear)));
   useEffect(() => {
     setSelectedFnIdx(getCurrentFortnightIdx(periods));
@@ -694,7 +722,8 @@ const InvoicePanel = ({
         invoiceId     = existingInvoice.id;
         invoiceNumber = existingInvoice.invoice_number;
         issueDate     = existingInvoice.created_at.split('T')[0];
-        dueDate       = existingInvoice.due_date ?? addDays(issueDate, 7);
+        // Always compute due date as 7 days from issue date
+        dueDate = addDays(issueDate, 7);
       } else {
         invoiceNumber = buildInvoiceNumber(await onIncrementCounter());
         issueDate     = formatDateISO(new Date());
@@ -753,7 +782,8 @@ const InvoicePanel = ({
   // ─── View existing invoice from Records tab ──────────────────────────────────
   const viewInvoiceFromList = useCallback((inv: InvoiceSummary) => {
     const issueDate = inv.created_at.split('T')[0];
-    const dueDate   = inv.due_date ?? addDays(issueDate, 7);
+    // Always 7 days from issue date
+    const dueDate   = addDays(issueDate, 7);
     const mc        = clients.find(c => c.id === inv.client_id) ?? null;
     const s         = settings as unknown as Record<string, string | null>;
     const useDefaults = settings?.use_default_invoice_notes !== false;
@@ -796,14 +826,6 @@ const InvoicePanel = ({
     () => preview ? (invoices.find(inv => inv.id === preview.invoiceId) ?? null) : null,
     [invoices, preview],
   );
-
-  // ─── Shared label style helpers ──────────────────────────────────────────────
-  const sectionTitle: React.CSSProperties = {
-    fontSize: 9, fontWeight: 700, textTransform: 'uppercase',
-    letterSpacing: '0.06em', color: '#6B7280', marginBottom: 4,
-  };
-  const cellLabel: React.CSSProperties = { fontSize: 9, color: '#6B7280' };
-  const cellValue: React.CSSProperties = { fontSize: 9, fontWeight: 600, color: '#374151' };
 
   // ─── Render ──────────────────────────────────────────────────────────────────
   return (
@@ -957,11 +979,11 @@ const InvoicePanel = ({
 
               {/* ────────────── Invoice Preview Card ────────────── */}
               <div className="glass-card overflow-hidden">
-                {/* Top rule — blue accent */}
-                <div style={{ height: 4, background: P.accent }} />
+                {/* Thin top rule — accent only */}
+                <div style={{ height: 3, background: P.accent }} />
 
                 <div style={{
-                  padding: '20px 18px 16px',
+                  padding: '22px 18px 16px',
                   fontFamily: '"Helvetica Neue", Helvetica, Arial, sans-serif',
                   fontSize: 11, color: P.ink,
                   background: 'hsl(var(--card))',
@@ -969,91 +991,135 @@ const InvoicePanel = ({
 
                   {/* ── HEADER: issuer left / INVOICE right ── */}
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 14 }}>
-                    {/* Left — issuer */}
+
+                    {/* Left — issuer name + meta */}
                     <div>
-                      <div style={{ fontSize: 15, fontWeight: 800, color: P.ink, letterSpacing: '-0.02em', marginBottom: 5 }}>
+                      <div style={{ fontSize: 14, fontWeight: 800, color: P.ink, letterSpacing: '-0.02em', marginBottom: 6 }}>
                         {preview.issuerName || 'Your Business Name'}
                       </div>
-                      {preview.abn          && <div style={{ fontSize: 9, color: P.muted, marginBottom: 2 }}>ABN: {preview.abn}</div>}
-                      {preview.issuerEmail  && <div style={{ fontSize: 9, color: P.muted, marginBottom: 2 }}>{preview.issuerEmail}</div>}
-                      {preview.phone        && <div style={{ fontSize: 9, color: P.muted, marginBottom: 2 }}>Phone: {preview.phone}</div>}
-                      {preview.address      && <div style={{ fontSize: 9, color: P.muted }}>{preview.address}</div>}
+                      {/* ABN: / P: / E: rows with bold values */}
+                      {preview.abn && (
+                        <div style={{ fontSize: 8.5, color: P.muted, marginBottom: 3, display: 'flex', gap: 4 }}>
+                          <span style={{ minWidth: 26 }}>ABN:</span>
+                          <span style={{ fontWeight: 700, color: P.mid }}>{preview.abn}</span>
+                        </div>
+                      )}
+                      {preview.phone && (
+                        <div style={{ fontSize: 8.5, color: P.muted, marginBottom: 3, display: 'flex', gap: 4 }}>
+                          <span style={{ minWidth: 26 }}>P:</span>
+                          <span style={{ fontWeight: 700, color: P.mid }}>{preview.phone}</span>
+                        </div>
+                      )}
+                      {preview.issuerEmail && (
+                        <div style={{ fontSize: 8.5, color: P.muted, marginBottom: 3, display: 'flex', gap: 4 }}>
+                          <span style={{ minWidth: 26 }}>E:</span>
+                          <span style={{ fontWeight: 700, color: P.mid }}>{preview.issuerEmail}</span>
+                        </div>
+                      )}
                     </div>
-                    {/* Right — INVOICE title + meta */}
+
+                    {/* Right — INVOICE same size as name, then meta below */}
                     <div style={{ textAlign: 'right' }}>
-                      <div style={{ fontSize: 20, fontWeight: 900, color: P.accent, letterSpacing: '-0.03em', marginBottom: 4 }}>INVOICE</div>
-                      <div style={{ fontSize: 10, fontWeight: 700, color: P.mid, marginBottom: 2 }}>{preview.invoiceNumber}</div>
-                      <div style={{ fontSize: 8.5, color: P.muted, marginBottom: 1.5 }}>Submitted: <strong style={{ color: P.mid }}>{formatDateShort(preview.issueDate)}</strong></div>
-                      <div style={{ fontSize: 8.5, color: P.muted }}>Due: <strong style={{ color: P.mid }}>{formatDateShort(preview.dueDate)}</strong></div>
+                      <div style={{ fontSize: 14, fontWeight: 800, color: P.ink, letterSpacing: '-0.02em', marginBottom: 6 }}>
+                        INVOICE
+                      </div>
+                      {/* Submitted: / Invoice #: rows with bold values */}
+                      <div style={{ fontSize: 8.5, color: P.muted, marginBottom: 3, display: 'flex', justifyContent: 'flex-end', gap: 4 }}>
+                        <span>Submitted:</span>
+                        <span style={{ fontWeight: 700, color: P.mid }}>{formatDateShort(preview.issueDate)}</span>
+                      </div>
+                      <div style={{ fontSize: 8.5, color: P.muted, marginBottom: 3, display: 'flex', justifyContent: 'flex-end', gap: 4 }}>
+                        <span>Invoice #:</span>
+                        <span style={{ fontWeight: 700, color: P.mid }}>{preview.invoiceNumber}</span>
+                      </div>
                     </div>
                   </div>
 
-                  {/* Divider — blue accent */}
+                  {/* Divider */}
                   <div style={{ borderTop: `1.5px solid ${P.accentBorder}`, marginBottom: 13 }} />
 
                   {/* ── BILL TO + INVOICE DETAILS ── */}
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 13 }}>
 
-                    {/* BILL TO */}
-                    <div style={{ background: P.accentLight, borderRadius: 8, padding: '10px 12px 10px 14px', border: `1px solid ${P.accentBorder}`, borderLeft: `3px solid ${P.accent}` }}>
-                      <div style={{ fontSize: 8, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.07em', color: P.accent, marginBottom: 6 }}>BILL TO</div>
+                    {/* BILL TO — border + left accent bar, no fill */}
+                    <div style={{
+                      borderRadius: 8, padding: '10px 12px 10px 14px',
+                      border: `1px solid ${P.accentBorder}`,
+                      borderLeft: `3px solid ${P.accent}`,
+                    }}>
+                      <div style={{ fontSize: 7.5, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.07em', color: P.accent, marginBottom: 6 }}>BILL TO</div>
                       {preview.clientOrganisation && (
                         <div style={{ fontSize: 10, fontWeight: 700, color: P.ink, marginBottom: 2 }}>{preview.clientOrganisation}</div>
                       )}
                       <div style={{ fontSize: 10, fontWeight: preview.clientOrganisation ? 400 : 700, color: P.ink, marginBottom: 3 }}>
                         {preview.clientName || 'Participant / Organisation'}
                       </div>
-                      {preview.clientContact && <div style={{ fontSize: 8.5, color: P.muted, marginBottom: 1.5 }}>Contact: {preview.clientContact}</div>}
-                      {preview.clientAddress && <div style={{ fontSize: 8.5, color: P.muted, marginBottom: 1.5 }}>{preview.clientAddress}</div>}
-                      {preview.clientEmail   && <div style={{ fontSize: 8.5, color: P.muted, marginBottom: 1.5 }}>{preview.clientEmail}</div>}
-                      {preview.clientPhone   && <div style={{ fontSize: 8.5, color: P.muted, marginBottom: 1.5 }}>Ph: {preview.clientPhone}</div>}
+                      {preview.clientContact && <div style={{ fontSize: 8.5, color: P.muted, marginBottom: 2 }}>Contact: {preview.clientContact}</div>}
+                      {preview.clientAddress && <div style={{ fontSize: 8.5, color: P.muted, marginBottom: 2 }}>{preview.clientAddress}</div>}
+                      {preview.clientEmail   && <div style={{ fontSize: 8.5, color: P.muted, marginBottom: 2 }}>{preview.clientEmail}</div>}
+                      {preview.clientPhone   && <div style={{ fontSize: 8.5, color: P.muted, marginBottom: 2 }}>Ph: {preview.clientPhone}</div>}
                       {preview.clientParticipantNumber && (
                         <div style={{ fontSize: 8.5, color: P.accent, fontWeight: 600 }}>NDIS No: {preview.clientParticipantNumber}</div>
                       )}
                     </div>
 
-                    {/* INVOICE DETAILS */}
-                    <div style={{ background: P.accentLight, borderRadius: 8, padding: '10px 12px 10px 14px', border: `1px solid ${P.accentBorder}`, borderLeft: `3px solid ${P.accent}` }}>
-                      <div style={{ fontSize: 8, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.07em', color: P.accent, marginBottom: 6 }}>INVOICE DETAILS</div>
+                    {/* INVOICE DETAILS — border + left accent bar, no fill */}
+                    <div style={{
+                      borderRadius: 8, padding: '10px 12px 10px 14px',
+                      border: `1px solid ${P.accentBorder}`,
+                      borderLeft: `3px solid ${P.accent}`,
+                    }}>
+                      <div style={{ fontSize: 7.5, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.07em', color: P.accent, marginBottom: 6 }}>INVOICE DETAILS</div>
                       {[
                         ['Service From', formatDateShort(preview.periodStart)],
                         ['Service To',   formatDateShort(preview.periodEnd)],
                         ['Due Date',     formatDateShort(preview.dueDate)],
                         ['GST Rate',     '0% (GST-Free)'],
                       ].map(([l, v]) => (
-                        <div key={l} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 3.5 }}>
+                        <div key={l} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
                           <span style={{ fontSize: 8.5, color: P.muted }}>{l}</span>
-                          <span style={{ fontSize: 8.5, fontWeight: 600, color: P.mid }}>{v}</span>
+                          <span style={{ fontSize: 8.5, fontWeight: 700, color: P.mid }}>{v}</span>
                         </div>
                       ))}
-                      {/* Separator + BALANCE DUE — blue accent, more space */}
-                      <div style={{ borderTop: `1.5px solid ${P.accentBorder}`, marginTop: 8, paddingTop: 8, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <span style={{ fontSize: 8.5, fontWeight: 800, color: P.accent, textTransform: 'uppercase' as const, letterSpacing: '0.06em' }}>BALANCE DUE</span>
-                        <span style={{ fontSize: 14, fontWeight: 900, color: P.accent, fontVariantNumeric: 'tabular-nums' }}>{fmt$(preview.total)}</span>
+                      {/* Separator + BALANCE DUE — no fill */}
+                      <div style={{ borderTop: `1px solid ${P.border}`, marginTop: 8, paddingTop: 8, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span style={{ fontSize: 8, fontWeight: 800, color: P.accent, textTransform: 'uppercase' as const, letterSpacing: '0.06em' }}>BALANCE DUE</span>
+                        <span style={{ fontSize: 13, fontWeight: 900, color: P.accent }}>{fmt$(preview.total)}</span>
                       </div>
                     </div>
                   </div>
 
                   {/* ── SERVICES RENDERED ── */}
                   <div style={{ marginBottom: 12 }}>
-                    <div style={{ fontSize: 8, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.07em', color: P.accent, marginBottom: 5 }}>SERVICES RENDERED</div>
+                    <div style={{ fontSize: 7.5, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.07em', color: P.accent, marginBottom: 5 }}>SERVICES RENDERED</div>
                     <div style={{ border: `1px solid ${P.accentBorder}`, borderRadius: 8, overflow: 'hidden' }}>
                       <table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed' }}>
+                        <colgroup>
+                          <col style={{ width: '4%' }} />
+                          <col style={{ width: '25%' }} />
+                          <col style={{ width: '20%' }} />
+                          <col style={{ width: '7%' }} />
+                          <col style={{ width: '6%' }} />
+                          <col style={{ width: '12%' }} />
+                          <col style={{ width: '11%' }} />
+                          <col style={{ width: '7%' }} />
+                          <col style={{ width: '11%' }} />
+                        </colgroup>
                         <thead>
-                          <tr style={{ background: P.accentLight }}>
+                          <tr style={{ background: P.rowAlt }}>
                             {[
-                              { h: '#',           w: '5%',  a: 'center' as const },
-                              { h: 'DESCRIPTION', w: '27%', a: 'left'   as const },
-                              { h: 'ITEM CODE',   w: '18%', a: 'left'   as const },
-                              { h: 'QTY',         w: '8%',  a: 'right'  as const },
-                              { h: 'UNIT',        w: '6%',  a: 'right'  as const },
-                              { h: 'RATE',        w: '12%', a: 'right'  as const },
-                              { h: 'TOTAL EX',    w: '12%', a: 'right'  as const },
-                              { h: 'GST',         w: '6%',  a: 'right'  as const },
-                              { h: 'TOTAL INC',   w: '12%', a: 'right'  as const },
-                            ].map(({ h, w, a }) => (
+                              { h: '#',           a: 'center' as const },
+                              { h: 'DESCRIPTION', a: 'left'   as const },
+                              { h: 'ITEM CODE',   a: 'left'   as const },
+                              { h: 'QTY',         a: 'right'  as const },
+                              { h: 'UNIT',        a: 'right'  as const },
+                              { h: 'RATE',        a: 'right'  as const },
+                              { h: 'TOTAL EX',    a: 'right'  as const },
+                              { h: 'GST',         a: 'right'  as const },
+                              { h: 'TOTAL INC',   a: 'right'  as const },
+                            ].map(({ h, a }) => (
                               <th key={h} style={{
-                                width: w, padding: '5px 5px',
+                                padding: '5px 4px',
                                 fontSize: 6.5, fontWeight: 700,
                                 textTransform: 'uppercase', letterSpacing: '0.04em',
                                 color: P.accent, textAlign: a,
@@ -1065,18 +1131,18 @@ const InvoicePanel = ({
                         <tbody>
                           {lineGroups.map((group, idx) => (
                             <tr key={group.category} style={{ background: idx % 2 === 1 ? P.rowAlt : P.white }}>
-                              <td style={{ fontSize: 8, color: P.faint, padding: '6px 5px', textAlign: 'center', borderBottom: `1px solid ${P.border}` }}>{idx + 1}</td>
-                              <td style={{ padding: '6px 5px', borderBottom: `1px solid ${P.border}` }}>
-                                <div style={{ fontSize: 8.5, fontWeight: 600, color: P.ink }}>{group.label}</div>
-                                <div style={{ fontSize: 7, color: P.faint, marginTop: 1 }}>{group.shifts.length} shift{group.shifts.length !== 1 ? 's' : ''}</div>
+                              <td style={{ fontSize: 7.5, color: P.faint, padding: '5px 4px', textAlign: 'center', borderBottom: `1px solid ${P.border}` }}>{idx + 1}</td>
+                              <td style={{ padding: '5px 4px', borderBottom: `1px solid ${P.border}` }}>
+                                <div style={{ fontSize: 8, fontWeight: 600, color: P.ink }}>{group.label}</div>
+                                <div style={{ fontSize: 6.5, color: P.faint, marginTop: 1 }}>{group.shifts.length} shift{group.shifts.length !== 1 ? 's' : ''}</div>
                               </td>
-                              <td style={{ fontSize: 7, color: P.muted, fontFamily: 'monospace', padding: '6px 5px', borderBottom: `1px solid ${P.border}` }}>{group.ndisCode}</td>
-                              <td style={{ fontSize: 8.5, color: P.mid, padding: '6px 5px', textAlign: 'right', borderBottom: `1px solid ${P.border}`, fontVariantNumeric: 'tabular-nums' }}>{group.quantity}</td>
-                              <td style={{ fontSize: 7.5, color: P.faint, padding: '6px 5px', textAlign: 'right', borderBottom: `1px solid ${P.border}` }}>{group.isSleepover ? 'night' : 'hr'}</td>
-                              <td style={{ fontSize: 8.5, color: P.mid, padding: '6px 5px', textAlign: 'right', borderBottom: `1px solid ${P.border}`, fontVariantNumeric: 'tabular-nums' }}>{fmt$(group.rate)}</td>
-                              <td style={{ fontSize: 8.5, fontWeight: 600, color: P.mid, padding: '6px 5px', textAlign: 'right', borderBottom: `1px solid ${P.border}`, fontVariantNumeric: 'tabular-nums' }}>{fmt$(group.subtotal)}</td>
-                              <td style={{ fontSize: 7.5, color: P.faint, padding: '6px 5px', textAlign: 'right', borderBottom: `1px solid ${P.border}` }}>$0.00</td>
-                              <td style={{ fontSize: 8.5, fontWeight: 700, color: P.ink, padding: '6px 5px', textAlign: 'right', borderBottom: `1px solid ${P.border}`, fontVariantNumeric: 'tabular-nums' }}>{fmt$(group.subtotal)}</td>
+                              <td style={{ fontSize: 6.5, color: P.muted, fontFamily: 'monospace', padding: '5px 4px', borderBottom: `1px solid ${P.border}`, wordBreak: 'break-all' }}>{group.ndisCode}</td>
+                              <td style={{ fontSize: 8, color: P.mid, padding: '5px 4px', textAlign: 'right', borderBottom: `1px solid ${P.border}`, fontVariantNumeric: 'tabular-nums' }}>{group.quantity}</td>
+                              <td style={{ fontSize: 7, color: P.faint, padding: '5px 4px', textAlign: 'right', borderBottom: `1px solid ${P.border}` }}>{group.isSleepover ? 'night' : 'hr'}</td>
+                              <td style={{ fontSize: 8, color: P.mid, padding: '5px 4px', textAlign: 'right', borderBottom: `1px solid ${P.border}`, fontVariantNumeric: 'tabular-nums' }}>{fmt$(group.rate)}</td>
+                              <td style={{ fontSize: 8, fontWeight: 600, color: P.mid, padding: '5px 4px', textAlign: 'right', borderBottom: `1px solid ${P.border}`, fontVariantNumeric: 'tabular-nums' }}>{fmt$(group.subtotal)}</td>
+                              <td style={{ fontSize: 7.5, color: P.faint, padding: '5px 4px', textAlign: 'right', borderBottom: `1px solid ${P.border}` }}>$0.00</td>
+                              <td style={{ fontSize: 8, fontWeight: 700, color: P.ink, padding: '5px 4px', textAlign: 'right', borderBottom: `1px solid ${P.border}`, fontVariantNumeric: 'tabular-nums' }}>{fmt$(group.subtotal)}</td>
                             </tr>
                           ))}
                           {lineGroups.length === 0 && (
@@ -1091,19 +1157,20 @@ const InvoicePanel = ({
                     </div>
                   </div>
 
-                  {/* ── TOTALS CONTAINER ── */}
+                  {/* ── TOTALS — no filled bg ── */}
                   <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 12 }}>
                     <div style={{ minWidth: 230, maxWidth: 270, border: `1px solid ${P.accentBorder}`, borderRadius: 8, overflow: 'hidden' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', padding: '7px 12px', borderBottom: `1px solid ${P.border}` }}>
-                        <span style={{ fontSize: 8.5, color: P.muted }}>SUBTOTAL (EX GST)</span>
+                        <span style={{ fontSize: 8.5, color: P.muted }}>SUBTOTAL</span>
                         <span style={{ fontSize: 8.5, fontWeight: 600, color: P.mid, fontVariantNumeric: 'tabular-nums' }}>{fmt$(preview.total)}</span>
                       </div>
                       <div style={{ display: 'flex', justifyContent: 'space-between', padding: '7px 12px', borderBottom: `1px solid ${P.accentBorder}` }}>
                         <span style={{ fontSize: 8.5, color: P.muted }}>GST</span>
                         <span style={{ fontSize: 8.5, fontWeight: 600, color: P.mid }}>$0.00</span>
                       </div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '9px 12px', background: P.accentLight, borderLeft: `3px solid ${P.accent}` }}>
-                        <span style={{ fontSize: 8.5, fontWeight: 800, color: P.accent, textTransform: 'uppercase' as const, letterSpacing: '0.06em' }}>BALANCE DUE</span>
+                      {/* TOTALS (AUD) — prominent, no blue fill */}
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '9px 12px' }}>
+                        <span style={{ fontSize: 9, fontWeight: 800, color: P.ink, textTransform: 'uppercase' as const, letterSpacing: '0.04em' }}>TOTALS (AUD)</span>
                         <span style={{ fontSize: 15, fontWeight: 900, color: P.accent, fontVariantNumeric: 'tabular-nums' }}>{fmt$(preview.total)}</span>
                       </div>
                     </div>
@@ -1111,15 +1178,21 @@ const InvoicePanel = ({
 
                   {/* ── PAYMENT DETAILS ── */}
                   {(preview.accountName || preview.bankName || preview.bsb || preview.accountNumber) && (
-                    <div style={{ background: P.accentLight, borderRadius: 8, border: `1px solid ${P.accentBorder}`, borderLeft: `3px solid ${P.accent}`, padding: '10px 12px 10px 14px', marginBottom: 10 }}>
-                      <div style={{ fontSize: 8, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.07em', color: P.accent, marginBottom: 9 }}>PAYMENT DETAILS</div>
+                    <div style={{
+                      borderRadius: 8,
+                      border: `1px solid ${P.accentBorder}`,
+                      borderLeft: `3px solid ${P.accent}`,
+                      padding: '10px 12px 10px 14px',
+                      marginBottom: 10,
+                    }}>
+                      <div style={{ fontSize: 7.5, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.07em', color: P.accent, marginBottom: 9 }}>PAYMENT DETAILS</div>
                       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 10, marginBottom: 9 }}>
                         {[
-                          preview.accountName   && { k: 'Account Name', v: preview.accountName },
-                          preview.bankName      && { k: 'Bank',          v: preview.bankName },
-                          preview.bsb           && { k: 'BSB',           v: preview.bsb },
-                          preview.accountNumber && { k: 'Account No.',   v: preview.accountNumber },
-                          { k: 'Reference',       v: preview.invoiceNumber },
+                          preview.accountName   ? { k: 'Account Name', v: preview.accountName }   : null,
+                          preview.bankName      ? { k: 'Bank',          v: preview.bankName }      : null,
+                          preview.bsb           ? { k: 'BSB',           v: preview.bsb }           : null,
+                          preview.accountNumber ? { k: 'Account No.',   v: preview.accountNumber } : null,
+                          { k: 'Reference', v: preview.invoiceNumber },
                         ].filter(Boolean).map(item => item && (
                           <div key={item.k}>
                             <div style={{ fontSize: 7.5, color: P.muted, marginBottom: 2 }}>{item.k}</div>
@@ -1127,7 +1200,7 @@ const InvoicePanel = ({
                           </div>
                         ))}
                       </div>
-                      <div style={{ borderTop: `1px solid ${P.accentBorder}`, paddingTop: 7, fontSize: 8, color: P.muted }}>
+                      <div style={{ borderTop: `1px solid ${P.border}`, paddingTop: 7, fontSize: 8, color: P.muted }}>
                         Payment due within 7 days of invoice date.
                       </div>
                     </div>
@@ -1136,13 +1209,13 @@ const InvoicePanel = ({
                   {/* ── NOTES ── */}
                   {preview.invoiceNotes && (
                     <div style={{ border: `1px solid ${P.border}`, borderRadius: 8, padding: '8px 10px', marginBottom: 10 }}>
-                      <div style={{ fontSize: 8, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.07em', color: P.muted, marginBottom: 5 }}>NOTES</div>
+                      <div style={{ fontSize: 7.5, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.07em', color: P.muted, marginBottom: 5 }}>NOTES</div>
                       <p style={{ fontSize: 8.5, color: P.muted, whiteSpace: 'pre-line', margin: 0 }}>{preview.invoiceNotes}</p>
                     </div>
                   )}
 
                   {/* ── FOOTER ── */}
-                  <div style={{ borderTop: `1px solid ${P.accentBorder}`, paddingTop: 7, display: 'flex', justifyContent: 'space-between' }}>
+                  <div style={{ borderTop: `1px solid ${P.border}`, paddingTop: 7, display: 'flex', justifyContent: 'space-between' }}>
                     <p style={{ fontSize: 7.5, color: P.faint, margin: 0 }}>
                       This invoice is GST-free under the NDIS.{preview.abn ? ` ABN: ${preview.abn}` : ''}
                     </p>
