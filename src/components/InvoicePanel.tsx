@@ -255,7 +255,7 @@ async function exportToPDF(snap: InvoiceSnapshot, lineGroups: ReturnType<typeof 
   y = Math.max(lmy, rmy) + 6;
 
   // Divider
-  hln(y, P.accentBorder, 0.5);
+  hln(y, P.border, 0.5);
   y += 8;
 
   // ── BILL TO + INVOICE DETAILS ─────────────────────────────────────────────
