@@ -261,24 +261,30 @@ async function exportToPDF(snap: InvoiceSnapshot, lineGroups: ReturnType<typeof 
   // ── BILL TO + INVOICE DETAILS ─────────────────────────────────────────────
   const halfW = (CW - 6) / 2;
 
-  const billLines: Array<[string, 'bold' | 'normal', string]> = [];
-  if (snap.clientOrganisation) billLines.push([snap.clientOrganisation, 'bold', P.ink]);
-  billLines.push([snap.clientName || 'Participant', snap.clientOrganisation ? 'normal' : 'bold', P.ink]);
-  if (snap.clientContact)           billLines.push([`Contact: ${snap.clientContact}`, 'normal', P.muted]);
-  if (snap.clientAddress)           billLines.push([snap.clientAddress,               'normal', P.muted]);
-  if (snap.clientEmail)             billLines.push([snap.clientEmail,                 'normal', P.muted]);
-  if (snap.clientPhone)             billLines.push([`Ph: ${snap.clientPhone}`,         'normal', P.muted]);
-  if (snap.clientParticipantNumber) billLines.push([`NDIS No: ${snap.clientParticipantNumber}`, 'normal', P.accent]);
+  // BILL TO label/value rows matching reference layout
+  type BillRow = { label: string; value: string; valueBold?: boolean };
+  const billRows: BillRow[] = [];
+  if (snap.clientOrganisation)      billRows.push({ label: 'Organisation', value: snap.clientOrganisation, valueBold: true });
+  if (snap.clientName)              billRows.push({ label: 'Participant',   value: snap.clientName });
+  if (snap.clientAddress)           billRows.push({ label: 'Address',      value: snap.clientAddress });
+  if (snap.clientContact)           billRows.push({ label: 'Contact',      value: snap.clientContact });
+  if (snap.clientEmail)             billRows.push({ label: 'Email',        value: snap.clientEmail });
+  if (snap.clientPhone)             billRows.push({ label: 'Phone',        value: snap.clientPhone });
+  if (snap.clientParticipantNumber) billRows.push({ label: 'NDIS No',      value: snap.clientParticipantNumber });
 
-  const cardH = Math.max(50, 14 + billLines.length * 5);
+  const cardH = Math.max(50, 14 + billRows.length * 5.5);
+  const lblW  = 22; // label column width
 
-  // BILL TO box — border only, no accent bar
+  // BILL TO box — border only
   box(M, y, halfW, cardH, P.border);
   let cy = y + 7;
-  sf(6, 'bold', P.muted); tx('BILL TO', M + 5, cy); cy += 5.5;
-  billLines.forEach(([text, weight, color]) => {
-    sf(weight === 'bold' ? 8.5 : 8, weight, color);
-    tx(text, M + 5, cy); cy += 5;
+  sf(6, 'bold', P.muted); tx('BILL TO', M + 5, cy); cy += 6;
+  billRows.forEach(({ label, value, valueBold }) => {
+    sf(7, 'normal', P.muted);
+    tx(label, M + 5, cy);
+    sf(7, valueBold ? 'bold' : 'normal', P.ink);
+    tx(value, M + 5 + lblW, cy, { maxWidth: halfW - lblW - 6 });
+    cy += 5.5;
   });
 
   // INVOICE DETAILS box — border only, no accent bar
