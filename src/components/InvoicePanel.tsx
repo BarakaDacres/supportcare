@@ -427,12 +427,12 @@ async function exportToPDF(snap: InvoiceSnapshot, lineGroups: ReturnType<typeof 
   const totRowH = 8.5;
   const totH = totRows.length * totRowH + 2;
 
-  box(totX, y, totW, totH, P.accentBorder, 0.3);
+  box(totX, y, totW, totH, P.border, 0.3);
   let ty = y + 7;
   totRows.forEach(([lbl, val, isFinal], ri) => {
     if (isFinal) {
-      sf(8.5, 'bold', P.ink);    tx(lbl, totX + 5, ty);
-      sf(10,  'bold', P.accent); tx(val, totX + totW - 4, ty, { align: 'right' });
+      sf(8.5, 'bold', P.ink);  tx(lbl, totX + 5, ty);
+      sf(10,  'bold', P.ink);  tx(val, totX + totW - 4, ty, { align: 'right' });
     } else {
       sf(7.5, 'normal', P.muted); tx(lbl, totX + 5, ty);
       sf(7.5, 'bold',   P.mid);   tx(val, totX + totW - 4, ty, { align: 'right' });
