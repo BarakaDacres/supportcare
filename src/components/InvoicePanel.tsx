@@ -429,7 +429,7 @@ async function exportToPDF(snap: InvoiceSnapshot, lineGroups: ReturnType<typeof 
 
   box(totX, y, totW, totH, P.border, 0.3);
   let ty = y + 7;
-  totRows.forEach(([lbl, val, isFinal], ri) => {
+  totRows.forEach(([lbl, val, isFinal]) => {
     if (isFinal) {
       sf(8.5, 'bold', P.ink);  tx(lbl, totX + 5, ty);
       sf(10,  'bold', P.ink);  tx(val, totX + totW - 4, ty, { align: 'right' });
