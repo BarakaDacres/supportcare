@@ -7,6 +7,7 @@ interface AppSettingsPanelProps {
   settings: UserSettings | null;
   loading: boolean;
   onSave: (updates: Partial<Omit<UserSettings, 'id' | 'user_id'>>) => Promise<void>;
+  onResetInvoiceCounter?: () => Promise<void>;
 }
 
 /* ════════════════════════════════════════════════════
