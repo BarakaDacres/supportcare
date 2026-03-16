@@ -1152,22 +1152,26 @@ const InvoicePanel = ({
                           </tr>
                         </thead>
                         <tbody>
-                          {lineGroups.map((group, idx) => (
-                            <tr key={group.category} style={{ background: idx % 2 === 1 ? P.rowAlt : P.white }}>
-                              <td style={{ fontSize: 7.5, color: P.faint, padding: '5px 4px', textAlign: 'center', borderBottom: `1px solid ${P.border}` }}>{idx + 1}</td>
-                              <td style={{ padding: '5px 4px', borderBottom: `1px solid ${P.border}` }}>
-                                <div style={{ fontSize: 8, fontWeight: 600, color: P.ink }}>{group.label}</div>
-                                <div style={{ fontSize: 6.5, color: P.faint, marginTop: 1 }}>{group.shifts.length} shift{group.shifts.length !== 1 ? 's' : ''}</div>
-                              </td>
-                              <td style={{ fontSize: 6.5, color: P.muted, fontFamily: 'monospace', padding: '5px 4px', borderBottom: `1px solid ${P.border}`, wordBreak: 'break-all' }}>{group.ndisCode}</td>
-                              <td style={{ fontSize: 8, color: P.mid, padding: '5px 4px', textAlign: 'right', borderBottom: `1px solid ${P.border}`, fontVariantNumeric: 'tabular-nums' }}>{group.quantity}</td>
-                              <td style={{ fontSize: 7, color: P.faint, padding: '5px 4px', textAlign: 'right', borderBottom: `1px solid ${P.border}` }}>{group.isSleepover ? 'night' : 'hr'}</td>
-                              <td style={{ fontSize: 8, color: P.mid, padding: '5px 4px', textAlign: 'right', borderBottom: `1px solid ${P.border}`, fontVariantNumeric: 'tabular-nums' }}>{fmt$(group.rate)}</td>
-                              <td style={{ fontSize: 8, fontWeight: 600, color: P.mid, padding: '5px 4px', textAlign: 'right', borderBottom: `1px solid ${P.border}`, fontVariantNumeric: 'tabular-nums' }}>{fmt$(group.subtotal)}</td>
-                              <td style={{ fontSize: 7.5, color: P.faint, padding: '5px 4px', textAlign: 'right', borderBottom: `1px solid ${P.border}` }}>$0.00</td>
-                              <td style={{ fontSize: 8, fontWeight: 700, color: P.ink, padding: '5px 4px', textAlign: 'right', borderBottom: `1px solid ${P.border}`, fontVariantNumeric: 'tabular-nums' }}>{fmt$(group.subtotal)}</td>
-                            </tr>
-                          ))}
+                          {lineGroups.map((group, idx) => {
+                            const isLast = idx === lineGroups.length - 1;
+                            const rowBorder = isLast ? 'none' : `1px solid ${P.cardBorder}`;
+                            return (
+                              <tr key={group.category} style={{ background: P.white }}>
+                                <td style={{ fontSize: 7.5, color: P.faint, padding: '5px 4px', textAlign: 'center', borderBottom: rowBorder }}>{idx + 1}</td>
+                                <td style={{ padding: '5px 4px', borderBottom: rowBorder }}>
+                                  <div style={{ fontSize: 8, fontWeight: 600, color: P.ink }}>{group.label}</div>
+                                  <div style={{ fontSize: 6.5, color: P.faint, marginTop: 1 }}>{group.shifts.length} shift{group.shifts.length !== 1 ? 's' : ''}</div>
+                                </td>
+                                <td style={{ fontSize: 6.5, color: P.muted, fontFamily: 'monospace', padding: '5px 4px', borderBottom: rowBorder, wordBreak: 'break-all' }}>{group.ndisCode}</td>
+                                <td style={{ fontSize: 8, color: P.mid, padding: '5px 4px', textAlign: 'right', borderBottom: rowBorder, fontVariantNumeric: 'tabular-nums' }}>{group.quantity}</td>
+                                <td style={{ fontSize: 7, color: P.faint, padding: '5px 4px', textAlign: 'right', borderBottom: rowBorder }}>{group.isSleepover ? 'night' : 'hr'}</td>
+                                <td style={{ fontSize: 8, color: P.mid, padding: '5px 4px', textAlign: 'right', borderBottom: rowBorder, fontVariantNumeric: 'tabular-nums' }}>{fmt$(group.rate)}</td>
+                                <td style={{ fontSize: 8, fontWeight: 600, color: P.mid, padding: '5px 4px', textAlign: 'right', borderBottom: rowBorder, fontVariantNumeric: 'tabular-nums' }}>{fmt$(group.subtotal)}</td>
+                                <td style={{ fontSize: 7.5, color: P.faint, padding: '5px 4px', textAlign: 'right', borderBottom: rowBorder }}>$0.00</td>
+                                <td style={{ fontSize: 8, fontWeight: 700, color: P.ink, padding: '5px 4px', textAlign: 'right', borderBottom: rowBorder, fontVariantNumeric: 'tabular-nums' }}>{fmt$(group.subtotal)}</td>
+                              </tr>
+                            );
+                          })}
                           {lineGroups.length === 0 && (
                             <tr>
                               <td colSpan={9} style={{ padding: '12px 5px', textAlign: 'center', fontSize: 8.5, color: P.faint }}>
