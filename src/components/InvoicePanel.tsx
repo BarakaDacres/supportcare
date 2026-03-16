@@ -262,6 +262,22 @@ async function exportToPDF(snap: InvoiceSnapshot, lineGroups: ReturnType<typeof 
     }
     return raw;
   };
+  // Format BSB as "XXX XXX" (3-3)
+  const formatBSB = (raw: string) => {
+    const digits = raw.replace(/\D/g, '');
+    if (digits.length === 6) {
+      return `${digits.slice(0,3)} ${digits.slice(3,6)}`;
+    }
+    return raw;
+  };
+  // Format account number as "XXXX XXXX" (4-4)
+  const formatAccountNumber = (raw: string) => {
+    const digits = raw.replace(/\D/g, '');
+    if (digits.length === 8) {
+      return `${digits.slice(0,4)} ${digits.slice(4,8)}`;
+    }
+    return raw;
+  };
 
   const leftMeta: Array<[string, string]> = [];
   if (snap.abn)         leftMeta.push(['ABN:', formatABN(snap.abn)]);
