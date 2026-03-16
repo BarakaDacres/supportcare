@@ -208,25 +208,18 @@ async function exportToPDF(snap: InvoiceSnapshot, lineGroups: ReturnType<typeof 
     doc.roundedRect(x, yp, w, h, 2, 2, 'S');
   };
 
-  // ── No top rule — clean start ─────────────────────────────────────────────
-  y = 22; // generous top padding
-
   // ── HEADER ────────────────────────────────────────────────────────────────
-  // Left block: Name / ABN: val / P: val / E: val
-  // Right block: INVOICE / Submitted: val / Invoice #: val
-  // Both start at same y; INVOICE same font size as issuer name
+  y = 20;
 
-  const HEADER_FONT = 12; // same size for issuer name AND "INVOICE"
-  const META_FONT   = 8;
+  const HEADER_FONT = 12;
+  const META_FONT   = 7.5;
 
-  // Left column label+value pairs — no justification, no bold
   const issuerName = snap.issuerName || 'Your Business';
   const leftMeta: Array<[string, string]> = [];
   if (snap.abn)         leftMeta.push(['ABN:', snap.abn]);
   if (snap.phone)       leftMeta.push(['P:', snap.phone]);
   if (snap.issuerEmail) leftMeta.push(['E:', snap.issuerEmail]);
 
-  // Right column
   const issueDate = formatDateShort(snap.issueDate);
   const rightMeta: Array<[string, string]> = [
     ['Submitted:', issueDate],
