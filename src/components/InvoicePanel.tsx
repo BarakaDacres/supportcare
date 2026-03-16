@@ -305,8 +305,8 @@ async function exportToPDF(snap: InvoiceSnapshot, lineGroups: ReturnType<typeof 
   const detCardH   = CARD_TOP + SECTION_H + 4 * DET_ROW_H + SEP_BLOCK + CARD_BOT;
   const finalCardH = Math.max(billCardH, detCardH);
 
-  // BILL TO box — labels left-aligned, values right-aligned
-  box(M, y, halfW, finalCardH, P.border);
+  // BILL TO box — labels left-aligned, values right-aligned, blue accent border
+  box(M, y, halfW, finalCardH, P.cardBorder, 0.5);
   let cy = y + CARD_TOP;
   sf(5.5, 'bold', P.muted);
   tx('BILL TO', M + CARD_PAD_X, cy);
@@ -315,9 +315,14 @@ async function exportToPDF(snap: InvoiceSnapshot, lineGroups: ReturnType<typeof 
     sf(6.5, 'normal', P.muted);
     tx(label, M + CARD_PAD_X, cy);
     sf(6.5, valueBold ? 'bold' : 'normal', P.ink);
-    // Right-align values to the right edge of the BILL TO card
-    tx(value, M + halfW - CARD_PAD_X, cy, { align: 'right', maxWidth: halfW - lblW - CARD_PAD_X - 2 });
-    cy += BILL_ROW_H;
+    // Right-align values — constrain width so long values wrap to two lines
+    const valMaxW = halfW - lblW - CARD_PAD_X * 2 - 1;
+    const wrappedLines = doc.splitTextToSize(value, valMaxW);
+    const displayLines = wrappedLines.slice(0, 2); // max 2 lines
+    displayLines.forEach((line: string, li: number) => {
+      tx(line, M + halfW - CARD_PAD_X, cy + li * 3.8, { align: 'right' });
+    });
+    cy += BILL_ROW_H + (displayLines.length > 1 ? 3.8 : 0);
   });
 
   // INVOICE DETAILS box — labels left, values right
