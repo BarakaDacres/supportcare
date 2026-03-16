@@ -322,12 +322,29 @@ async function exportToPDF(snap: InvoiceSnapshot, lineGroups: ReturnType<typeof 
   billRows.forEach(({ label, value, valueBold }) => {
     sf(6.5, 'normal', P.muted);
     tx(label, M + CARD_PAD_X, cy);
-    // Values: dark + not bold (except Organisation which keeps its weight distinction via size)
     sf(6.5, valueBold ? 'bold' : 'normal', P.dark);
-    // Narrow max-width forces wrapping for long org names and addresses
-    const valMaxW = 34; // ~34mm forces 2-line wrap for long strings
-    const wrappedLines = doc.splitTextToSize(value, valMaxW);
-    const displayLines = wrappedLines.slice(0, 2); // max 2 lines
+
+    let displayLines: string[];
+    if (label === 'Address') {
+      // Force: street on line 1, suburb/state/postcode (last comma-segment group) on line 2
+      const parts = value.split(',').map(p => p.trim()).filter(Boolean);
+      if (parts.length >= 3) {
+        // line1 = street, line2 = suburb, state, postcode joined
+        const line1 = parts.slice(0, parts.length - 2).join(', ');
+        const line2 = parts.slice(parts.length - 2).join(', ');
+        displayLines = [line1, line2];
+      } else if (parts.length === 2) {
+        displayLines = [parts[0], parts[1]];
+      } else {
+        displayLines = doc.splitTextToSize(value, 34).slice(0, 2);
+      }
+    } else if (label === 'Organisation') {
+      // Wrap at ~34mm max width — forces 2 lines for long names
+      displayLines = doc.splitTextToSize(value, 34).slice(0, 2);
+    } else {
+      displayLines = doc.splitTextToSize(value, 40).slice(0, 2);
+    }
+
     displayLines.forEach((line: string, li: number) => {
       tx(line, M + halfW - CARD_PAD_X, cy + li * 3.8, { align: 'right' });
     });
