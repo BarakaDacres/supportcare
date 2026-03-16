@@ -447,7 +447,7 @@ async function exportToPDF(snap: InvoiceSnapshot, lineGroups: ReturnType<typeof 
       sf(6.5, 'normal', P.faint);
       tx(String(idx + 1), M + colX[0] + cols[0].w / 2, ry, { align: 'center' });
 
-      sf(7, 'bold', P.ink);
+      sf(7, 'normal', P.ink);
       tx(group.label, M + colX[1] + 1, ry - 1.2);
       sf(5.5, 'normal', P.faint);
       tx(`${group.shifts.length} shift${group.shifts.length !== 1 ? 's' : ''}`, M + colX[1] + 1, ry + 2.2);
