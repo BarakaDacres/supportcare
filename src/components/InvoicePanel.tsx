@@ -501,7 +501,7 @@ async function exportToPDF(snap: InvoiceSnapshot, lineGroups: ReturnType<typeof 
       sf(9.5, 'bold', P.accent); tx(val, totX + totW - 4, ty, { align: 'right' });
     } else {
       sf(7, 'normal', P.muted); tx(lbl, totX + 5, ty);
-      sf(7, 'bold',   P.mid);   tx(val, totX + totW - 4, ty, { align: 'right' });
+      sf(7, 'bold',   P.ink);   tx(val, totX + totW - 4, ty, { align: 'right' });
       doc.setDrawColor(...rgb(P.cardBorder)); doc.setLineWidth(0.2);
       doc.line(totX + 2, ty + 2.5, totX + totW - 2, ty + 2.5);
     }
