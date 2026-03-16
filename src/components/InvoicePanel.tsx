@@ -562,25 +562,27 @@ async function exportToPDF(snap: InvoiceSnapshot, lineGroups: ReturnType<typeof 
     payRows.push(['Reference', referenceVal]);
 
     const colsPerRow = Math.min(payRows.length, 5);
-    const colW3 = CW / colsPerRow;
+    // Use same padding as services table so inner content aligns identically
+    const payInnerW = CW - TABLE_PAD_X * 2;
+    const colW3 = payInnerW / colsPerRow;
     const payH  = 33;
 
     box(M, y, CW, payH, P.cardBorder, 0.5);
     let py = y + 5;
-    sf(5.5, 'bold', P.muted); tx('PAYMENT DETAILS', M + 5, py); py += 5.5;
+    sf(5.5, 'bold', P.muted); tx('PAYMENT DETAILS', M + TABLE_PAD_X, py); py += 5.5;
 
     payRows.forEach(([k, v], i) => {
-      const fx = M + 6 + i * colW3;
+      const fx = M + TABLE_PAD_X + i * colW3;
       sf(6.5, 'normal', P.muted); tx(k,  fx, py);
       sf(8, 'bold', P.ink);       tx(v,  fx, py + 3.8);
     });
     py += 9.5;
 
     doc.setDrawColor(...rgb(P.cardBorder)); doc.setLineWidth(0.2);
-    doc.line(M + 6, py, M + CW - 4, py);
+    doc.line(M + TABLE_PAD_X, py, M + CW - TABLE_PAD_X, py);
     py += 5.5;
     sf(6.5, 'normal', P.muted);
-    tx('Payment due within 7 days of invoice date.', M + 6, py);
+    tx('Payment due within 7 days of invoice date.', M + TABLE_PAD_X, py);
     y += payH + 5;
   }
 
