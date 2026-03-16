@@ -408,7 +408,7 @@ async function exportToPDF(snap: InvoiceSnapshot, lineGroups: ReturnType<typeof 
   const rowH = 9.5;
   const nRows = Math.max(lineGroups.length, 1);
   // Add 2mm bottom buffer so the last row never bleeds outside the container
-  const tableH = hdrH + nRows * rowH + 4;
+  const tableH = hdrH + nRows * rowH + 2;
 
   box(M, y, CW, tableH, P.cardBorder, 0.5);
 
@@ -482,8 +482,8 @@ async function exportToPDF(snap: InvoiceSnapshot, lineGroups: ReturnType<typeof 
   const totX = W - M - totW;
   const totRows: Array<[string, string, boolean]> = [
     ['SUBTOTAL',     fmt$(snap.total), false],
-    ['GST (0%)',     '$0.00',          false],
-    ['TOTAL (AUD)',  fmt$(snap.total), true],
+    ['GST',          '$0.00',          false],
+    ['TOTALS (AUD)', fmt$(snap.total), true],
   ];
   const totRowH = 7;
   const totH = totRows.length * totRowH + 2;
@@ -495,21 +495,14 @@ async function exportToPDF(snap: InvoiceSnapshot, lineGroups: ReturnType<typeof 
       sf(8, 'bold', P.accent); tx(lbl, totX + 5, ty);
       sf(9.5, 'bold', P.accent); tx(val, totX + totW - 4, ty, { align: 'right' });
     } else {
-      sf(7, 'bold', P.ink); tx(lbl, totX + 5, ty);
-      sf(7, 'bold', P.ink); tx(val, totX + totW - 4, ty, { align: 'right' });
+      sf(7, 'normal', P.muted); tx(lbl, totX + 5, ty);
+      sf(7, 'bold',   P.mid);   tx(val, totX + totW - 4, ty, { align: 'right' });
       doc.setDrawColor(...rgb(P.cardBorder)); doc.setLineWidth(0.2);
       doc.line(totX + 2, ty + 2.5, totX + totW - 2, ty + 2.5);
     }
     ty += totRowH;
   });
   y += totH + 5;
-
-  // ── BALANCE DUE (blue accent) ──
-  sf(9, 'bold', P.accent);
-  tx('BALANCE DUE', totX, y);
-  sf(11, 'bold', P.accent);
-  tx(fmt$(snap.total), W - M, y, { align: 'right' });
-  y += 7;
 
   // ── PAYMENT DETAILS — tight box, reference = participant name ─────────────
   if (snap.accountName || snap.bsb || snap.accountNumber || snap.bankName) {
@@ -1230,26 +1223,16 @@ const InvoicePanel = ({
                   <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 10 }}>
                     <div style={{ minWidth: 210, maxWidth: 250, border: `1px solid ${P.cardBorder}`, borderRadius: 8, overflow: 'hidden' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', padding: '5px 10px', borderBottom: `1px solid ${P.cardBorder}` }}>
-                        <span style={{ fontSize: 8.5, fontWeight: 700, color: P.ink }}>SUBTOTAL</span>
-                        <span style={{ fontSize: 8.5, fontWeight: 700, color: P.ink, fontVariantNumeric: 'tabular-nums' }}>{fmt$(preview.total)}</span>
+                        <span style={{ fontSize: 7.5, color: P.muted }}>SUBTOTAL</span>
+                        <span style={{ fontSize: 7.5, fontWeight: 600, color: P.mid, fontVariantNumeric: 'tabular-nums' }}>{fmt$(preview.total)}</span>
                       </div>
                       <div style={{ display: 'flex', justifyContent: 'space-between', padding: '5px 10px', borderBottom: `1px solid ${P.cardBorder}` }}>
-                        <span style={{ fontSize: 8.5, fontWeight: 700, color: P.ink }}>GST (0%)</span>
-                        <span style={{ fontSize: 8.5, fontWeight: 700, color: P.ink }}>$0.00</span>
+                        <span style={{ fontSize: 7.5, color: P.muted }}>GST</span>
+                        <span style={{ fontSize: 7.5, fontWeight: 600, color: P.mid }}>$0.00</span>
                       </div>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '7px 10px' }}>
-                        <span style={{ fontSize: 9, fontWeight: 800, color: P.accent, textTransform: 'uppercase' as const, letterSpacing: '0.04em' }}>TOTAL (AUD)</span>
+                        <span style={{ fontSize: 8, fontWeight: 800, color: P.accent, textTransform: 'uppercase' as const, letterSpacing: '0.04em' }}>TOTALS (AUD)</span>
                         <span style={{ fontSize: 13, fontWeight: 900, color: P.accent, fontVariantNumeric: 'tabular-nums' }}>{fmt$(preview.total)}</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* ── BALANCE DUE ── */}
-                  <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 10 }}>
-                    <div style={{ minWidth: 210, maxWidth: 250 }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '4px 0' }}>
-                        <span style={{ fontSize: 10.5, fontWeight: 700, color: P.accent }}>BALANCE DUE</span>
-                        <span style={{ fontSize: 13, fontWeight: 700, color: P.accent, fontVariantNumeric: 'tabular-nums' }}>{fmt$(preview.total)}</span>
                       </div>
                     </div>
                   </div>
