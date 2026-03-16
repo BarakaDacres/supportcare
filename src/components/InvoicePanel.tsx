@@ -261,53 +261,64 @@ async function exportToPDF(snap: InvoiceSnapshot, lineGroups: ReturnType<typeof 
   if (snap.clientEmail)        billRows.push({ label: 'Email',        value: snap.clientEmail });
   if (snap.clientAddress)      billRows.push({ label: 'Address',      value: snap.clientAddress });
 
-  // Content-fitted card height
-  const BILL_ROW_H  = 4.8;
-  const CARD_TOP    = 5.5;
-  const SECTION_H   = 6;
-  const CARD_BOT    = 4.5;
-  const billCardH   = CARD_TOP + SECTION_H + billRows.length * BILL_ROW_H + CARD_BOT;
+  // Row layout constants
+  const CARD_PAD_X = 6;     // internal horizontal padding
+  const CARD_TOP   = 5;     // padding before section label
+  const SECTION_H  = 7;     // section label + gap
+  const BILL_ROW_H = 5.2;   // height per BILL TO row (allows slight wrap)
+  const DET_ROW_H  = 5.2;   // same height for INVOICE DETAILS rows
+  const CARD_BOT   = 4;     // bottom padding
+  const SEP_BLOCK  = 11;    // separator + BALANCE DUE area
+  const lblW       = 22;    // label column width
 
-  // INVOICE DETAILS sizing
+  // Card heights
+  const billCardH  = CARD_TOP + SECTION_H + billRows.length * BILL_ROW_H + CARD_BOT;
+  const detCardH   = CARD_TOP + SECTION_H + 4 * DET_ROW_H + SEP_BLOCK + CARD_BOT;
+  const finalCardH = Math.max(billCardH, detCardH);
+
+  // BILL TO box — labels left-aligned, values right-aligned
+  box(M, y, halfW, finalCardH, P.border);
+  let cy = y + CARD_TOP;
+  sf(5.5, 'bold', P.muted);
+  tx('BILL TO', M + CARD_PAD_X, cy);
+  cy += SECTION_H;
+  billRows.forEach(({ label, value, valueBold }) => {
+    sf(6.5, 'normal', P.muted);
+    tx(label, M + CARD_PAD_X, cy);
+    sf(6.5, valueBold ? 'bold' : 'normal', P.ink);
+    // Right-align values to the right edge of the BILL TO card
+    tx(value, M + halfW - CARD_PAD_X, cy, { align: 'right', maxWidth: halfW - lblW - CARD_PAD_X - 2 });
+    cy += BILL_ROW_H;
+  });
+
+  // INVOICE DETAILS box — labels left, values right
+  const rx = M + halfW + 6;
+  box(rx, y, halfW, finalCardH, P.border);
+  let dy = y + CARD_TOP;
+  sf(5.5, 'bold', P.muted);
+  tx('INVOICE DETAILS', rx + CARD_PAD_X, dy);
+  dy += SECTION_H;
   const detailPairs: [string, string][] = [
     ['Service From', formatDateShort(snap.periodStart)],
     ['Service To',   formatDateShort(snap.periodEnd)],
     ['Due Date',     formatDateShort(snap.dueDate)],
     ['GST Rate',     '0% (GST-Free)'],
   ];
-  const DET_ROW_H   = 4.6;
-  const SEP_BLOCK   = 9.5;
-  const detCardH    = CARD_TOP + SECTION_H + detailPairs.length * DET_ROW_H + SEP_BLOCK + CARD_BOT;
-  const finalCardH  = Math.max(billCardH, detCardH);
-  const lblW        = 22;
-
-  // BILL TO box
-  box(M, y, halfW, finalCardH, P.border);
-  let cy = y + CARD_TOP;
-  sf(5.5, 'bold', P.muted); tx('BILL TO', M + 5, cy); cy += SECTION_H;
-  billRows.forEach(({ label, value, valueBold }) => {
-    sf(6.5, 'normal', P.muted);  tx(label, M + 5, cy);
-    sf(6.5, valueBold ? 'bold' : 'normal', P.ink);
-    tx(value, M + 5 + lblW, cy, { maxWidth: halfW - lblW - 6 });
-    cy += BILL_ROW_H;
-  });
-
-  // INVOICE DETAILS box
-  const rx = M + halfW + 6;
-  box(rx, y, halfW, finalCardH, P.border);
-  let dy = y + CARD_TOP;
-  sf(5.5, 'bold', P.muted); tx('INVOICE DETAILS', rx + 5, dy); dy += SECTION_H;
   detailPairs.forEach(([lbl, val]) => {
-    sf(6.5, 'normal', P.muted); tx(lbl, rx + 6, dy);
-    sf(6.5, 'bold',   P.mid);   tx(val, rx + halfW - 4, dy, { align: 'right' });
+    sf(6.5, 'normal', P.muted);
+    tx(lbl, rx + CARD_PAD_X, dy);
+    sf(6.5, 'bold', P.mid);
+    tx(val, rx + halfW - CARD_PAD_X, dy, { align: 'right' });
     dy += DET_ROW_H;
   });
-  dy += 2.5;
-  doc.setDrawColor(...rgb(P.border)); doc.setLineWidth(0.3);
-  doc.line(rx + 6, dy, rx + halfW - 6, dy);
-  dy += 5;
-  sf(7.5, 'bold', P.mid);  tx('BALANCE DUE', rx + 6, dy);
-  sf(10, 'bold', P.ink); tx(fmt$(snap.total), rx + halfW - 4, dy, { align: 'right' });
+  dy += 3;
+  doc.setDrawColor(...rgb(P.border)); doc.setLineWidth(0.25);
+  doc.line(rx + CARD_PAD_X, dy, rx + halfW - CARD_PAD_X, dy);
+  dy += 5.5;
+  sf(7.5, 'bold', P.mid);
+  tx('BALANCE DUE', rx + CARD_PAD_X, dy);
+  sf(10, 'bold', P.ink);
+  tx(fmt$(snap.total), rx + halfW - CARD_PAD_X, dy, { align: 'right' });
 
   y += finalCardH + 6;
 
@@ -1003,36 +1014,43 @@ const InvoicePanel = ({
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 12 }}>
 
                     {/* BILL TO — Organisation / Participant / Email / Address */}
-                    <div style={{ borderRadius: 8, padding: '8px 10px', border: `1px solid ${P.border}` }}>
-                      <div style={{ fontSize: 6.5, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.07em', color: P.muted, marginBottom: 5 }}>BILL TO</div>
+                    <div style={{ borderRadius: 8, padding: '9px 11px 10px', border: `1px solid ${P.border}` }}>
+                      <div style={{ fontSize: 6.5, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.07em', color: P.muted, marginBottom: 6 }}>BILL TO</div>
                       {[
                         preview.clientOrganisation ? { label: 'Organisation', value: preview.clientOrganisation, bold: true }  : null,
                         preview.clientName         ? { label: 'Participant',  value: preview.clientName,         bold: false } : null,
                         preview.clientEmail        ? { label: 'Email',        value: preview.clientEmail,        bold: false } : null,
                         preview.clientAddress      ? { label: 'Address',      value: preview.clientAddress,      bold: false } : null,
                       ].filter(Boolean).map(row => row && (
-                        <div key={row.label} style={{ display: 'flex', gap: 5, marginBottom: 2.5, alignItems: 'flex-start' }}>
-                          <span style={{ fontSize: 7.5, color: P.muted, minWidth: 55, flexShrink: 0 }}>{row.label}</span>
-                          <span style={{ fontSize: 7.5, fontWeight: row.bold ? 700 : 400, color: P.ink }}>{row.value}</span>
+                        <div key={row.label} style={{
+                          display: 'flex', justifyContent: 'space-between',
+                          alignItems: 'flex-start', gap: 6, marginBottom: 4,
+                        }}>
+                          <span style={{ fontSize: 7.5, color: P.muted, flexShrink: 0, lineHeight: '1.35' }}>{row.label}</span>
+                          <span style={{
+                            fontSize: 7.5, fontWeight: row.bold ? 700 : 400, color: P.ink,
+                            textAlign: 'right', lineHeight: '1.35',
+                            maxWidth: '58%', wordBreak: 'break-word',
+                          }}>{row.value}</span>
                         </div>
                       ))}
                     </div>
 
                     {/* INVOICE DETAILS */}
-                    <div style={{ borderRadius: 8, padding: '8px 10px', border: `1px solid ${P.border}` }}>
-                      <div style={{ fontSize: 6.5, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.07em', color: P.muted, marginBottom: 5 }}>INVOICE DETAILS</div>
+                    <div style={{ borderRadius: 8, padding: '9px 11px 10px', border: `1px solid ${P.border}` }}>
+                      <div style={{ fontSize: 6.5, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.07em', color: P.muted, marginBottom: 6 }}>INVOICE DETAILS</div>
                       {[
                         ['Service From', formatDateShort(preview.periodStart)],
                         ['Service To',   formatDateShort(preview.periodEnd)],
                         ['Due Date',     formatDateShort(preview.dueDate)],
                         ['GST Rate',     '0% (GST-Free)'],
                       ].map(([l, v]) => (
-                        <div key={l} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 3.5 }}>
-                          <span style={{ fontSize: 7.5, color: P.muted }}>{l}</span>
-                          <span style={{ fontSize: 7.5, fontWeight: 600, color: P.mid }}>{v}</span>
+                        <div key={l} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 6, marginBottom: 4 }}>
+                          <span style={{ fontSize: 7.5, color: P.muted, flexShrink: 0, lineHeight: '1.35' }}>{l}</span>
+                          <span style={{ fontSize: 7.5, fontWeight: 600, color: P.mid, textAlign: 'right', lineHeight: '1.35' }}>{v}</span>
                         </div>
                       ))}
-                      <div style={{ borderTop: `1px solid ${P.border}`, marginTop: 6, paddingTop: 6, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div style={{ borderTop: `1px solid ${P.border}`, marginTop: 7, paddingTop: 7, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                         <span style={{ fontSize: 7.5, fontWeight: 700, color: P.mid, textTransform: 'uppercase' as const, letterSpacing: '0.06em' }}>BALANCE DUE</span>
                         <span style={{ fontSize: 12, fontWeight: 800, color: P.ink }}>{fmt$(preview.total)}</span>
                       </div>
