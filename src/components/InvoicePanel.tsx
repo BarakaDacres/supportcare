@@ -244,9 +244,28 @@ async function exportToPDF(snap: InvoiceSnapshot, lineGroups: ReturnType<typeof 
   const META_FONT   = 7.5;
 
   const issuerName = snap.issuerName || 'Your Business';
+
+  // Format ABN as "XX XXX XXX XXX" (groups: 2-3-3-3)
+  const formatABN = (raw: string) => {
+    const digits = raw.replace(/\D/g, '');
+    if (digits.length === 11) {
+      return `${digits.slice(0,2)} ${digits.slice(2,5)} ${digits.slice(5,8)} ${digits.slice(8,11)}`;
+    }
+    // Already formatted or non-standard — preserve as-is
+    return raw;
+  };
+  // Format phone as "XXXX XXX XXX" (4-3-3)
+  const formatPhone = (raw: string) => {
+    const digits = raw.replace(/\D/g, '');
+    if (digits.length === 10) {
+      return `${digits.slice(0,4)} ${digits.slice(4,7)} ${digits.slice(7,10)}`;
+    }
+    return raw;
+  };
+
   const leftMeta: Array<[string, string]> = [];
-  if (snap.abn)         leftMeta.push(['ABN:', snap.abn]);
-  if (snap.phone)       leftMeta.push(['P:', snap.phone]);
+  if (snap.abn)         leftMeta.push(['ABN:', formatABN(snap.abn)]);
+  if (snap.phone)       leftMeta.push(['P:', formatPhone(snap.phone)]);
   if (snap.issuerEmail) leftMeta.push(['E:', snap.issuerEmail]);
 
   const issueDate = formatDateShort(snap.issueDate);
