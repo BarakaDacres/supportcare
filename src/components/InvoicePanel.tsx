@@ -136,13 +136,14 @@ const P = {
   accent:      '#1D4ED8',   // blue — used for issuer name, INVOICE title, final total
   accentMid:   '#374151',
   accentLight: '#F9FAFB',
-  accentBorder:'#D1D5DB',
+  accentBorder:'#BFDBFE',   // subtle blue border for containers
   ink:         '#111827',
   dark:        '#1F2937',
   mid:         '#374151',
   muted:       '#6B7280',
   faint:       '#9CA3AF',
   border:      '#E5E7EB',
+  cardBorder:  '#BFDBFE',   // blue-200 — subtle blue accent for all cards
   rowAlt:      '#FFFFFF',   // no alternating tint — all rows plain white
   bg:          '#F9FAFB',
   white:       '#FFFFFF',
@@ -304,8 +305,8 @@ async function exportToPDF(snap: InvoiceSnapshot, lineGroups: ReturnType<typeof 
   const detCardH   = CARD_TOP + SECTION_H + 4 * DET_ROW_H + SEP_BLOCK + CARD_BOT;
   const finalCardH = Math.max(billCardH, detCardH);
 
-  // BILL TO box — labels left-aligned, values right-aligned
-  box(M, y, halfW, finalCardH, P.border);
+  // BILL TO box — labels left-aligned, values right-aligned, blue accent border
+  box(M, y, halfW, finalCardH, P.cardBorder, 0.5);
   let cy = y + CARD_TOP;
   sf(5.5, 'bold', P.muted);
   tx('BILL TO', M + CARD_PAD_X, cy);
@@ -314,14 +315,19 @@ async function exportToPDF(snap: InvoiceSnapshot, lineGroups: ReturnType<typeof 
     sf(6.5, 'normal', P.muted);
     tx(label, M + CARD_PAD_X, cy);
     sf(6.5, valueBold ? 'bold' : 'normal', P.ink);
-    // Right-align values to the right edge of the BILL TO card
-    tx(value, M + halfW - CARD_PAD_X, cy, { align: 'right', maxWidth: halfW - lblW - CARD_PAD_X - 2 });
-    cy += BILL_ROW_H;
+    // Right-align values — constrain width so long values wrap to two lines
+    const valMaxW = halfW - lblW - CARD_PAD_X * 2 - 1;
+    const wrappedLines = doc.splitTextToSize(value, valMaxW);
+    const displayLines = wrappedLines.slice(0, 2); // max 2 lines
+    displayLines.forEach((line: string, li: number) => {
+      tx(line, M + halfW - CARD_PAD_X, cy + li * 3.8, { align: 'right' });
+    });
+    cy += BILL_ROW_H + (displayLines.length > 1 ? 3.8 : 0);
   });
 
-  // INVOICE DETAILS box — labels left, values right
+  // INVOICE DETAILS box — labels left, values right, blue accent border
   const rx = M + halfW + 6;
-  box(rx, y, halfW, finalCardH, P.border);
+  box(rx, y, halfW, finalCardH, P.cardBorder, 0.5);
   let dy = y + CARD_TOP;
   sf(5.5, 'bold', P.muted);
   tx('INVOICE DETAILS', rx + CARD_PAD_X, dy);
@@ -340,7 +346,7 @@ async function exportToPDF(snap: InvoiceSnapshot, lineGroups: ReturnType<typeof 
     dy += DET_ROW_H;
   });
   dy += 3;
-  doc.setDrawColor(...rgb(P.border)); doc.setLineWidth(0.25);
+  doc.setDrawColor(...rgb(P.cardBorder)); doc.setLineWidth(0.25);
   doc.line(rx + CARD_PAD_X, dy, rx + halfW - CARD_PAD_X, dy);
   dy += 5.5;
   sf(7.5, 'bold', P.mid);
@@ -377,23 +383,23 @@ async function exportToPDF(snap: InvoiceSnapshot, lineGroups: ReturnType<typeof 
   const nRows = Math.max(lineGroups.length, 1);
   const tableH = hdrH + nRows * rowH;
 
-  box(M, y, CW, tableH, P.border, 0.4);
+  box(M, y, CW, tableH, P.cardBorder, 0.5);
 
-  // Header bg — light grey
-  doc.setFillColor(245, 245, 245);
+  // Header bg — light blue-tinted grey
+  doc.setFillColor(239, 246, 255); // blue-50
   doc.roundedRect(M, y, CW, hdrH, 2, 2, 'F');
   doc.rect(M, y + hdrH - 3, CW, 3, 'F');
 
-  const hY = y + 5;
+  const hY = y + 5.2;
   cols.forEach((c, i) => {
-    sf(4.8, 'bold', P.muted);
+    sf(6, 'bold', P.muted);   // one step larger (4.8 → 6) and bold
     const baseX = M + colX[i];
     if (c.al === 'right')       tx(c.lbl, baseX + c.w - 1, hY, { align: 'right' });
     else if (c.al === 'center') tx(c.lbl, baseX + c.w / 2, hY, { align: 'center' });
     else                        tx(c.lbl, baseX + 1, hY);
   });
 
-  doc.setDrawColor(...rgb(P.border)); doc.setLineWidth(0.3);
+  doc.setDrawColor(...rgb(P.cardBorder)); doc.setLineWidth(0.3);
   doc.line(M, y + hdrH, M + CW, y + hdrH);
   y += hdrH;
 
@@ -453,7 +459,7 @@ async function exportToPDF(snap: InvoiceSnapshot, lineGroups: ReturnType<typeof 
   const totRowH = 7;
   const totH = totRows.length * totRowH + 2;
 
-  box(totX, y, totW, totH, P.border, 0.3);
+  box(totX, y, totW, totH, P.cardBorder, 0.5);
   let ty = y + 5.5;
   totRows.forEach(([lbl, val, isFinal]) => {
     if (isFinal) {
@@ -462,7 +468,7 @@ async function exportToPDF(snap: InvoiceSnapshot, lineGroups: ReturnType<typeof 
     } else {
       sf(7, 'normal', P.muted); tx(lbl, totX + 5, ty);
       sf(7, 'bold',   P.mid);   tx(val, totX + totW - 4, ty, { align: 'right' });
-      doc.setDrawColor(...rgb(P.border)); doc.setLineWidth(0.2);
+      doc.setDrawColor(...rgb(P.cardBorder)); doc.setLineWidth(0.2);
       doc.line(totX + 2, ty + 2.5, totX + totW - 2, ty + 2.5);
     }
     ty += totRowH;
@@ -483,7 +489,7 @@ async function exportToPDF(snap: InvoiceSnapshot, lineGroups: ReturnType<typeof 
     const colW3 = CW / colsPerRow;
     const payH  = 33;
 
-    box(M, y, CW, payH, P.border);
+    box(M, y, CW, payH, P.cardBorder, 0.5);
     let py = y + 5;
     sf(5.5, 'bold', P.muted); tx('PAYMENT DETAILS', M + 5, py); py += 5.5;
 
@@ -494,7 +500,7 @@ async function exportToPDF(snap: InvoiceSnapshot, lineGroups: ReturnType<typeof 
     });
     py += 9.5;
 
-    doc.setDrawColor(...rgb(P.border)); doc.setLineWidth(0.2);
+    doc.setDrawColor(...rgb(P.cardBorder)); doc.setLineWidth(0.2);
     doc.line(M + 6, py, M + CW - 4, py);
     py += 3.8;
     sf(6.5, 'normal', P.muted);
@@ -506,7 +512,7 @@ async function exportToPDF(snap: InvoiceSnapshot, lineGroups: ReturnType<typeof 
   if (snap.invoiceNotes) {
     const noteLines = doc.splitTextToSize(snap.invoiceNotes, CW - 10);
     const notH = 10 + noteLines.slice(0, 4).length * 4;
-    box(M, y, CW, notH, P.border, 0.25);
+    box(M, y, CW, notH, P.cardBorder, 0.4);
     sf(5.5, 'bold', P.muted); tx('NOTES', M + 4, y + 5);
     sf(7, 'normal', P.muted);
     noteLines.slice(0, 4).forEach((l: string, i: number) => tx(l, M + 4, y + 9 + i * 4));
@@ -1042,30 +1048,30 @@ const InvoicePanel = ({
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 12 }}>
 
                     {/* BILL TO — Organisation / Participant / Email / Address */}
-                    <div style={{ borderRadius: 8, padding: '9px 11px 10px', border: `1px solid ${P.border}` }}>
-                      <div style={{ fontSize: 6.5, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.07em', color: P.muted, marginBottom: 6 }}>BILL TO</div>
-                      {[
-                        preview.clientOrganisation ? { label: 'Organisation', value: preview.clientOrganisation, bold: true }  : null,
-                        preview.clientName         ? { label: 'Participant',  value: preview.clientName,         bold: false } : null,
-                        preview.clientEmail        ? { label: 'Email',        value: preview.clientEmail,        bold: false } : null,
-                        preview.clientAddress      ? { label: 'Address',      value: preview.clientAddress,      bold: false } : null,
-                      ].filter(Boolean).map(row => row && (
-                        <div key={row.label} style={{
-                          display: 'flex', justifyContent: 'space-between',
-                          alignItems: 'flex-start', gap: 6, marginBottom: 4,
-                        }}>
-                          <span style={{ fontSize: 7.5, color: P.muted, flexShrink: 0, lineHeight: '1.35' }}>{row.label}</span>
-                          <span style={{
-                            fontSize: 7.5, fontWeight: row.bold ? 700 : 400, color: P.ink,
-                            textAlign: 'right', lineHeight: '1.35',
-                            maxWidth: '58%', wordBreak: 'break-word',
-                          }}>{row.value}</span>
-                        </div>
-                      ))}
-                    </div>
+                     <div style={{ borderRadius: 8, padding: '9px 11px 10px', border: `1px solid ${P.cardBorder}` }}>
+                       <div style={{ fontSize: 6.5, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.07em', color: P.muted, marginBottom: 6 }}>BILL TO</div>
+                       {[
+                         preview.clientOrganisation ? { label: 'Organisation', value: preview.clientOrganisation, bold: true }  : null,
+                         preview.clientName         ? { label: 'Participant',  value: preview.clientName,         bold: false } : null,
+                         preview.clientEmail        ? { label: 'Email',        value: preview.clientEmail,        bold: false } : null,
+                         preview.clientAddress      ? { label: 'Address',      value: preview.clientAddress,      bold: false } : null,
+                       ].filter(Boolean).map(row => row && (
+                         <div key={row.label} style={{
+                           display: 'flex', justifyContent: 'space-between',
+                           alignItems: 'flex-start', gap: 6, marginBottom: 4,
+                         }}>
+                           <span style={{ fontSize: 7.5, color: P.muted, flexShrink: 0, lineHeight: '1.35' }}>{row.label}</span>
+                           <span style={{
+                             fontSize: 7.5, fontWeight: row.bold ? 700 : 400, color: P.ink,
+                             textAlign: 'right', lineHeight: '1.35',
+                             maxWidth: '55%', overflowWrap: 'break-word', wordBreak: 'break-word',
+                           }}>{row.value}</span>
+                         </div>
+                       ))}
+                     </div>
 
-                    {/* INVOICE DETAILS */}
-                    <div style={{ borderRadius: 8, padding: '9px 11px 10px', border: `1px solid ${P.border}` }}>
+                     {/* INVOICE DETAILS */}
+                     <div style={{ borderRadius: 8, padding: '9px 11px 10px', border: `1px solid ${P.cardBorder}` }}>
                       <div style={{ fontSize: 6.5, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.07em', color: P.muted, marginBottom: 6 }}>INVOICE DETAILS</div>
                       {[
                         ['Service From', formatDateShort(preview.periodStart)],
@@ -1088,7 +1094,7 @@ const InvoicePanel = ({
                   {/* ── SERVICES RENDERED ── */}
                   <div style={{ marginBottom: 12 }}>
                     <div style={{ fontSize: 7.5, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.07em', color: P.muted, marginBottom: 5 }}>SERVICES RENDERED</div>
-                    <div style={{ border: `1px solid ${P.border}`, borderRadius: 8, overflow: 'hidden' }}>
+                    <div style={{ border: `1px solid ${P.cardBorder}`, borderRadius: 8, overflow: 'hidden' }}>
                       <table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed' }}>
                         <colgroup>
                           <col style={{ width: '4%' }} />
@@ -1102,7 +1108,7 @@ const InvoicePanel = ({
                           <col style={{ width: '11%' }} />
                         </colgroup>
                         <thead>
-                          <tr style={{ background: P.rowAlt }}>
+                          <tr style={{ background: '#EFF6FF' }}>
                             {[
                               { h: '#',           a: 'center' as const },
                               { h: 'DESCRIPTION', a: 'left'   as const },
@@ -1116,10 +1122,10 @@ const InvoicePanel = ({
                             ].map(({ h, a }) => (
                               <th key={h} style={{
                                 padding: '5px 4px',
-                                fontSize: 6.5, fontWeight: 700,
+                                fontSize: 7.5, fontWeight: 700,
                                 textTransform: 'uppercase', letterSpacing: '0.04em',
-                                color: P.muted, textAlign: a,
-                                borderBottom: `1px solid ${P.border}`,
+                                color: P.mid, textAlign: a,
+                                borderBottom: `1px solid ${P.cardBorder}`,
                               }}>{h}</th>
                             ))}
                           </tr>
@@ -1155,12 +1161,12 @@ const InvoicePanel = ({
 
                   {/* ── TOTALS ── */}
                   <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 10 }}>
-                    <div style={{ minWidth: 210, maxWidth: 250, border: `1px solid ${P.border}`, borderRadius: 8, overflow: 'hidden' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', padding: '5px 10px', borderBottom: `1px solid ${P.border}` }}>
+                    <div style={{ minWidth: 210, maxWidth: 250, border: `1px solid ${P.cardBorder}`, borderRadius: 8, overflow: 'hidden' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', padding: '5px 10px', borderBottom: `1px solid ${P.cardBorder}` }}>
                         <span style={{ fontSize: 7.5, color: P.muted }}>SUBTOTAL</span>
                         <span style={{ fontSize: 7.5, fontWeight: 600, color: P.mid, fontVariantNumeric: 'tabular-nums' }}>{fmt$(preview.total)}</span>
                       </div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', padding: '5px 10px', borderBottom: `1px solid ${P.border}` }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', padding: '5px 10px', borderBottom: `1px solid ${P.cardBorder}` }}>
                         <span style={{ fontSize: 7.5, color: P.muted }}>GST</span>
                         <span style={{ fontSize: 7.5, fontWeight: 600, color: P.mid }}>$0.00</span>
                       </div>
@@ -1175,7 +1181,7 @@ const InvoicePanel = ({
                   {(preview.accountName || preview.bankName || preview.bsb || preview.accountNumber) && (
                     <div style={{
                       borderRadius: 8,
-                      border: `1px solid ${P.border}`,
+                      border: `1px solid ${P.cardBorder}`,
                       padding: '8px 10px',
                       marginBottom: 9,
                     }}>
@@ -1194,7 +1200,7 @@ const InvoicePanel = ({
                           </div>
                         ))}
                       </div>
-                      <div style={{ borderTop: `1px solid ${P.border}`, paddingTop: 5, fontSize: 7.5, color: P.muted }}>
+                      <div style={{ borderTop: `1px solid ${P.cardBorder}`, paddingTop: 5, fontSize: 7.5, color: P.muted }}>
                         Payment due within 7 days of invoice date.
                       </div>
                     </div>
@@ -1202,7 +1208,7 @@ const InvoicePanel = ({
 
                   {/* ── NOTES ── */}
                   {preview.invoiceNotes && (
-                    <div style={{ border: `1px solid ${P.border}`, borderRadius: 8, padding: '8px 10px', marginBottom: 10 }}>
+                    <div style={{ border: `1px solid ${P.cardBorder}`, borderRadius: 8, padding: '8px 10px', marginBottom: 10 }}>
                       <div style={{ fontSize: 7.5, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.07em', color: P.muted, marginBottom: 5 }}>NOTES</div>
                       <p style={{ fontSize: 8.5, color: P.muted, whiteSpace: 'pre-line', margin: 0 }}>{preview.invoiceNotes}</p>
                     </div>
