@@ -178,16 +178,24 @@ async function exportToPDF(snap: InvoiceSnapshot, lineGroups: ReturnType<typeof 
   const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
 
   const W  = 210;
-  const M  = 16;           // left/right margin
-  const CW = W - M * 2;   // 178 mm content width
+  const M  = 16;
+  const CW = W - M * 2;
   let y = 0;
+
+  // SF Pro → helvetica (closest built-in); SF Pro Mono → courier for item codes
+  const SF     = 'helvetica';
+  const SFMONO = 'courier';
 
   const rgb = (hex: string): [number, number, number] => {
     const n = parseInt(hex.replace('#', ''), 16);
     return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
   };
   const sf = (size: number, style: 'normal' | 'bold' = 'normal', color = P.ink) => {
-    doc.setFontSize(size); doc.setFont('helvetica', style); doc.setTextColor(...rgb(color));
+    doc.setFontSize(size); doc.setFont(SF, style); doc.setTextColor(...rgb(color));
+  };
+  // sfm — SF Pro Mono for item codes
+  const sfm = (size: number, color = P.muted) => {
+    doc.setFontSize(size); doc.setFont(SFMONO, 'normal'); doc.setTextColor(...rgb(color));
   };
   const tx = (t: string, x: number, yp: number, opts?: Parameters<typeof doc.text>[3]) =>
     doc.text(t, x, yp, opts);
@@ -199,7 +207,6 @@ async function exportToPDF(snap: InvoiceSnapshot, lineGroups: ReturnType<typeof 
     doc.setDrawColor(...rgb(stroke)); doc.setLineWidth(lw);
     doc.roundedRect(x, yp, w, h, 2, 2, 'S');
   };
-  // leftBar removed — no solid accent bars
 
   // ── No top rule — clean start ─────────────────────────────────────────────
   y = 22; // generous top padding
