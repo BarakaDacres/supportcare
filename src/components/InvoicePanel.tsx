@@ -1192,7 +1192,7 @@ const InvoicePanel = ({
                               <tr key={group.category} style={{ background: P.white }}>
                                 <td style={{ fontSize: 7.5, color: P.faint, padding: '5px 4px', textAlign: 'center', borderBottom: rowBorder }}>{idx + 1}</td>
                                 <td style={{ padding: '5px 4px', borderBottom: rowBorder }}>
-                                  <div style={{ fontSize: 8, fontWeight: 600, color: P.ink }}>{group.label}</div>
+                                  <div style={{ fontSize: 8, fontWeight: 400, color: P.ink }}>{group.label}</div>
                                   <div style={{ fontSize: 6.5, color: P.faint, marginTop: 1 }}>{group.shifts.length} shift{group.shifts.length !== 1 ? 's' : ''}</div>
                                 </td>
                                 <td style={{ fontSize: 6.5, color: P.muted, fontFamily: 'monospace', padding: '5px 4px', borderBottom: rowBorder, wordBreak: 'break-all' }}>{group.ndisCode}</td>
