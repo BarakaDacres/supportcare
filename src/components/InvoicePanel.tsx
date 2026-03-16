@@ -160,19 +160,22 @@ const STATUS_CFG: Record<string, { label: string; color: string; bg: string }> =
   cancelled: { label: 'Cancelled', color: '#9CA3AF', bg: 'rgba(249,250,251,1)' },
 };
 
-const StatusBadge = ({ status }: { status: string }) => {
-  const cfg = STATUS_CFG[status] ?? STATUS_CFG.draft;
-  return (
-    <span style={{
-      display: 'inline-flex', alignItems: 'center', gap: 4,
-      padding: '2px 9px', borderRadius: 99,
-      fontSize: 10, fontWeight: 600,
-      color: cfg.color, background: cfg.bg,
-    }}>
-      {cfg.label}
-    </span>
-  );
-};
+const StatusBadge = React.forwardRef<HTMLSpanElement, { status: string }>(
+  ({ status }, ref) => {
+    const cfg = STATUS_CFG[status] ?? STATUS_CFG.draft;
+    return (
+      <span ref={ref} style={{
+        display: 'inline-flex', alignItems: 'center', gap: 4,
+        padding: '2px 9px', borderRadius: 99,
+        fontSize: 10, fontWeight: 600,
+        color: cfg.color, background: cfg.bg,
+      }}>
+        {cfg.label}
+      </span>
+    );
+  }
+);
+StatusBadge.displayName = 'StatusBadge';
 
 // ─── PDF export ───────────────────────────────────────────────────────────────
 async function loadFontBase64(url: string): Promise<string> {
