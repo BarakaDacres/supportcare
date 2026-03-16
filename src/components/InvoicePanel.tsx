@@ -1048,30 +1048,30 @@ const InvoicePanel = ({
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 12 }}>
 
                     {/* BILL TO — Organisation / Participant / Email / Address */}
-                    <div style={{ borderRadius: 8, padding: '9px 11px 10px', border: `1px solid ${P.border}` }}>
-                      <div style={{ fontSize: 6.5, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.07em', color: P.muted, marginBottom: 6 }}>BILL TO</div>
-                      {[
-                        preview.clientOrganisation ? { label: 'Organisation', value: preview.clientOrganisation, bold: true }  : null,
-                        preview.clientName         ? { label: 'Participant',  value: preview.clientName,         bold: false } : null,
-                        preview.clientEmail        ? { label: 'Email',        value: preview.clientEmail,        bold: false } : null,
-                        preview.clientAddress      ? { label: 'Address',      value: preview.clientAddress,      bold: false } : null,
-                      ].filter(Boolean).map(row => row && (
-                        <div key={row.label} style={{
-                          display: 'flex', justifyContent: 'space-between',
-                          alignItems: 'flex-start', gap: 6, marginBottom: 4,
-                        }}>
-                          <span style={{ fontSize: 7.5, color: P.muted, flexShrink: 0, lineHeight: '1.35' }}>{row.label}</span>
-                          <span style={{
-                            fontSize: 7.5, fontWeight: row.bold ? 700 : 400, color: P.ink,
-                            textAlign: 'right', lineHeight: '1.35',
-                            maxWidth: '58%', wordBreak: 'break-word',
-                          }}>{row.value}</span>
-                        </div>
-                      ))}
-                    </div>
+                     <div style={{ borderRadius: 8, padding: '9px 11px 10px', border: `1px solid ${P.cardBorder}` }}>
+                       <div style={{ fontSize: 6.5, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.07em', color: P.muted, marginBottom: 6 }}>BILL TO</div>
+                       {[
+                         preview.clientOrganisation ? { label: 'Organisation', value: preview.clientOrganisation, bold: true }  : null,
+                         preview.clientName         ? { label: 'Participant',  value: preview.clientName,         bold: false } : null,
+                         preview.clientEmail        ? { label: 'Email',        value: preview.clientEmail,        bold: false } : null,
+                         preview.clientAddress      ? { label: 'Address',      value: preview.clientAddress,      bold: false } : null,
+                       ].filter(Boolean).map(row => row && (
+                         <div key={row.label} style={{
+                           display: 'flex', justifyContent: 'space-between',
+                           alignItems: 'flex-start', gap: 6, marginBottom: 4,
+                         }}>
+                           <span style={{ fontSize: 7.5, color: P.muted, flexShrink: 0, lineHeight: '1.35' }}>{row.label}</span>
+                           <span style={{
+                             fontSize: 7.5, fontWeight: row.bold ? 700 : 400, color: P.ink,
+                             textAlign: 'right', lineHeight: '1.35',
+                             maxWidth: '55%', overflowWrap: 'break-word', wordBreak: 'break-word',
+                           }}>{row.value}</span>
+                         </div>
+                       ))}
+                     </div>
 
-                    {/* INVOICE DETAILS */}
-                    <div style={{ borderRadius: 8, padding: '9px 11px 10px', border: `1px solid ${P.border}` }}>
+                     {/* INVOICE DETAILS */}
+                     <div style={{ borderRadius: 8, padding: '9px 11px 10px', border: `1px solid ${P.cardBorder}` }}>
                       <div style={{ fontSize: 6.5, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.07em', color: P.muted, marginBottom: 6 }}>INVOICE DETAILS</div>
                       {[
                         ['Service From', formatDateShort(preview.periodStart)],
