@@ -383,23 +383,23 @@ async function exportToPDF(snap: InvoiceSnapshot, lineGroups: ReturnType<typeof 
   const nRows = Math.max(lineGroups.length, 1);
   const tableH = hdrH + nRows * rowH;
 
-  box(M, y, CW, tableH, P.border, 0.4);
+  box(M, y, CW, tableH, P.cardBorder, 0.5);
 
-  // Header bg — light grey
-  doc.setFillColor(245, 245, 245);
+  // Header bg — light blue-tinted grey
+  doc.setFillColor(239, 246, 255); // blue-50
   doc.roundedRect(M, y, CW, hdrH, 2, 2, 'F');
   doc.rect(M, y + hdrH - 3, CW, 3, 'F');
 
-  const hY = y + 5;
+  const hY = y + 5.2;
   cols.forEach((c, i) => {
-    sf(4.8, 'bold', P.muted);
+    sf(6, 'bold', P.muted);   // one step larger (4.8 → 6) and bold
     const baseX = M + colX[i];
     if (c.al === 'right')       tx(c.lbl, baseX + c.w - 1, hY, { align: 'right' });
     else if (c.al === 'center') tx(c.lbl, baseX + c.w / 2, hY, { align: 'center' });
     else                        tx(c.lbl, baseX + 1, hY);
   });
 
-  doc.setDrawColor(...rgb(P.border)); doc.setLineWidth(0.3);
+  doc.setDrawColor(...rgb(P.cardBorder)); doc.setLineWidth(0.3);
   doc.line(M, y + hdrH, M + CW, y + hdrH);
   y += hdrH;
 
