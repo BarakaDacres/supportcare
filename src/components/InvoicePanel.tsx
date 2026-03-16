@@ -555,7 +555,7 @@ async function exportToPDF(snap: InvoiceSnapshot, lineGroups: ReturnType<typeof 
 
     doc.setDrawColor(...rgb(P.cardBorder)); doc.setLineWidth(0.2);
     doc.line(M + 6, py, M + CW - 4, py);
-    py += 3.8;
+    py += 5.5;
     sf(6.5, 'normal', P.muted);
     tx('Payment due within 7 days of invoice date.', M + 6, py);
     y += payH + 5;
