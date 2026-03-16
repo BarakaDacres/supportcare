@@ -335,13 +335,12 @@ async function exportToPDF(snap: InvoiceSnapshot, lineGroups: ReturnType<typeof 
 
   // Row layout constants
   const CARD_PAD_X = 6;     // internal horizontal padding
-  const CARD_TOP   = 4;     // padding before section label
+  const CARD_TOP   = 3;     // padding before section label
   const SECTION_H  = 5.5;   // section label + gap (tighter)
   const BILL_ROW_H = 5.2;   // height per BILL TO row (allows slight wrap)
   const DET_ROW_H  = 5.2;   // same height for INVOICE DETAILS rows
-  const CARD_BOT   = 4;     // bottom padding
-  const SEP_BLOCK  = 11;    // separator + BALANCE DUE area
-  const lblW       = 22;    // label column width
+  const CARD_BOT   = 2;     // minimal bottom padding
+  const SEP_BLOCK  = 9;     // separator + BALANCE DUE area (reduced)
 
   // Card heights
   const billCardH  = CARD_TOP + SECTION_H + billRows.length * BILL_ROW_H + CARD_BOT;
@@ -453,8 +452,8 @@ async function exportToPDF(snap: InvoiceSnapshot, lineGroups: ReturnType<typeof 
   const hdrH = 7.5;
   const rowH = 9.5;
   const nRows = Math.max(lineGroups.length, 1);
-  // Add 5mm bottom padding so border is never clipped by content or stroke width
-  const tableH = hdrH + nRows * rowH + 5;
+  // No extra bottom padding - box height fits content exactly
+  const tableH = hdrH + nRows * rowH;
   const tableStartY = y;
 
   // Draw box AFTER we know the exact height (prevents top/bottom asymmetry)
@@ -521,8 +520,8 @@ async function exportToPDF(snap: InvoiceSnapshot, lineGroups: ReturnType<typeof 
       y += rowH;
     });
   }
-  // y now sits at bottom of last row; move past the 3mm bottom pad
-  y = tableStartY + tableH + 5;
+  // y now sits at bottom of last row; move to end of table
+  y = tableStartY + tableH;
 
   // ── TOTALS — tight content-fitted box ────────────────────────────────────
   const totW = 70;
@@ -565,7 +564,7 @@ async function exportToPDF(snap: InvoiceSnapshot, lineGroups: ReturnType<typeof 
     // Use same padding as services table so inner content aligns identically
     const payInnerW = CW - TABLE_PAD_X * 2;
     const colW3 = payInnerW / colsPerRow;
-    const payH  = 33;
+    const payH  = 28;  // reduced from 33
 
     box(M, y, CW, payH, P.cardBorder, 0.5);
     let py = y + 5;
