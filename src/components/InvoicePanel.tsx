@@ -226,37 +226,29 @@ async function exportToPDF(snap: InvoiceSnapshot, lineGroups: ReturnType<typeof 
     ['Invoice #:', snap.invoiceNumber],
   ];
 
-  // Draw issuer name (left) — blue
   sf(HEADER_FONT, 'bold', P.accent);
   tx(issuerName, M, y);
-
-  // Draw INVOICE (right) — same size, blue
-  sf(HEADER_FONT, 'bold', P.accent);
   tx('INVOICE', W - M, y, { align: 'right' });
-  y += 5.5;
+  y += 5;
 
-  // Left meta rows — no justification, no bold, plain left-to-right
   const leftMetaStartY = y;
   let lmy = leftMetaStartY;
   leftMeta.forEach(([lbl, val]) => {
     sf(META_FONT, 'normal', P.muted);
     tx(`${lbl} ${val}`, M, lmy);
-    lmy += 4.5;
+    lmy += 4.2;
   });
 
-  // Right meta rows — label + value on same line, right-aligned
   let rmy = leftMetaStartY;
   rightMeta.forEach(([lbl, val]) => {
     sf(META_FONT, 'normal', P.muted);
     tx(`${lbl} ${val}`, W - M, rmy, { align: 'right' });
-    rmy += 4.5;
+    rmy += 4.2;
   });
 
-  y = Math.max(lmy, rmy) + 6;
-
-  // Divider
+  y = Math.max(lmy, rmy) + 5;
   hln(y, P.border, 0.5);
-  y += 8;
+  y += 6;
 
   // ── BILL TO + INVOICE DETAILS ─────────────────────────────────────────────
   const halfW = (CW - 6) / 2;
