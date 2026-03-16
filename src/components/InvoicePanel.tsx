@@ -262,24 +262,22 @@ async function exportToPDF(snap: InvoiceSnapshot, lineGroups: ReturnType<typeof 
 
   const leftMetaStartY = y;
   let lmy = leftMetaStartY;
+  const LEFT_VAL_X = M + 14; // fixed indent for ABN/P/E values
   leftMeta.forEach(([lbl, val]) => {
-    // label muted, value dark
     sf(META_FONT, 'normal', P.muted);
     tx(lbl, M, lmy);
-    sf(META_FONT, 'bold', P.ink);
-    const lblTextW = doc.getTextWidth(lbl + ' ');
-    tx(val, M + lblTextW, lmy);
+    sf(META_FONT, 'normal', P.dark);  // dark, not bold
+    tx(val, LEFT_VAL_X, lmy);
     lmy += 4.2;
   });
 
+  // Right meta: fixed two-column layout — label starts at COL_START, value right-aligned
+  const RIGHT_META_COL = W - M - 48; // fixed left edge of right meta column
   let rmy = leftMetaStartY;
   rightMeta.forEach(([lbl, val]) => {
-    // right-side: render label then value separately so value is darker
     sf(META_FONT, 'normal', P.muted);
-    const valW = doc.getTextWidth(val);
-    const lblW2 = doc.getTextWidth(lbl + ' ');
-    tx(lbl, W - M - valW - lblW2, rmy);
-    sf(META_FONT, 'bold', P.ink);
+    tx(lbl, RIGHT_META_COL, rmy);
+    sf(META_FONT, 'normal', P.dark);  // dark, not bold
     tx(val, W - M, rmy, { align: 'right' });
     rmy += 4.2;
   });
@@ -323,9 +321,10 @@ async function exportToPDF(snap: InvoiceSnapshot, lineGroups: ReturnType<typeof 
   billRows.forEach(({ label, value, valueBold }) => {
     sf(6.5, 'normal', P.muted);
     tx(label, M + CARD_PAD_X, cy);
-    sf(6.5, valueBold ? 'bold' : 'normal', P.ink);
-    // Right-align values — constrain width so long values wrap to two lines
-    const valMaxW = halfW - lblW - CARD_PAD_X * 2 - 1;
+    // Values: dark + not bold (except Organisation which keeps its weight distinction via size)
+    sf(6.5, valueBold ? 'bold' : 'normal', P.dark);
+    // Narrow max-width forces wrapping for long org names and addresses
+    const valMaxW = 34; // ~34mm forces 2-line wrap for long strings
     const wrappedLines = doc.splitTextToSize(value, valMaxW);
     const displayLines = wrappedLines.slice(0, 2); // max 2 lines
     displayLines.forEach((line: string, li: number) => {
@@ -1028,13 +1027,22 @@ const InvoicePanel = ({
                         {preview.issuerName || 'Your Business Name'}
                       </div>
                       {preview.abn && (
-                        <div style={{ fontSize: 8.5, color: P.muted, marginBottom: 3 }}>ABN: {preview.abn}</div>
+                        <div style={{ fontSize: 8.5, marginBottom: 3 }}>
+                          <span style={{ color: P.muted }}>ABN: </span>
+                          <span style={{ color: P.dark }}>{preview.abn}</span>
+                        </div>
                       )}
                       {preview.phone && (
-                        <div style={{ fontSize: 8.5, color: P.muted, marginBottom: 3 }}>P: {preview.phone}</div>
+                        <div style={{ fontSize: 8.5, marginBottom: 3 }}>
+                          <span style={{ color: P.muted }}>P: </span>
+                          <span style={{ color: P.dark }}>{preview.phone}</span>
+                        </div>
                       )}
                       {preview.issuerEmail && (
-                        <div style={{ fontSize: 8.5, color: P.muted, marginBottom: 3 }}>E: {preview.issuerEmail}</div>
+                        <div style={{ fontSize: 8.5, marginBottom: 3 }}>
+                          <span style={{ color: P.muted }}>E: </span>
+                          <span style={{ color: P.dark }}>{preview.issuerEmail}</span>
+                        </div>
                       )}
                     </div>
 
@@ -1043,17 +1051,19 @@ const InvoicePanel = ({
                       <div style={{ fontSize: 14, fontWeight: 800, color: P.accent, letterSpacing: '-0.02em', marginBottom: 6 }}>
                         INVOICE
                       </div>
-                      <div style={{ fontSize: 8.5, color: P.muted, marginBottom: 3 }}>
-                        Submitted: {formatDateShort(preview.issueDate)}
+                      <div style={{ fontSize: 8.5, marginBottom: 3, display: 'flex', justifyContent: 'flex-end', gap: 14, alignItems: 'baseline' }}>
+                        <span style={{ color: P.muted }}>Submitted:</span>
+                        <span style={{ color: P.dark, minWidth: 70, textAlign: 'right' }}>{formatDateShort(preview.issueDate)}</span>
                       </div>
-                      <div style={{ fontSize: 8.5, color: P.muted, marginBottom: 3 }}>
-                        Invoice #: {preview.invoiceNumber}
+                      <div style={{ fontSize: 8.5, marginBottom: 3, display: 'flex', justifyContent: 'flex-end', gap: 14, alignItems: 'baseline' }}>
+                        <span style={{ color: P.muted }}>Invoice #:</span>
+                        <span style={{ color: P.dark, minWidth: 70, textAlign: 'right' }}>{preview.invoiceNumber}</span>
                       </div>
                     </div>
                   </div>
 
-                  {/* Divider — neutral */}
-                  <div style={{ borderTop: `1px solid ${P.border}`, marginBottom: 13 }} />
+                  {/* Divider — blue accent */}
+                  <div style={{ borderTop: `1px solid ${P.cardBorder}`, marginBottom: 13 }} />
 
                   {/* ── BILL TO + INVOICE DETAILS ── */}
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 12 }}>
@@ -1095,7 +1105,7 @@ const InvoicePanel = ({
                           <span style={{ fontSize: 7.5, fontWeight: 600, color: P.mid, textAlign: 'right', lineHeight: '1.35' }}>{v}</span>
                         </div>
                       ))}
-                      <div style={{ borderTop: `1px solid ${P.border}`, marginTop: 7, paddingTop: 7, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div style={{ borderTop: `1px solid ${P.cardBorder}`, marginTop: 7, paddingTop: 7, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                         <span style={{ fontSize: 7.5, fontWeight: 700, color: P.mid, textTransform: 'uppercase' as const, letterSpacing: '0.06em' }}>BALANCE DUE</span>
                         <span style={{ fontSize: 12, fontWeight: 800, color: P.ink }}>{fmt$(preview.total)}</span>
                       </div>
@@ -1142,22 +1152,26 @@ const InvoicePanel = ({
                           </tr>
                         </thead>
                         <tbody>
-                          {lineGroups.map((group, idx) => (
-                            <tr key={group.category} style={{ background: idx % 2 === 1 ? P.rowAlt : P.white }}>
-                              <td style={{ fontSize: 7.5, color: P.faint, padding: '5px 4px', textAlign: 'center', borderBottom: `1px solid ${P.border}` }}>{idx + 1}</td>
-                              <td style={{ padding: '5px 4px', borderBottom: `1px solid ${P.border}` }}>
-                                <div style={{ fontSize: 8, fontWeight: 600, color: P.ink }}>{group.label}</div>
-                                <div style={{ fontSize: 6.5, color: P.faint, marginTop: 1 }}>{group.shifts.length} shift{group.shifts.length !== 1 ? 's' : ''}</div>
-                              </td>
-                              <td style={{ fontSize: 6.5, color: P.muted, fontFamily: 'monospace', padding: '5px 4px', borderBottom: `1px solid ${P.border}`, wordBreak: 'break-all' }}>{group.ndisCode}</td>
-                              <td style={{ fontSize: 8, color: P.mid, padding: '5px 4px', textAlign: 'right', borderBottom: `1px solid ${P.border}`, fontVariantNumeric: 'tabular-nums' }}>{group.quantity}</td>
-                              <td style={{ fontSize: 7, color: P.faint, padding: '5px 4px', textAlign: 'right', borderBottom: `1px solid ${P.border}` }}>{group.isSleepover ? 'night' : 'hr'}</td>
-                              <td style={{ fontSize: 8, color: P.mid, padding: '5px 4px', textAlign: 'right', borderBottom: `1px solid ${P.border}`, fontVariantNumeric: 'tabular-nums' }}>{fmt$(group.rate)}</td>
-                              <td style={{ fontSize: 8, fontWeight: 600, color: P.mid, padding: '5px 4px', textAlign: 'right', borderBottom: `1px solid ${P.border}`, fontVariantNumeric: 'tabular-nums' }}>{fmt$(group.subtotal)}</td>
-                              <td style={{ fontSize: 7.5, color: P.faint, padding: '5px 4px', textAlign: 'right', borderBottom: `1px solid ${P.border}` }}>$0.00</td>
-                              <td style={{ fontSize: 8, fontWeight: 700, color: P.ink, padding: '5px 4px', textAlign: 'right', borderBottom: `1px solid ${P.border}`, fontVariantNumeric: 'tabular-nums' }}>{fmt$(group.subtotal)}</td>
-                            </tr>
-                          ))}
+                          {lineGroups.map((group, idx) => {
+                            const isLast = idx === lineGroups.length - 1;
+                            const rowBorder = isLast ? 'none' : `1px solid ${P.cardBorder}`;
+                            return (
+                              <tr key={group.category} style={{ background: P.white }}>
+                                <td style={{ fontSize: 7.5, color: P.faint, padding: '5px 4px', textAlign: 'center', borderBottom: rowBorder }}>{idx + 1}</td>
+                                <td style={{ padding: '5px 4px', borderBottom: rowBorder }}>
+                                  <div style={{ fontSize: 8, fontWeight: 600, color: P.ink }}>{group.label}</div>
+                                  <div style={{ fontSize: 6.5, color: P.faint, marginTop: 1 }}>{group.shifts.length} shift{group.shifts.length !== 1 ? 's' : ''}</div>
+                                </td>
+                                <td style={{ fontSize: 6.5, color: P.muted, fontFamily: 'monospace', padding: '5px 4px', borderBottom: rowBorder, wordBreak: 'break-all' }}>{group.ndisCode}</td>
+                                <td style={{ fontSize: 8, color: P.mid, padding: '5px 4px', textAlign: 'right', borderBottom: rowBorder, fontVariantNumeric: 'tabular-nums' }}>{group.quantity}</td>
+                                <td style={{ fontSize: 7, color: P.faint, padding: '5px 4px', textAlign: 'right', borderBottom: rowBorder }}>{group.isSleepover ? 'night' : 'hr'}</td>
+                                <td style={{ fontSize: 8, color: P.mid, padding: '5px 4px', textAlign: 'right', borderBottom: rowBorder, fontVariantNumeric: 'tabular-nums' }}>{fmt$(group.rate)}</td>
+                                <td style={{ fontSize: 8, fontWeight: 600, color: P.mid, padding: '5px 4px', textAlign: 'right', borderBottom: rowBorder, fontVariantNumeric: 'tabular-nums' }}>{fmt$(group.subtotal)}</td>
+                                <td style={{ fontSize: 7.5, color: P.faint, padding: '5px 4px', textAlign: 'right', borderBottom: rowBorder }}>$0.00</td>
+                                <td style={{ fontSize: 8, fontWeight: 700, color: P.ink, padding: '5px 4px', textAlign: 'right', borderBottom: rowBorder, fontVariantNumeric: 'tabular-nums' }}>{fmt$(group.subtotal)}</td>
+                              </tr>
+                            );
+                          })}
                           {lineGroups.length === 0 && (
                             <tr>
                               <td colSpan={9} style={{ padding: '12px 5px', textAlign: 'center', fontSize: 8.5, color: P.faint }}>
