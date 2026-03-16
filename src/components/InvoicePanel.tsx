@@ -300,8 +300,8 @@ async function exportToPDF(snap: InvoiceSnapshot, lineGroups: ReturnType<typeof 
 
   // Row layout constants
   const CARD_PAD_X = 6;     // internal horizontal padding
-  const CARD_TOP   = 5;     // padding before section label
-  const SECTION_H  = 7;     // section label + gap
+  const CARD_TOP   = 4;     // padding before section label
+  const SECTION_H  = 5.5;   // section label + gap (tighter)
   const BILL_ROW_H = 5.2;   // height per BILL TO row (allows slight wrap)
   const DET_ROW_H  = 5.2;   // same height for INVOICE DETAILS rows
   const CARD_BOT   = 4;     // bottom padding
