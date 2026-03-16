@@ -492,19 +492,19 @@ async function exportToPDF(snap: InvoiceSnapshot, lineGroups: ReturnType<typeof 
       const unit = group.isSleepover ? 'night' : 'hr';
 
       sf(6.5, 'normal', P.faint);
-      tx(String(idx + 1), M + colX[0] + cols[0].w / 2, ry, { align: 'center' });
+      tx(String(idx + 1), M + TABLE_PAD_X + colX[0] + cols[0].w / 2, ry, { align: 'center' });
 
       sf(7, 'normal', P.ink);
-      tx(group.label, M + colX[1] + 1, ry - 1.2);
+      tx(group.label, M + TABLE_PAD_X + colX[1] + 1, ry - 1.2);
       sf(5.5, 'normal', P.faint);
-      tx(`${group.shifts.length} shift${group.shifts.length !== 1 ? 's' : ''}`, M + colX[1] + 1, ry + 2.2);
+      tx(`${group.shifts.length} shift${group.shifts.length !== 1 ? 's' : ''}`, M + TABLE_PAD_X + colX[1] + 1, ry + 2.2);
 
       sfm(5.5, P.muted);
-      tx(group.ndisCode ?? '', M + colX[2] + 1, ry, { maxWidth: cols[2].w - 2 });
+      tx(group.ndisCode ?? '', M + TABLE_PAD_X + colX[2] + 1, ry, { maxWidth: cols[2].w - 2 });
 
       const rCol = (ci: number, val: string, sz = 7, wt: 'normal' | 'bold' = 'normal', col = P.mid) => {
         sf(sz, wt, col);
-        tx(val, M + colX[ci] + cols[ci].w - 1, ry, { align: 'right' });
+        tx(val, M + TABLE_PAD_X + colX[ci] + cols[ci].w - 1, ry, { align: 'right' });
       };
       rCol(3, String(group.quantity));
       rCol(4, unit, 6.5, 'normal', P.faint);
@@ -516,7 +516,7 @@ async function exportToPDF(snap: InvoiceSnapshot, lineGroups: ReturnType<typeof 
       // Draw divider between rows (not after the last row)
       if (idx < lineGroups.length - 1) {
         doc.setDrawColor(...rgb(P.cardBorder)); doc.setLineWidth(0.25);
-        doc.line(M, y + rowH, M + CW, y + rowH);
+        doc.line(M + TABLE_PAD_X, y + rowH, M + CW - TABLE_PAD_X, y + rowH);
       }
       y += rowH;
     });
