@@ -1107,21 +1107,20 @@ const InvoicePanel = ({
                     </div>
                   </div>
 
-                  {/* ── TOTALS — neutral borders, no blue ── */}
-                  <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 12 }}>
-                    <div style={{ minWidth: 230, maxWidth: 270, border: `1px solid ${P.border}`, borderRadius: 8, overflow: 'hidden' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', padding: '7px 12px', borderBottom: `1px solid ${P.border}` }}>
-                        <span style={{ fontSize: 8.5, color: P.muted }}>SUBTOTAL</span>
-                        <span style={{ fontSize: 8.5, fontWeight: 600, color: P.mid, fontVariantNumeric: 'tabular-nums' }}>{fmt$(preview.total)}</span>
+                  {/* ── TOTALS ── */}
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 10 }}>
+                    <div style={{ minWidth: 210, maxWidth: 250, border: `1px solid ${P.border}`, borderRadius: 8, overflow: 'hidden' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', padding: '5px 10px', borderBottom: `1px solid ${P.border}` }}>
+                        <span style={{ fontSize: 7.5, color: P.muted }}>SUBTOTAL</span>
+                        <span style={{ fontSize: 7.5, fontWeight: 600, color: P.mid, fontVariantNumeric: 'tabular-nums' }}>{fmt$(preview.total)}</span>
                       </div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', padding: '7px 12px', borderBottom: `1px solid ${P.border}` }}>
-                        <span style={{ fontSize: 8.5, color: P.muted }}>GST</span>
-                        <span style={{ fontSize: 8.5, fontWeight: 600, color: P.mid }}>$0.00</span>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', padding: '5px 10px', borderBottom: `1px solid ${P.border}` }}>
+                        <span style={{ fontSize: 7.5, color: P.muted }}>GST</span>
+                        <span style={{ fontSize: 7.5, fontWeight: 600, color: P.mid }}>$0.00</span>
                       </div>
-                      {/* TOTALS (AUD) — prominent, blue accent */}
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '9px 12px' }}>
-                        <span style={{ fontSize: 9, fontWeight: 800, color: P.accent, textTransform: 'uppercase' as const, letterSpacing: '0.04em' }}>TOTALS (AUD)</span>
-                        <span style={{ fontSize: 15, fontWeight: 900, color: P.accent, fontVariantNumeric: 'tabular-nums' }}>{fmt$(preview.total)}</span>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '7px 10px' }}>
+                        <span style={{ fontSize: 8, fontWeight: 800, color: P.accent, textTransform: 'uppercase' as const, letterSpacing: '0.04em' }}>TOTALS (AUD)</span>
+                        <span style={{ fontSize: 13, fontWeight: 900, color: P.accent, fontVariantNumeric: 'tabular-nums' }}>{fmt$(preview.total)}</span>
                       </div>
                     </div>
                   </div>
