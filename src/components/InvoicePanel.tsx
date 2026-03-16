@@ -1161,12 +1161,12 @@ const InvoicePanel = ({
 
                   {/* ── TOTALS ── */}
                   <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 10 }}>
-                    <div style={{ minWidth: 210, maxWidth: 250, border: `1px solid ${P.border}`, borderRadius: 8, overflow: 'hidden' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', padding: '5px 10px', borderBottom: `1px solid ${P.border}` }}>
+                    <div style={{ minWidth: 210, maxWidth: 250, border: `1px solid ${P.cardBorder}`, borderRadius: 8, overflow: 'hidden' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', padding: '5px 10px', borderBottom: `1px solid ${P.cardBorder}` }}>
                         <span style={{ fontSize: 7.5, color: P.muted }}>SUBTOTAL</span>
                         <span style={{ fontSize: 7.5, fontWeight: 600, color: P.mid, fontVariantNumeric: 'tabular-nums' }}>{fmt$(preview.total)}</span>
                       </div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', padding: '5px 10px', borderBottom: `1px solid ${P.border}` }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', padding: '5px 10px', borderBottom: `1px solid ${P.cardBorder}` }}>
                         <span style={{ fontSize: 7.5, color: P.muted }}>GST</span>
                         <span style={{ fontSize: 7.5, fontWeight: 600, color: P.mid }}>$0.00</span>
                       </div>
@@ -1181,7 +1181,7 @@ const InvoicePanel = ({
                   {(preview.accountName || preview.bankName || preview.bsb || preview.accountNumber) && (
                     <div style={{
                       borderRadius: 8,
-                      border: `1px solid ${P.border}`,
+                      border: `1px solid ${P.cardBorder}`,
                       padding: '8px 10px',
                       marginBottom: 9,
                     }}>
@@ -1200,7 +1200,7 @@ const InvoicePanel = ({
                           </div>
                         ))}
                       </div>
-                      <div style={{ borderTop: `1px solid ${P.border}`, paddingTop: 5, fontSize: 7.5, color: P.muted }}>
+                      <div style={{ borderTop: `1px solid ${P.cardBorder}`, paddingTop: 5, fontSize: 7.5, color: P.muted }}>
                         Payment due within 7 days of invoice date.
                       </div>
                     </div>
@@ -1208,7 +1208,7 @@ const InvoicePanel = ({
 
                   {/* ── NOTES ── */}
                   {preview.invoiceNotes && (
-                    <div style={{ border: `1px solid ${P.border}`, borderRadius: 8, padding: '8px 10px', marginBottom: 10 }}>
+                    <div style={{ border: `1px solid ${P.cardBorder}`, borderRadius: 8, padding: '8px 10px', marginBottom: 10 }}>
                       <div style={{ fontSize: 7.5, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.07em', color: P.muted, marginBottom: 5 }}>NOTES</div>
                       <p style={{ fontSize: 8.5, color: P.muted, whiteSpace: 'pre-line', margin: 0 }}>{preview.invoiceNotes}</p>
                     </div>
