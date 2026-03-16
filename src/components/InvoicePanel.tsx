@@ -31,6 +31,7 @@ import type { InvoiceSummary, InvoiceStatus } from '@/hooks/useInvoices';
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface InvoicePanelProps {
   shifts: Shift[];
+  shiftsLoading?: boolean;
   clients: Client[];
   settings: UserSettings | null;
   onIncrementCounter: () => Promise<number>;
@@ -159,19 +160,22 @@ const STATUS_CFG: Record<string, { label: string; color: string; bg: string }> =
   cancelled: { label: 'Cancelled', color: '#9CA3AF', bg: 'rgba(249,250,251,1)' },
 };
 
-const StatusBadge = ({ status }: { status: string }) => {
-  const cfg = STATUS_CFG[status] ?? STATUS_CFG.draft;
-  return (
-    <span style={{
-      display: 'inline-flex', alignItems: 'center', gap: 4,
-      padding: '2px 9px', borderRadius: 99,
-      fontSize: 10, fontWeight: 600,
-      color: cfg.color, background: cfg.bg,
-    }}>
-      {cfg.label}
-    </span>
-  );
-};
+const StatusBadge = React.forwardRef<HTMLSpanElement, { status: string }>(
+  ({ status }, ref) => {
+    const cfg = STATUS_CFG[status] ?? STATUS_CFG.draft;
+    return (
+      <span ref={ref} style={{
+        display: 'inline-flex', alignItems: 'center', gap: 4,
+        padding: '2px 9px', borderRadius: 99,
+        fontSize: 10, fontWeight: 600,
+        color: cfg.color, background: cfg.bg,
+      }}>
+        {cfg.label}
+      </span>
+    );
+  }
+);
+StatusBadge.displayName = 'StatusBadge';
 
 // ─── PDF export ───────────────────────────────────────────────────────────────
 async function loadFontBase64(url: string): Promise<string> {
@@ -678,7 +682,7 @@ const InvoiceCard = ({
 
 // ─── Main component ────────────────────────────────────────────────────────────
 const InvoicePanel = ({
-  shifts, clients, settings,
+  shifts, shiftsLoading = false, clients, settings,
   onIncrementCounter,
   invoices, invoicesLoading,
   onUpdateStatus, onDeleteInvoice, onRefreshInvoices,
@@ -1022,15 +1026,19 @@ const InvoicePanel = ({
             )}
 
             <button onClick={generateInvoice}
-              disabled={generating || periodShifts.length === 0}
+              disabled={generating || shiftsLoading || (periodShifts.length === 0 && !shiftsLoading)}
               className="w-full flex items-center justify-center gap-2 min-h-[48px] rounded-2xl text-sm font-bold transition-all duration-200 disabled:opacity-40"
               style={{ background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', boxShadow: '0 4px 16px hsl(var(--primary)/0.3)' }}>
-              <FileText className="w-4 h-4" />
-              {generating ? 'Generating…' : existingInvoice
-                ? `View ${existingInvoice.invoice_number}`
-                : periodShifts.length === 0
-                  ? 'No shifts in period'
-                  : 'Generate Invoice'}
+              {shiftsLoading
+                ? <><div className="w-4 h-4 rounded-full border-2 border-primary-foreground/30 border-t-primary-foreground animate-spin" /> Loading shifts…</>
+                : generating
+                  ? <><FileText className="w-4 h-4" /> Generating…</>
+                  : existingInvoice
+                    ? <><FileText className="w-4 h-4" /> {`View ${existingInvoice.invoice_number}`}</>
+                    : periodShifts.length === 0
+                      ? <><FileText className="w-4 h-4" /> No shifts in period</>
+                      : <><FileText className="w-4 h-4" /> Generate Invoice</>
+              }
             </button>
           </div>
 
