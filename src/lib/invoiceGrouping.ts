@@ -66,21 +66,20 @@ export interface InvoiceLineGroup {
 function getShiftCategory(shift: Shift): InvoiceCategory {
   const dow = getDayOfWeek(shift.date);
 
-  if (shift.is_public_holiday) return 'public_holiday';
-
+  // Sleepovers: classify by day first (sleepover categories take priority)
   if (shift.is_sleepover) {
     if (dow === 6) return 'saturday_sleepover'; // Saturday night
     if (dow === 0) return 'sunday_sleepover';   // Sunday night
     return 'weekday_sleepover';
   }
 
+  // Public holiday (non-sleepover)
+  if (shift.is_public_holiday) return 'public_holiday';
+
   if (dow === 6) return 'saturday';
   if (dow === 0) return 'sunday';
 
-  // Weekday — check for evening
-  // A shift is "evening" if ALL its hours are in the evening window
-  // If it spans both day and evening, we split logically:
-  // For grouping purposes, classify as "evening" if the majority of hours are evening
+  // Weekday — check for evening (purely evening window shifts)
   const hasEvening = shiftHasEveningHours(shift.start_time, shift.end_time);
   const [startH] = shift.start_time.split(':').map(Number);
   const [endH] = shift.end_time.split(':').map(Number);

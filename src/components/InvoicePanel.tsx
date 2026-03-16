@@ -891,13 +891,24 @@ const InvoicePanel = ({
     const useDefaults = settings?.use_default_invoice_notes !== false;
     const ext       = clientExtra(mc);
 
+    // Sync the period selector to match the invoice's period so lineGroups is correct
+    const invYear = inv.year ?? new Date(inv.period_start).getFullYear();
+    const invPeriods = getFortnightPeriodsForYear(invYear);
+    const invPeriodIdx = invPeriods.findIndex(p =>
+      formatDateISO(p.start) === inv.period_start
+    );
+
+    setSelectedYear(invYear);
+    if (invPeriodIdx >= 0) setSelectedFnIdx(invPeriodIdx);
+    setSelectedClientId(inv.client_id ?? '');
+
     setPreview({
       invoiceNumber: inv.invoice_number,
       invoiceId:     inv.id,
       issueDate,
       dueDate,
       fnNumber:   inv.fortnight_number ?? 1,
-      year:       inv.year ?? new Date(inv.period_start).getFullYear(),
+      year:       invYear,
       periodStart: inv.period_start,
       periodEnd:   inv.period_end,
       shifts:      [],
