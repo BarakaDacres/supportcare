@@ -550,8 +550,8 @@ async function exportToPDF(snap: InvoiceSnapshot, lineGroups: ReturnType<typeof 
     const payRows: Array<[string, string]> = [];
     if (snap.accountName)   payRows.push(['Account Name', snap.accountName]);
     if (snap.bankName)      payRows.push(['Bank',          snap.bankName]);
-    if (snap.bsb)           payRows.push(['BSB',           snap.bsb]);
-    if (snap.accountNumber) payRows.push(['Account No.',   snap.accountNumber]);
+    if (snap.bsb)           payRows.push(['BSB',           formatBSB(snap.bsb)]);
+    if (snap.accountNumber) payRows.push(['Account No.',   formatAccountNumber(snap.accountNumber)]);
     payRows.push(['Reference', referenceVal]);
 
     const colsPerRow = Math.min(payRows.length, 5);
