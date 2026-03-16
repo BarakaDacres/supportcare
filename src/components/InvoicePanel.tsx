@@ -997,7 +997,7 @@ const InvoicePanel = ({
 
                 <div style={{
                   padding: '22px 18px 16px',
-                  fontFamily: '"Helvetica Neue", Helvetica, Arial, sans-serif',
+                  fontFamily: '-apple-system, "SF Pro Display", "SF Pro Text", "Inter", "Helvetica Neue", sans-serif',
                   fontSize: 11, color: P.ink,
                   background: 'hsl(var(--card))',
                 }}>
