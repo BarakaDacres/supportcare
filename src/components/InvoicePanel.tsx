@@ -492,8 +492,8 @@ async function exportToPDF(snap: InvoiceSnapshot, lineGroups: ReturnType<typeof 
   let ty = y + 5.5;
   totRows.forEach(([lbl, val, isFinal]) => {
     if (isFinal) {
-      sf(8, 'bold', P.primary); tx(lbl, totX + 5, ty);
-      sf(9.5, 'bold', P.primary); tx(val, totX + totW - 4, ty, { align: 'right' });
+      sf(8, 'bold', P.accent); tx(lbl, totX + 5, ty);
+      sf(9.5, 'bold', P.accent); tx(val, totX + totW - 4, ty, { align: 'right' });
     } else {
       sf(7, 'bold', P.ink); tx(lbl, totX + 5, ty);
       sf(7, 'bold', P.ink); tx(val, totX + totW - 4, ty, { align: 'right' });
@@ -505,9 +505,9 @@ async function exportToPDF(snap: InvoiceSnapshot, lineGroups: ReturnType<typeof 
   y += totH + 5;
 
   // ── BALANCE DUE (blue accent) ──
-  sf(9, 'bold', P.primary);
+  sf(9, 'bold', P.accent);
   tx('BALANCE DUE', totX, y);
-  sf(11, 'bold', P.primary);
+  sf(11, 'bold', P.accent);
   tx(fmt$(snap.total), W - M, y, { align: 'right' });
   y += 7;
 
