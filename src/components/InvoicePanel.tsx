@@ -1094,7 +1094,7 @@ const InvoicePanel = ({
                   {/* ── SERVICES RENDERED ── */}
                   <div style={{ marginBottom: 12 }}>
                     <div style={{ fontSize: 7.5, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.07em', color: P.muted, marginBottom: 5 }}>SERVICES RENDERED</div>
-                    <div style={{ border: `1px solid ${P.border}`, borderRadius: 8, overflow: 'hidden' }}>
+                    <div style={{ border: `1px solid ${P.cardBorder}`, borderRadius: 8, overflow: 'hidden' }}>
                       <table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed' }}>
                         <colgroup>
                           <col style={{ width: '4%' }} />
@@ -1108,7 +1108,7 @@ const InvoicePanel = ({
                           <col style={{ width: '11%' }} />
                         </colgroup>
                         <thead>
-                          <tr style={{ background: P.rowAlt }}>
+                          <tr style={{ background: '#EFF6FF' }}>
                             {[
                               { h: '#',           a: 'center' as const },
                               { h: 'DESCRIPTION', a: 'left'   as const },
@@ -1122,10 +1122,10 @@ const InvoicePanel = ({
                             ].map(({ h, a }) => (
                               <th key={h} style={{
                                 padding: '5px 4px',
-                                fontSize: 6.5, fontWeight: 700,
+                                fontSize: 7.5, fontWeight: 700,
                                 textTransform: 'uppercase', letterSpacing: '0.04em',
-                                color: P.muted, textAlign: a,
-                                borderBottom: `1px solid ${P.border}`,
+                                color: P.mid, textAlign: a,
+                                borderBottom: `1px solid ${P.cardBorder}`,
                               }}>{h}</th>
                             ))}
                           </tr>
