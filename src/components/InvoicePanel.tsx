@@ -335,7 +335,7 @@ async function exportToPDF(snap: InvoiceSnapshot, lineGroups: ReturnType<typeof 
   // BILL TO box — labels left-aligned, values right-aligned, blue accent border
   box(M, y, halfW, finalCardH, P.cardBorder, 0.5);
   let cy = y + CARD_TOP;
-  sf(5.5, 'bold', P.muted);
+  sf(7, 'bold', P.muted);
   tx('BILL TO', M + CARD_PAD_X, cy);
   cy += SECTION_H;
   billRows.forEach(({ label, value, valueBold }) => {
