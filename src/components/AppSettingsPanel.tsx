@@ -155,6 +155,9 @@ const AppSettingsPanel = ({ settings, loading, onSave, onResetInvoiceCounter }: 
   const [saved, setSaved] = useState(false);
   const [timedOut, setTimedOut] = useState(false);
   const [retryKey, setRetryKey] = useState(0);
+  const [resetting, setResetting] = useState(false);
+  const [resetDone, setResetDone] = useState(false);
+  const [confirmReset, setConfirmReset] = useState(false);
   const ndisCodes = useRef<NdisItemCodes>({ ...DEFAULT_NDIS_CODES });
   const [ndisCodesState, setNdisCodesState] = useState<NdisItemCodes>({ ...DEFAULT_NDIS_CODES });
 
