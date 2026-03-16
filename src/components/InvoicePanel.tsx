@@ -1131,25 +1131,25 @@ const InvoicePanel = ({
                     <div style={{
                       borderRadius: 8,
                       border: `1px solid ${P.border}`,
-                      padding: '10px 12px',
-                      marginBottom: 10,
+                      padding: '8px 10px',
+                      marginBottom: 9,
                     }}>
-                      <div style={{ fontSize: 7.5, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.07em', color: P.muted, marginBottom: 9 }}>PAYMENT DETAILS</div>
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 10, marginBottom: 9 }}>
+                      <div style={{ fontSize: 6.5, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.07em', color: P.muted, marginBottom: 7 }}>PAYMENT DETAILS</div>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 8, marginBottom: 7 }}>
                         {[
                           preview.accountName   ? { k: 'Account Name', v: preview.accountName }   : null,
                           preview.bankName      ? { k: 'Bank',          v: preview.bankName }      : null,
                           preview.bsb           ? { k: 'BSB',           v: preview.bsb }           : null,
                           preview.accountNumber ? { k: 'Account No.',   v: preview.accountNumber } : null,
-                          { k: 'Reference', v: preview.invoiceNumber },
+                          { k: 'Reference', v: preview.clientName || preview.invoiceNumber },
                         ].filter(Boolean).map(item => item && (
                           <div key={item.k}>
-                            <div style={{ fontSize: 7.5, color: P.muted, marginBottom: 2 }}>{item.k}</div>
-                            <div style={{ fontSize: 9, fontWeight: 700, color: P.ink }}>{item.v}</div>
+                            <div style={{ fontSize: 7, color: P.muted, marginBottom: 1.5 }}>{item.k}</div>
+                            <div style={{ fontSize: 8.5, fontWeight: 700, color: P.ink }}>{item.v}</div>
                           </div>
                         ))}
                       </div>
-                      <div style={{ borderTop: `1px solid ${P.border}`, paddingTop: 7, fontSize: 8, color: P.muted }}>
+                      <div style={{ borderTop: `1px solid ${P.border}`, paddingTop: 5, fontSize: 7.5, color: P.muted }}>
                         Payment due within 7 days of invoice date.
                       </div>
                     </div>
