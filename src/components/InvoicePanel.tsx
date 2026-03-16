@@ -326,10 +326,11 @@ async function exportToPDF(snap: InvoiceSnapshot, lineGroups: ReturnType<typeof 
 
     let displayLines: string[];
     if (label === 'Address') {
-      // Force: street on line 1, suburb/state/postcode (last comma-segment group) on line 2
-      const parts = value.split(',').map(p => p.trim()).filter(Boolean);
+      // Format: "123 Street Name, Suburb, STATE POSTCODE"
+      // → line 1: street, line 2: Suburb, STATE POSTCODE
+      const parts = value.split(',').map((p: string) => p.trim()).filter(Boolean);
       if (parts.length >= 3) {
-        // line1 = street, line2 = suburb, state, postcode joined
+        // street = everything before last 2 parts; suburb+state+postcode = last 2 parts
         const line1 = parts.slice(0, parts.length - 2).join(', ');
         const line2 = parts.slice(parts.length - 2).join(', ');
         displayLines = [line1, line2];
@@ -339,7 +340,6 @@ async function exportToPDF(snap: InvoiceSnapshot, lineGroups: ReturnType<typeof 
         displayLines = doc.splitTextToSize(value, 34).slice(0, 2);
       }
     } else if (label === 'Organisation') {
-      // Wrap at ~34mm max width — forces 2 lines for long names
       displayLines = doc.splitTextToSize(value, 34).slice(0, 2);
     } else {
       displayLines = doc.splitTextToSize(value, 40).slice(0, 2);
