@@ -367,7 +367,7 @@ async function exportToPDF(snap: InvoiceSnapshot, lineGroups: ReturnType<typeof 
   detailPairs.forEach(([lbl, val]) => {
     sf(6.5, 'normal', P.muted);
     tx(lbl, rx + CARD_PAD_X, dy);
-    sf(6.5, 'bold', P.mid);
+    sf(6.5, 'normal', P.mid);   // not bold — only BALANCE DUE is bold
     tx(val, rx + halfW - CARD_PAD_X, dy, { align: 'right' });
     dy += DET_ROW_H;
   });
