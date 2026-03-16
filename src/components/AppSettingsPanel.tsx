@@ -246,6 +246,16 @@ const AppSettingsPanel = ({ settings, loading, onSave, onResetInvoiceCounter }: 
     }
   };
 
+  const handleResetCounter = async () => {
+    if (!confirmReset) { setConfirmReset(true); setTimeout(() => setConfirmReset(false), 4000); return; }
+    setResetting(true);
+    setConfirmReset(false);
+    await onSave({ invoice_counter: 0 });
+    setResetting(false);
+    setResetDone(true);
+    setTimeout(() => setResetDone(false), 2500);
+  };
+
   const showTax = val('show_tax_estimate', settings.show_tax_estimate) as boolean;
 
   return (
