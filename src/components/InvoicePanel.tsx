@@ -262,6 +262,22 @@ async function exportToPDF(snap: InvoiceSnapshot, lineGroups: ReturnType<typeof 
     }
     return raw;
   };
+  // Format BSB as "XXX XXX" (3-3)
+  const formatBSB = (raw: string) => {
+    const digits = raw.replace(/\D/g, '');
+    if (digits.length === 6) {
+      return `${digits.slice(0,3)} ${digits.slice(3,6)}`;
+    }
+    return raw;
+  };
+  // Format account number as "XXXX XXXX" (4-4)
+  const formatAccountNumber = (raw: string) => {
+    const digits = raw.replace(/\D/g, '');
+    if (digits.length === 8) {
+      return `${digits.slice(0,4)} ${digits.slice(4,8)}`;
+    }
+    return raw;
+  };
 
   const leftMeta: Array<[string, string]> = [];
   if (snap.abn)         leftMeta.push(['ABN:', formatABN(snap.abn)]);
@@ -430,8 +446,8 @@ async function exportToPDF(snap: InvoiceSnapshot, lineGroups: ReturnType<typeof 
   const hdrH = 7.5;
   const rowH = 9.5;
   const nRows = Math.max(lineGroups.length, 1);
-  // Exact height: header + rows + 3mm bottom padding — no bleeding
-  const tableH = hdrH + nRows * rowH + 3;
+  // Add 5mm bottom padding so border is never clipped by content or stroke width
+  const tableH = hdrH + nRows * rowH + 5;
   const tableStartY = y;
 
   // Draw box AFTER we know the exact height (prevents top/bottom asymmetry)
@@ -534,8 +550,8 @@ async function exportToPDF(snap: InvoiceSnapshot, lineGroups: ReturnType<typeof 
     const payRows: Array<[string, string]> = [];
     if (snap.accountName)   payRows.push(['Account Name', snap.accountName]);
     if (snap.bankName)      payRows.push(['Bank',          snap.bankName]);
-    if (snap.bsb)           payRows.push(['BSB',           snap.bsb]);
-    if (snap.accountNumber) payRows.push(['Account No.',   snap.accountNumber]);
+    if (snap.bsb)           payRows.push(['BSB',           formatBSB(snap.bsb)]);
+    if (snap.accountNumber) payRows.push(['Account No.',   formatAccountNumber(snap.accountNumber)]);
     payRows.push(['Reference', referenceVal]);
 
     const colsPerRow = Math.min(payRows.length, 5);
