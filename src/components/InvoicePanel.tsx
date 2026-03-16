@@ -564,7 +564,7 @@ async function exportToPDF(snap: InvoiceSnapshot, lineGroups: ReturnType<typeof 
     // Use same padding as services table so inner content aligns identically
     const payInnerW = CW - TABLE_PAD_X * 2;
     const colW3 = payInnerW / colsPerRow;
-    const payH  = 33;
+    const payH  = 28;  // reduced from 33
 
     box(M, y, CW, payH, P.cardBorder, 0.5);
     let py = y + 5;
