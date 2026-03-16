@@ -300,8 +300,8 @@ async function exportToPDF(snap: InvoiceSnapshot, lineGroups: ReturnType<typeof 
 
   // Row layout constants
   const CARD_PAD_X = 6;     // internal horizontal padding
-  const CARD_TOP   = 5;     // padding before section label
-  const SECTION_H  = 7;     // section label + gap
+  const CARD_TOP   = 4;     // padding before section label
+  const SECTION_H  = 5.5;   // section label + gap (tighter)
   const BILL_ROW_H = 5.2;   // height per BILL TO row (allows slight wrap)
   const DET_ROW_H  = 5.2;   // same height for INVOICE DETAILS rows
   const CARD_BOT   = 4;     // bottom padding
@@ -326,10 +326,11 @@ async function exportToPDF(snap: InvoiceSnapshot, lineGroups: ReturnType<typeof 
 
     let displayLines: string[];
     if (label === 'Address') {
-      // Force: street on line 1, suburb/state/postcode (last comma-segment group) on line 2
-      const parts = value.split(',').map(p => p.trim()).filter(Boolean);
+      // Format: "123 Street Name, Suburb, STATE POSTCODE"
+      // → line 1: street, line 2: Suburb, STATE POSTCODE
+      const parts = value.split(',').map((p: string) => p.trim()).filter(Boolean);
       if (parts.length >= 3) {
-        // line1 = street, line2 = suburb, state, postcode joined
+        // street = everything before last 2 parts; suburb+state+postcode = last 2 parts
         const line1 = parts.slice(0, parts.length - 2).join(', ');
         const line2 = parts.slice(parts.length - 2).join(', ');
         displayLines = [line1, line2];
@@ -339,7 +340,6 @@ async function exportToPDF(snap: InvoiceSnapshot, lineGroups: ReturnType<typeof 
         displayLines = doc.splitTextToSize(value, 34).slice(0, 2);
       }
     } else if (label === 'Organisation') {
-      // Wrap at ~34mm max width — forces 2 lines for long names
       displayLines = doc.splitTextToSize(value, 34).slice(0, 2);
     } else {
       displayLines = doc.splitTextToSize(value, 40).slice(0, 2);
@@ -407,7 +407,8 @@ async function exportToPDF(snap: InvoiceSnapshot, lineGroups: ReturnType<typeof 
   const hdrH = 7.5;
   const rowH = 9.5;
   const nRows = Math.max(lineGroups.length, 1);
-  const tableH = hdrH + nRows * rowH;
+  // Add 2mm bottom buffer so the last row never bleeds outside the container
+  const tableH = hdrH + nRows * rowH + 2;
 
   box(M, y, CW, tableH, P.cardBorder, 0.5);
 
@@ -1087,8 +1088,8 @@ const InvoicePanel = ({
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 12 }}>
 
                     {/* BILL TO — Organisation / Participant / Email / Address */}
-                     <div style={{ borderRadius: 8, padding: '9px 11px 10px', border: `1px solid ${P.cardBorder}` }}>
-                       <div style={{ fontSize: 6.5, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.07em', color: P.muted, marginBottom: 6 }}>BILL TO</div>
+                     <div style={{ borderRadius: 8, padding: '8px 11px 9px', border: `1px solid ${P.cardBorder}` }}>
+                       <div style={{ fontSize: 6.5, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.07em', color: P.muted, marginBottom: 4 }}>BILL TO</div>
                        {[
                          preview.clientOrganisation ? { label: 'Organisation', value: preview.clientOrganisation } : null,
                          preview.clientName         ? { label: 'Participant',  value: preview.clientName }         : null,
@@ -1096,11 +1097,12 @@ const InvoicePanel = ({
                          preview.clientAddress      ? { label: 'Address',      value: preview.clientAddress }      : null,
                        ].filter(Boolean).map(row => {
                          if (!row) return null;
-                         // Address: split street from suburb/state/postcode (last 2 comma parts)
+                         // Address: street on line 1, suburb/state/postcode on line 2
                          let displayValue: React.ReactNode = row.value;
                          if (row.label === 'Address') {
                            const parts = row.value.split(',').map((p: string) => p.trim()).filter(Boolean);
                            if (parts.length >= 3) {
+                             // last 2 comma-parts = suburb, STATE POSTCODE
                              const line1 = parts.slice(0, parts.length - 2).join(', ');
                              const line2 = parts.slice(parts.length - 2).join(', ');
                              displayValue = <>{line1}<br />{line2}</>;
@@ -1111,7 +1113,7 @@ const InvoicePanel = ({
                          return (
                            <div key={row.label} style={{
                              display: 'flex', justifyContent: 'space-between',
-                             alignItems: 'flex-start', gap: 6, marginBottom: 4,
+                             alignItems: 'flex-start', gap: 6, marginBottom: 3.5,
                            }}>
                              <span style={{ fontSize: 7.5, color: P.muted, flexShrink: 0, lineHeight: '1.35' }}>{row.label}</span>
                              <span style={{
@@ -1122,27 +1124,27 @@ const InvoicePanel = ({
                            </div>
                          );
                        })}
-                     </div>
+                      </div>
 
                      {/* INVOICE DETAILS — values not bold (except BALANCE DUE) */}
-                     <div style={{ borderRadius: 8, padding: '9px 11px 10px', border: `1px solid ${P.cardBorder}` }}>
-                      <div style={{ fontSize: 6.5, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.07em', color: P.muted, marginBottom: 6 }}>INVOICE DETAILS</div>
-                      {[
-                        ['Service From', formatDateShort(preview.periodStart)],
-                        ['Service To',   formatDateShort(preview.periodEnd)],
-                        ['Due Date',     formatDateShort(preview.dueDate)],
-                        ['GST Rate',     '0% (GST-Free)'],
-                      ].map(([l, v]) => (
-                        <div key={l} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 6, marginBottom: 4 }}>
-                          <span style={{ fontSize: 7.5, color: P.muted, flexShrink: 0, lineHeight: '1.35' }}>{l}</span>
-                          <span style={{ fontSize: 7.5, fontWeight: 400, color: P.mid, textAlign: 'right', lineHeight: '1.35' }}>{v}</span>
-                        </div>
-                      ))}
-                      <div style={{ borderTop: `1px solid ${P.cardBorder}`, marginTop: 7, paddingTop: 7, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <span style={{ fontSize: 7.5, fontWeight: 700, color: P.mid, textTransform: 'uppercase' as const, letterSpacing: '0.06em' }}>BALANCE DUE</span>
-                        <span style={{ fontSize: 12, fontWeight: 800, color: P.ink }}>{fmt$(preview.total)}</span>
-                      </div>
-                    </div>
+                      <div style={{ borderRadius: 8, padding: '8px 11px 9px', border: `1px solid ${P.cardBorder}` }}>
+                       <div style={{ fontSize: 6.5, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.07em', color: P.muted, marginBottom: 4 }}>INVOICE DETAILS</div>
+                       {[
+                         ['Service From', formatDateShort(preview.periodStart)],
+                         ['Service To',   formatDateShort(preview.periodEnd)],
+                         ['Due Date',     formatDateShort(preview.dueDate)],
+                         ['GST Rate',     '0% (GST-Free)'],
+                       ].map(([l, v]) => (
+                         <div key={l} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 6, marginBottom: 3.5 }}>
+                           <span style={{ fontSize: 7.5, color: P.muted, flexShrink: 0, lineHeight: '1.35' }}>{l}</span>
+                           <span style={{ fontSize: 7.5, fontWeight: 400, color: P.mid, textAlign: 'right', lineHeight: '1.35' }}>{v}</span>
+                         </div>
+                       ))}
+                       <div style={{ borderTop: `1px solid ${P.cardBorder}`, marginTop: 6, paddingTop: 6, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                         <span style={{ fontSize: 7.5, fontWeight: 700, color: P.mid, textTransform: 'uppercase' as const, letterSpacing: '0.06em' }}>BALANCE DUE</span>
+                         <span style={{ fontSize: 12, fontWeight: 800, color: P.ink }}>{fmt$(preview.total)}</span>
+                       </div>
+                     </div>
                   </div>
 
                   {/* ── SERVICES RENDERED ── */}
