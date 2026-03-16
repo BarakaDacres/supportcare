@@ -11,7 +11,7 @@
  * - Participant details flow correctly to BILL TO
  */
 
-import { useState, useMemo, useCallback, useEffect } from 'react';
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import {
   FileText, ChevronDown, Download, User, Send, CheckCircle,
   AlertCircle, XCircle, Trash2, RefreshCw, Eye, AlertTriangle,
