@@ -378,7 +378,7 @@ async function exportToPDF(snap: InvoiceSnapshot, lineGroups: ReturnType<typeof 
   const rx = M + halfW + 6;
   box(rx, y, halfW, finalCardH, P.cardBorder, 0.5);
   let dy = y + CARD_TOP;
-  sf(5.5, 'bold', P.muted);
+  sf(7, 'bold', P.muted);
   tx('INVOICE DETAILS', rx + CARD_PAD_X, dy);
   dy += SECTION_H;
   const detailPairs: [string, string][] = [
