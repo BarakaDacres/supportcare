@@ -1014,36 +1014,43 @@ const InvoicePanel = ({
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 12 }}>
 
                     {/* BILL TO — Organisation / Participant / Email / Address */}
-                    <div style={{ borderRadius: 8, padding: '8px 10px', border: `1px solid ${P.border}` }}>
-                      <div style={{ fontSize: 6.5, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.07em', color: P.muted, marginBottom: 5 }}>BILL TO</div>
+                    <div style={{ borderRadius: 8, padding: '9px 11px 10px', border: `1px solid ${P.border}` }}>
+                      <div style={{ fontSize: 6.5, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.07em', color: P.muted, marginBottom: 6 }}>BILL TO</div>
                       {[
                         preview.clientOrganisation ? { label: 'Organisation', value: preview.clientOrganisation, bold: true }  : null,
                         preview.clientName         ? { label: 'Participant',  value: preview.clientName,         bold: false } : null,
                         preview.clientEmail        ? { label: 'Email',        value: preview.clientEmail,        bold: false } : null,
                         preview.clientAddress      ? { label: 'Address',      value: preview.clientAddress,      bold: false } : null,
                       ].filter(Boolean).map(row => row && (
-                        <div key={row.label} style={{ display: 'flex', gap: 5, marginBottom: 2.5, alignItems: 'flex-start' }}>
-                          <span style={{ fontSize: 7.5, color: P.muted, minWidth: 55, flexShrink: 0 }}>{row.label}</span>
-                          <span style={{ fontSize: 7.5, fontWeight: row.bold ? 700 : 400, color: P.ink }}>{row.value}</span>
+                        <div key={row.label} style={{
+                          display: 'flex', justifyContent: 'space-between',
+                          alignItems: 'flex-start', gap: 6, marginBottom: 4,
+                        }}>
+                          <span style={{ fontSize: 7.5, color: P.muted, flexShrink: 0, lineHeight: '1.35' }}>{row.label}</span>
+                          <span style={{
+                            fontSize: 7.5, fontWeight: row.bold ? 700 : 400, color: P.ink,
+                            textAlign: 'right', lineHeight: '1.35',
+                            maxWidth: '58%', wordBreak: 'break-word',
+                          }}>{row.value}</span>
                         </div>
                       ))}
                     </div>
 
                     {/* INVOICE DETAILS */}
-                    <div style={{ borderRadius: 8, padding: '8px 10px', border: `1px solid ${P.border}` }}>
-                      <div style={{ fontSize: 6.5, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.07em', color: P.muted, marginBottom: 5 }}>INVOICE DETAILS</div>
+                    <div style={{ borderRadius: 8, padding: '9px 11px 10px', border: `1px solid ${P.border}` }}>
+                      <div style={{ fontSize: 6.5, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.07em', color: P.muted, marginBottom: 6 }}>INVOICE DETAILS</div>
                       {[
                         ['Service From', formatDateShort(preview.periodStart)],
                         ['Service To',   formatDateShort(preview.periodEnd)],
                         ['Due Date',     formatDateShort(preview.dueDate)],
                         ['GST Rate',     '0% (GST-Free)'],
                       ].map(([l, v]) => (
-                        <div key={l} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 3.5 }}>
-                          <span style={{ fontSize: 7.5, color: P.muted }}>{l}</span>
-                          <span style={{ fontSize: 7.5, fontWeight: 600, color: P.mid }}>{v}</span>
+                        <div key={l} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 6, marginBottom: 4 }}>
+                          <span style={{ fontSize: 7.5, color: P.muted, flexShrink: 0, lineHeight: '1.35' }}>{l}</span>
+                          <span style={{ fontSize: 7.5, fontWeight: 600, color: P.mid, textAlign: 'right', lineHeight: '1.35' }}>{v}</span>
                         </div>
                       ))}
-                      <div style={{ borderTop: `1px solid ${P.border}`, marginTop: 6, paddingTop: 6, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div style={{ borderTop: `1px solid ${P.border}`, marginTop: 7, paddingTop: 7, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                         <span style={{ fontSize: 7.5, fontWeight: 700, color: P.mid, textTransform: 'uppercase' as const, letterSpacing: '0.06em' }}>BALANCE DUE</span>
                         <span style={{ fontSize: 12, fontWeight: 800, color: P.ink }}>{fmt$(preview.total)}</span>
                       </div>
