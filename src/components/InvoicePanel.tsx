@@ -459,7 +459,7 @@ async function exportToPDF(snap: InvoiceSnapshot, lineGroups: ReturnType<typeof 
   const totRowH = 7;
   const totH = totRows.length * totRowH + 2;
 
-  box(totX, y, totW, totH, P.border, 0.3);
+  box(totX, y, totW, totH, P.cardBorder, 0.5);
   let ty = y + 5.5;
   totRows.forEach(([lbl, val, isFinal]) => {
     if (isFinal) {
@@ -468,7 +468,7 @@ async function exportToPDF(snap: InvoiceSnapshot, lineGroups: ReturnType<typeof 
     } else {
       sf(7, 'normal', P.muted); tx(lbl, totX + 5, ty);
       sf(7, 'bold',   P.mid);   tx(val, totX + totW - 4, ty, { align: 'right' });
-      doc.setDrawColor(...rgb(P.border)); doc.setLineWidth(0.2);
+      doc.setDrawColor(...rgb(P.cardBorder)); doc.setLineWidth(0.2);
       doc.line(totX + 2, ty + 2.5, totX + totW - 2, ty + 2.5);
     }
     ty += totRowH;
@@ -489,7 +489,7 @@ async function exportToPDF(snap: InvoiceSnapshot, lineGroups: ReturnType<typeof 
     const colW3 = CW / colsPerRow;
     const payH  = 33;
 
-    box(M, y, CW, payH, P.border);
+    box(M, y, CW, payH, P.cardBorder, 0.5);
     let py = y + 5;
     sf(5.5, 'bold', P.muted); tx('PAYMENT DETAILS', M + 5, py); py += 5.5;
 
@@ -500,7 +500,7 @@ async function exportToPDF(snap: InvoiceSnapshot, lineGroups: ReturnType<typeof 
     });
     py += 9.5;
 
-    doc.setDrawColor(...rgb(P.border)); doc.setLineWidth(0.2);
+    doc.setDrawColor(...rgb(P.cardBorder)); doc.setLineWidth(0.2);
     doc.line(M + 6, py, M + CW - 4, py);
     py += 3.8;
     sf(6.5, 'normal', P.muted);
@@ -512,7 +512,7 @@ async function exportToPDF(snap: InvoiceSnapshot, lineGroups: ReturnType<typeof 
   if (snap.invoiceNotes) {
     const noteLines = doc.splitTextToSize(snap.invoiceNotes, CW - 10);
     const notH = 10 + noteLines.slice(0, 4).length * 4;
-    box(M, y, CW, notH, P.border, 0.25);
+    box(M, y, CW, notH, P.cardBorder, 0.4);
     sf(5.5, 'bold', P.muted); tx('NOTES', M + 4, y + 5);
     sf(7, 'normal', P.muted);
     noteLines.slice(0, 4).forEach((l: string, i: number) => tx(l, M + 4, y + 9 + i * 4));
