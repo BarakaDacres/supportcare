@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Save, Loader2, Target, Building2, CreditCard, FileText, Sliders, AlertCircle, Sunset, Code2, RefreshCw } from 'lucide-react';
+import { Save, Loader2, Target, Building2, CreditCard, FileText, Sliders, AlertCircle, Sunset, Code2, RefreshCw, Hash, RotateCcw } from 'lucide-react';
 import type { UserSettings } from '@/hooks/useUserSettings';
 import { DEFAULT_NDIS_CODES, type NdisItemCodes } from '@/lib/invoiceGrouping';
 
@@ -7,6 +7,7 @@ interface AppSettingsPanelProps {
   settings: UserSettings | null;
   loading: boolean;
   onSave: (updates: Partial<Omit<UserSettings, 'id' | 'user_id'>>) => Promise<void>;
+  onResetInvoiceCounter?: () => Promise<void>;
 }
 
 /* ════════════════════════════════════════════════════
@@ -148,12 +149,15 @@ const NdisCodeInput = ({ label, value, onChange, placeholder }: NdisCodeInputPro
 );
 
 /* ── Main panel ── */
-const AppSettingsPanel = ({ settings, loading, onSave }: AppSettingsPanelProps) => {
+const AppSettingsPanel = ({ settings, loading, onSave, onResetInvoiceCounter }: AppSettingsPanelProps) => {
   const [form, setForm] = useState<Partial<Omit<UserSettings, 'id' | 'user_id'>>>({});
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [timedOut, setTimedOut] = useState(false);
   const [retryKey, setRetryKey] = useState(0);
+  const [resetting, setResetting] = useState(false);
+  const [resetDone, setResetDone] = useState(false);
+  const [confirmReset, setConfirmReset] = useState(false);
   const ndisCodes = useRef<NdisItemCodes>({ ...DEFAULT_NDIS_CODES });
   const [ndisCodesState, setNdisCodesState] = useState<NdisItemCodes>({ ...DEFAULT_NDIS_CODES });
 
@@ -240,6 +244,16 @@ const AppSettingsPanel = ({ settings, loading, onSave }: AppSettingsPanelProps) 
     } finally {
       setSaving(false);
     }
+  };
+
+  const handleResetCounter = async () => {
+    if (!confirmReset) { setConfirmReset(true); setTimeout(() => setConfirmReset(false), 4000); return; }
+    setResetting(true);
+    setConfirmReset(false);
+    await onSave({ invoice_counter: 0 });
+    setResetting(false);
+    setResetDone(true);
+    setTimeout(() => setResetDone(false), 2500);
   };
 
   const showTax = val('show_tax_estimate', settings.show_tax_estimate) as boolean;
@@ -464,6 +478,55 @@ const AppSettingsPanel = ({ settings, loading, onSave }: AppSettingsPanelProps) 
             placeholder="xxxxxxxxx"
           />
         </div>
+      </div>
+
+      {/* ── Invoice Counter ── */}
+      <div className="glass-card p-4 space-y-4">
+        <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+          <Hash className="w-3.5 h-3.5" /> Invoice Numbering
+        </h3>
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <p className="text-sm font-semibold text-foreground">Current Counter</p>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Next invoice will be <span className="font-mono font-semibold" style={{ color: 'hsl(var(--primary))' }}>INV-{String((settings.invoice_counter ?? 0) + 1).padStart(3, '0')}</span>
+            </p>
+          </div>
+          <div className="text-2xl font-bold font-mono" style={{ color: 'hsl(var(--primary))' }}>
+            #{String(settings.invoice_counter ?? 0).padStart(3, '0')}
+          </div>
+        </div>
+        <button
+          onClick={handleResetCounter}
+          disabled={resetting}
+          className="w-full flex items-center justify-center gap-2 min-h-[44px] rounded-xl text-sm font-semibold transition-all duration-200"
+          style={{
+            background: resetDone
+              ? 'hsl(var(--stat-green)/0.15)'
+              : confirmReset
+              ? 'hsl(var(--destructive)/0.12)'
+              : 'hsl(var(--muted))',
+            color: resetDone
+              ? 'hsl(var(--stat-green))'
+              : confirmReset
+              ? 'hsl(var(--destructive))'
+              : 'hsl(var(--foreground))',
+            border: confirmReset ? '1px solid hsl(var(--destructive)/0.3)' : '1px solid transparent',
+          }}
+        >
+          {resetting ? (
+            <><Loader2 className="w-4 h-4 animate-spin" /> Resetting…</>
+          ) : resetDone ? (
+            '✓ Counter Reset to 000'
+          ) : confirmReset ? (
+            '⚠ Tap again to confirm reset'
+          ) : (
+            <><RotateCcw className="w-4 h-4" /> Reset to #000</>
+          )}
+        </button>
+        <p className="text-[10px] text-muted-foreground">
+          Resets the counter so the next invoice starts at INV-001. Existing invoices are not affected.
+        </p>
       </div>
 
       {/* ── Save button ── */}
