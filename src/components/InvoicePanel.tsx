@@ -1223,16 +1223,26 @@ const InvoicePanel = ({
                   <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 10 }}>
                     <div style={{ minWidth: 210, maxWidth: 250, border: `1px solid ${P.cardBorder}`, borderRadius: 8, overflow: 'hidden' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', padding: '5px 10px', borderBottom: `1px solid ${P.cardBorder}` }}>
-                        <span style={{ fontSize: 7.5, color: P.muted }}>SUBTOTAL</span>
-                        <span style={{ fontSize: 7.5, fontWeight: 600, color: P.mid, fontVariantNumeric: 'tabular-nums' }}>{fmt$(preview.total)}</span>
+                        <span style={{ fontSize: 8.5, fontWeight: 700, color: P.ink }}>SUBTOTAL</span>
+                        <span style={{ fontSize: 8.5, fontWeight: 700, color: P.ink, fontVariantNumeric: 'tabular-nums' }}>{fmt$(preview.total)}</span>
                       </div>
                       <div style={{ display: 'flex', justifyContent: 'space-between', padding: '5px 10px', borderBottom: `1px solid ${P.cardBorder}` }}>
-                        <span style={{ fontSize: 7.5, color: P.muted }}>GST</span>
-                        <span style={{ fontSize: 7.5, fontWeight: 600, color: P.mid }}>$0.00</span>
+                        <span style={{ fontSize: 8.5, fontWeight: 700, color: P.ink }}>GST (0%)</span>
+                        <span style={{ fontSize: 8.5, fontWeight: 700, color: P.ink }}>$0.00</span>
                       </div>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '7px 10px' }}>
-                        <span style={{ fontSize: 8, fontWeight: 800, color: P.accent, textTransform: 'uppercase' as const, letterSpacing: '0.04em' }}>TOTALS (AUD)</span>
+                        <span style={{ fontSize: 9, fontWeight: 800, color: P.accent, textTransform: 'uppercase' as const, letterSpacing: '0.04em' }}>TOTAL (AUD)</span>
                         <span style={{ fontSize: 13, fontWeight: 900, color: P.accent, fontVariantNumeric: 'tabular-nums' }}>{fmt$(preview.total)}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* ── BALANCE DUE ── */}
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 10 }}>
+                    <div style={{ minWidth: 210, maxWidth: 250 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '4px 0' }}>
+                        <span style={{ fontSize: 10.5, fontWeight: 700, color: P.accent }}>BALANCE DUE</span>
+                        <span style={{ fontSize: 13, fontWeight: 700, color: P.accent, fontVariantNumeric: 'tabular-nums' }}>{fmt$(preview.total)}</span>
                       </div>
                     </div>
                   </div>
