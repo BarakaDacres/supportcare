@@ -451,7 +451,7 @@ async function exportToPDF(snap: InvoiceSnapshot, lineGroups: ReturnType<typeof 
       rCol(8, fmt$(group.subtotal), 7, 'bold', P.ink);
 
       if (idx < lineGroups.length - 1) {
-        doc.setDrawColor(...rgb(P.border)); doc.setLineWidth(0.2);
+        doc.setDrawColor(...rgb(P.cardBorder)); doc.setLineWidth(0.25);
         doc.line(M, y + rowH, M + CW, y + rowH);
       }
       y += rowH;
