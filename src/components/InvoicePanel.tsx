@@ -326,18 +326,22 @@ async function exportToPDF(snap: InvoiceSnapshot, lineGroups: ReturnType<typeof 
 
     let displayLines: string[];
     if (label === 'Address') {
-      // Format: "123 Street Name, Suburb, STATE POSTCODE"
-      // → line 1: street, line 2: Suburb, STATE POSTCODE
+      // Split address so suburb/state/postcode is always on line 2
+      // Handles: "123 Street, Cardiff, NSW 2285" or "123 Street, Cardiff, NSW, 2285"
       const parts = value.split(',').map((p: string) => p.trim()).filter(Boolean);
       if (parts.length >= 3) {
-        // street = everything before last 2 parts; suburb+state+postcode = last 2 parts
+        // Line 1 = street address (all parts except last 2)
+        // Line 2 = suburb + state/postcode (last 2 parts joined)
         const line1 = parts.slice(0, parts.length - 2).join(', ');
         const line2 = parts.slice(parts.length - 2).join(', ');
         displayLines = [line1, line2];
       } else if (parts.length === 2) {
         displayLines = [parts[0], parts[1]];
+      } else if (parts.length === 1) {
+        // Try splitting on last space-separated token as postcode fallback
+        displayLines = doc.splitTextToSize(value, 36).slice(0, 2);
       } else {
-        displayLines = doc.splitTextToSize(value, 34).slice(0, 2);
+        displayLines = [value];
       }
     } else if (label === 'Organisation') {
       displayLines = doc.splitTextToSize(value, 34).slice(0, 2);
@@ -407,21 +411,22 @@ async function exportToPDF(snap: InvoiceSnapshot, lineGroups: ReturnType<typeof 
   const hdrH = 7.5;
   const rowH = 9.5;
   const nRows = Math.max(lineGroups.length, 1);
-  // Add 2mm bottom buffer so the last row never bleeds outside the container
-  const tableH = hdrH + nRows * rowH + 2;
+  // Exact height: header + rows + 3mm bottom padding — no bleeding
+  const tableH = hdrH + nRows * rowH + 3;
+  const tableStartY = y;
 
-  box(M, y, CW, tableH, P.cardBorder, 0.5);
+  // Draw box AFTER we know the exact height (prevents top/bottom asymmetry)
+  box(M, tableStartY, CW, tableH, P.cardBorder, 0.5);
 
-  // Header bg — light blue-tinted, drawn as filled rect then clipped to rounded box
-  doc.setFillColor(239, 246, 255); // blue-50
-  // Fill only header area using two overlapping rects: rounded top + square bottom overlap
-  doc.roundedRect(M, y, CW, hdrH + 2, 2, 2, 'F');
+  // Header bg — light blue-tinted
   doc.setFillColor(239, 246, 255);
-  doc.rect(M, y + hdrH - 1, CW, 3, 'F'); // square bottom strip to blend into row
+  doc.roundedRect(M, tableStartY, CW, hdrH + 2, 2, 2, 'F');
+  doc.setFillColor(239, 246, 255);
+  doc.rect(M, tableStartY + hdrH - 1, CW, 3, 'F');
 
-  const hY = y + 5.2;
+  const hY = tableStartY + 5.2;
   cols.forEach((c, i) => {
-    sf(6, 'bold', P.mid);   // bold column headers, darker than muted
+    sf(6, 'bold', P.mid);
     const baseX = M + colX[i];
     if (c.al === 'right')       tx(c.lbl, baseX + c.w - 1, hY, { align: 'right' });
     else if (c.al === 'center') tx(c.lbl, baseX + c.w / 2, hY, { align: 'center' });
@@ -429,8 +434,8 @@ async function exportToPDF(snap: InvoiceSnapshot, lineGroups: ReturnType<typeof 
   });
 
   doc.setDrawColor(...rgb(P.cardBorder)); doc.setLineWidth(0.4);
-  doc.line(M, y + hdrH, M + CW, y + hdrH);
-  y += hdrH;
+  doc.line(M, tableStartY + hdrH, M + CW, tableStartY + hdrH);
+  y = tableStartY + hdrH;
 
   if (lineGroups.length === 0) {
     sf(7, 'normal', P.faint);
@@ -438,7 +443,6 @@ async function exportToPDF(snap: InvoiceSnapshot, lineGroups: ReturnType<typeof 
     y += rowH;
   } else {
     lineGroups.forEach((group, idx) => {
-      // All rows plain white — no gradients, no alternating fill
       doc.setFillColor(255, 255, 255);
       doc.rect(M, y, CW, rowH, 'F');
 
@@ -453,7 +457,6 @@ async function exportToPDF(snap: InvoiceSnapshot, lineGroups: ReturnType<typeof 
       sf(5.5, 'normal', P.faint);
       tx(`${group.shifts.length} shift${group.shifts.length !== 1 ? 's' : ''}`, M + colX[1] + 1, ry + 2.2);
 
-      // Item code — SF Pro Mono (courier)
       sfm(5.5, P.muted);
       tx(group.ndisCode ?? '', M + colX[2] + 1, ry, { maxWidth: cols[2].w - 2 });
 
@@ -468,6 +471,7 @@ async function exportToPDF(snap: InvoiceSnapshot, lineGroups: ReturnType<typeof 
       rCol(7, '$0.00', 6.5, 'normal', P.faint);
       rCol(8, fmt$(group.subtotal), 7, 'bold', P.ink);
 
+      // Draw divider between rows (not after the last row)
       if (idx < lineGroups.length - 1) {
         doc.setDrawColor(...rgb(P.cardBorder)); doc.setLineWidth(0.25);
         doc.line(M, y + rowH, M + CW, y + rowH);
@@ -475,7 +479,8 @@ async function exportToPDF(snap: InvoiceSnapshot, lineGroups: ReturnType<typeof 
       y += rowH;
     });
   }
-  y += 5;
+  // y now sits at bottom of last row; move past the 3mm bottom pad
+  y = tableStartY + tableH + 5;
 
   // ── TOTALS — tight content-fitted box ────────────────────────────────────
   const totW = 70;
@@ -496,7 +501,7 @@ async function exportToPDF(snap: InvoiceSnapshot, lineGroups: ReturnType<typeof 
       sf(9.5, 'bold', P.accent); tx(val, totX + totW - 4, ty, { align: 'right' });
     } else {
       sf(7, 'normal', P.muted); tx(lbl, totX + 5, ty);
-      sf(7, 'bold',   P.mid);   tx(val, totX + totW - 4, ty, { align: 'right' });
+      sf(7, 'bold',   P.ink);   tx(val, totX + totW - 4, ty, { align: 'right' });
       doc.setDrawColor(...rgb(P.cardBorder)); doc.setLineWidth(0.2);
       doc.line(totX + 2, ty + 2.5, totX + totW - 2, ty + 2.5);
     }
