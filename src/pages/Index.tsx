@@ -235,6 +235,7 @@ const Index = ({ auth }: IndexProps) => {
           {activeTab === 'invoices' && (
             <InvoicePanel
               shifts={shifts}
+              shiftsLoading={shiftsLoading}
               clients={clients}
               settings={settings}
               onIncrementCounter={incrementInvoiceCounter}
