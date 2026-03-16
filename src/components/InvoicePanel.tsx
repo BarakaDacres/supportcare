@@ -682,7 +682,7 @@ const InvoiceCard = ({
 
 // ─── Main component ────────────────────────────────────────────────────────────
 const InvoicePanel = ({
-  shifts, clients, settings,
+  shifts, shiftsLoading = false, clients, settings,
   onIncrementCounter,
   invoices, invoicesLoading,
   onUpdateStatus, onDeleteInvoice, onRefreshInvoices,
