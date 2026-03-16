@@ -326,18 +326,22 @@ async function exportToPDF(snap: InvoiceSnapshot, lineGroups: ReturnType<typeof 
 
     let displayLines: string[];
     if (label === 'Address') {
-      // Format: "123 Street Name, Suburb, STATE POSTCODE"
-      // → line 1: street, line 2: Suburb, STATE POSTCODE
+      // Split address so suburb/state/postcode is always on line 2
+      // Handles: "123 Street, Cardiff, NSW 2285" or "123 Street, Cardiff, NSW, 2285"
       const parts = value.split(',').map((p: string) => p.trim()).filter(Boolean);
       if (parts.length >= 3) {
-        // street = everything before last 2 parts; suburb+state+postcode = last 2 parts
+        // Line 1 = street address (all parts except last 2)
+        // Line 2 = suburb + state/postcode (last 2 parts joined)
         const line1 = parts.slice(0, parts.length - 2).join(', ');
         const line2 = parts.slice(parts.length - 2).join(', ');
         displayLines = [line1, line2];
       } else if (parts.length === 2) {
         displayLines = [parts[0], parts[1]];
+      } else if (parts.length === 1) {
+        // Try splitting on last space-separated token as postcode fallback
+        displayLines = doc.splitTextToSize(value, 36).slice(0, 2);
       } else {
-        displayLines = doc.splitTextToSize(value, 34).slice(0, 2);
+        displayLines = [value];
       }
     } else if (label === 'Organisation') {
       displayLines = doc.splitTextToSize(value, 34).slice(0, 2);
