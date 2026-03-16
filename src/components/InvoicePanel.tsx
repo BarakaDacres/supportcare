@@ -532,7 +532,7 @@ async function exportToPDF(snap: InvoiceSnapshot, lineGroups: ReturnType<typeof 
 
   // ── FOOTER ────────────────────────────────────────────────────────────────
   const footY = 285;
-  doc.setDrawColor(...rgb(P.border)); doc.setLineWidth(0.3);
+  doc.setDrawColor(...rgb(P.cardBorder)); doc.setLineWidth(0.4);
   doc.line(M, footY, W - M, footY);
   sf(6.5, 'normal', P.faint);
   tx(`This invoice is GST-free under the NDIS.${snap.abn ? `  ABN: ${snap.abn}` : ''}`, M, footY + 4);
