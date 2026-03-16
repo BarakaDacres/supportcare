@@ -173,18 +173,46 @@ const StatusBadge = ({ status }: { status: string }) => {
 };
 
 // ─── PDF export ───────────────────────────────────────────────────────────────
+async function loadFontBase64(url: string): Promise<string> {
+  const res = await fetch(url);
+  const buf = await res.arrayBuffer();
+  const bytes = new Uint8Array(buf);
+  let bin = '';
+  for (let i = 0; i < bytes.byteLength; i++) bin += String.fromCharCode(bytes[i]);
+  return btoa(bin);
+}
+
 async function exportToPDF(snap: InvoiceSnapshot, lineGroups: ReturnType<typeof groupShiftsForInvoice>) {
   const { jsPDF } = await import('jspdf');
+
+  // ── Load & embed Inter (SF Pro substitute) + Roboto Mono (item codes) ──────
+  const [interRegB64, interSemiB64, monoB64] = await Promise.all([
+    loadFontBase64('/fonts/Inter-Regular.ttf'),
+    loadFontBase64('/fonts/Inter-SemiBold.ttf'),
+    loadFontBase64('/fonts/RobotoMono-Regular.ttf'),
+  ]);
+
   const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+
+  // Register Inter Regular (weight 400 → 'normal')
+  doc.addFileToVFS('Inter-Regular.ttf', interRegB64);
+  doc.addFont('Inter-Regular.ttf', 'Inter', 'normal');
+
+  // Register Inter SemiBold (weight 600 → 'bold')
+  doc.addFileToVFS('Inter-SemiBold.ttf', interSemiB64);
+  doc.addFont('Inter-SemiBold.ttf', 'Inter', 'bold');
+
+  // Register Roboto Mono Regular (item codes)
+  doc.addFileToVFS('RobotoMono-Regular.ttf', monoB64);
+  doc.addFont('RobotoMono-Regular.ttf', 'RobotoMono', 'normal');
 
   const W  = 210;
   const M  = 16;
   const CW = W - M * 2;
   let y = 0;
 
-  // SF Pro → helvetica (closest built-in); SF Pro Mono → courier for item codes
-  const SF     = 'helvetica';
-  const SFMONO = 'courier';
+  const SF     = 'Inter';       // Embedded Inter — Apple SF Pro substitute
+  const SFMONO = 'RobotoMono';  // Embedded Roboto Mono — for item codes
 
   const rgb = (hex: string): [number, number, number] => {
     const n = parseInt(hex.replace('#', ''), 16);
@@ -193,7 +221,7 @@ async function exportToPDF(snap: InvoiceSnapshot, lineGroups: ReturnType<typeof 
   const sf = (size: number, style: 'normal' | 'bold' = 'normal', color = P.ink) => {
     doc.setFontSize(size); doc.setFont(SF, style); doc.setTextColor(...rgb(color));
   };
-  // sfm — SF Pro Mono for item codes
+  // sfm — Roboto Mono for item codes
   const sfm = (size: number, color = P.muted) => {
     doc.setFontSize(size); doc.setFont(SFMONO, 'normal'); doc.setTextColor(...rgb(color));
   };
