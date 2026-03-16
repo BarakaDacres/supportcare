@@ -244,9 +244,28 @@ async function exportToPDF(snap: InvoiceSnapshot, lineGroups: ReturnType<typeof 
   const META_FONT   = 7.5;
 
   const issuerName = snap.issuerName || 'Your Business';
+
+  // Format ABN as "XX XXX XXX XXX" (groups: 2-3-3-3)
+  const formatABN = (raw: string) => {
+    const digits = raw.replace(/\D/g, '');
+    if (digits.length === 11) {
+      return `${digits.slice(0,2)} ${digits.slice(2,5)} ${digits.slice(5,8)} ${digits.slice(8,11)}`;
+    }
+    // Already formatted or non-standard — preserve as-is
+    return raw;
+  };
+  // Format phone as "XXXX XXX XXX" (4-3-3)
+  const formatPhone = (raw: string) => {
+    const digits = raw.replace(/\D/g, '');
+    if (digits.length === 10) {
+      return `${digits.slice(0,4)} ${digits.slice(4,7)} ${digits.slice(7,10)}`;
+    }
+    return raw;
+  };
+
   const leftMeta: Array<[string, string]> = [];
-  if (snap.abn)         leftMeta.push(['ABN:', snap.abn]);
-  if (snap.phone)       leftMeta.push(['P:', snap.phone]);
+  if (snap.abn)         leftMeta.push(['ABN:', formatABN(snap.abn)]);
+  if (snap.phone)       leftMeta.push(['P:', formatPhone(snap.phone)]);
   if (snap.issuerEmail) leftMeta.push(['E:', snap.issuerEmail]);
 
   const issueDate = formatDateShort(snap.issueDate);
@@ -316,7 +335,7 @@ async function exportToPDF(snap: InvoiceSnapshot, lineGroups: ReturnType<typeof 
   // BILL TO box — labels left-aligned, values right-aligned, blue accent border
   box(M, y, halfW, finalCardH, P.cardBorder, 0.5);
   let cy = y + CARD_TOP;
-  sf(5.5, 'bold', P.muted);
+  sf(7, 'bold', P.muted);
   tx('BILL TO', M + CARD_PAD_X, cy);
   cy += SECTION_H;
   billRows.forEach(({ label, value, valueBold }) => {
@@ -359,7 +378,7 @@ async function exportToPDF(snap: InvoiceSnapshot, lineGroups: ReturnType<typeof 
   const rx = M + halfW + 6;
   box(rx, y, halfW, finalCardH, P.cardBorder, 0.5);
   let dy = y + CARD_TOP;
-  sf(5.5, 'bold', P.muted);
+  sf(7, 'bold', P.muted);
   tx('INVOICE DETAILS', rx + CARD_PAD_X, dy);
   dy += SECTION_H;
   const detailPairs: [string, string][] = [
@@ -536,7 +555,7 @@ async function exportToPDF(snap: InvoiceSnapshot, lineGroups: ReturnType<typeof 
 
     doc.setDrawColor(...rgb(P.cardBorder)); doc.setLineWidth(0.2);
     doc.line(M + 6, py, M + CW - 4, py);
-    py += 3.8;
+    py += 5.5;
     sf(6.5, 'normal', P.muted);
     tx('Payment due within 7 days of invoice date.', M + 6, py);
     y += payH + 5;
