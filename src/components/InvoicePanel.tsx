@@ -394,21 +394,23 @@ async function exportToPDF(snap: InvoiceSnapshot, lineGroups: ReturnType<typeof 
 
   box(M, y, CW, tableH, P.cardBorder, 0.5);
 
-  // Header bg — light blue-tinted grey
+  // Header bg — light blue-tinted, drawn as filled rect then clipped to rounded box
   doc.setFillColor(239, 246, 255); // blue-50
-  doc.roundedRect(M, y, CW, hdrH, 2, 2, 'F');
-  doc.rect(M, y + hdrH - 3, CW, 3, 'F');
+  // Fill only header area using two overlapping rects: rounded top + square bottom overlap
+  doc.roundedRect(M, y, CW, hdrH + 2, 2, 2, 'F');
+  doc.setFillColor(239, 246, 255);
+  doc.rect(M, y + hdrH - 1, CW, 3, 'F'); // square bottom strip to blend into row
 
   const hY = y + 5.2;
   cols.forEach((c, i) => {
-    sf(6, 'bold', P.muted);   // one step larger (4.8 → 6) and bold
+    sf(6, 'bold', P.mid);   // bold column headers, darker than muted
     const baseX = M + colX[i];
     if (c.al === 'right')       tx(c.lbl, baseX + c.w - 1, hY, { align: 'right' });
     else if (c.al === 'center') tx(c.lbl, baseX + c.w / 2, hY, { align: 'center' });
     else                        tx(c.lbl, baseX + 1, hY);
   });
 
-  doc.setDrawColor(...rgb(P.cardBorder)); doc.setLineWidth(0.3);
+  doc.setDrawColor(...rgb(P.cardBorder)); doc.setLineWidth(0.4);
   doc.line(M, y + hdrH, M + CW, y + hdrH);
   y += hdrH;
 
