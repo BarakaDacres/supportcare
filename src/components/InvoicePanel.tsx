@@ -321,9 +321,10 @@ async function exportToPDF(snap: InvoiceSnapshot, lineGroups: ReturnType<typeof 
   billRows.forEach(({ label, value, valueBold }) => {
     sf(6.5, 'normal', P.muted);
     tx(label, M + CARD_PAD_X, cy);
-    sf(6.5, valueBold ? 'bold' : 'normal', P.ink);
-    // Right-align values — constrain width so long values wrap to two lines
-    const valMaxW = halfW - lblW - CARD_PAD_X * 2 - 1;
+    // Values: dark + not bold (except Organisation which keeps its weight distinction via size)
+    sf(6.5, valueBold ? 'bold' : 'normal', P.dark);
+    // Narrow max-width forces wrapping for long org names and addresses
+    const valMaxW = 34; // ~34mm forces 2-line wrap for long strings
     const wrappedLines = doc.splitTextToSize(value, valMaxW);
     const displayLines = wrappedLines.slice(0, 2); // max 2 lines
     displayLines.forEach((line: string, li: number) => {
