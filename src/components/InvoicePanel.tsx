@@ -136,13 +136,14 @@ const P = {
   accent:      '#1D4ED8',   // blue — used for issuer name, INVOICE title, final total
   accentMid:   '#374151',
   accentLight: '#F9FAFB',
-  accentBorder:'#D1D5DB',
+  accentBorder:'#BFDBFE',   // subtle blue border for containers
   ink:         '#111827',
   dark:        '#1F2937',
   mid:         '#374151',
   muted:       '#6B7280',
   faint:       '#9CA3AF',
   border:      '#E5E7EB',
+  cardBorder:  '#BFDBFE',   // blue-200 — subtle blue accent for all cards
   rowAlt:      '#FFFFFF',   // no alternating tint — all rows plain white
   bg:          '#F9FAFB',
   white:       '#FFFFFF',
