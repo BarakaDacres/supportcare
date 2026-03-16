@@ -11,7 +11,7 @@
  * - Participant details flow correctly to BILL TO
  */
 
-import { useState, useMemo, useCallback, useEffect } from 'react';
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import {
   FileText, ChevronDown, Download, User, Send, CheckCircle,
   AlertCircle, XCircle, Trash2, RefreshCw, Eye, AlertTriangle,
@@ -262,22 +262,23 @@ async function exportToPDF(snap: InvoiceSnapshot, lineGroups: ReturnType<typeof 
 
   const leftMetaStartY = y;
   let lmy = leftMetaStartY;
-  const LEFT_VAL_X = M + 14; // fixed indent for ABN/P/E values
+  // ABN/P/E: inline — label immediately followed by value, no extra gap
   leftMeta.forEach(([lbl, val]) => {
     sf(META_FONT, 'normal', P.muted);
     tx(lbl, M, lmy);
-    sf(META_FONT, 'normal', P.dark);  // dark, not bold
-    tx(val, LEFT_VAL_X, lmy);
+    const lblW2 = doc.getTextWidth(lbl) + 1.5;
+    sf(META_FONT, 'normal', P.ink);  // ink (darkest), not bold
+    tx(val, M + lblW2, lmy);
     lmy += 4.2;
   });
 
-  // Right meta: fixed two-column layout — label starts at COL_START, value right-aligned
-  const RIGHT_META_COL = W - M - 48; // fixed left edge of right meta column
+  // Right meta: fixed two-column layout — label at COL_START, value right-aligned with clear space
+  const RIGHT_META_COL = W - M - 52; // fixed left edge of right meta column
   let rmy = leftMetaStartY;
   rightMeta.forEach(([lbl, val]) => {
     sf(META_FONT, 'normal', P.muted);
     tx(lbl, RIGHT_META_COL, rmy);
-    sf(META_FONT, 'normal', P.dark);  // dark, not bold
+    sf(META_FONT, 'normal', P.ink);  // ink (darkest), not bold
     tx(val, W - M, rmy, { align: 'right' });
     rmy += 4.2;
   });
@@ -321,12 +322,29 @@ async function exportToPDF(snap: InvoiceSnapshot, lineGroups: ReturnType<typeof 
   billRows.forEach(({ label, value, valueBold }) => {
     sf(6.5, 'normal', P.muted);
     tx(label, M + CARD_PAD_X, cy);
-    // Values: dark + not bold (except Organisation which keeps its weight distinction via size)
     sf(6.5, valueBold ? 'bold' : 'normal', P.dark);
-    // Narrow max-width forces wrapping for long org names and addresses
-    const valMaxW = 34; // ~34mm forces 2-line wrap for long strings
-    const wrappedLines = doc.splitTextToSize(value, valMaxW);
-    const displayLines = wrappedLines.slice(0, 2); // max 2 lines
+
+    let displayLines: string[];
+    if (label === 'Address') {
+      // Force: street on line 1, suburb/state/postcode (last comma-segment group) on line 2
+      const parts = value.split(',').map(p => p.trim()).filter(Boolean);
+      if (parts.length >= 3) {
+        // line1 = street, line2 = suburb, state, postcode joined
+        const line1 = parts.slice(0, parts.length - 2).join(', ');
+        const line2 = parts.slice(parts.length - 2).join(', ');
+        displayLines = [line1, line2];
+      } else if (parts.length === 2) {
+        displayLines = [parts[0], parts[1]];
+      } else {
+        displayLines = doc.splitTextToSize(value, 34).slice(0, 2);
+      }
+    } else if (label === 'Organisation') {
+      // Wrap at ~34mm max width — forces 2 lines for long names
+      displayLines = doc.splitTextToSize(value, 34).slice(0, 2);
+    } else {
+      displayLines = doc.splitTextToSize(value, 40).slice(0, 2);
+    }
+
     displayLines.forEach((line: string, li: number) => {
       tx(line, M + halfW - CARD_PAD_X, cy + li * 3.8, { align: 'right' });
     });
@@ -349,7 +367,7 @@ async function exportToPDF(snap: InvoiceSnapshot, lineGroups: ReturnType<typeof 
   detailPairs.forEach(([lbl, val]) => {
     sf(6.5, 'normal', P.muted);
     tx(lbl, rx + CARD_PAD_X, dy);
-    sf(6.5, 'bold', P.mid);
+    sf(6.5, 'normal', P.mid);   // not bold — only BALANCE DUE is bold
     tx(val, rx + halfW - CARD_PAD_X, dy, { align: 'right' });
     dy += DET_ROW_H;
   });
@@ -429,7 +447,7 @@ async function exportToPDF(snap: InvoiceSnapshot, lineGroups: ReturnType<typeof 
       sf(6.5, 'normal', P.faint);
       tx(String(idx + 1), M + colX[0] + cols[0].w / 2, ry, { align: 'center' });
 
-      sf(7, 'bold', P.ink);
+      sf(7, 'normal', P.ink);
       tx(group.label, M + colX[1] + 1, ry - 1.2);
       sf(5.5, 'normal', P.faint);
       tx(`${group.shifts.length} shift${group.shifts.length !== 1 ? 's' : ''}`, M + colX[1] + 1, ry + 2.2);
@@ -1021,7 +1039,7 @@ const InvoicePanel = ({
                   {/* ── HEADER: issuer left / INVOICE right ── */}
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 14 }}>
 
-                    {/* Left — issuer name + meta, no bold on ABN/P/E values, no justification */}
+                    {/* Left — ABN/P/E inline (label + value tightly together, no extra gap) */}
                     <div>
                       <div style={{ fontSize: 14, fontWeight: 800, color: P.accent, letterSpacing: '-0.02em', marginBottom: 6 }}>
                         {preview.issuerName || 'Your Business Name'}
@@ -1029,35 +1047,35 @@ const InvoicePanel = ({
                       {preview.abn && (
                         <div style={{ fontSize: 8.5, marginBottom: 3 }}>
                           <span style={{ color: P.muted }}>ABN: </span>
-                          <span style={{ color: P.dark }}>{preview.abn}</span>
+                          <span style={{ color: P.ink }}>{preview.abn}</span>
                         </div>
                       )}
                       {preview.phone && (
                         <div style={{ fontSize: 8.5, marginBottom: 3 }}>
                           <span style={{ color: P.muted }}>P: </span>
-                          <span style={{ color: P.dark }}>{preview.phone}</span>
+                          <span style={{ color: P.ink }}>{preview.phone}</span>
                         </div>
                       )}
                       {preview.issuerEmail && (
                         <div style={{ fontSize: 8.5, marginBottom: 3 }}>
                           <span style={{ color: P.muted }}>E: </span>
-                          <span style={{ color: P.dark }}>{preview.issuerEmail}</span>
+                          <span style={{ color: P.ink }}>{preview.issuerEmail}</span>
                         </div>
                       )}
                     </div>
 
-                    {/* Right — INVOICE same size as name, then meta below */}
+                    {/* Right — INVOICE title, then Submitted/Invoice# with deliberate spacing */}
                     <div style={{ textAlign: 'right' }}>
                       <div style={{ fontSize: 14, fontWeight: 800, color: P.accent, letterSpacing: '-0.02em', marginBottom: 6 }}>
                         INVOICE
                       </div>
-                      <div style={{ fontSize: 8.5, marginBottom: 3, display: 'flex', justifyContent: 'flex-end', gap: 14, alignItems: 'baseline' }}>
+                      <div style={{ fontSize: 8.5, marginBottom: 3, display: 'flex', justifyContent: 'flex-end', gap: 16, alignItems: 'baseline' }}>
                         <span style={{ color: P.muted }}>Submitted:</span>
-                        <span style={{ color: P.dark, minWidth: 70, textAlign: 'right' }}>{formatDateShort(preview.issueDate)}</span>
+                        <span style={{ color: P.ink, minWidth: 72, textAlign: 'right' }}>{formatDateShort(preview.issueDate)}</span>
                       </div>
-                      <div style={{ fontSize: 8.5, marginBottom: 3, display: 'flex', justifyContent: 'flex-end', gap: 14, alignItems: 'baseline' }}>
+                      <div style={{ fontSize: 8.5, marginBottom: 3, display: 'flex', justifyContent: 'flex-end', gap: 16, alignItems: 'baseline' }}>
                         <span style={{ color: P.muted }}>Invoice #:</span>
-                        <span style={{ color: P.dark, minWidth: 70, textAlign: 'right' }}>{preview.invoiceNumber}</span>
+                        <span style={{ color: P.ink, minWidth: 72, textAlign: 'right' }}>{preview.invoiceNumber}</span>
                       </div>
                     </div>
                   </div>
@@ -1072,26 +1090,41 @@ const InvoicePanel = ({
                      <div style={{ borderRadius: 8, padding: '9px 11px 10px', border: `1px solid ${P.cardBorder}` }}>
                        <div style={{ fontSize: 6.5, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.07em', color: P.muted, marginBottom: 6 }}>BILL TO</div>
                        {[
-                         preview.clientOrganisation ? { label: 'Organisation', value: preview.clientOrganisation, bold: true }  : null,
-                         preview.clientName         ? { label: 'Participant',  value: preview.clientName,         bold: false } : null,
-                         preview.clientEmail        ? { label: 'Email',        value: preview.clientEmail,        bold: false } : null,
-                         preview.clientAddress      ? { label: 'Address',      value: preview.clientAddress,      bold: false } : null,
-                       ].filter(Boolean).map(row => row && (
-                         <div key={row.label} style={{
-                           display: 'flex', justifyContent: 'space-between',
-                           alignItems: 'flex-start', gap: 6, marginBottom: 4,
-                         }}>
-                           <span style={{ fontSize: 7.5, color: P.muted, flexShrink: 0, lineHeight: '1.35' }}>{row.label}</span>
-                           <span style={{
-                             fontSize: 7.5, fontWeight: row.bold ? 700 : 400, color: P.ink,
-                             textAlign: 'right', lineHeight: '1.35',
-                             maxWidth: '55%', overflowWrap: 'break-word', wordBreak: 'break-word',
-                           }}>{row.value}</span>
-                         </div>
-                       ))}
+                         preview.clientOrganisation ? { label: 'Organisation', value: preview.clientOrganisation } : null,
+                         preview.clientName         ? { label: 'Participant',  value: preview.clientName }         : null,
+                         preview.clientEmail        ? { label: 'Email',        value: preview.clientEmail }        : null,
+                         preview.clientAddress      ? { label: 'Address',      value: preview.clientAddress }      : null,
+                       ].filter(Boolean).map(row => {
+                         if (!row) return null;
+                         // Address: split street from suburb/state/postcode (last 2 comma parts)
+                         let displayValue: React.ReactNode = row.value;
+                         if (row.label === 'Address') {
+                           const parts = row.value.split(',').map((p: string) => p.trim()).filter(Boolean);
+                           if (parts.length >= 3) {
+                             const line1 = parts.slice(0, parts.length - 2).join(', ');
+                             const line2 = parts.slice(parts.length - 2).join(', ');
+                             displayValue = <>{line1}<br />{line2}</>;
+                           } else if (parts.length === 2) {
+                             displayValue = <>{parts[0]}<br />{parts[1]}</>;
+                           }
+                         }
+                         return (
+                           <div key={row.label} style={{
+                             display: 'flex', justifyContent: 'space-between',
+                             alignItems: 'flex-start', gap: 6, marginBottom: 4,
+                           }}>
+                             <span style={{ fontSize: 7.5, color: P.muted, flexShrink: 0, lineHeight: '1.35' }}>{row.label}</span>
+                             <span style={{
+                               fontSize: 7.5, fontWeight: 400, color: P.ink,
+                               textAlign: 'right', lineHeight: '1.45',
+                               maxWidth: '55%', overflowWrap: 'break-word', wordBreak: 'break-word',
+                             }}>{displayValue}</span>
+                           </div>
+                         );
+                       })}
                      </div>
 
-                     {/* INVOICE DETAILS */}
+                     {/* INVOICE DETAILS — values not bold (except BALANCE DUE) */}
                      <div style={{ borderRadius: 8, padding: '9px 11px 10px', border: `1px solid ${P.cardBorder}` }}>
                       <div style={{ fontSize: 6.5, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.07em', color: P.muted, marginBottom: 6 }}>INVOICE DETAILS</div>
                       {[
@@ -1102,7 +1135,7 @@ const InvoicePanel = ({
                       ].map(([l, v]) => (
                         <div key={l} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 6, marginBottom: 4 }}>
                           <span style={{ fontSize: 7.5, color: P.muted, flexShrink: 0, lineHeight: '1.35' }}>{l}</span>
-                          <span style={{ fontSize: 7.5, fontWeight: 600, color: P.mid, textAlign: 'right', lineHeight: '1.35' }}>{v}</span>
+                          <span style={{ fontSize: 7.5, fontWeight: 400, color: P.mid, textAlign: 'right', lineHeight: '1.35' }}>{v}</span>
                         </div>
                       ))}
                       <div style={{ borderTop: `1px solid ${P.cardBorder}`, marginTop: 7, paddingTop: 7, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -1159,7 +1192,7 @@ const InvoicePanel = ({
                               <tr key={group.category} style={{ background: P.white }}>
                                 <td style={{ fontSize: 7.5, color: P.faint, padding: '5px 4px', textAlign: 'center', borderBottom: rowBorder }}>{idx + 1}</td>
                                 <td style={{ padding: '5px 4px', borderBottom: rowBorder }}>
-                                  <div style={{ fontSize: 8, fontWeight: 600, color: P.ink }}>{group.label}</div>
+                                  <div style={{ fontSize: 8, fontWeight: 400, color: P.ink }}>{group.label}</div>
                                   <div style={{ fontSize: 6.5, color: P.faint, marginTop: 1 }}>{group.shifts.length} shift{group.shifts.length !== 1 ? 's' : ''}</div>
                                 </td>
                                 <td style={{ fontSize: 6.5, color: P.muted, fontFamily: 'monospace', padding: '5px 4px', borderBottom: rowBorder, wordBreak: 'break-all' }}>{group.ndisCode}</td>
