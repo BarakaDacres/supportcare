@@ -446,8 +446,8 @@ async function exportToPDF(snap: InvoiceSnapshot, lineGroups: ReturnType<typeof 
   const hdrH = 7.5;
   const rowH = 9.5;
   const nRows = Math.max(lineGroups.length, 1);
-  // Exact height: header + rows + 3mm bottom padding — no bleeding
-  const tableH = hdrH + nRows * rowH + 3;
+  // Add 5mm bottom padding so border is never clipped by content or stroke width
+  const tableH = hdrH + nRows * rowH + 5;
   const tableStartY = y;
 
   // Draw box AFTER we know the exact height (prevents top/bottom asymmetry)
