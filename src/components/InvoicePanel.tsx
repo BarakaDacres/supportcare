@@ -335,12 +335,12 @@ async function exportToPDF(snap: InvoiceSnapshot, lineGroups: ReturnType<typeof 
 
   // Row layout constants
   const CARD_PAD_X = 6;     // internal horizontal padding
-  const CARD_TOP   = 3;     // padding before section label
+  const CARD_TOP   = 5;     // padding before section label (moved down slightly)
   const SECTION_H  = 5.5;   // section label + gap (tighter)
   const BILL_ROW_H = 5.2;   // height per BILL TO row (allows slight wrap)
   const DET_ROW_H  = 5.2;   // same height for INVOICE DETAILS rows
   const CARD_BOT   = 2;     // minimal bottom padding
-  const SEP_BLOCK  = 9;     // separator + BALANCE DUE area (reduced)
+  const SEP_BLOCK  = 7;     // separator + BALANCE DUE area (tighter)
 
   // Card heights
   const billCardH  = CARD_TOP + SECTION_H + billRows.length * BILL_ROW_H + CARD_BOT;
@@ -409,10 +409,10 @@ async function exportToPDF(snap: InvoiceSnapshot, lineGroups: ReturnType<typeof 
     tx(val, rx + halfW - CARD_PAD_X, dy, { align: 'right' });
     dy += DET_ROW_H;
   });
-  dy += 3;
+  dy += 1.5;
   doc.setDrawColor(...rgb(P.cardBorder)); doc.setLineWidth(0.25);
   doc.line(rx + CARD_PAD_X, dy, rx + halfW - CARD_PAD_X, dy);
-  dy += 5.5;
+  dy += 4;
   sf(7.5, 'bold', P.mid);
   tx('BALANCE DUE', rx + CARD_PAD_X, dy);
   sf(10, 'bold', P.ink);
