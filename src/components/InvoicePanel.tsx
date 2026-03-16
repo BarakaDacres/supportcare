@@ -1027,13 +1027,22 @@ const InvoicePanel = ({
                         {preview.issuerName || 'Your Business Name'}
                       </div>
                       {preview.abn && (
-                        <div style={{ fontSize: 8.5, color: P.muted, marginBottom: 3 }}>ABN: {preview.abn}</div>
+                        <div style={{ fontSize: 8.5, marginBottom: 3 }}>
+                          <span style={{ color: P.muted }}>ABN: </span>
+                          <span style={{ color: P.dark }}>{preview.abn}</span>
+                        </div>
                       )}
                       {preview.phone && (
-                        <div style={{ fontSize: 8.5, color: P.muted, marginBottom: 3 }}>P: {preview.phone}</div>
+                        <div style={{ fontSize: 8.5, marginBottom: 3 }}>
+                          <span style={{ color: P.muted }}>P: </span>
+                          <span style={{ color: P.dark }}>{preview.phone}</span>
+                        </div>
                       )}
                       {preview.issuerEmail && (
-                        <div style={{ fontSize: 8.5, color: P.muted, marginBottom: 3 }}>E: {preview.issuerEmail}</div>
+                        <div style={{ fontSize: 8.5, marginBottom: 3 }}>
+                          <span style={{ color: P.muted }}>E: </span>
+                          <span style={{ color: P.dark }}>{preview.issuerEmail}</span>
+                        </div>
                       )}
                     </div>
 
@@ -1042,17 +1051,19 @@ const InvoicePanel = ({
                       <div style={{ fontSize: 14, fontWeight: 800, color: P.accent, letterSpacing: '-0.02em', marginBottom: 6 }}>
                         INVOICE
                       </div>
-                      <div style={{ fontSize: 8.5, color: P.muted, marginBottom: 3 }}>
-                        Submitted: {formatDateShort(preview.issueDate)}
+                      <div style={{ fontSize: 8.5, marginBottom: 3, display: 'flex', justifyContent: 'flex-end', gap: 14, alignItems: 'baseline' }}>
+                        <span style={{ color: P.muted }}>Submitted:</span>
+                        <span style={{ color: P.dark, minWidth: 70, textAlign: 'right' }}>{formatDateShort(preview.issueDate)}</span>
                       </div>
-                      <div style={{ fontSize: 8.5, color: P.muted, marginBottom: 3 }}>
-                        Invoice #: {preview.invoiceNumber}
+                      <div style={{ fontSize: 8.5, marginBottom: 3, display: 'flex', justifyContent: 'flex-end', gap: 14, alignItems: 'baseline' }}>
+                        <span style={{ color: P.muted }}>Invoice #:</span>
+                        <span style={{ color: P.dark, minWidth: 70, textAlign: 'right' }}>{preview.invoiceNumber}</span>
                       </div>
                     </div>
                   </div>
 
-                  {/* Divider — neutral */}
-                  <div style={{ borderTop: `1px solid ${P.border}`, marginBottom: 13 }} />
+                  {/* Divider — blue accent */}
+                  <div style={{ borderTop: `1px solid ${P.cardBorder}`, marginBottom: 13 }} />
 
                   {/* ── BILL TO + INVOICE DETAILS ── */}
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 12 }}>
