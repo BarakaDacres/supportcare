@@ -422,26 +422,33 @@ async function exportToPDF(snap: InvoiceSnapshot, lineGroups: ReturnType<typeof 
   y += finalCardH + 6;
 
   // ── SERVICES RENDERED ────────────────────────────────────────────────────
+  const TABLE_PAD_X = 4; // consistent internal horizontal padding
   sf(5.5, 'bold', P.muted);
-  tx('SERVICES RENDERED', M, y);
+  tx('SERVICES RENDERED', M + TABLE_PAD_X, y);
   y += 3.5;
 
   type Col = { lbl: string; w: number; al: 'left' | 'right' | 'center' };
   const cols: Col[] = [
     { lbl: '#',           w: 6,  al: 'center' },
-    { lbl: 'DESCRIPTION', w: 46, al: 'left'   },
-    { lbl: 'ITEM CODE',   w: 36, al: 'left'   },
+    { lbl: 'DESCRIPTION', w: 44, al: 'left'   },
+    { lbl: 'ITEM CODE',   w: 34, al: 'left'   },
     { lbl: 'QTY',         w: 12, al: 'right'  },
     { lbl: 'UNIT',        w: 11, al: 'right'  },
     { lbl: 'RATE',        w: 20, al: 'right'  },
     { lbl: 'TOTAL EX',    w: 20, al: 'right'  },
     { lbl: 'GST',         w: 12, al: 'right'  },
-    { lbl: 'TOTAL INC',   w: 15, al: 'right'  },
+    { lbl: 'TOTAL INC',   w: 17, al: 'right'  },
   ];
 
+  // Recalculate column positions with internal padding accounted for
+  const contentW = CW - TABLE_PAD_X * 2;
   const colX: number[] = [];
   let cx2 = 0;
   cols.forEach(c => { colX.push(cx2); cx2 += c.w; });
+  // Scale to fit content width
+  const scale = contentW / cx2;
+  for (let i = 0; i < colX.length; i++) colX[i] *= scale;
+  for (let i = 0; i < cols.length; i++) cols[i].w *= scale;
 
   const hdrH = 7.5;
   const rowH = 9.5;
@@ -453,7 +460,7 @@ async function exportToPDF(snap: InvoiceSnapshot, lineGroups: ReturnType<typeof 
   // Draw box AFTER we know the exact height (prevents top/bottom asymmetry)
   box(M, tableStartY, CW, tableH, P.cardBorder, 0.5);
 
-  // Header bg — light blue-tinted
+  // Header bg — light blue-tinted, with internal padding
   doc.setFillColor(239, 246, 255);
   doc.roundedRect(M, tableStartY, CW, hdrH + 2, 2, 2, 'F');
   doc.setFillColor(239, 246, 255);
@@ -462,14 +469,14 @@ async function exportToPDF(snap: InvoiceSnapshot, lineGroups: ReturnType<typeof 
   const hY = tableStartY + 5.2;
   cols.forEach((c, i) => {
     sf(6, 'bold', P.mid);
-    const baseX = M + colX[i];
+    const baseX = M + TABLE_PAD_X + colX[i];
     if (c.al === 'right')       tx(c.lbl, baseX + c.w - 1, hY, { align: 'right' });
     else if (c.al === 'center') tx(c.lbl, baseX + c.w / 2, hY, { align: 'center' });
     else                        tx(c.lbl, baseX + 1, hY);
   });
 
   doc.setDrawColor(...rgb(P.cardBorder)); doc.setLineWidth(0.4);
-  doc.line(M, tableStartY + hdrH, M + CW, tableStartY + hdrH);
+  doc.line(M + TABLE_PAD_X, tableStartY + hdrH, M + CW - TABLE_PAD_X, tableStartY + hdrH);
   y = tableStartY + hdrH;
 
   if (lineGroups.length === 0) {
