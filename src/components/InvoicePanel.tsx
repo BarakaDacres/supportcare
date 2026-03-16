@@ -263,20 +263,29 @@ async function exportToPDF(snap: InvoiceSnapshot, lineGroups: ReturnType<typeof 
   const leftMetaStartY = y;
   let lmy = leftMetaStartY;
   leftMeta.forEach(([lbl, val]) => {
+    // label muted, value dark
     sf(META_FONT, 'normal', P.muted);
-    tx(`${lbl} ${val}`, M, lmy);
+    tx(lbl, M, lmy);
+    sf(META_FONT, 'bold', P.ink);
+    const lblTextW = doc.getTextWidth(lbl + ' ');
+    tx(val, M + lblTextW, lmy);
     lmy += 4.2;
   });
 
   let rmy = leftMetaStartY;
   rightMeta.forEach(([lbl, val]) => {
+    // right-side: render label then value separately so value is darker
     sf(META_FONT, 'normal', P.muted);
-    tx(`${lbl} ${val}`, W - M, rmy, { align: 'right' });
+    const valW = doc.getTextWidth(val);
+    const lblW2 = doc.getTextWidth(lbl + ' ');
+    tx(lbl, W - M - valW - lblW2, rmy);
+    sf(META_FONT, 'bold', P.ink);
+    tx(val, W - M, rmy, { align: 'right' });
     rmy += 4.2;
   });
 
   y = Math.max(lmy, rmy) + 5;
-  hln(y, P.border, 0.5);
+  hln(y, P.cardBorder, 0.5);
   y += 6;
 
   // ── BILL TO + INVOICE DETAILS ─────────────────────────────────────────────
