@@ -31,6 +31,7 @@ import type { InvoiceSummary, InvoiceStatus } from '@/hooks/useInvoices';
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface InvoicePanelProps {
   shifts: Shift[];
+  shiftsLoading?: boolean;
   clients: Client[];
   settings: UserSettings | null;
   onIncrementCounter: () => Promise<number>;
