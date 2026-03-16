@@ -480,6 +480,55 @@ const AppSettingsPanel = ({ settings, loading, onSave, onResetInvoiceCounter }: 
         </div>
       </div>
 
+      {/* ── Invoice Counter ── */}
+      <div className="glass-card p-4 space-y-4">
+        <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+          <Hash className="w-3.5 h-3.5" /> Invoice Numbering
+        </h3>
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <p className="text-sm font-semibold text-foreground">Current Counter</p>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Next invoice will be <span className="font-mono font-semibold" style={{ color: 'hsl(var(--primary))' }}>INV-{String((settings.invoice_counter ?? 0) + 1).padStart(3, '0')}</span>
+            </p>
+          </div>
+          <div className="text-2xl font-bold font-mono" style={{ color: 'hsl(var(--primary))' }}>
+            #{String(settings.invoice_counter ?? 0).padStart(3, '0')}
+          </div>
+        </div>
+        <button
+          onClick={handleResetCounter}
+          disabled={resetting}
+          className="w-full flex items-center justify-center gap-2 min-h-[44px] rounded-xl text-sm font-semibold transition-all duration-200"
+          style={{
+            background: resetDone
+              ? 'hsl(var(--stat-green)/0.15)'
+              : confirmReset
+              ? 'hsl(var(--destructive)/0.12)'
+              : 'hsl(var(--muted))',
+            color: resetDone
+              ? 'hsl(var(--stat-green))'
+              : confirmReset
+              ? 'hsl(var(--destructive))'
+              : 'hsl(var(--foreground))',
+            border: confirmReset ? '1px solid hsl(var(--destructive)/0.3)' : '1px solid transparent',
+          }}
+        >
+          {resetting ? (
+            <><Loader2 className="w-4 h-4 animate-spin" /> Resetting…</>
+          ) : resetDone ? (
+            '✓ Counter Reset to 000'
+          ) : confirmReset ? (
+            '⚠ Tap again to confirm reset'
+          ) : (
+            <><RotateCcw className="w-4 h-4" /> Reset to #000</>
+          )}
+        </button>
+        <p className="text-[10px] text-muted-foreground">
+          Resets the counter so the next invoice starts at INV-001. Existing invoices are not affected.
+        </p>
+      </div>
+
       {/* ── Save button ── */}
       <button
         onClick={handleSave}
