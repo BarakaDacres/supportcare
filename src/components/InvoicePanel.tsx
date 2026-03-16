@@ -262,24 +262,22 @@ async function exportToPDF(snap: InvoiceSnapshot, lineGroups: ReturnType<typeof 
 
   const leftMetaStartY = y;
   let lmy = leftMetaStartY;
+  const LEFT_VAL_X = M + 14; // fixed indent for ABN/P/E values
   leftMeta.forEach(([lbl, val]) => {
-    // label muted, value dark
     sf(META_FONT, 'normal', P.muted);
     tx(lbl, M, lmy);
-    sf(META_FONT, 'bold', P.ink);
-    const lblTextW = doc.getTextWidth(lbl + ' ');
-    tx(val, M + lblTextW, lmy);
+    sf(META_FONT, 'normal', P.dark);  // dark, not bold
+    tx(val, LEFT_VAL_X, lmy);
     lmy += 4.2;
   });
 
+  // Right meta: fixed two-column layout — label starts at COL_START, value right-aligned
+  const RIGHT_META_COL = W - M - 48; // fixed left edge of right meta column
   let rmy = leftMetaStartY;
   rightMeta.forEach(([lbl, val]) => {
-    // right-side: render label then value separately so value is darker
     sf(META_FONT, 'normal', P.muted);
-    const valW = doc.getTextWidth(val);
-    const lblW2 = doc.getTextWidth(lbl + ' ');
-    tx(lbl, W - M - valW - lblW2, rmy);
-    sf(META_FONT, 'bold', P.ink);
+    tx(lbl, RIGHT_META_COL, rmy);
+    sf(META_FONT, 'normal', P.dark);  // dark, not bold
     tx(val, W - M, rmy, { align: 'right' });
     rmy += 4.2;
   });
