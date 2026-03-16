@@ -482,8 +482,8 @@ async function exportToPDF(snap: InvoiceSnapshot, lineGroups: ReturnType<typeof 
   const totX = W - M - totW;
   const totRows: Array<[string, string, boolean]> = [
     ['SUBTOTAL',     fmt$(snap.total), false],
-    ['GST',          '$0.00',          false],
-    ['TOTALS (AUD)', fmt$(snap.total), true],
+    ['GST (0%)',     '$0.00',          false],
+    ['TOTAL (AUD)',  fmt$(snap.total), true],
   ];
   const totRowH = 7;
   const totH = totRows.length * totRowH + 2;
@@ -492,17 +492,24 @@ async function exportToPDF(snap: InvoiceSnapshot, lineGroups: ReturnType<typeof 
   let ty = y + 5.5;
   totRows.forEach(([lbl, val, isFinal]) => {
     if (isFinal) {
-      sf(8, 'bold', P.accent); tx(lbl, totX + 5, ty);
-      sf(9.5, 'bold', P.accent); tx(val, totX + totW - 4, ty, { align: 'right' });
+      sf(8, 'bold', P.primary); tx(lbl, totX + 5, ty);
+      sf(9.5, 'bold', P.primary); tx(val, totX + totW - 4, ty, { align: 'right' });
     } else {
-      sf(7, 'normal', P.muted); tx(lbl, totX + 5, ty);
-      sf(7, 'bold',   P.mid);   tx(val, totX + totW - 4, ty, { align: 'right' });
+      sf(7, 'bold', P.ink); tx(lbl, totX + 5, ty);
+      sf(7, 'bold', P.ink); tx(val, totX + totW - 4, ty, { align: 'right' });
       doc.setDrawColor(...rgb(P.cardBorder)); doc.setLineWidth(0.2);
       doc.line(totX + 2, ty + 2.5, totX + totW - 2, ty + 2.5);
     }
     ty += totRowH;
   });
   y += totH + 5;
+
+  // ── BALANCE DUE (blue accent) ──
+  sf(9, 'bold', P.primary);
+  tx('BALANCE DUE', totX, y);
+  sf(11, 'bold', P.primary);
+  tx(fmt$(snap.total), W - M, y, { align: 'right' });
+  y += 7;
 
   // ── PAYMENT DETAILS — tight box, reference = participant name ─────────────
   if (snap.accountName || snap.bsb || snap.accountNumber || snap.bankName) {
