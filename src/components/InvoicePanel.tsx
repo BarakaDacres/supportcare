@@ -1039,7 +1039,7 @@ const InvoicePanel = ({
                   {/* ── HEADER: issuer left / INVOICE right ── */}
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 14 }}>
 
-                    {/* Left — issuer name + meta, no bold on ABN/P/E values, no justification */}
+                    {/* Left — ABN/P/E inline (label + value tightly together, no extra gap) */}
                     <div>
                       <div style={{ fontSize: 14, fontWeight: 800, color: P.accent, letterSpacing: '-0.02em', marginBottom: 6 }}>
                         {preview.issuerName || 'Your Business Name'}
@@ -1047,35 +1047,35 @@ const InvoicePanel = ({
                       {preview.abn && (
                         <div style={{ fontSize: 8.5, marginBottom: 3 }}>
                           <span style={{ color: P.muted }}>ABN: </span>
-                          <span style={{ color: P.dark }}>{preview.abn}</span>
+                          <span style={{ color: P.ink }}>{preview.abn}</span>
                         </div>
                       )}
                       {preview.phone && (
                         <div style={{ fontSize: 8.5, marginBottom: 3 }}>
                           <span style={{ color: P.muted }}>P: </span>
-                          <span style={{ color: P.dark }}>{preview.phone}</span>
+                          <span style={{ color: P.ink }}>{preview.phone}</span>
                         </div>
                       )}
                       {preview.issuerEmail && (
                         <div style={{ fontSize: 8.5, marginBottom: 3 }}>
                           <span style={{ color: P.muted }}>E: </span>
-                          <span style={{ color: P.dark }}>{preview.issuerEmail}</span>
+                          <span style={{ color: P.ink }}>{preview.issuerEmail}</span>
                         </div>
                       )}
                     </div>
 
-                    {/* Right — INVOICE same size as name, then meta below */}
+                    {/* Right — INVOICE title, then Submitted/Invoice# with deliberate spacing */}
                     <div style={{ textAlign: 'right' }}>
                       <div style={{ fontSize: 14, fontWeight: 800, color: P.accent, letterSpacing: '-0.02em', marginBottom: 6 }}>
                         INVOICE
                       </div>
-                      <div style={{ fontSize: 8.5, marginBottom: 3, display: 'flex', justifyContent: 'flex-end', gap: 14, alignItems: 'baseline' }}>
+                      <div style={{ fontSize: 8.5, marginBottom: 3, display: 'flex', justifyContent: 'flex-end', gap: 16, alignItems: 'baseline' }}>
                         <span style={{ color: P.muted }}>Submitted:</span>
-                        <span style={{ color: P.dark, minWidth: 70, textAlign: 'right' }}>{formatDateShort(preview.issueDate)}</span>
+                        <span style={{ color: P.ink, minWidth: 72, textAlign: 'right' }}>{formatDateShort(preview.issueDate)}</span>
                       </div>
-                      <div style={{ fontSize: 8.5, marginBottom: 3, display: 'flex', justifyContent: 'flex-end', gap: 14, alignItems: 'baseline' }}>
+                      <div style={{ fontSize: 8.5, marginBottom: 3, display: 'flex', justifyContent: 'flex-end', gap: 16, alignItems: 'baseline' }}>
                         <span style={{ color: P.muted }}>Invoice #:</span>
-                        <span style={{ color: P.dark, minWidth: 70, textAlign: 'right' }}>{preview.invoiceNumber}</span>
+                        <span style={{ color: P.ink, minWidth: 72, textAlign: 'right' }}>{preview.invoiceNumber}</span>
                       </div>
                     </div>
                   </div>
@@ -1090,26 +1090,41 @@ const InvoicePanel = ({
                      <div style={{ borderRadius: 8, padding: '9px 11px 10px', border: `1px solid ${P.cardBorder}` }}>
                        <div style={{ fontSize: 6.5, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.07em', color: P.muted, marginBottom: 6 }}>BILL TO</div>
                        {[
-                         preview.clientOrganisation ? { label: 'Organisation', value: preview.clientOrganisation, bold: true }  : null,
-                         preview.clientName         ? { label: 'Participant',  value: preview.clientName,         bold: false } : null,
-                         preview.clientEmail        ? { label: 'Email',        value: preview.clientEmail,        bold: false } : null,
-                         preview.clientAddress      ? { label: 'Address',      value: preview.clientAddress,      bold: false } : null,
-                       ].filter(Boolean).map(row => row && (
-                         <div key={row.label} style={{
-                           display: 'flex', justifyContent: 'space-between',
-                           alignItems: 'flex-start', gap: 6, marginBottom: 4,
-                         }}>
-                           <span style={{ fontSize: 7.5, color: P.muted, flexShrink: 0, lineHeight: '1.35' }}>{row.label}</span>
-                           <span style={{
-                             fontSize: 7.5, fontWeight: row.bold ? 700 : 400, color: P.ink,
-                             textAlign: 'right', lineHeight: '1.35',
-                             maxWidth: '55%', overflowWrap: 'break-word', wordBreak: 'break-word',
-                           }}>{row.value}</span>
-                         </div>
-                       ))}
+                         preview.clientOrganisation ? { label: 'Organisation', value: preview.clientOrganisation } : null,
+                         preview.clientName         ? { label: 'Participant',  value: preview.clientName }         : null,
+                         preview.clientEmail        ? { label: 'Email',        value: preview.clientEmail }        : null,
+                         preview.clientAddress      ? { label: 'Address',      value: preview.clientAddress }      : null,
+                       ].filter(Boolean).map(row => {
+                         if (!row) return null;
+                         // Address: split street from suburb/state/postcode (last 2 comma parts)
+                         let displayValue: React.ReactNode = row.value;
+                         if (row.label === 'Address') {
+                           const parts = row.value.split(',').map((p: string) => p.trim()).filter(Boolean);
+                           if (parts.length >= 3) {
+                             const line1 = parts.slice(0, parts.length - 2).join(', ');
+                             const line2 = parts.slice(parts.length - 2).join(', ');
+                             displayValue = <>{line1}<br />{line2}</>;
+                           } else if (parts.length === 2) {
+                             displayValue = <>{parts[0]}<br />{parts[1]}</>;
+                           }
+                         }
+                         return (
+                           <div key={row.label} style={{
+                             display: 'flex', justifyContent: 'space-between',
+                             alignItems: 'flex-start', gap: 6, marginBottom: 4,
+                           }}>
+                             <span style={{ fontSize: 7.5, color: P.muted, flexShrink: 0, lineHeight: '1.35' }}>{row.label}</span>
+                             <span style={{
+                               fontSize: 7.5, fontWeight: 400, color: P.ink,
+                               textAlign: 'right', lineHeight: '1.45',
+                               maxWidth: '55%', overflowWrap: 'break-word', wordBreak: 'break-word',
+                             }}>{displayValue}</span>
+                           </div>
+                         );
+                       })}
                      </div>
 
-                     {/* INVOICE DETAILS */}
+                     {/* INVOICE DETAILS — values not bold (except BALANCE DUE) */}
                      <div style={{ borderRadius: 8, padding: '9px 11px 10px', border: `1px solid ${P.cardBorder}` }}>
                       <div style={{ fontSize: 6.5, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.07em', color: P.muted, marginBottom: 6 }}>INVOICE DETAILS</div>
                       {[
@@ -1120,7 +1135,7 @@ const InvoicePanel = ({
                       ].map(([l, v]) => (
                         <div key={l} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 6, marginBottom: 4 }}>
                           <span style={{ fontSize: 7.5, color: P.muted, flexShrink: 0, lineHeight: '1.35' }}>{l}</span>
-                          <span style={{ fontSize: 7.5, fontWeight: 600, color: P.mid, textAlign: 'right', lineHeight: '1.35' }}>{v}</span>
+                          <span style={{ fontSize: 7.5, fontWeight: 400, color: P.mid, textAlign: 'right', lineHeight: '1.35' }}>{v}</span>
                         </div>
                       ))}
                       <div style={{ borderTop: `1px solid ${P.cardBorder}`, marginTop: 7, paddingTop: 7, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
