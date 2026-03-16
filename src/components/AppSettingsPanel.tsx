@@ -149,7 +149,7 @@ const NdisCodeInput = ({ label, value, onChange, placeholder }: NdisCodeInputPro
 );
 
 /* ── Main panel ── */
-const AppSettingsPanel = ({ settings, loading, onSave }: AppSettingsPanelProps) => {
+const AppSettingsPanel = ({ settings, loading, onSave, onResetInvoiceCounter }: AppSettingsPanelProps) => {
   const [form, setForm] = useState<Partial<Omit<UserSettings, 'id' | 'user_id'>>>({});
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
