@@ -325,9 +325,9 @@ async function exportToPDF(snap: InvoiceSnapshot, lineGroups: ReturnType<typeof 
     cy += BILL_ROW_H + (displayLines.length > 1 ? 3.8 : 0);
   });
 
-  // INVOICE DETAILS box — labels left, values right
+  // INVOICE DETAILS box — labels left, values right, blue accent border
   const rx = M + halfW + 6;
-  box(rx, y, halfW, finalCardH, P.border);
+  box(rx, y, halfW, finalCardH, P.cardBorder, 0.5);
   let dy = y + CARD_TOP;
   sf(5.5, 'bold', P.muted);
   tx('INVOICE DETAILS', rx + CARD_PAD_X, dy);
@@ -346,7 +346,7 @@ async function exportToPDF(snap: InvoiceSnapshot, lineGroups: ReturnType<typeof 
     dy += DET_ROW_H;
   });
   dy += 3;
-  doc.setDrawColor(...rgb(P.border)); doc.setLineWidth(0.25);
+  doc.setDrawColor(...rgb(P.cardBorder)); doc.setLineWidth(0.25);
   doc.line(rx + CARD_PAD_X, dy, rx + halfW - CARD_PAD_X, dy);
   dy += 5.5;
   sf(7.5, 'bold', P.mid);
