@@ -520,8 +520,8 @@ async function exportToPDF(snap: InvoiceSnapshot, lineGroups: ReturnType<typeof 
       y += rowH;
     });
   }
-  // y now sits at bottom of last row; move to end of table
-  y = tableStartY + tableH;
+  // y now sits at bottom of last row; move to end of table + gap
+  y = tableStartY + tableH + 5;
 
   // ── TOTALS — tight content-fitted box ────────────────────────────────────
   const totW = 70;
