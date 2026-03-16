@@ -408,7 +408,7 @@ async function exportToPDF(snap: InvoiceSnapshot, lineGroups: ReturnType<typeof 
   const rowH = 9.5;
   const nRows = Math.max(lineGroups.length, 1);
   // Add 2mm bottom buffer so the last row never bleeds outside the container
-  const tableH = hdrH + nRows * rowH + 2;
+  const tableH = hdrH + nRows * rowH + 4;
 
   box(M, y, CW, tableH, P.cardBorder, 0.5);
 
