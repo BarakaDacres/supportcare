@@ -261,53 +261,64 @@ async function exportToPDF(snap: InvoiceSnapshot, lineGroups: ReturnType<typeof 
   if (snap.clientEmail)        billRows.push({ label: 'Email',        value: snap.clientEmail });
   if (snap.clientAddress)      billRows.push({ label: 'Address',      value: snap.clientAddress });
 
-  // Content-fitted card height
-  const BILL_ROW_H  = 4.8;
-  const CARD_TOP    = 5.5;
-  const SECTION_H   = 6;
-  const CARD_BOT    = 4.5;
-  const billCardH   = CARD_TOP + SECTION_H + billRows.length * BILL_ROW_H + CARD_BOT;
+  // Row layout constants
+  const CARD_PAD_X = 6;     // internal horizontal padding
+  const CARD_TOP   = 5;     // padding before section label
+  const SECTION_H  = 7;     // section label + gap
+  const BILL_ROW_H = 5.2;   // height per BILL TO row (allows slight wrap)
+  const DET_ROW_H  = 5.2;   // same height for INVOICE DETAILS rows
+  const CARD_BOT   = 4;     // bottom padding
+  const SEP_BLOCK  = 11;    // separator + BALANCE DUE area
+  const lblW       = 22;    // label column width
 
-  // INVOICE DETAILS sizing
+  // Card heights
+  const billCardH  = CARD_TOP + SECTION_H + billRows.length * BILL_ROW_H + CARD_BOT;
+  const detCardH   = CARD_TOP + SECTION_H + 4 * DET_ROW_H + SEP_BLOCK + CARD_BOT;
+  const finalCardH = Math.max(billCardH, detCardH);
+
+  // BILL TO box — labels left-aligned, values right-aligned
+  box(M, y, halfW, finalCardH, P.border);
+  let cy = y + CARD_TOP;
+  sf(5.5, 'bold', P.muted);
+  tx('BILL TO', M + CARD_PAD_X, cy);
+  cy += SECTION_H;
+  billRows.forEach(({ label, value, valueBold }) => {
+    sf(6.5, 'normal', P.muted);
+    tx(label, M + CARD_PAD_X, cy);
+    sf(6.5, valueBold ? 'bold' : 'normal', P.ink);
+    // Right-align values to the right edge of the BILL TO card
+    tx(value, M + halfW - CARD_PAD_X, cy, { align: 'right', maxWidth: halfW - lblW - CARD_PAD_X - 2 });
+    cy += BILL_ROW_H;
+  });
+
+  // INVOICE DETAILS box — labels left, values right
+  const rx = M + halfW + 6;
+  box(rx, y, halfW, finalCardH, P.border);
+  let dy = y + CARD_TOP;
+  sf(5.5, 'bold', P.muted);
+  tx('INVOICE DETAILS', rx + CARD_PAD_X, dy);
+  dy += SECTION_H;
   const detailPairs: [string, string][] = [
     ['Service From', formatDateShort(snap.periodStart)],
     ['Service To',   formatDateShort(snap.periodEnd)],
     ['Due Date',     formatDateShort(snap.dueDate)],
     ['GST Rate',     '0% (GST-Free)'],
   ];
-  const DET_ROW_H   = 4.6;
-  const SEP_BLOCK   = 9.5;
-  const detCardH    = CARD_TOP + SECTION_H + detailPairs.length * DET_ROW_H + SEP_BLOCK + CARD_BOT;
-  const finalCardH  = Math.max(billCardH, detCardH);
-  const lblW        = 22;
-
-  // BILL TO box
-  box(M, y, halfW, finalCardH, P.border);
-  let cy = y + CARD_TOP;
-  sf(5.5, 'bold', P.muted); tx('BILL TO', M + 5, cy); cy += SECTION_H;
-  billRows.forEach(({ label, value, valueBold }) => {
-    sf(6.5, 'normal', P.muted);  tx(label, M + 5, cy);
-    sf(6.5, valueBold ? 'bold' : 'normal', P.ink);
-    tx(value, M + 5 + lblW, cy, { maxWidth: halfW - lblW - 6 });
-    cy += BILL_ROW_H;
-  });
-
-  // INVOICE DETAILS box
-  const rx = M + halfW + 6;
-  box(rx, y, halfW, finalCardH, P.border);
-  let dy = y + CARD_TOP;
-  sf(5.5, 'bold', P.muted); tx('INVOICE DETAILS', rx + 5, dy); dy += SECTION_H;
   detailPairs.forEach(([lbl, val]) => {
-    sf(6.5, 'normal', P.muted); tx(lbl, rx + 6, dy);
-    sf(6.5, 'bold',   P.mid);   tx(val, rx + halfW - 4, dy, { align: 'right' });
+    sf(6.5, 'normal', P.muted);
+    tx(lbl, rx + CARD_PAD_X, dy);
+    sf(6.5, 'bold', P.mid);
+    tx(val, rx + halfW - CARD_PAD_X, dy, { align: 'right' });
     dy += DET_ROW_H;
   });
-  dy += 2.5;
-  doc.setDrawColor(...rgb(P.border)); doc.setLineWidth(0.3);
-  doc.line(rx + 6, dy, rx + halfW - 6, dy);
-  dy += 5;
-  sf(7.5, 'bold', P.mid);  tx('BALANCE DUE', rx + 6, dy);
-  sf(10, 'bold', P.ink); tx(fmt$(snap.total), rx + halfW - 4, dy, { align: 'right' });
+  dy += 3;
+  doc.setDrawColor(...rgb(P.border)); doc.setLineWidth(0.25);
+  doc.line(rx + CARD_PAD_X, dy, rx + halfW - CARD_PAD_X, dy);
+  dy += 5.5;
+  sf(7.5, 'bold', P.mid);
+  tx('BALANCE DUE', rx + CARD_PAD_X, dy);
+  sf(10, 'bold', P.ink);
+  tx(fmt$(snap.total), rx + halfW - CARD_PAD_X, dy, { align: 'right' });
 
   y += finalCardH + 6;
 
