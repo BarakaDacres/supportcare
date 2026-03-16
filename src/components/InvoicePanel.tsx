@@ -1026,15 +1026,19 @@ const InvoicePanel = ({
             )}
 
             <button onClick={generateInvoice}
-              disabled={generating || periodShifts.length === 0}
+              disabled={generating || shiftsLoading || (periodShifts.length === 0 && !shiftsLoading)}
               className="w-full flex items-center justify-center gap-2 min-h-[48px] rounded-2xl text-sm font-bold transition-all duration-200 disabled:opacity-40"
               style={{ background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', boxShadow: '0 4px 16px hsl(var(--primary)/0.3)' }}>
-              <FileText className="w-4 h-4" />
-              {generating ? 'Generating…' : existingInvoice
-                ? `View ${existingInvoice.invoice_number}`
-                : periodShifts.length === 0
-                  ? 'No shifts in period'
-                  : 'Generate Invoice'}
+              {shiftsLoading
+                ? <><div className="w-4 h-4 rounded-full border-2 border-primary-foreground/30 border-t-primary-foreground animate-spin" /> Loading shifts…</>
+                : generating
+                  ? <><FileText className="w-4 h-4" /> Generating…</>
+                  : existingInvoice
+                    ? <><FileText className="w-4 h-4" /> {`View ${existingInvoice.invoice_number}`}</>
+                    : periodShifts.length === 0
+                      ? <><FileText className="w-4 h-4" /> No shifts in period</>
+                      : <><FileText className="w-4 h-4" /> Generate Invoice</>
+              }
             </button>
           </div>
 
