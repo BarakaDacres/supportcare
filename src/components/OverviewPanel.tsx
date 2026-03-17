@@ -364,12 +364,13 @@ const EarningsCalendarHeatmap = ({
       {/* Header */}
       <div className="flex items-center justify-between mb-3">
         <p className="section-label">Earnings Calendar</p>
-        <div className="flex items-center gap-1">
-          <span className="text-[9px] text-muted-foreground">Low</span>
-          {[0.15, 0.35, 0.55, 0.75, 1].map((o, i) => (
-            <div key={i} className="w-2 h-2 rounded-[3px]" style={{ background: `hsl(var(--money-green) / ${o})` }} />
+        {/* Legend — reduced opacity, tighter dots, baseline-aligned with title */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+          <span style={{ fontSize: 9, color: 'hsl(var(--muted-foreground) / 0.7)', lineHeight: 1 }}>Low</span>
+          {[0.12, 0.28, 0.48, 0.68, 0.88].map((o, i) => (
+            <div key={i} style={{ width: 7, height: 7, borderRadius: 2, flexShrink: 0, background: `hsl(var(--money-green) / ${o})` }} />
           ))}
-          <span className="text-[9px] text-muted-foreground">High</span>
+          <span style={{ fontSize: 9, color: 'hsl(var(--muted-foreground) / 0.7)', lineHeight: 1 }}>High</span>
         </div>
       </div>
 
