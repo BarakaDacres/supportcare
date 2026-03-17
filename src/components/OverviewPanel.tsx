@@ -1,19 +1,39 @@
 import { useMemo, useState, useEffect, useRef } from 'react';
 
-// ── Haptic feedback (iOS Safari + Android vibration) ─────────────────────────
+// ── Haptic feedback ──────────────────────────────────────────────────────────
+// Strategy:
+//   1. iOS Capacitor / WKWebView: webkit.messageHandlers.hapticFeedback
+//   2. Android & Chrome PWA: navigator.vibrate (requires user-gesture context)
+//   3. Web fallback: tiny silent AudioContext click (perceived as "feel" on some devices)
 function haptic(style: 'light' | 'medium' | 'selection' = 'light') {
   try {
-    // iOS: use WebKit Haptic Feedback API if available
+    // 1. Native iOS WKWebView bridge
     const win = window as unknown as {
       webkit?: { messageHandlers?: { hapticFeedback?: { postMessage: (s: string) => void } } };
+      DeviceMotionEvent?: { requestPermission?: () => Promise<string> };
     };
     if (win.webkit?.messageHandlers?.hapticFeedback) {
       win.webkit.messageHandlers.hapticFeedback.postMessage(style);
       return;
     }
-    // Android / PWA: vibration API
-    if ('vibrate' in navigator) {
-      navigator.vibrate(style === 'light' ? 8 : style === 'medium' ? 16 : 4);
+    // 2. Vibration API (Android Chrome, some PWA contexts)
+    if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+      const ms = style === 'medium' ? 18 : style === 'selection' ? 3 : 8;
+      navigator.vibrate(ms);
+      return;
+    }
+    // 3. Silent AudioContext micro-click — gives tactile feel on some hardware
+    const AudioCtx = window.AudioContext || (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+    if (AudioCtx) {
+      const ctx = new AudioCtx();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      gain.gain.setValueAtTime(0, ctx.currentTime);
+      osc.start(ctx.currentTime);
+      osc.stop(ctx.currentTime + 0.002);
+      ctx.close();
     }
   } catch { /* ignore */ }
 }
