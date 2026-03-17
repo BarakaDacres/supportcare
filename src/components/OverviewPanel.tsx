@@ -101,6 +101,39 @@ const AnimatedCurrency = ({
   );
 };
 
+// ── Inline sparkline (pure SVG, no deps) ─────────────────────────────────────
+const Sparkline = ({ data, width = 72, height = 22 }: { data: number[]; width?: number; height?: number }) => {
+  if (!data || data.length < 2) return null;
+  const max = Math.max(...data, 1);
+  const pad = 2;
+  const w = width - pad * 2;
+  const h = height - pad * 2;
+  const points = data.map((v, i) => {
+    const x = pad + (i / (data.length - 1)) * w;
+    const y = pad + h - (v / max) * h;
+    return { x, y };
+  });
+  const pathD = points
+    .map((p, i) => (i === 0 ? `M ${p.x} ${p.y}` : `L ${p.x} ${p.y}`))
+    .join(' ');
+  const last = points[points.length - 1];
+  return (
+    <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} fill="none" overflow="visible">
+      <polyline
+        points={points.map(p => `${p.x},${p.y}`).join(' ')}
+        stroke="#3B82F6"
+        strokeWidth="1.25"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        fill="none"
+        opacity="0.55"
+      />
+      {/* End-point dot */}
+      <circle cx={last.x} cy={last.y} r="2" fill="#3B82F6" opacity="0.75" />
+    </svg>
+  );
+};
+
 // ── Compact day popup (anchored inline) ──────────────────────────────────────
 const DayPopup = ({
   dateStr, shifts, onClose,
@@ -723,6 +756,31 @@ const OverviewPanel = ({
       activeShift,
       nextShift,
       topClient: topClientEntry,
+      weeklySparkline: (() => {
+        // Build calendar weeks for selected month and sum gross per week
+        const firstDay = new Date(selectedYear, selectedMonth, 1);
+        const lastDay = new Date(selectedYear, selectedMonth + 1, 0);
+        // Find Monday on or before first of month
+        const mondayOffset = firstDay.getDay() === 0 ? 6 : firstDay.getDay() - 1;
+        const weekStart = new Date(firstDay);
+        weekStart.setDate(weekStart.getDate() - mondayOffset);
+
+        const weeks: number[] = [];
+        const cursor = new Date(weekStart);
+        while (cursor <= lastDay) {
+          const wEnd = new Date(cursor);
+          wEnd.setDate(wEnd.getDate() + 6);
+          const weekGross = thisMonthShifts
+            .filter(s => {
+              const d = parseDate(s.date);
+              return d >= cursor && d <= wEnd;
+            })
+            .reduce((sum, s) => sum + effectiveGrossPay(s), 0);
+          weeks.push(weekGross);
+          cursor.setDate(cursor.getDate() + 7);
+        }
+        return weeks;
+      })(),
     };
   }, [shifts, selectedMonth, selectedYear]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -987,17 +1045,27 @@ const OverviewPanel = ({
 
       {/* ── Month summary card ── */}
       <ElevatedCard style={{ padding: '16px 18px' }}>
-        <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest mb-2">
-          {MONTH_SHORT[selectedMonth]} Gross
-        </p>
-        <AnimatedCurrency
-          value={stats.monthGross}
-          className="text-xl font-bold money-text leading-tight"
-          deps={animDeps}
-        />
-        <p className="text-[10px] text-muted-foreground mt-1">
-          {stats.monthShiftCount} shifts · {stats.monthHours.toFixed(0)}h
-        </p>
+        <div className="flex items-start justify-between gap-2">
+          <div className="min-w-0 flex-1">
+            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest mb-2">
+              {MONTH_SHORT[selectedMonth]} Gross
+            </p>
+            <AnimatedCurrency
+              value={stats.monthGross}
+              className="text-xl font-bold money-text leading-tight"
+              deps={animDeps}
+            />
+            <p className="text-[10px] text-muted-foreground mt-1">
+              {stats.monthShiftCount} shifts · {stats.monthHours.toFixed(0)}h
+            </p>
+          </div>
+          {/* Sparkline — right-aligned, only rendered when there is data */}
+          {stats.weeklySparkline.some(v => v > 0) && (
+            <div className="flex items-end pb-0.5 shrink-0">
+              <Sparkline data={stats.weeklySparkline} width={64} height={28} />
+            </div>
+          )}
+        </div>
         {monthGrowthPct !== null && (
           <div className="mt-2 flex items-center gap-0.5">
             {monthGrowthUp
