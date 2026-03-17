@@ -451,10 +451,12 @@ const MonthNavigator = ({
   monthHours: number;
 }) => {
   const prev = () => {
+    haptic('light');
     if (month === 0) { onYearChange(year - 1); onMonthChange(11); }
     else onMonthChange(month - 1);
   };
   const next = () => {
+    haptic('light');
     if (month === 11) { onYearChange(year + 1); onMonthChange(0); }
     else onMonthChange(month + 1);
   };
@@ -464,7 +466,7 @@ const MonthNavigator = ({
   const handleTouchEnd = (e: React.TouchEvent) => {
     if (touchStartX.current === null) return;
     const dx = e.changedTouches[0].clientX - touchStartX.current;
-    if (Math.abs(dx) > 48) { dx < 0 ? next() : prev(); }
+    if (Math.abs(dx) > 48) { haptic('light'); dx < 0 ? next() : prev(); }
     touchStartX.current = null;
   };
 
