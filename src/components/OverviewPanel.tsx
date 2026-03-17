@@ -1100,113 +1100,190 @@ const OverviewPanel = ({
           );
         })()}
 
-        {/* Active Now / Next Shift capsule — priority: active → next → empty */}
-        <div className="pt-4 mt-1" style={{ borderTop: '0.5px solid hsl(var(--border))' }}>
-          {activeShiftInfo ? (
-            <>
-              {/* Active Now label row */}
-              <div className="flex items-center gap-2 mb-2.5">
+        {/* ── Active Now / Next Shift — refined iOS-style status card ── */}
+        {(activeShiftInfo || nextShiftInfo) && (() => {
+          const info = activeShiftInfo ?? nextShiftInfo!;
+          const isActive = !!activeShiftInfo;
+
+          // Progress bar calculation for active shifts
+          let progressPct = 0;
+          if (isActive && stats.activeShift) {
+            const s = stats.activeShift;
+            const [startH, startM] = s.start_time.split(':').map(Number);
+            const [endH, endM] = s.end_time.split(':').map(Number);
+            const [sy, sm, sd] = s.date.split('-').map(Number);
+            const shiftStart = new Date(sy, sm - 1, sd, startH, startM, 0, 0);
+            const endDayOffset = s.is_sleepover || endH < startH ? 1 : 0;
+            const shiftEnd = new Date(sy, sm - 1, sd + endDayOffset, endH, endM, 0, 0);
+            const now = new Date();
+            const total = shiftEnd.getTime() - shiftStart.getTime();
+            const elapsed = now.getTime() - shiftStart.getTime();
+            progressPct = Math.min(100, Math.max(0, (elapsed / total) * 100));
+          }
+
+          // Background and border colors
+          const bgColor = isActive
+            ? 'hsl(var(--stat-green)/0.06)'
+            : info.isEvening
+            ? 'hsl(38 90% 52% / 0.06)'
+            : info.isPublicHoliday
+            ? 'hsl(34 97% 52% / 0.06)'
+            : 'hsl(var(--primary)/0.05)';
+
+          const borderColor = isActive
+            ? 'hsl(var(--stat-green)/0.18)'
+            : info.isEvening
+            ? 'hsl(38 90% 52% / 0.2)'
+            : info.isPublicHoliday
+            ? 'hsl(34 97% 52% / 0.2)'
+            : 'hsl(var(--primary)/0.16)';
+
+          // Progress bar color
+          const progressColor = isActive
+            ? 'hsl(var(--stat-green))'
+            : info.isEvening
+            ? 'hsl(38 90% 48%)'
+            : 'hsl(var(--primary))';
+
+          // Type tag colors — softer, label-style
+          const tagStyle: React.CSSProperties = info.isSleepover ? {
+            background: 'hsl(221 83% 53% / 0.12)',
+            color: 'hsl(221 83% 48%)',
+          } : info.isPublicHoliday ? {
+            background: 'hsl(34 97% 52% / 0.12)',
+            color: 'hsl(34 90% 40%)',
+          } : info.isEvening ? {
+            background: 'hsl(38 90% 52% / 0.12)',
+            color: 'hsl(38 90% 38%)',
+          } : isActive ? {
+            background: 'hsl(var(--stat-green)/0.12)',
+            color: 'hsl(var(--stat-green))',
+          } : {
+            background: 'hsl(var(--primary)/0.10)',
+            color: 'hsl(var(--primary))',
+          };
+
+          return (
+            <div className="pt-4 mt-1" style={{ borderTop: '0.5px solid hsl(var(--border))' }}>
+              {/* Status label row with pulsing dot */}
+              <div className="flex items-center gap-1.5 mb-3">
+                {/* Pulsing dot */}
                 <span
-                  className="text-[9px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full"
                   style={{
-                    background: 'hsl(var(--stat-green)/0.15)',
-                    color: 'hsl(var(--stat-green))',
+                    display: 'inline-block',
+                    width: 6,
+                    height: 6,
+                    borderRadius: '50%',
+                    background: isActive ? 'hsl(var(--stat-green))' : 'hsl(var(--muted-foreground))',
+                    opacity: isActive ? 1 : 0.5,
+                    animation: isActive ? 'shiftDotPulse 1.8s ease-in-out infinite' : 'none',
+                    flexShrink: 0,
                   }}
+                />
+                <span
+                  className="text-[9px] font-semibold uppercase tracking-widest"
+                  style={{ color: isActive ? 'hsl(var(--stat-green))' : 'hsl(var(--muted-foreground))' }}
                 >
-                  ● Active Now
+                  {isActive ? 'In Progress' : 'Next Shift'}
                 </span>
               </div>
-              {/* Active shift card */}
-              <div
-                className="rounded-2xl px-4 py-3 flex items-center justify-between gap-3"
+
+              {/* The card itself */}
+              <button
+                className="w-full text-left overflow-hidden"
                 style={{
-                  background: 'hsl(var(--stat-green)/0.09)',
-                  border: '1px solid hsl(var(--stat-green)/0.25)',
+                  borderRadius: 'var(--radius)',
+                  background: bgColor,
+                  border: `0.5px solid ${borderColor}`,
+                  WebkitTapHighlightColor: 'transparent',
+                  transition: 'transform 120ms ease-out, box-shadow 120ms ease-out',
+                }}
+                onPointerDown={e => {
+                  haptic('light');
+                  const el = e.currentTarget;
+                  el.style.transform = 'scale(0.98)';
+                  el.style.boxShadow = '0 4px 12px hsl(var(--foreground)/0.06)';
+                }}
+                onPointerUp={e => {
+                  const el = e.currentTarget;
+                  el.style.transform = '';
+                  el.style.boxShadow = '';
+                }}
+                onPointerLeave={e => {
+                  const el = e.currentTarget;
+                  el.style.transform = '';
+                  el.style.boxShadow = '';
                 }}
               >
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-bold text-foreground leading-snug">
-                    {activeShiftInfo.dateLabel}
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-0.5">
-                    {activeShiftInfo.timeLabel}
-                  </p>
-                </div>
-                {/* Strong-contrast chip for active shift type */}
-                <span
-                  className="shrink-0 text-[10px] font-bold px-2.5 py-1 rounded-full text-white"
-                  style={{
-                    background: activeShiftInfo.isSleepover
-                      ? '#2563EB'
-                      : activeShiftInfo.isPublicHoliday
-                      ? 'hsl(34 97% 48%)'
-                      : activeShiftInfo.isEvening
-                      ? 'hsl(38 90% 44%)'
-                      : 'hsl(var(--stat-green))',
-                  }}
-                >
-                  {activeShiftInfo.typeLabel}
-                </span>
-              </div>
-            </>
-          ) : (
-            <>
-              <p className="text-[9px] font-semibold text-muted-foreground uppercase tracking-widest mb-2.5">
-                Next Shift
-              </p>
-              {nextShiftInfo ? (
-                <div
-                  className="rounded-2xl px-4 py-3 flex items-center justify-between gap-3"
-                  style={{
-                    background: nextShiftInfo.isEvening
-                      ? 'hsl(38 90% 52% / 0.1)'
-                      : nextShiftInfo.isPublicHoliday
-                      ? 'hsl(34 97% 52% / 0.1)'
-                      : 'hsl(var(--primary)/0.08)',
-                    border: nextShiftInfo.isEvening
-                      ? '1px solid hsl(38 90% 52% / 0.3)'
-                      : nextShiftInfo.isPublicHoliday
-                      ? '1px solid hsl(34 97% 52% / 0.3)'
-                      : '1px solid hsl(var(--primary)/0.22)',
-                  }}
-                >
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-bold text-foreground leading-snug">
-                      {nextShiftInfo.dateLabel}
+                {/* Card content */}
+                <div className="px-4 pt-3.5 pb-3.5 flex items-center justify-between gap-3">
+                  <div className="flex-1 min-w-0 space-y-1">
+                    {/* Date — medium/semibold, primary info */}
+                    <p className="text-sm font-semibold text-foreground leading-snug tracking-tight">
+                      {info.dateLabel}
                     </p>
-                    <p className="text-xs text-muted-foreground mt-0.5">
-                      {nextShiftInfo.timeLabel}
+                    {/* Time — regular weight, slightly muted */}
+                    <p className="text-xs font-normal leading-snug" style={{ color: 'hsl(var(--muted-foreground)/0.8)' }}>
+                      {info.timeLabel}
                     </p>
+                    {/* Client name if available */}
+                    {(isActive ? stats.activeShift?.client_name : stats.nextShift?.client_name) && (
+                      <p className="text-[10px] font-normal" style={{ color: 'hsl(var(--muted-foreground)/0.55)' }}>
+                        {isActive ? stats.activeShift?.client_name : stats.nextShift?.client_name}
+                      </p>
+                    )}
                   </div>
-                  {/* Type chip — high-contrast on every variant */}
+
+                  {/* Type tag — label-style, not button-like */}
                   <span
-                    className="shrink-0 text-[10px] font-bold px-2.5 py-1 rounded-full"
-                    style={
-                      nextShiftInfo.isSleepover ? {
-                        background: '#2563EB',
-                        color: '#ffffff',
-                      } : nextShiftInfo.isPublicHoliday ? {
-                        background: 'hsl(34 97% 52%)',
-                        color: '#ffffff',
-                      } : nextShiftInfo.isEvening ? {
-                        background: 'hsl(38 90% 44%)',
-                        color: '#ffffff',
-                      } : {
-                        // Support Shift / client name — solid primary for readability
-                        background: 'hsl(var(--primary))',
-                        color: 'hsl(var(--primary-foreground))',
-                      }
-                    }
+                    className="shrink-0 text-[10px] font-medium rounded-md"
+                    style={{
+                      ...tagStyle,
+                      padding: '3px 8px',
+                      letterSpacing: '0.01em',
+                    }}
                   >
-                    {nextShiftInfo.typeLabel}
+                    {info.typeLabel}
                   </span>
                 </div>
-              ) : (
-                <p className="text-xs text-muted-foreground">No upcoming shifts scheduled.</p>
-              )}
-            </>
-          )}
-        </div>
+
+                {/* Progress bar — active shifts only, 2px height at bottom */}
+                {isActive && (
+                  <div
+                    style={{
+                      height: 2,
+                      background: 'hsl(var(--border)/0.5)',
+                      borderRadius: 0,
+                    }}
+                  >
+                    <div
+                      style={{
+                        height: '100%',
+                        width: `${progressPct}%`,
+                        background: progressColor,
+                        borderRadius: 0,
+                        transition: 'width 1s linear',
+                        opacity: 0.7,
+                      }}
+                    />
+                  </div>
+                )}
+              </button>
+            </div>
+          );
+        })()}
+        {!activeShiftInfo && !nextShiftInfo && (
+          <div className="pt-4 mt-1" style={{ borderTop: '0.5px solid hsl(var(--border))' }}>
+            <p className="text-[9px] font-semibold text-muted-foreground uppercase tracking-widest mb-1.5">Next Shift</p>
+            <p className="text-xs text-muted-foreground">No upcoming shifts scheduled.</p>
+          </div>
+        )}
+        <style>{`
+          @keyframes shiftDotPulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.35; }
+          }
+        `}</style>
       </ElevatedCard>
 
       {/* ── Month summary card ── */}
