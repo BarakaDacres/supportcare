@@ -164,7 +164,7 @@ const Index = ({ auth }: IndexProps) => {
           {activeTab === 'settings' && renderSettingsContent()}
         </main>
 
-        <BottomTabBar activeTab={activeTab} onTabChange={setActiveTab} hidden={sheetOpen} />
+        <BottomTabBar activeTab={activeTab} onTabChange={setActiveTab} hidden={sheetOpen} auth={auth} />
       </div>
     );
   }
