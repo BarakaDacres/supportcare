@@ -723,6 +723,31 @@ const OverviewPanel = ({
       activeShift,
       nextShift,
       topClient: topClientEntry,
+      weeklySparkline: (() => {
+        // Build calendar weeks for selected month and sum gross per week
+        const firstDay = new Date(selectedYear, selectedMonth, 1);
+        const lastDay = new Date(selectedYear, selectedMonth + 1, 0);
+        // Find Monday on or before first of month
+        const mondayOffset = firstDay.getDay() === 0 ? 6 : firstDay.getDay() - 1;
+        const weekStart = new Date(firstDay);
+        weekStart.setDate(weekStart.getDate() - mondayOffset);
+
+        const weeks: number[] = [];
+        const cursor = new Date(weekStart);
+        while (cursor <= lastDay) {
+          const wEnd = new Date(cursor);
+          wEnd.setDate(wEnd.getDate() + 6);
+          const weekGross = thisMonthShifts
+            .filter(s => {
+              const d = parseDate(s.date);
+              return d >= cursor && d <= wEnd;
+            })
+            .reduce((sum, s) => sum + effectiveGrossPay(s), 0);
+          weeks.push(weekGross);
+          cursor.setDate(cursor.getDate() + 7);
+        }
+        return weeks;
+      })(),
     };
   }, [shifts, selectedMonth, selectedYear]); // eslint-disable-line react-hooks/exhaustive-deps
 
