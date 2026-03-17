@@ -5,6 +5,7 @@
  */
 
 import type { AuthState } from '@/hooks/useAuth';
+import { haptic } from '@/components/OverviewPanel';
 
 export type TabId = 'overview' | 'shifts' | 'analytics' | 'invoices' | 'settings';
 
@@ -221,7 +222,7 @@ const BottomTabBar = ({ activeTab, onTabChange, hidden = false, auth }: Props) =
               role="tab"
               aria-selected={isActive}
               aria-label={tab.label}
-              onClick={() => onTabChange(tab.id)}
+              onClick={() => { haptic('selection'); onTabChange(tab.id); }}
               style={{
                 flex: 1,
                 height: '100%',

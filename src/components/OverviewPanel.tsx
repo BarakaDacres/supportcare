@@ -1,4 +1,23 @@
 import { useMemo, useState, useEffect, useRef } from 'react';
+
+// ── Haptic feedback (iOS Safari + Android vibration) ─────────────────────────
+function haptic(style: 'light' | 'medium' | 'selection' = 'light') {
+  try {
+    // iOS: use WebKit Haptic Feedback API if available
+    const win = window as unknown as {
+      webkit?: { messageHandlers?: { hapticFeedback?: { postMessage: (s: string) => void } } };
+    };
+    if (win.webkit?.messageHandlers?.hapticFeedback) {
+      win.webkit.messageHandlers.hapticFeedback.postMessage(style);
+      return;
+    }
+    // Android / PWA: vibration API
+    if ('vibrate' in navigator) {
+      navigator.vibrate(style === 'light' ? 8 : style === 'medium' ? 16 : 4);
+    }
+  } catch { /* ignore */ }
+}
+export { haptic };
 import {
   TrendingUp, Clock, Moon, CalendarDays, Zap, Target,
   ChevronLeft, ChevronRight, Users, FileText, ArrowUpRight, ArrowDownRight, X, Sunset,
@@ -101,7 +120,7 @@ const AnimatedCurrency = ({
   );
 };
 
-// ── Smooth sparkline with gradient fill ──────────────────────────────────────
+// ── Smooth sparkline with gradient fill + draw-on animation ──────────────────
 const Sparkline = ({
   data,
   width = 200,
@@ -113,12 +132,65 @@ const Sparkline = ({
   height?: number;
   id?: string;
 }) => {
+  const lineRef = useRef<SVGPathElement>(null);
+  const fillRef = useRef<SVGPathElement>(null);
+  const dotsRef = useRef<SVGGElement>(null);
+  const labelRef = useRef<SVGTextElement>(null);
+  // Re-run animation whenever data identity changes (month/year switch)
+  const dataKey = data.join(',');
+
+  useEffect(() => {
+    const line = lineRef.current;
+    if (!line) return;
+    const len = line.getTotalLength();
+    // Start fully hidden
+    line.style.strokeDasharray = `${len}`;
+    line.style.strokeDashoffset = `${len}`;
+    line.style.transition = 'none';
+    // Fill starts transparent
+    if (fillRef.current) {
+      fillRef.current.style.opacity = '0';
+      fillRef.current.style.transition = 'none';
+    }
+    // Dots + labels start invisible
+    if (dotsRef.current) {
+      dotsRef.current.style.opacity = '0';
+      dotsRef.current.style.transition = 'none';
+    }
+    if (labelRef.current) {
+      labelRef.current.style.opacity = '0';
+      labelRef.current.style.transition = 'none';
+    }
+
+    // Force reflow, then animate
+    const raf = requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        line.style.transition = 'stroke-dashoffset 680ms cubic-bezier(0.4,0,0.2,1)';
+        line.style.strokeDashoffset = '0';
+        if (fillRef.current) {
+          fillRef.current.style.transition = 'opacity 500ms ease 300ms';
+          fillRef.current.style.opacity = '1';
+        }
+        if (dotsRef.current) {
+          dotsRef.current.style.transition = 'opacity 300ms ease 500ms';
+          dotsRef.current.style.opacity = '1';
+        }
+        if (labelRef.current) {
+          labelRef.current.style.transition = 'opacity 300ms ease 600ms';
+          labelRef.current.style.opacity = '1';
+        }
+      });
+    });
+    return () => cancelAnimationFrame(raf);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dataKey]);
+
   if (!data || data.length < 2) return null;
 
   const max = Math.max(...data, 1);
   const padX = 4;
   const padTop = 6;
-  const padBottom = 16; // room for week labels
+  const padBottom = 16;
   const w = width - padX * 2;
   const h = height - padTop - padBottom;
 
@@ -136,7 +208,6 @@ const Sparkline = ({
     return `${acc} C ${cpX.toFixed(2)} ${prev.y.toFixed(2)}, ${cpX.toFixed(2)} ${p.y.toFixed(2)}, ${p.x.toFixed(2)} ${p.y.toFixed(2)}`;
   }, '');
 
-  // Closed fill path: line + drop to bottom-right + bottom-left
   const fillPath = `${linePath} L ${pts[pts.length - 1].x.toFixed(2)} ${(padTop + h).toFixed(2)} L ${pts[0].x.toFixed(2)} ${(padTop + h).toFixed(2)} Z`;
 
   const last = pts[pts.length - 1];
@@ -158,11 +229,12 @@ const Sparkline = ({
         </linearGradient>
       </defs>
 
-      {/* Filled area under the curve */}
-      <path d={fillPath} fill={`url(#${gradId})`} />
+      {/* Filled area — fades in after line draws */}
+      <path ref={fillRef} d={fillPath} fill={`url(#${gradId})`} style={{ opacity: 0 }} />
 
-      {/* Smooth line */}
+      {/* Smooth line — draws left to right */}
       <path
+        ref={lineRef}
         d={linePath}
         stroke="#3B82F6"
         strokeWidth="1.5"
@@ -172,40 +244,42 @@ const Sparkline = ({
         opacity="0.7"
       />
 
-      {/* Per-week dots + value labels */}
-      {pts.map((p, i) => {
-        const isLast = i === pts.length - 1;
-        const isEmpty = p.v === 0;
-        return (
-          <g key={i}>
-            <circle
-              cx={p.x}
-              cy={p.y}
-              r={isLast ? 2.5 : 1.8}
-              fill={isEmpty ? '#93C5FD' : '#3B82F6'}
-              opacity={isEmpty ? 0.3 : isLast ? 1 : 0.55}
-            />
-            {/* Week label below */}
-            <text
-              x={p.x}
-              y={padTop + h + 11}
-              textAnchor="middle"
-              fontSize="7"
-              fill="#3B82F6"
-              opacity="0.45"
-              fontFamily="system-ui, -apple-system, sans-serif"
-              fontWeight="600"
-              letterSpacing="0.3"
-            >
-              {weekLabels[i]}
-            </text>
-          </g>
-        );
-      })}
+      {/* Dots + week labels — pop in after line */}
+      <g ref={dotsRef} style={{ opacity: 0 }}>
+        {pts.map((p, i) => {
+          const isLast = i === pts.length - 1;
+          const isEmpty = p.v === 0;
+          return (
+            <g key={i}>
+              <circle
+                cx={p.x}
+                cy={p.y}
+                r={isLast ? 2.5 : 1.8}
+                fill={isEmpty ? '#93C5FD' : '#3B82F6'}
+                opacity={isEmpty ? 0.3 : isLast ? 1 : 0.55}
+              />
+              <text
+                x={p.x}
+                y={padTop + h + 11}
+                textAnchor="middle"
+                fontSize="7"
+                fill="#3B82F6"
+                opacity="0.45"
+                fontFamily="system-ui, -apple-system, sans-serif"
+                fontWeight="600"
+                letterSpacing="0.3"
+              >
+                {weekLabels[i]}
+              </text>
+            </g>
+          );
+        })}
+      </g>
 
-      {/* Highlight last point value */}
+      {/* Last point value callout — appears last */}
       {last.v > 0 && (
         <text
+          ref={labelRef}
           x={last.x}
           y={last.y - 5}
           textAnchor={last.x > width * 0.75 ? 'end' : 'middle'}
@@ -214,6 +288,7 @@ const Sparkline = ({
           opacity="0.8"
           fontFamily="system-ui, -apple-system, sans-serif"
           fontWeight="700"
+          style={{ opacity: 0 }}
         >
           ${last.v >= 1000 ? `${(last.v / 1000).toFixed(1)}k` : last.v.toFixed(0)}
         </text>
@@ -376,10 +451,12 @@ const MonthNavigator = ({
   monthHours: number;
 }) => {
   const prev = () => {
+    haptic('light');
     if (month === 0) { onYearChange(year - 1); onMonthChange(11); }
     else onMonthChange(month - 1);
   };
   const next = () => {
+    haptic('light');
     if (month === 11) { onYearChange(year + 1); onMonthChange(0); }
     else onMonthChange(month + 1);
   };
@@ -389,7 +466,7 @@ const MonthNavigator = ({
   const handleTouchEnd = (e: React.TouchEvent) => {
     if (touchStartX.current === null) return;
     const dx = e.changedTouches[0].clientX - touchStartX.current;
-    if (Math.abs(dx) > 48) { dx < 0 ? next() : prev(); }
+    if (Math.abs(dx) > 48) { haptic('light'); dx < 0 ? next() : prev(); }
     touchStartX.current = null;
   };
 
@@ -480,6 +557,7 @@ const EarningsCalendarHeatmap = ({
   const DAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
   const handleDayClick = (dateStr: string, cellIndex: number) => {
+    haptic('selection');
     if (selectedDate === dateStr) {
       setSelectedDate(null);
       setPopupPos(null);
