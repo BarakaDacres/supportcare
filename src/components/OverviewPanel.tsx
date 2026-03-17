@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect, useRef, useCallback } from 'react';
+import { useMemo, useState, useEffect, useRef } from 'react';
 
 // ── Haptic feedback (iOS Safari + Android vibration) ─────────────────────────
 function haptic(style: 'light' | 'medium' | 'selection' = 'light') {
