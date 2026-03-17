@@ -167,13 +167,6 @@ const TABS: Tab[] = [
   { id: 'settings',  label: 'Profile'  },
 ];
 
-// Horizontal inset of the active tint capsule beyond the icon+label stack
-const TINT_PAD_X = 10;
-// Vertical inset of capsule within pill
-const INSET_Y = 6;
-
-interface Rect { left: number; width: number; }
-
 interface Props {
   activeTab: TabId;
   onTabChange: (tab: TabId) => void;
