@@ -1,4 +1,23 @@
-import { useMemo, useState, useEffect, useRef } from 'react';
+import { useMemo, useState, useEffect, useRef, useCallback } from 'react';
+
+// ── Haptic feedback (iOS Safari + Android vibration) ─────────────────────────
+function haptic(style: 'light' | 'medium' | 'selection' = 'light') {
+  try {
+    // iOS: use WebKit Haptic Feedback API if available
+    const win = window as unknown as {
+      webkit?: { messageHandlers?: { hapticFeedback?: { postMessage: (s: string) => void } } };
+    };
+    if (win.webkit?.messageHandlers?.hapticFeedback) {
+      win.webkit.messageHandlers.hapticFeedback.postMessage(style);
+      return;
+    }
+    // Android / PWA: vibration API
+    if ('vibrate' in navigator) {
+      navigator.vibrate(style === 'light' ? 8 : style === 'medium' ? 16 : 4);
+    }
+  } catch { /* ignore */ }
+}
+export { haptic };
 import {
   TrendingUp, Clock, Moon, CalendarDays, Zap, Target,
   ChevronLeft, ChevronRight, Users, FileText, ArrowUpRight, ArrowDownRight, X, Sunset,

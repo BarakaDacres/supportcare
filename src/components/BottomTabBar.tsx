@@ -5,6 +5,7 @@
  */
 
 import type { AuthState } from '@/hooks/useAuth';
+import { haptic } from '@/components/OverviewPanel';
 
 export type TabId = 'overview' | 'shifts' | 'analytics' | 'invoices' | 'settings';
 
