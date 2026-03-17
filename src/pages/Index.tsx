@@ -178,7 +178,7 @@ const Index = ({ auth }: IndexProps) => {
         <div className="segmented-control mb-6 no-print">
           {(
             [
-              { id: 'overview', label: 'Overview' },
+              { id: 'overview', label: 'Home' },
               { id: 'shifts', label: 'Shifts' },
               { id: 'analytics', label: 'Analytics' },
               { id: 'invoices', label: 'Invoices' },
