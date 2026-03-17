@@ -131,7 +131,7 @@
   * { @apply border-border; }
   body {
     @apply bg-background text-foreground antialiased;
-    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'Helvetica Neue', 'Segoe UI', sans-serif;
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'SF Pro Icons', ui-sans-serif, sans-serif;
     font-feature-settings: "cv01", "cv02", "cv03";
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
