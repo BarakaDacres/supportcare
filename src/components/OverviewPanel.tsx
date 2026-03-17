@@ -933,51 +933,34 @@ const OverviewPanel = ({
         </div>
       </ElevatedCard>
 
-      {/* ── Month & Year summary cards ── */}
-      <div className="grid grid-cols-2 gap-3">
-        <ElevatedCard style={{ padding: '16px 18px' }}>
-          <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest mb-2">
-            {MONTH_SHORT[selectedMonth]} Gross
-          </p>
-          <AnimatedCurrency
-            value={stats.monthGross}
-            className="text-xl font-bold money-text leading-tight"
-            deps={animDeps}
-          />
-          <p className="text-[10px] text-muted-foreground mt-1">
-            {stats.monthShiftCount} shifts · {stats.monthHours.toFixed(0)}h
-          </p>
-          {monthGrowthPct !== null && (
-            <div className="mt-2 flex items-center gap-0.5">
-              {monthGrowthUp
-                ? <ArrowUpRight className="w-3 h-3 shrink-0" style={{ color: 'hsl(var(--stat-green))' }} />
-                : <ArrowDownRight className="w-3 h-3 shrink-0" style={{ color: 'hsl(var(--stat-red))' }} />
-              }
-              <span
-                className="text-[10px] font-semibold"
-                style={{ color: monthGrowthUp ? 'hsl(var(--stat-green))' : 'hsl(var(--stat-red))' }}
-              >
-                {Math.abs(monthGrowthPct).toFixed(0)}% vs {MONTH_SHORT[stats.prevMonth]}
-              </span>
-            </div>
-          )}
-        </ElevatedCard>
-
-        <ElevatedCard style={{ padding: '16px 18px' }}>
-          <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest mb-2">
-            {selectedYear} Gross
-          </p>
-          <AnimatedCurrency
-            value={stats.yearGross}
-            className="text-xl font-bold money-text leading-tight"
-            deps={animDeps}
-          />
-          <p className="text-[10px] text-muted-foreground mt-1 flex items-center gap-1">
-            <TrendingUp className="w-3 h-3 shrink-0" />
-            Proj. {formatCurrency(stats.projected)}
-          </p>
-        </ElevatedCard>
-      </div>
+      {/* ── Month summary card ── */}
+      <ElevatedCard style={{ padding: '16px 18px' }}>
+        <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest mb-2">
+          {MONTH_SHORT[selectedMonth]} Gross
+        </p>
+        <AnimatedCurrency
+          value={stats.monthGross}
+          className="text-xl font-bold money-text leading-tight"
+          deps={animDeps}
+        />
+        <p className="text-[10px] text-muted-foreground mt-1">
+          {stats.monthShiftCount} shifts · {stats.monthHours.toFixed(0)}h
+        </p>
+        {monthGrowthPct !== null && (
+          <div className="mt-2 flex items-center gap-0.5">
+            {monthGrowthUp
+              ? <ArrowUpRight className="w-3 h-3 shrink-0" style={{ color: 'hsl(var(--stat-green))' }} />
+              : <ArrowDownRight className="w-3 h-3 shrink-0" style={{ color: 'hsl(var(--stat-red))' }} />
+            }
+            <span
+              className="text-[10px] font-semibold"
+              style={{ color: monthGrowthUp ? 'hsl(var(--stat-green))' : 'hsl(var(--stat-red))' }}
+            >
+              {Math.abs(monthGrowthPct).toFixed(0)}% vs {MONTH_SHORT[stats.prevMonth]}
+            </span>
+          </div>
+        )}
+      </ElevatedCard>
 
       {/* ── Tax Estimate card (shown only when enabled) ── */}
       {settings?.show_tax_estimate && settings.tax_rate > 0 && (
@@ -1131,42 +1114,6 @@ const OverviewPanel = ({
         month={selectedMonth}
       />
 
-      {/* ── Monthly trend mini chart ── */}
-      <ElevatedCard>
-        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-4">
-          {selectedYear} Monthly Earnings
-        </p>
-        <div className="flex items-end gap-1" style={{ height: 72 }}>
-          {stats.byMonth.map(({ month, gross }) => {
-            const pct = stats.maxMonth > 0 ? (gross / stats.maxMonth) * 100 : 0;
-            const isSelected = month === selectedMonth;
-            const hasPay = gross > 0;
-            return (
-              <div key={month} className="flex-1 flex flex-col items-center gap-1 h-full">
-                <div className="w-full flex items-end justify-center flex-1">
-                  <div
-                    className="w-full rounded-t transition-all duration-500"
-                    style={{
-                      height: `${Math.max(pct, hasPay ? 6 : 0)}%`,
-                      background: isSelected
-                        ? 'hsl(var(--money-green))'
-                        : hasPay
-                        ? 'hsl(var(--money-green)/0.45)'
-                        : 'hsl(var(--muted-foreground)/0.15)',
-                    }}
-                  />
-                </div>
-                <span
-                  className="text-[7px] font-semibold"
-                  style={{ color: isSelected ? 'hsl(var(--money-green))' : 'hsl(var(--muted-foreground))' }}
-                >
-                  {MONTH_SHORT[month]}
-                </span>
-              </div>
-            );
-          })}
-        </div>
-      </ElevatedCard>
 
     </div>
   );
