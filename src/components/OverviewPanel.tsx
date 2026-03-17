@@ -101,35 +101,123 @@ const AnimatedCurrency = ({
   );
 };
 
-// ── Inline sparkline (pure SVG, no deps) ─────────────────────────────────────
-const Sparkline = ({ data, width = 72, height = 22 }: { data: number[]; width?: number; height?: number }) => {
+// ── Smooth sparkline with gradient fill ──────────────────────────────────────
+const Sparkline = ({
+  data,
+  width = 200,
+  height = 44,
+  id = 'spark',
+}: {
+  data: number[];
+  width?: number;
+  height?: number;
+  id?: string;
+}) => {
   if (!data || data.length < 2) return null;
+
   const max = Math.max(...data, 1);
-  const pad = 2;
-  const w = width - pad * 2;
-  const h = height - pad * 2;
-  const points = data.map((v, i) => {
-    const x = pad + (i / (data.length - 1)) * w;
-    const y = pad + h - (v / max) * h;
-    return { x, y };
-  });
-  const pathD = points
-    .map((p, i) => (i === 0 ? `M ${p.x} ${p.y}` : `L ${p.x} ${p.y}`))
-    .join(' ');
-  const last = points[points.length - 1];
+  const padX = 4;
+  const padTop = 6;
+  const padBottom = 16; // room for week labels
+  const w = width - padX * 2;
+  const h = height - padTop - padBottom;
+
+  const pts = data.map((v, i) => ({
+    x: padX + (i / (data.length - 1)) * w,
+    y: padTop + h - (v / max) * h,
+    v,
+  }));
+
+  // Build smooth cubic bezier path
+  const linePath = pts.reduce((acc, p, i) => {
+    if (i === 0) return `M ${p.x.toFixed(2)} ${p.y.toFixed(2)}`;
+    const prev = pts[i - 1];
+    const cpX = (prev.x + p.x) / 2;
+    return `${acc} C ${cpX.toFixed(2)} ${prev.y.toFixed(2)}, ${cpX.toFixed(2)} ${p.y.toFixed(2)}, ${p.x.toFixed(2)} ${p.y.toFixed(2)}`;
+  }, '');
+
+  // Closed fill path: line + drop to bottom-right + bottom-left
+  const fillPath = `${linePath} L ${pts[pts.length - 1].x.toFixed(2)} ${(padTop + h).toFixed(2)} L ${pts[0].x.toFixed(2)} ${(padTop + h).toFixed(2)} Z`;
+
+  const last = pts[pts.length - 1];
+  const gradId = `sg-${id}`;
+  const weekLabels = ['W1', 'W2', 'W3', 'W4', 'W5'].slice(0, data.length);
+
   return (
-    <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} fill="none" overflow="visible">
-      <polyline
-        points={points.map(p => `${p.x},${p.y}`).join(' ')}
+    <svg
+      width={width}
+      height={height}
+      viewBox={`0 0 ${width} ${height}`}
+      fill="none"
+      style={{ display: 'block', overflow: 'visible' }}
+    >
+      <defs>
+        <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#3B82F6" stopOpacity="0.18" />
+          <stop offset="100%" stopColor="#3B82F6" stopOpacity="0.01" />
+        </linearGradient>
+      </defs>
+
+      {/* Filled area under the curve */}
+      <path d={fillPath} fill={`url(#${gradId})`} />
+
+      {/* Smooth line */}
+      <path
+        d={linePath}
         stroke="#3B82F6"
-        strokeWidth="1.25"
+        strokeWidth="1.5"
         strokeLinecap="round"
         strokeLinejoin="round"
         fill="none"
-        opacity="0.55"
+        opacity="0.7"
       />
-      {/* End-point dot */}
-      <circle cx={last.x} cy={last.y} r="2" fill="#3B82F6" opacity="0.75" />
+
+      {/* Per-week dots + value labels */}
+      {pts.map((p, i) => {
+        const isLast = i === pts.length - 1;
+        const isEmpty = p.v === 0;
+        return (
+          <g key={i}>
+            <circle
+              cx={p.x}
+              cy={p.y}
+              r={isLast ? 2.5 : 1.8}
+              fill={isEmpty ? '#93C5FD' : '#3B82F6'}
+              opacity={isEmpty ? 0.3 : isLast ? 1 : 0.55}
+            />
+            {/* Week label below */}
+            <text
+              x={p.x}
+              y={padTop + h + 11}
+              textAnchor="middle"
+              fontSize="7"
+              fill="#3B82F6"
+              opacity="0.45"
+              fontFamily="system-ui, -apple-system, sans-serif"
+              fontWeight="600"
+              letterSpacing="0.3"
+            >
+              {weekLabels[i]}
+            </text>
+          </g>
+        );
+      })}
+
+      {/* Highlight last point value */}
+      {last.v > 0 && (
+        <text
+          x={last.x}
+          y={last.y - 5}
+          textAnchor={last.x > width * 0.75 ? 'end' : 'middle'}
+          fontSize="7.5"
+          fill="#3B82F6"
+          opacity="0.8"
+          fontFamily="system-ui, -apple-system, sans-serif"
+          fontWeight="700"
+        >
+          ${last.v >= 1000 ? `${(last.v / 1000).toFixed(1)}k` : last.v.toFixed(0)}
+        </text>
+      )}
     </svg>
   );
 };
@@ -1044,40 +1132,47 @@ const OverviewPanel = ({
       </ElevatedCard>
 
       {/* ── Month summary card ── */}
-      <ElevatedCard style={{ padding: '16px 18px' }}>
-        <div className="flex items-start justify-between gap-2">
-          <div className="min-w-0 flex-1">
-            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest mb-2">
-              {MONTH_SHORT[selectedMonth]} Gross
-            </p>
-            <AnimatedCurrency
-              value={stats.monthGross}
-              className="text-xl font-bold money-text leading-tight"
-              deps={animDeps}
-            />
-            <p className="text-[10px] text-muted-foreground mt-1">
-              {stats.monthShiftCount} shifts · {stats.monthHours.toFixed(0)}h
-            </p>
-          </div>
-          {/* Sparkline — right-aligned, only rendered when there is data */}
-          {stats.weeklySparkline.some(v => v > 0) && (
-            <div className="flex items-end pb-0.5 shrink-0">
-              <Sparkline data={stats.weeklySparkline} width={64} height={28} />
+      <ElevatedCard style={{ padding: '16px 18px 12px' }}>
+        {/* Top row: label + trend badge */}
+        <div className="flex items-center justify-between mb-1">
+          <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest">
+            {MONTH_SHORT[selectedMonth]} Gross
+          </p>
+          {monthGrowthPct !== null && (
+            <div className="flex items-center gap-0.5">
+              {monthGrowthUp
+                ? <ArrowUpRight className="w-3 h-3 shrink-0" style={{ color: 'hsl(var(--stat-green))' }} />
+                : <ArrowDownRight className="w-3 h-3 shrink-0" style={{ color: 'hsl(var(--stat-red))' }} />
+              }
+              <span
+                className="text-[10px] font-semibold"
+                style={{ color: monthGrowthUp ? 'hsl(var(--stat-green))' : 'hsl(var(--stat-red))' }}
+              >
+                {Math.abs(monthGrowthPct).toFixed(0)}% vs {MONTH_SHORT[stats.prevMonth]}
+              </span>
             </div>
           )}
         </div>
-        {monthGrowthPct !== null && (
-          <div className="mt-2 flex items-center gap-0.5">
-            {monthGrowthUp
-              ? <ArrowUpRight className="w-3 h-3 shrink-0" style={{ color: 'hsl(var(--stat-green))' }} />
-              : <ArrowDownRight className="w-3 h-3 shrink-0" style={{ color: 'hsl(var(--stat-red))' }} />
-            }
-            <span
-              className="text-[10px] font-semibold"
-              style={{ color: monthGrowthUp ? 'hsl(var(--stat-green))' : 'hsl(var(--stat-red))' }}
-            >
-              {Math.abs(monthGrowthPct).toFixed(0)}% vs {MONTH_SHORT[stats.prevMonth]}
-            </span>
+
+        {/* Amount + meta */}
+        <AnimatedCurrency
+          value={stats.monthGross}
+          className="text-xl font-bold money-text leading-tight"
+          deps={animDeps}
+        />
+        <p className="text-[10px] text-muted-foreground mt-0.5 mb-3">
+          {stats.monthShiftCount} shifts · {stats.monthHours.toFixed(0)}h
+        </p>
+
+        {/* Full-width sparkline */}
+        {stats.weeklySparkline.some(v => v > 0) && (
+          <div style={{ margin: '0 -2px' }}>
+            <Sparkline
+              data={stats.weeklySparkline}
+              width={340}
+              height={52}
+              id={`month-${selectedYear}-${selectedMonth}`}
+            />
           </div>
         )}
       </ElevatedCard>
