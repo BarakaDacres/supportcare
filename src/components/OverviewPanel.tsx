@@ -453,24 +453,20 @@ const EarningsCalendarHeatmap = ({
                       justifyContent: 'center',
                       gap: 1,
                       position: 'relative',
-                      transition: 'transform 0.14s ease, background 0.14s ease',
-                      // Selected: soft blue tint overlay (no heavy outline)
+                      transition: 'transform 0.14s ease, background 0.14s ease, border-color 0.14s ease',
                       background: isSelected
-                        ? gross > 0
-                          ? `hsl(var(--primary) / 0.15)`
-                          : 'hsl(var(--primary) / 0.10)'
+                        ? '#DCE9FF'
                         : gross > 0
-                        ? `hsl(var(--money-green) / ${intensity.toFixed(2)})`
+                        ? getHeatColor(intensity)
                         : 'hsl(var(--muted) / 0.45)',
-                      // Today: thin 1px primary ring only
-                      outline: isToday && !isSelected
-                        ? '1px solid hsl(var(--primary) / 0.7)'
-                        : 'none',
-                      outlineOffset: '-1px',
-                      boxShadow: isSelected ? '0 1px 6px hsl(var(--primary) / 0.14)' : 'none',
+                      border: isSelected
+                        ? '1.25px solid #3B82F6'
+                        : isToday && !isSelected
+                        ? '1px solid hsl(var(--primary) / 0.5)'
+                        : '1.25px solid transparent',
+                      boxShadow: isSelected ? '0 1px 6px rgba(59,130,246,0.14)' : 'none',
                       transform: isSelected ? 'scale(0.93)' : 'scale(1)',
                       cursor: 'pointer',
-                      border: 'none',
                       WebkitTapHighlightColor: 'transparent',
                     }}
                   >
@@ -479,8 +475,10 @@ const EarningsCalendarHeatmap = ({
                         fontSize: 9,
                         fontWeight: 600,
                         lineHeight: 1,
-                        color: intensity > 0.5
-                          ? 'hsl(var(--money-green-fg))'
+                        color: intensity >= 0.8
+                          ? '#1E3A5F'
+                          : intensity >= 0.4
+                          ? '#1D4ED8'
                           : 'hsl(var(--muted-foreground))',
                       }}
                     >
@@ -492,9 +490,7 @@ const EarningsCalendarHeatmap = ({
                           width: 4,
                           height: 4,
                           borderRadius: '50%',
-                          background: intensity > 0.5
-                            ? 'hsl(var(--money-green-fg))'
-                            : 'hsl(var(--money-green))',
+                          background: getDotColor(intensity),
                         }}
                       />
                     )}
