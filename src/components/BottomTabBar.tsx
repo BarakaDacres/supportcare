@@ -4,7 +4,6 @@
  * Icons: SF Symbols-inspired SVGs, consistent 1.6–1.8px stroke weight.
  */
 
-import { useRef, useLayoutEffect, useState, useCallback } from 'react';
 import type { AuthState } from '@/hooks/useAuth';
 
 export type TabId = 'overview' | 'shifts' | 'analytics' | 'invoices' | 'settings';
