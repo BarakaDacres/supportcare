@@ -1132,40 +1132,47 @@ const OverviewPanel = ({
       </ElevatedCard>
 
       {/* ── Month summary card ── */}
-      <ElevatedCard style={{ padding: '16px 18px' }}>
-        <div className="flex items-start justify-between gap-2">
-          <div className="min-w-0 flex-1">
-            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest mb-2">
-              {MONTH_SHORT[selectedMonth]} Gross
-            </p>
-            <AnimatedCurrency
-              value={stats.monthGross}
-              className="text-xl font-bold money-text leading-tight"
-              deps={animDeps}
-            />
-            <p className="text-[10px] text-muted-foreground mt-1">
-              {stats.monthShiftCount} shifts · {stats.monthHours.toFixed(0)}h
-            </p>
-          </div>
-          {/* Sparkline — right-aligned, only rendered when there is data */}
-          {stats.weeklySparkline.some(v => v > 0) && (
-            <div className="flex items-end pb-0.5 shrink-0">
-              <Sparkline data={stats.weeklySparkline} width={64} height={28} />
+      <ElevatedCard style={{ padding: '16px 18px 12px' }}>
+        {/* Top row: label + trend badge */}
+        <div className="flex items-center justify-between mb-1">
+          <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest">
+            {MONTH_SHORT[selectedMonth]} Gross
+          </p>
+          {monthGrowthPct !== null && (
+            <div className="flex items-center gap-0.5">
+              {monthGrowthUp
+                ? <ArrowUpRight className="w-3 h-3 shrink-0" style={{ color: 'hsl(var(--stat-green))' }} />
+                : <ArrowDownRight className="w-3 h-3 shrink-0" style={{ color: 'hsl(var(--stat-red))' }} />
+              }
+              <span
+                className="text-[10px] font-semibold"
+                style={{ color: monthGrowthUp ? 'hsl(var(--stat-green))' : 'hsl(var(--stat-red))' }}
+              >
+                {Math.abs(monthGrowthPct).toFixed(0)}% vs {MONTH_SHORT[stats.prevMonth]}
+              </span>
             </div>
           )}
         </div>
-        {monthGrowthPct !== null && (
-          <div className="mt-2 flex items-center gap-0.5">
-            {monthGrowthUp
-              ? <ArrowUpRight className="w-3 h-3 shrink-0" style={{ color: 'hsl(var(--stat-green))' }} />
-              : <ArrowDownRight className="w-3 h-3 shrink-0" style={{ color: 'hsl(var(--stat-red))' }} />
-            }
-            <span
-              className="text-[10px] font-semibold"
-              style={{ color: monthGrowthUp ? 'hsl(var(--stat-green))' : 'hsl(var(--stat-red))' }}
-            >
-              {Math.abs(monthGrowthPct).toFixed(0)}% vs {MONTH_SHORT[stats.prevMonth]}
-            </span>
+
+        {/* Amount + meta */}
+        <AnimatedCurrency
+          value={stats.monthGross}
+          className="text-xl font-bold money-text leading-tight"
+          deps={animDeps}
+        />
+        <p className="text-[10px] text-muted-foreground mt-0.5 mb-3">
+          {stats.monthShiftCount} shifts · {stats.monthHours.toFixed(0)}h
+        </p>
+
+        {/* Full-width sparkline */}
+        {stats.weeklySparkline.some(v => v > 0) && (
+          <div style={{ margin: '0 -2px' }}>
+            <Sparkline
+              data={stats.weeklySparkline}
+              width={340}
+              height={52}
+              id={`month-${selectedYear}-${selectedMonth}`}
+            />
           </div>
         )}
       </ElevatedCard>
