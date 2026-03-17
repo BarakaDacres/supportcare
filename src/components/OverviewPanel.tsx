@@ -557,6 +557,7 @@ const EarningsCalendarHeatmap = ({
   const DAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
   const handleDayClick = (dateStr: string, cellIndex: number) => {
+    haptic('selection');
     if (selectedDate === dateStr) {
       setSelectedDate(null);
       setPopupPos(null);
