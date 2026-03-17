@@ -359,18 +359,36 @@ const EarningsCalendarHeatmap = ({
     setPopupPos({ row: rowIdx, col: colIdx });
   };
 
+  // 5-level blue heatmap scale
+  const BLUE_SCALE = ['#EEF4FF', '#DCE9FF', '#B9D3FF', '#7FB0FF', '#3B82F6'];
+
+  const getHeatColor = (intensity: number): string => {
+    if (intensity <= 0) return '';
+    if (intensity < 0.2) return BLUE_SCALE[0];
+    if (intensity < 0.4) return BLUE_SCALE[1];
+    if (intensity < 0.6) return BLUE_SCALE[2];
+    if (intensity < 0.8) return BLUE_SCALE[3];
+    return BLUE_SCALE[4];
+  };
+
+  const getDotColor = (intensity: number): string => {
+    if (intensity < 0.4) return '#7FB0FF';
+    if (intensity < 0.7) return '#3B82F6';
+    return '#1D4ED8';
+  };
+
   return (
     <div className="card-elevated" style={{ padding: '18px 16px' }}>
       {/* Header */}
       <div className="flex items-center justify-between mb-3">
         <p className="section-label">Earnings Calendar</p>
-        {/* Legend — reduced opacity, tighter dots, baseline-aligned with title */}
+        {/* Legend — 5-level blue scale */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
-          <span style={{ fontSize: 9, color: 'hsl(var(--muted-foreground) / 0.7)', lineHeight: 1 }}>Low</span>
-          {[0.12, 0.28, 0.48, 0.68, 0.88].map((o, i) => (
-            <div key={i} style={{ width: 7, height: 7, borderRadius: 2, flexShrink: 0, background: `hsl(var(--money-green) / ${o})` }} />
+          <span style={{ fontSize: 9, color: 'hsl(var(--muted-foreground) / 0.65)', lineHeight: 1 }}>Low</span>
+          {BLUE_SCALE.map((color, i) => (
+            <div key={i} style={{ width: 7, height: 7, borderRadius: 2, flexShrink: 0, background: color, opacity: 0.9 }} />
           ))}
-          <span style={{ fontSize: 9, color: 'hsl(var(--muted-foreground) / 0.7)', lineHeight: 1 }}>High</span>
+          <span style={{ fontSize: 9, color: 'hsl(var(--muted-foreground) / 0.65)', lineHeight: 1 }}>High</span>
         </div>
       </div>
 
