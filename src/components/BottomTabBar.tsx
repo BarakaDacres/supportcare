@@ -222,7 +222,7 @@ const BottomTabBar = ({ activeTab, onTabChange, hidden = false, auth }: Props) =
               role="tab"
               aria-selected={isActive}
               aria-label={tab.label}
-              onClick={() => onTabChange(tab.id)}
+              onClick={() => { haptic('selection'); onTabChange(tab.id); }}
               style={{
                 flex: 1,
                 height: '100%',
