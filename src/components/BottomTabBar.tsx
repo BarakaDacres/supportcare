@@ -1,7 +1,7 @@
 /**
  * BottomTabBar — Native iOS-style pill tab bar.
- * Active state: icon/label in primary blue + 10% tint capsule.
- * Icons: SF Symbols-inspired SVGs, consistent 1.6–1.8px stroke weight.
+ * Active state: blue icon + blue label only (no background fill).
+ * Icons: SF Symbols-inspired SVGs, consistent 1.65px stroke weight.
  */
 
 import type { AuthState } from '@/hooks/useAuth';
