@@ -101,6 +101,39 @@ const AnimatedCurrency = ({
   );
 };
 
+// ── Inline sparkline (pure SVG, no deps) ─────────────────────────────────────
+const Sparkline = ({ data, width = 72, height = 22 }: { data: number[]; width?: number; height?: number }) => {
+  if (!data || data.length < 2) return null;
+  const max = Math.max(...data, 1);
+  const pad = 2;
+  const w = width - pad * 2;
+  const h = height - pad * 2;
+  const points = data.map((v, i) => {
+    const x = pad + (i / (data.length - 1)) * w;
+    const y = pad + h - (v / max) * h;
+    return { x, y };
+  });
+  const pathD = points
+    .map((p, i) => (i === 0 ? `M ${p.x} ${p.y}` : `L ${p.x} ${p.y}`))
+    .join(' ');
+  const last = points[points.length - 1];
+  return (
+    <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} fill="none" overflow="visible">
+      <polyline
+        points={points.map(p => `${p.x},${p.y}`).join(' ')}
+        stroke="#3B82F6"
+        strokeWidth="1.25"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        fill="none"
+        opacity="0.55"
+      />
+      {/* End-point dot */}
+      <circle cx={last.x} cy={last.y} r="2" fill="#3B82F6" opacity="0.75" />
+    </svg>
+  );
+};
+
 // ── Compact day popup (anchored inline) ──────────────────────────────────────
 const DayPopup = ({
   dateStr, shifts, onClose,
