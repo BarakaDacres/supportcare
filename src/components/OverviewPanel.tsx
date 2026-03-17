@@ -122,26 +122,25 @@ const DayPopup = ({
       className="rounded-2xl overflow-hidden"
       style={{
         background: 'hsl(var(--card))',
-        border: '1px solid hsl(var(--border))',
+        border: '0.5px solid hsl(var(--border))',
         boxShadow:
-          '0 4px 24px hsl(var(--foreground)/0.12),' +
-          '0 1px 4px hsl(var(--foreground)/0.06),' +
-          'inset 0 0.5px 0 hsl(0 0% 100% / 0.08)',
-        // Take full available width — the calendar grid constrains it naturally
+          '0 2px 12px hsl(var(--foreground)/0.07),' +
+          '0 1px 3px hsl(var(--foreground)/0.04)',
         width: '100%',
       }}
       onClick={e => e.stopPropagation()}
     >
       {/* Header */}
       <div
-        className="flex items-center justify-between px-3 py-2.5"
+        className="flex items-center justify-between px-3.5 py-2.5"
         style={{ borderBottom: '0.5px solid hsl(var(--border))' }}
       >
         <div className="min-w-0">
-          <p className="text-xs font-bold text-foreground">{label}</p>
+          <p className="text-xs font-semibold text-foreground">{label}</p>
           {dayShifts.length > 0 && (
             <p className="text-[10px] text-muted-foreground mt-0.5">
-              {dayShifts.length} shift{dayShifts.length !== 1 ? 's' : ''} ·{' '}
+              {dayShifts.length} shift{dayShifts.length !== 1 ? 's' : ''}{' '}
+              <span className="opacity-40 mx-0.5">·</span>
               <span className="font-semibold money-text">{formatCurrency(total)}</span>
             </p>
           )}
@@ -149,54 +148,66 @@ const DayPopup = ({
         <button
           onClick={onClose}
           aria-label="Close"
-          className="w-6 h-6 flex items-center justify-center rounded-full shrink-0 ml-2"
+          className="w-5 h-5 flex items-center justify-center rounded-full shrink-0 ml-2"
           style={{ background: 'hsl(var(--muted))', color: 'hsl(var(--muted-foreground))' }}
         >
-          <X className="w-3 h-3" />
+          <X className="w-2.5 h-2.5" />
         </button>
       </div>
 
       {/* Shift rows */}
-      <div className="py-1.5 px-3 space-y-0 max-h-52 overflow-y-auto">
+      <div className="py-1 px-3.5 max-h-52 overflow-y-auto">
         {dayShifts.length === 0 ? (
           <p className="text-[10px] text-muted-foreground py-3 text-center">No shifts recorded.</p>
         ) : (
           dayShifts.map(s => {
             const hasEvening = shiftHasEveningHours(s.start_time, s.end_time);
             return (
-              <div key={s.id} className="py-2" style={{ borderBottom: '0.5px solid hsl(var(--border)/0.4)' }}>
-                {/* Row 1: time + amount */}
+              <div
+                key={s.id}
+                className="py-2.5"
+                style={{ borderBottom: '0.5px solid hsl(var(--border)/0.35)' }}
+              >
+                {/* Row 1: time + amount — primary info, slightly bolder */}
                 <div className="flex items-center justify-between gap-2">
-                  <p className="text-[10px] font-semibold text-foreground">
+                  <p className="text-[11px] font-semibold text-foreground tracking-tight">
                     {formatTime(s.start_time)} – {formatTime(s.end_time)}
                   </p>
-                  <span className="text-[10px] font-bold money-text shrink-0">{formatCurrency(effectiveGrossPay(s))}</span>
+                  <span className="text-[11px] font-bold money-text shrink-0">
+                    {formatCurrency(effectiveGrossPay(s))}
+                  </span>
                 </div>
-                {/* Row 2: client + type badges — wraps cleanly */}
-                <div className="flex items-center gap-1.5 mt-1 flex-wrap">
-                  {s.client_name && (
-                    <span className="text-[9px] text-muted-foreground">{s.client_name}</span>
-                  )}
+                {/* Row 2: client name — dimmer secondary */}
+                {s.client_name && (
+                  <p className="text-[10px] mt-1" style={{ color: 'hsl(var(--muted-foreground)/0.75)' }}>
+                    {s.client_name}
+                  </p>
+                )}
+                {/* Row 3: type pills — softer, less "button-like" */}
+                <div className="flex items-center gap-1 mt-1.5 flex-wrap">
                   {s.is_sleepover && (
                     <span
-                      className="text-[9px] font-bold px-2 py-0.5 rounded-full text-white whitespace-nowrap"
-                      style={{ background: 'hsl(var(--sleepover-color))' }}
+                      className="text-[9px] font-medium px-1.5 py-0.5 rounded-md whitespace-nowrap"
+                      style={{
+                        background: 'hsl(var(--sleepover-color)/0.12)',
+                        color: 'hsl(var(--sleepover-color))',
+                      }}
                     >
                       Sleepover
                     </span>
                   )}
                   {s.is_public_holiday && (
                     <span
-                      className="text-[9px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap"
-                      style={{ background: 'hsl(var(--stat-amber)/0.18)', color: 'hsl(var(--stat-amber))' }}
+                      className="text-[9px] font-medium px-1.5 py-0.5 rounded-md whitespace-nowrap"
+                      style={{ background: 'hsl(var(--stat-amber)/0.12)', color: 'hsl(var(--stat-amber))' }}
                     >
                       Public Holiday
                     </span>
                   )}
                   {!s.is_sleepover && hasEvening && (
                     <span
-                      className="text-[9px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap"
-                      style={{ background: 'hsl(var(--evening-color)/0.18)', color: 'hsl(var(--evening-color))' }}
+                      className="text-[9px] font-medium px-1.5 py-0.5 rounded-md whitespace-nowrap"
+                      style={{ background: 'hsl(var(--evening-color)/0.12)', color: 'hsl(var(--evening-color))' }}
                     >
                       Evening
                     </span>
@@ -359,8 +370,8 @@ const EarningsCalendarHeatmap = ({
     setPopupPos({ row: rowIdx, col: colIdx });
   };
 
-  // 5-level blue heatmap scale
-  const BLUE_SCALE = ['#EEF4FF', '#DCE9FF', '#B9D3FF', '#7FB0FF', '#3B82F6'];
+  // 5-level blue heatmap scale (slightly desaturated at top end)
+  const BLUE_SCALE = ['#EEF4FF', '#DCE9FF', '#B9D3FF', '#7FB0FF', '#5B9BF8'];
 
   const getHeatColor = (intensity: number): string => {
     if (intensity <= 0) return '';
@@ -371,31 +382,41 @@ const EarningsCalendarHeatmap = ({
     return BLUE_SCALE[4];
   };
 
+  // Adaptive dot: light cells → medium blue, dark cells → white
   const getDotColor = (intensity: number): string => {
-    if (intensity < 0.4) return '#7FB0FF';
+    if (intensity < 0.4) return '#93C0FF';
     if (intensity < 0.7) return '#3B82F6';
-    return '#1D4ED8';
+    return 'rgba(255,255,255,0.8)';
+  };
+
+  // Text color that stays readable on any heat level
+  const getDayTextColor = (intensity: number, isSelected: boolean): string => {
+    if (isSelected) return '#1E40AF';
+    if (intensity >= 0.8) return '#1e3a5f';
+    if (intensity >= 0.5) return '#1D4ED8';
+    if (intensity >= 0.2) return '#2563EB';
+    return 'hsl(var(--foreground))';
   };
 
   return (
-    <div className="card-elevated" style={{ padding: '18px 16px' }}>
-      {/* Header */}
-      <div className="flex items-center justify-between mb-3">
-        <p className="section-label">Earnings Calendar</p>
-        {/* Legend — 5-level blue scale */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
-          <span style={{ fontSize: 9, color: 'hsl(var(--muted-foreground) / 0.65)', lineHeight: 1 }}>Low</span>
+    <div className="card-elevated" style={{ padding: '16px 14px 14px' }}>
+      {/* Header — legend baseline-aligned with title */}
+      <div className="flex items-center justify-between mb-3" style={{ lineHeight: 1 }}>
+        <p className="section-label" style={{ lineHeight: 1 }}>Earnings Calendar</p>
+        {/* Legend — tighter, lower opacity */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 2.5 }}>
+          <span style={{ fontSize: 8, color: 'hsl(var(--muted-foreground))', opacity: 0.5, lineHeight: 1 }}>Low</span>
           {BLUE_SCALE.map((color, i) => (
-            <div key={i} style={{ width: 7, height: 7, borderRadius: 2, flexShrink: 0, background: color, opacity: 0.9 }} />
+            <div key={i} style={{ width: 6, height: 6, borderRadius: 1.5, flexShrink: 0, background: color, opacity: 0.85 }} />
           ))}
-          <span style={{ fontSize: 9, color: 'hsl(var(--muted-foreground) / 0.65)', lineHeight: 1 }}>High</span>
+          <span style={{ fontSize: 8, color: 'hsl(var(--muted-foreground))', opacity: 0.5, lineHeight: 1 }}>High</span>
         </div>
       </div>
 
       {/* Day headers */}
       <div className="grid grid-cols-7 gap-1 mb-1.5">
         {DAY_LABELS.map(d => (
-          <div key={d} className="text-center" style={{ fontSize: 8, fontWeight: 700, color: 'hsl(var(--muted-foreground))' }}>
+          <div key={d} className="text-center" style={{ fontSize: 8, fontWeight: 600, color: 'hsl(var(--muted-foreground))', opacity: 0.7 }}>
             {d}
           </div>
         ))}
@@ -422,8 +443,8 @@ const EarningsCalendarHeatmap = ({
                       key={colIdx}
                       style={{
                         aspectRatio: '1',
-                        borderRadius: 10,
-                        background: 'hsl(var(--muted)/0.15)',
+                        borderRadius: 8,
+                        background: 'hsl(var(--muted)/0.12)',
                       }}
                     />
                   );
@@ -446,40 +467,53 @@ const EarningsCalendarHeatmap = ({
                     aria-label={`${dayNum} ${MONTH_NAMES[month]}, ${gross > 0 ? formatCurrency(gross) : 'no shifts'}`}
                     style={{
                       aspectRatio: '1',
-                      borderRadius: 10,
+                      borderRadius: 8,
                       display: 'flex',
                       flexDirection: 'column',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      gap: 1,
+                      gap: 2,
                       position: 'relative',
-                      transition: 'transform 0.14s ease, background 0.14s ease, border-color 0.14s ease',
+                      transition: 'transform 0.15s cubic-bezier(0.25,0,0.1,1), background 0.15s ease, box-shadow 0.15s ease',
                       background: isSelected
                         ? '#DCE9FF'
                         : gross > 0
                         ? getHeatColor(intensity)
-                        : 'hsl(var(--muted) / 0.45)',
+                        : 'hsl(var(--muted) / 0.35)',
                       border: isSelected
-                        ? '1.25px solid #3B82F6'
+                        ? '1px solid #3B82F6'
                         : isToday && !isSelected
-                        ? '1px solid hsl(var(--primary) / 0.5)'
-                        : '1.25px solid transparent',
-                      boxShadow: isSelected ? '0 1px 6px rgba(59,130,246,0.14)' : 'none',
-                      transform: isSelected ? 'scale(0.93)' : 'scale(1)',
+                        ? '1px solid hsl(var(--primary) / 0.4)'
+                        : '1px solid transparent',
+                      boxShadow: isSelected ? '0 1px 4px rgba(59,130,246,0.10)' : 'none',
                       cursor: 'pointer',
                       WebkitTapHighlightColor: 'transparent',
                     }}
+                    onPointerDown={e => { (e.currentTarget as HTMLButtonElement).style.transform = 'scale(0.9)'; }}
+                    onPointerUp={e => { (e.currentTarget as HTMLButtonElement).style.transform = ''; }}
+                    onPointerLeave={e => { (e.currentTarget as HTMLButtonElement).style.transform = ''; }}
                   >
+                    {/* Today indicator — small dot above number */}
+                    {isToday && !isSelected && (
+                      <span
+                        style={{
+                          position: 'absolute',
+                          top: 3,
+                          width: 3,
+                          height: 3,
+                          borderRadius: '50%',
+                          background: 'hsl(var(--primary))',
+                          opacity: 0.7,
+                        }}
+                      />
+                    )}
                     <span
                       style={{
                         fontSize: 9,
-                        fontWeight: 600,
+                        fontWeight: 500,
                         lineHeight: 1,
-                        color: intensity >= 0.8
-                          ? '#1E3A5F'
-                          : intensity >= 0.4
-                          ? '#1D4ED8'
-                          : 'hsl(var(--muted-foreground))',
+                        color: getDayTextColor(intensity, isSelected),
+                        fontFamily: '-apple-system, "SF Pro Text", system-ui, sans-serif',
                       }}
                     >
                       {dayNum}
@@ -487,10 +521,11 @@ const EarningsCalendarHeatmap = ({
                     {count > 0 && (
                       <span
                         style={{
-                          width: 4,
-                          height: 4,
+                          width: 3.5,
+                          height: 3.5,
                           borderRadius: '50%',
                           background: getDotColor(intensity),
+                          flexShrink: 0,
                         }}
                       />
                     )}
@@ -499,12 +534,12 @@ const EarningsCalendarHeatmap = ({
               })}
             </div>
 
-            {/* Inline popup anchored below the row */}
+            {/* Inline popup anchored below the row — fade + scale in */}
             {showPopupAfterRow && selectedDate && (
               <div
                 style={{
-                  marginBottom: 8,
-                  animation: 'fadeSlideIn 0.18s ease',
+                  marginBottom: 6,
+                  animation: 'popupIn 0.18s cubic-bezier(0.25,0,0.1,1)',
                 }}
               >
                 <DayPopup
@@ -519,9 +554,9 @@ const EarningsCalendarHeatmap = ({
       })}
 
       <style>{`
-        @keyframes fadeSlideIn {
-          from { opacity: 0; transform: translateY(-6px); }
-          to   { opacity: 1; transform: translateY(0); }
+        @keyframes popupIn {
+          from { opacity: 0; transform: translateY(-4px) scale(0.98); }
+          to   { opacity: 1; transform: translateY(0) scale(1); }
         }
       `}</style>
     </div>
