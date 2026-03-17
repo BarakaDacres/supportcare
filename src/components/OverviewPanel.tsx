@@ -364,12 +364,13 @@ const EarningsCalendarHeatmap = ({
       {/* Header */}
       <div className="flex items-center justify-between mb-3">
         <p className="section-label">Earnings Calendar</p>
-        <div className="flex items-center gap-1">
-          <span className="text-[9px] text-muted-foreground">Low</span>
-          {[0.15, 0.35, 0.55, 0.75, 1].map((o, i) => (
-            <div key={i} className="w-2 h-2 rounded-[3px]" style={{ background: `hsl(var(--money-green) / ${o})` }} />
+        {/* Legend — reduced opacity, tighter dots, baseline-aligned with title */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+          <span style={{ fontSize: 9, color: 'hsl(var(--muted-foreground) / 0.7)', lineHeight: 1 }}>Low</span>
+          {[0.12, 0.28, 0.48, 0.68, 0.88].map((o, i) => (
+            <div key={i} style={{ width: 7, height: 7, borderRadius: 2, flexShrink: 0, background: `hsl(var(--money-green) / ${o})` }} />
           ))}
-          <span className="text-[9px] text-muted-foreground">High</span>
+          <span style={{ fontSize: 9, color: 'hsl(var(--muted-foreground) / 0.7)', lineHeight: 1 }}>High</span>
         </div>
       </div>
 
@@ -434,20 +435,22 @@ const EarningsCalendarHeatmap = ({
                       justifyContent: 'center',
                       gap: 1,
                       position: 'relative',
-                      transition: 'transform 0.12s ease, box-shadow 0.12s ease',
-                      background: gross > 0
+                      transition: 'transform 0.14s ease, background 0.14s ease',
+                      // Selected: soft blue tint overlay (no heavy outline)
+                      background: isSelected
+                        ? gross > 0
+                          ? `hsl(var(--primary) / 0.15)`
+                          : 'hsl(var(--primary) / 0.10)'
+                        : gross > 0
                         ? `hsl(var(--money-green) / ${intensity.toFixed(2)})`
                         : 'hsl(var(--muted) / 0.45)',
-                      outline: isToday
-                        ? '1.5px solid hsl(var(--primary))'
-                        : isSelected
-                        ? '1.5px solid hsl(var(--foreground)/0.5)'
+                      // Today: thin 1px primary ring only
+                      outline: isToday && !isSelected
+                        ? '1px solid hsl(var(--primary) / 0.7)'
                         : 'none',
                       outlineOffset: '-1px',
-                      boxShadow: isSelected
-                        ? '0 2px 8px hsl(var(--foreground)/0.12)'
-                        : 'none',
-                      transform: isSelected ? 'scale(0.94)' : 'scale(1)',
+                      boxShadow: isSelected ? '0 1px 6px hsl(var(--primary) / 0.14)' : 'none',
+                      transform: isSelected ? 'scale(0.93)' : 'scale(1)',
                       cursor: 'pointer',
                       border: 'none',
                       WebkitTapHighlightColor: 'transparent',
