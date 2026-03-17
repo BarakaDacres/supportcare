@@ -435,20 +435,22 @@ const EarningsCalendarHeatmap = ({
                       justifyContent: 'center',
                       gap: 1,
                       position: 'relative',
-                      transition: 'transform 0.12s ease, box-shadow 0.12s ease',
-                      background: gross > 0
+                      transition: 'transform 0.14s ease, background 0.14s ease',
+                      // Selected: soft blue tint overlay (no heavy outline)
+                      background: isSelected
+                        ? gross > 0
+                          ? `hsl(var(--primary) / 0.15)`
+                          : 'hsl(var(--primary) / 0.10)'
+                        : gross > 0
                         ? `hsl(var(--money-green) / ${intensity.toFixed(2)})`
                         : 'hsl(var(--muted) / 0.45)',
-                      outline: isToday
-                        ? '1.5px solid hsl(var(--primary))'
-                        : isSelected
-                        ? '1.5px solid hsl(var(--foreground)/0.5)'
+                      // Today: thin 1px primary ring only
+                      outline: isToday && !isSelected
+                        ? '1px solid hsl(var(--primary) / 0.7)'
                         : 'none',
                       outlineOffset: '-1px',
-                      boxShadow: isSelected
-                        ? '0 2px 8px hsl(var(--foreground)/0.12)'
-                        : 'none',
-                      transform: isSelected ? 'scale(0.94)' : 'scale(1)',
+                      boxShadow: isSelected ? '0 1px 6px hsl(var(--primary) / 0.14)' : 'none',
+                      transform: isSelected ? 'scale(0.93)' : 'scale(1)',
                       cursor: 'pointer',
                       border: 'none',
                       WebkitTapHighlightColor: 'transparent',
