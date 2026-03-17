@@ -1114,42 +1114,6 @@ const OverviewPanel = ({
         month={selectedMonth}
       />
 
-      {/* ── Monthly trend mini chart ── */}
-      <ElevatedCard>
-        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-4">
-          {selectedYear} Monthly Earnings
-        </p>
-        <div className="flex items-end gap-1" style={{ height: 72 }}>
-          {stats.byMonth.map(({ month, gross }) => {
-            const pct = stats.maxMonth > 0 ? (gross / stats.maxMonth) * 100 : 0;
-            const isSelected = month === selectedMonth;
-            const hasPay = gross > 0;
-            return (
-              <div key={month} className="flex-1 flex flex-col items-center gap-1 h-full">
-                <div className="w-full flex items-end justify-center flex-1">
-                  <div
-                    className="w-full rounded-t transition-all duration-500"
-                    style={{
-                      height: `${Math.max(pct, hasPay ? 6 : 0)}%`,
-                      background: isSelected
-                        ? 'hsl(var(--money-green))'
-                        : hasPay
-                        ? 'hsl(var(--money-green)/0.45)'
-                        : 'hsl(var(--muted-foreground)/0.15)',
-                    }}
-                  />
-                </div>
-                <span
-                  className="text-[7px] font-semibold"
-                  style={{ color: isSelected ? 'hsl(var(--money-green))' : 'hsl(var(--muted-foreground))' }}
-                >
-                  {MONTH_SHORT[month]}
-                </span>
-              </div>
-            );
-          })}
-        </div>
-      </ElevatedCard>
 
     </div>
   );

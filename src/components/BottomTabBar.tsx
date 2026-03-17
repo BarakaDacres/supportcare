@@ -1,38 +1,131 @@
 /**
  * BottomTabBar — iOS-style floating pill with a measured inset active capsule.
- *
- * Architecture:
- * - Each tab button gets flex:1 (equal slots), keeping sibling layout stable.
- * - Inside every button is a "stack" span (icon + label). Its rendered bbox is
- *   what we measure to drive the selector — NOT the button width.
- * - The selector is absolutely positioned inside the pill. It is sized and
- *   translated purely by measured values so it never clips the pill boundary.
- * - font-weight is fixed at 500 for both active/inactive so text never reflows.
- * - A ResizeObserver re-measures on container resize (orientation change, etc.)
+ * Settings tab shows user avatar. Icons use SF Symbols-inspired SVGs.
  */
 
-import { LayoutDashboard, ClipboardList, BarChart2, FileText, Settings } from 'lucide-react';
 import { useRef, useLayoutEffect, useState, useCallback } from 'react';
+import type { AuthState } from '@/hooks/useAuth';
 
 export type TabId = 'overview' | 'shifts' | 'analytics' | 'invoices' | 'settings';
+
+// ── SF Symbols–inspired icon components ──────────────────────────────────────
+
+const IconHome = ({ active }: { active: boolean }) => (
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" style={{ display: 'block', flexShrink: 0 }}>
+    <path
+      d="M3 10.5L12 3L21 10.5V20C21 20.552 20.552 21 20 21H15V15H9V21H4C3.448 21 3 20.552 3 20V10.5Z"
+      fill={active ? 'hsl(var(--primary))' : 'none'}
+      stroke={active ? 'hsl(var(--primary))' : 'hsl(var(--muted-foreground))'}
+      strokeWidth={active ? 0 : 1.8}
+      strokeLinejoin="round"
+    />
+  </svg>
+);
+
+const IconList = ({ active }: { active: boolean }) => (
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" style={{ display: 'block', flexShrink: 0 }}>
+    <rect x="3" y="5" width="18" height="2" rx="1"
+      fill={active ? 'hsl(var(--primary))' : 'hsl(var(--muted-foreground))'}
+    />
+    <rect x="3" y="11" width="18" height="2" rx="1"
+      fill={active ? 'hsl(var(--primary))' : 'hsl(var(--muted-foreground))'}
+    />
+    <rect x="3" y="17" width="12" height="2" rx="1"
+      fill={active ? 'hsl(var(--primary))' : 'hsl(var(--muted-foreground))'}
+    />
+  </svg>
+);
+
+const IconChart = ({ active }: { active: boolean }) => (
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" style={{ display: 'block', flexShrink: 0 }}>
+    <rect x="3" y="12" width="4" height="9" rx="1.5"
+      fill={active ? 'hsl(var(--primary))' : 'hsl(var(--muted-foreground))'}
+    />
+    <rect x="10" y="7" width="4" height="14" rx="1.5"
+      fill={active ? 'hsl(var(--primary))' : 'hsl(var(--muted-foreground))'}
+    />
+    <rect x="17" y="3" width="4" height="18" rx="1.5"
+      fill={active ? 'hsl(var(--primary))' : 'hsl(var(--muted-foreground))'}
+    />
+  </svg>
+);
+
+const IconInvoice = ({ active }: { active: boolean }) => (
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" style={{ display: 'block', flexShrink: 0 }}>
+    <path
+      d="M6 2H15L20 7V22H4V2H6Z"
+      fill={active ? 'hsl(var(--primary) / 0.15)' : 'none'}
+      stroke={active ? 'hsl(var(--primary))' : 'hsl(var(--muted-foreground))'}
+      strokeWidth="1.8"
+      strokeLinejoin="round"
+    />
+    <path d="M14 2V8H20" stroke={active ? 'hsl(var(--primary))' : 'hsl(var(--muted-foreground))'} strokeWidth="1.8" strokeLinejoin="round" />
+    <line x1="8" y1="13" x2="16" y2="13" stroke={active ? 'hsl(var(--primary))' : 'hsl(var(--muted-foreground))'} strokeWidth="1.6" strokeLinecap="round" />
+    <line x1="8" y1="17" x2="13" y2="17" stroke={active ? 'hsl(var(--primary))' : 'hsl(var(--muted-foreground))'} strokeWidth="1.6" strokeLinecap="round" />
+  </svg>
+);
+
+// Avatar icon — shows user photo or initials circle
+const AvatarIcon = ({ auth, active }: { auth: AuthState; active: boolean }) => {
+  const initial = ((auth.displayName ?? auth.user?.email ?? '?')[0] ?? '?').toUpperCase();
+
+  if (auth.avatarUrl) {
+    return (
+      <img
+        src={auth.avatarUrl}
+        alt={auth.displayName ?? 'Account'}
+        style={{
+          width: 24,
+          height: 24,
+          borderRadius: '50%',
+          objectFit: 'cover',
+          flexShrink: 0,
+          display: 'block',
+          outline: active ? '2px solid hsl(var(--primary))' : '1.5px solid hsl(var(--border))',
+          outlineOffset: 1,
+        }}
+      />
+    );
+  }
+
+  return (
+    <span
+      style={{
+        width: 24,
+        height: 24,
+        borderRadius: '50%',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        flexShrink: 0,
+        fontSize: 10,
+        fontWeight: 700,
+        background: active ? 'hsl(var(--primary))' : 'hsl(var(--muted))',
+        color: active ? 'hsl(var(--primary-foreground))' : 'hsl(var(--muted-foreground))',
+        outline: active ? '2px solid hsl(var(--primary))' : 'none',
+        outlineOffset: 1,
+        transition: 'background 0.18s ease, color 0.18s ease',
+      }}
+    >
+      {initial}
+    </span>
+  );
+};
 
 interface Tab {
   id: TabId;
   label: string;
-  icon: React.ElementType;
 }
 
 const TABS: Tab[] = [
-  { id: 'overview',   label: 'Overview',   icon: LayoutDashboard },
-  { id: 'shifts',     label: 'Shifts',     icon: ClipboardList   },
-  { id: 'analytics',  label: 'Analytics',  icon: BarChart2       },
-  { id: 'invoices',   label: 'Invoices',   icon: FileText        },
-  { id: 'settings',   label: 'Settings',   icon: Settings        },
+  { id: 'overview',  label: 'Home'      },
+  { id: 'shifts',    label: 'Shifts'    },
+  { id: 'analytics', label: 'Analytics' },
+  { id: 'invoices',  label: 'Invoices'  },
+  { id: 'settings',  label: 'Account'   },
 ];
 
-// Horizontal padding added to each side of the measured content stack
 const PAD_X = 12;
-// Vertical inset from pill edge (keeps capsule clearly inside the pill)
 const INSET_Y = 5;
 
 interface Rect { left: number; width: number; }
@@ -41,11 +134,11 @@ interface Props {
   activeTab: TabId;
   onTabChange: (tab: TabId) => void;
   hidden?: boolean;
+  auth: AuthState;
 }
 
-const BottomTabBar = ({ activeTab, onTabChange, hidden = false }: Props) => {
-  const pillRef  = useRef<HTMLDivElement>(null);
-  // We measure these inner stacks, not the outer button slots
+const BottomTabBar = ({ activeTab, onTabChange, hidden = false, auth }: Props) => {
+  const pillRef   = useRef<HTMLDivElement>(null);
   const stackRefs = useRef<Map<TabId, HTMLSpanElement>>(new Map());
   const [selector, setSelector] = useState<Rect | null>(null);
   const [ready, setReady]       = useState(false);
@@ -54,12 +147,9 @@ const BottomTabBar = ({ activeTab, onTabChange, hidden = false }: Props) => {
     const pill  = pillRef.current;
     const stack = stackRefs.current.get(activeTab);
     if (!pill || !stack) return null;
-
     const pRect = pill.getBoundingClientRect();
     const sRect = stack.getBoundingClientRect();
     if (pRect.width === 0) return null;
-
-    // Clamp so the selector stays fully inside the pill (2px inner border margin)
     const rawLeft  = sRect.left - pRect.left - PAD_X;
     const rawWidth = sRect.width + PAD_X * 2;
     const minLeft  = 2;
@@ -71,18 +161,13 @@ const BottomTabBar = ({ activeTab, onTabChange, hidden = false }: Props) => {
 
   useLayoutEffect(() => {
     let raf1: number, raf2: number;
-
     const run = () => {
       const r = measure();
       if (r) { setSelector(r); setReady(true); }
     };
-
-    // Double rAF: first frame triggers layout, second reads settled geometry
     raf1 = requestAnimationFrame(() => { raf2 = requestAnimationFrame(run); });
-
     const ro = new ResizeObserver(run);
     if (pillRef.current) ro.observe(pillRef.current);
-
     return () => {
       cancelAnimationFrame(raf1);
       cancelAnimationFrame(raf2);
@@ -104,12 +189,11 @@ const BottomTabBar = ({ activeTab, onTabChange, hidden = false }: Props) => {
       }}
       aria-hidden={hidden}
     >
-      {/* ── Floating pill container ── */}
       <div
         ref={pillRef}
         role="presentation"
         style={{
-          position: 'relative',        // anchor for absolute selector
+          position: 'relative',
           display: 'flex',
           alignItems: 'stretch',
           margin: '0 auto 10px',
@@ -119,7 +203,6 @@ const BottomTabBar = ({ activeTab, onTabChange, hidden = false }: Props) => {
           borderRadius: 32,
           paddingLeft: 4,
           paddingRight: 4,
-          // Glass pill surface
           background: 'hsl(var(--lg-pill-bg))',
           backdropFilter: 'blur(48px) saturate(180%)',
           WebkitBackdropFilter: 'blur(48px) saturate(180%)',
@@ -132,13 +215,11 @@ const BottomTabBar = ({ activeTab, onTabChange, hidden = false }: Props) => {
           ].join(', '),
         }}
       >
-        {/* ── Active capsule — absolutely inset, driven by measurement ── */}
         {ready && selector && (
           <span
             aria-hidden="true"
             style={{
               position: 'absolute',
-              // Vertically centered with INSET_Y gap from pill top/bottom
               top: INSET_Y,
               bottom: INSET_Y,
               left: selector.left,
@@ -154,10 +235,8 @@ const BottomTabBar = ({ activeTab, onTabChange, hidden = false }: Props) => {
           />
         )}
 
-        {/* ── Tab buttons — equal flex slots ── */}
         {TABS.map(tab => {
           const isActive = activeTab === tab.id;
-          const Icon = tab.icon;
           return (
             <button
               key={tab.id}
@@ -180,7 +259,6 @@ const BottomTabBar = ({ activeTab, onTabChange, hidden = false }: Props) => {
                 cursor: 'pointer',
                 userSelect: 'none',
                 WebkitTapHighlightColor: 'transparent',
-                // Only animate scale on press — NOT layout properties
                 transition: 'transform 0.12s cubic-bezier(0.34,1.2,0.64,1)',
               }}
               onPointerDown={e => { (e.currentTarget as HTMLButtonElement).style.transform = 'scale(0.88)'; }}
@@ -188,11 +266,6 @@ const BottomTabBar = ({ activeTab, onTabChange, hidden = false }: Props) => {
               onPointerLeave={e => { (e.currentTarget as HTMLButtonElement).style.transform = ''; }}
               onPointerCancel={e => { (e.currentTarget as HTMLButtonElement).style.transform = ''; }}
             >
-              {/*
-                Inner content stack — this is the ONLY element we measure.
-                It must be width-stable between active and inactive states.
-                ➜ font-weight 500 always, color-only transition.
-              */}
               <span
                 ref={el => { if (el) stackRefs.current.set(tab.id, el); }}
                 style={{
@@ -204,24 +277,15 @@ const BottomTabBar = ({ activeTab, onTabChange, hidden = false }: Props) => {
                   pointerEvents: 'none',
                 }}
               >
-                <Icon
-                  style={{
-                    width: 20,
-                    height: 20,
-                    flexShrink: 0,
-                    display: 'block',
-                    // strokeWidth is kept close together so icon bbox stays stable
-                    strokeWidth: isActive ? 2.2 : 1.8,
-                    color: isActive
-                      ? 'hsl(var(--primary))'
-                      : 'hsl(var(--muted-foreground))',
-                    transition: 'color 0.18s ease',
-                  }}
-                />
+                {tab.id === 'overview'  && <IconHome    active={isActive} />}
+                {tab.id === 'shifts'    && <IconList    active={isActive} />}
+                {tab.id === 'analytics' && <IconChart   active={isActive} />}
+                {tab.id === 'invoices'  && <IconInvoice active={isActive} />}
+                {tab.id === 'settings'  && <AvatarIcon  auth={auth} active={isActive} />}
                 <span
                   style={{
                     fontSize: 10,
-                    fontWeight: 500, // fixed — no weight change between states
+                    fontWeight: 500,
                     lineHeight: 1,
                     letterSpacing: '0.01em',
                     whiteSpace: 'nowrap',
