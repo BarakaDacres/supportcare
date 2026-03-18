@@ -680,6 +680,9 @@ const InvoiceCard = ({
   );
 };
 
+// ─── Persisted last-selected client key ─────────────────────────────────────
+const LAST_CLIENT_KEY = 'invoice_last_client_id';
+
 // ─── Main component ────────────────────────────────────────────────────────────
 const InvoicePanel = ({
   shifts, shiftsLoading = false, clients, settings,
@@ -690,8 +693,12 @@ const InvoicePanel = ({
   const currentYear = new Date().getFullYear();
 
   const [selectedYear, setSelectedYear]         = useState(currentYear);
-  const [selectedClientId, setSelectedClientId] = useState('');
+  // Smart default: restore last-selected client from localStorage
+  const [selectedClientId, setSelectedClientId] = useState<string>(() => {
+    try { return localStorage.getItem(LAST_CLIENT_KEY) ?? ''; } catch { return ''; }
+  });
   const [generating, setGenerating]             = useState(false);
+  const [reloadSuccess, setReloadSuccess]       = useState(false);
   const [generateError, setGenerateError]       = useState<string | null>(null);
   const [exporting, setExporting]               = useState(false);
   const [exportError, setExportError]           = useState<string | null>(null);
@@ -708,6 +715,27 @@ const InvoicePanel = ({
     setGenerateError(null);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedYear]);
+
+  // Validate stored client still exists; if not, clear to "All clients"
+  useEffect(() => {
+    if (clients.length === 0) return;
+    if (selectedClientId && !clients.find(c => c.id === selectedClientId)) {
+      setSelectedClientId('');
+      try { localStorage.removeItem(LAST_CLIENT_KEY); } catch { /* noop */ }
+    }
+  }, [clients, selectedClientId]);
+
+  // Persist client selection
+  const handleClientChange = useCallback((id: string) => {
+    setSelectedClientId(id);
+    setPreview(null);
+    setGenerateError(null);
+    setReloadSuccess(false);
+    try {
+      if (id) localStorage.setItem(LAST_CLIENT_KEY, id);
+      else localStorage.removeItem(LAST_CLIENT_KEY);
+    } catch { /* noop */ }
+  }, []);
 
   const selectedPeriod = periods[selectedFnIdx] ?? periods[0];
   const selectedClient = clients.find(c => c.id === selectedClientId) ?? null;
