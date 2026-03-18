@@ -530,6 +530,15 @@ const MonthNavigator = ({
             )}
           </div>
           {(monthGross > 0 || monthShifts > 0) && (
+            <p className="text-[11px] text-muted-foreground mt-0.5">
+              <span className="font-bold money-text">{formatCurrency(monthGross)}</span>
+              <span className="mx-1 opacity-40">·</span>
+              <span>{monthShifts} shift{monthShifts !== 1 ? 's' : ''}</span>
+              <span className="mx-1 opacity-40">·</span>
+              <span>{monthHours.toFixed(0)}h</span>
+            </p>
+          )}
+        </div>
         <button
           onClick={next}
           className="w-8 h-8 flex items-center justify-center rounded-full transition-colors hover:bg-secondary"
