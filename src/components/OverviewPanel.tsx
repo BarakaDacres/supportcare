@@ -1100,6 +1100,9 @@ const OverviewPanel = ({
         monthGross={stats.monthGross}
         monthShifts={stats.monthShiftCount}
         monthHours={stats.monthHours}
+        mode={mode}
+        locked={locked}
+        onModeChange={onModeChange}
       />
 
       {/* ── Weekly Earnings card (most prominent) ── */}
