@@ -1,27 +1,23 @@
 import { useState, useEffect, useRef } from 'react';
 import { Ellipsis, Sun, Moon } from 'lucide-react';
-import type { EntryMode } from '@/hooks/useIncomeStore';
 import ActionSheet from './ActionSheet';
 
 interface MobileHeaderProps {
   year: number;
   month: number;
-  mode: EntryMode;
   theme: 'light' | 'dark';
   locked: boolean;
   onToggleTheme: () => void;
   onToggleLock: () => void;
-  onModeChange: (mode: EntryMode) => void;
 }
 
 const MobileHeader = ({
-  year, month, mode, theme, locked, onToggleTheme, onToggleLock, onModeChange,
+  year, month, theme, locked, onToggleTheme, onToggleLock,
 }: MobileHeaderProps) => {
   const [collapsed, setCollapsed] = useState(false);
   const [sheetOpen, setSheetOpen] = useState(false);
   const sentinelRef = useRef<HTMLDivElement>(null);
 
-  // suppress unused vars for year/month — kept in props for future use
   void year; void month;
 
   useEffect(() => {
@@ -73,36 +69,8 @@ const MobileHeader = ({
               </div>
             </div>
 
-            {/* Right: Week/Month toggle + action buttons */}
+            {/* Right: action buttons */}
             <div className="flex items-center gap-2 shrink-0">
-              {/* Compact Week / Month segmented toggle */}
-              <div
-                className="flex items-center rounded-[10px] p-[3px] gap-[2px]"
-                style={{
-                  background: 'hsl(var(--secondary))',
-                  border: '0.5px solid hsl(var(--border))',
-                }}
-              >
-                {(['weekly', 'fortnightly'] as EntryMode[]).map((m) => {
-                  const label = m === 'weekly' ? 'Week' : 'Month';
-                  const isActive = mode === m;
-                  return (
-                    <button
-                      key={m}
-                      onClick={() => onModeChange(m)}
-                      className="px-2.5 py-1 rounded-[7px] text-[10px] font-semibold transition-all duration-150"
-                      style={{
-                        background: isActive ? 'hsl(var(--card))' : 'transparent',
-                        color: isActive ? 'hsl(var(--foreground))' : 'hsl(var(--muted-foreground))',
-                        boxShadow: isActive ? '0 1px 3px hsl(var(--foreground)/0.08)' : 'none',
-                      }}
-                    >
-                      {label}
-                    </button>
-                  );
-                })}
-              </div>
-
               {/* Theme toggle */}
               <button
                 onClick={onToggleTheme}

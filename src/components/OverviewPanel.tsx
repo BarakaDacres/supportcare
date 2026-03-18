@@ -57,8 +57,6 @@ interface Invoice {
   invoice_number: string;
 }
 
-import type { EntryMode } from '@/hooks/useIncomeStore';
-
 interface OverviewPanelProps {
   shifts: Shift[];
   clients: Client[];
@@ -68,9 +66,7 @@ interface OverviewPanelProps {
   selectedMonth: number;
   onYearChange: (y: number) => void;
   onMonthChange: (m: number) => void;
-  mode?: EntryMode;
   locked?: boolean;
-  onModeChange?: (mode: EntryMode) => void;
 }
 
 function parseDate(dateStr: string): Date {
@@ -467,7 +463,7 @@ const ElevatedCard = ({
 const MonthNavigator = ({
   year, month, onYearChange, onMonthChange,
   monthGross, monthShifts, monthHours,
-  mode, locked, onModeChange,
+  locked,
 }: {
   year: number; month: number;
   onYearChange: (y: number) => void;
@@ -475,9 +471,7 @@ const MonthNavigator = ({
   monthGross: number;
   monthShifts: number;
   monthHours: number;
-  mode?: EntryMode;
   locked?: boolean;
-  onModeChange?: (mode: EntryMode) => void;
 }) => {
   const prev = () => {
     haptic('light');
@@ -543,36 +537,6 @@ const MonthNavigator = ({
               <span className="mx-1 opacity-40">·</span>
               <span>{monthHours.toFixed(0)}h</span>
             </p>
-          )}
-          {/* Week / Month segmented toggle — desktop only (mobile handled in header) */}
-          {onModeChange && mode && (
-            <div
-              className="hidden md:flex items-center mx-auto mt-2 rounded-[9px] p-[3px] gap-[2px]"
-              style={{
-                background: 'hsl(var(--secondary))',
-                border: '0.5px solid hsl(var(--border))',
-                width: 'fit-content',
-              }}
-            >
-              {(['weekly', 'fortnightly'] as EntryMode[]).map((m) => {
-                const label = m === 'weekly' ? 'Week' : 'Month';
-                const isActive = mode === m;
-                return (
-                  <button
-                    key={m}
-                    onClick={() => onModeChange(m)}
-                    className="px-3 py-0.5 rounded-[6px] text-[10px] font-semibold transition-all duration-150"
-                    style={{
-                      background: isActive ? 'hsl(var(--card))' : 'transparent',
-                      color: isActive ? 'hsl(var(--foreground))' : 'hsl(var(--muted-foreground))',
-                      boxShadow: isActive ? '0 1px 3px hsl(var(--foreground)/0.08)' : 'none',
-                    }}
-                  >
-                    {label}
-                  </button>
-                );
-              })}
-            </div>
           )}
         </div>
         <button
@@ -843,7 +807,7 @@ const EarningsCalendarHeatmap = ({
 const OverviewPanel = ({
   shifts, clients, invoices, settings,
   selectedYear, selectedMonth, onYearChange, onMonthChange,
-  mode, locked, onModeChange,
+  locked,
 }: OverviewPanelProps) => {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -1100,9 +1064,7 @@ const OverviewPanel = ({
         monthGross={stats.monthGross}
         monthShifts={stats.monthShiftCount}
         monthHours={stats.monthHours}
-        mode={mode}
         locked={locked}
-        onModeChange={onModeChange}
       />
 
       {/* ── Weekly Earnings card (most prominent) ── */}
