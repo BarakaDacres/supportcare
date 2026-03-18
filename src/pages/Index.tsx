@@ -98,12 +98,10 @@ const Index = ({ auth }: IndexProps) => {
         <MobileHeader
           year={store.year}
           month={store.month}
-          mode={store.mode}
           theme={store.theme}
           locked={locked}
           onToggleTheme={store.toggleTheme}
           onToggleLock={store.toggleMonthLock}
-          onModeChange={(m) => store.update({ mode: m })}
         />
 
         <main
