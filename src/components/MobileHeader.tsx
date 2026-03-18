@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
 import { Ellipsis, Sun, Moon } from 'lucide-react';
-import { MONTH_NAMES } from '@/lib/dateUtils';
 import type { EntryMode } from '@/hooks/useIncomeStore';
 import ActionSheet from './ActionSheet';
 
@@ -12,14 +11,18 @@ interface MobileHeaderProps {
   locked: boolean;
   onToggleTheme: () => void;
   onToggleLock: () => void;
+  onModeChange: (mode: EntryMode) => void;
 }
 
 const MobileHeader = ({
-  year, month, mode, theme, locked, onToggleTheme, onToggleLock,
+  year, month, mode, theme, locked, onToggleTheme, onToggleLock, onModeChange,
 }: MobileHeaderProps) => {
   const [collapsed, setCollapsed] = useState(false);
   const [sheetOpen, setSheetOpen] = useState(false);
   const sentinelRef = useRef<HTMLDivElement>(null);
+
+  // suppress unused vars for year/month — kept in props for future use
+  void year; void month;
 
   useEffect(() => {
     const sentinel = sentinelRef.current;
@@ -42,8 +45,8 @@ const MobileHeader = ({
       >
         <div className="header-glass px-4 transition-all duration-200" style={{ paddingTop: collapsed ? 8 : 10, paddingBottom: collapsed ? 8 : 6 }}>
           <div className="flex items-center justify-between gap-3">
+            {/* Left: logo + title */}
             <div className="min-w-0 flex items-center gap-3">
-              {/* Logo dot */}
               <div
                 className="shrink-0 w-7 h-7 rounded-[9px] flex items-center justify-center"
                 style={{
@@ -70,7 +73,36 @@ const MobileHeader = ({
               </div>
             </div>
 
+            {/* Right: Week/Month toggle + action buttons */}
             <div className="flex items-center gap-2 shrink-0">
+              {/* Compact Week / Month segmented toggle */}
+              <div
+                className="flex items-center rounded-[10px] p-[3px] gap-[2px]"
+                style={{
+                  background: 'hsl(var(--secondary))',
+                  border: '0.5px solid hsl(var(--border))',
+                }}
+              >
+                {(['weekly', 'fortnightly'] as EntryMode[]).map((m) => {
+                  const label = m === 'weekly' ? 'Week' : 'Month';
+                  const isActive = mode === m;
+                  return (
+                    <button
+                      key={m}
+                      onClick={() => onModeChange(m)}
+                      className="px-2.5 py-1 rounded-[7px] text-[10px] font-semibold transition-all duration-150"
+                      style={{
+                        background: isActive ? 'hsl(var(--card))' : 'transparent',
+                        color: isActive ? 'hsl(var(--foreground))' : 'hsl(var(--muted-foreground))',
+                        boxShadow: isActive ? '0 1px 3px hsl(var(--foreground)/0.08)' : 'none',
+                      }}
+                    >
+                      {label}
+                    </button>
+                  );
+                })}
+              </div>
+
               {/* Theme toggle */}
               <button
                 onClick={onToggleTheme}
@@ -83,6 +115,7 @@ const MobileHeader = ({
                   : <Sun className="w-3.5 h-3.5 text-muted-foreground" />
                 }
               </button>
+
               {/* More actions */}
               <button
                 onClick={() => setSheetOpen(true)}
@@ -94,35 +127,6 @@ const MobileHeader = ({
               </button>
             </div>
           </div>
-        </div>
-
-        {/* Context chips row */}
-        <div className="context-bar-glass px-4 py-1.5 flex items-center gap-1.5 overflow-x-auto scrollbar-none">
-          <span
-            className="shrink-0 rounded-full px-2.5 py-1 text-[10px] font-semibold"
-            style={{ background: 'hsl(var(--secondary))', color: 'hsl(var(--muted-foreground))' }}
-          >
-            {MONTH_NAMES[month]} {year}
-          </span>
-          <span
-            className="shrink-0 rounded-full px-2.5 py-1 text-[10px] font-semibold capitalize"
-            style={{ background: 'hsl(var(--secondary))', color: 'hsl(var(--muted-foreground))' }}
-          >
-            {mode}
-          </span>
-          <span
-            className="shrink-0 rounded-full px-2.5 py-1 text-[10px] font-semibold flex items-center gap-1"
-            style={{
-              background: locked ? 'hsl(var(--destructive) / 0.1)' : 'hsl(var(--stat-green) / 0.12)',
-              color: locked ? 'hsl(var(--destructive))' : 'hsl(var(--stat-green))',
-            }}
-          >
-            <span
-              className="w-1.5 h-1.5 rounded-full inline-block shrink-0"
-              style={{ background: locked ? 'hsl(var(--destructive))' : 'hsl(var(--stat-green))' }}
-            />
-            {locked ? 'Locked' : 'Open'}
-          </span>
         </div>
       </header>
 
