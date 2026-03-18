@@ -1,17 +1,14 @@
 import { useState, useEffect, useRef } from 'react';
 import { Ellipsis, Sun, Moon } from 'lucide-react';
-import type { EntryMode } from '@/hooks/useIncomeStore';
 import ActionSheet from './ActionSheet';
 
 interface MobileHeaderProps {
   year: number;
   month: number;
-  mode: EntryMode;
   theme: 'light' | 'dark';
   locked: boolean;
   onToggleTheme: () => void;
   onToggleLock: () => void;
-  onModeChange: (mode: EntryMode) => void;
 }
 
 const MobileHeader = ({
