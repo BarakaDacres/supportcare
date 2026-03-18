@@ -11,11 +11,11 @@ import BottomTabBar, { type TabId } from '@/components/BottomTabBar';
 import ShiftList from '@/components/ShiftList';
 import AnalyticsPanel from '@/components/AnalyticsPanel';
 import InvoicePanel from '@/components/InvoicePanel';
-import AppSettingsPanel from '@/components/AppSettingsPanel';
 import ClientsPanel from '@/components/ClientsPanel';
 import OverviewPanel from '@/components/OverviewPanel';
-import ProfileSettings from '@/components/ProfileSettings';
 import PreferencesPanel from '@/components/PreferencesPanel';
+import RatesPanel from '@/components/RatesPanel';
+import AccountPanel from '@/components/AccountPanel';
 import type { AuthState } from '@/hooks/useAuth';
 
 interface IndexProps {
@@ -26,7 +26,7 @@ const Index = ({ auth }: IndexProps) => {
   const store = useIncomeStore();
   const isMobile = useIsMobile();
   const [activeTab, setActiveTab] = useState<TabId>('overview');
-  const [settingsSubTab, setSettingsSubTab] = useState<'preferences' | 'app' | 'clients' | 'account'>('preferences');
+  const [settingsSubTab, setSettingsSubTab] = useState<'preferences' | 'rates' | 'clients' | 'account'>('preferences');
   const [sheetOpen, setSheetOpen] = useState(false);
 
   const { settings, loading: settingsLoading, updateSettings, incrementInvoiceCounter } = useUserSettings();
@@ -62,7 +62,7 @@ const Index = ({ auth }: IndexProps) => {
       <div className="segmented-control w-full">
         {([
           { id: 'preferences', label: 'Prefs' },
-          { id: 'app', label: 'Config' },
+          { id: 'rates', label: 'Rates' },
           { id: 'clients', label: 'Clients' },
           { id: 'account', label: 'Account' },
         ] as { id: typeof settingsSubTab; label: string }[]).map(t => (
@@ -84,8 +84,8 @@ const Index = ({ auth }: IndexProps) => {
           onThemeChange={(v) => store.update({ themeOverride: v })}
         />
       )}
-      {settingsSubTab === 'app' && (
-        <AppSettingsPanel settings={settings} loading={settingsLoading} onSave={updateSettings} />
+      {settingsSubTab === 'rates' && (
+        <RatesPanel settings={settings} loading={settingsLoading} onSave={updateSettings} />
       )}
       {settingsSubTab === 'clients' && (
         <ClientsPanel
@@ -98,7 +98,12 @@ const Index = ({ auth }: IndexProps) => {
         />
       )}
       {settingsSubTab === 'account' && auth && (
-        <ProfileSettings auth={auth} settings={settings} onSaveSettings={updateSettings} />
+        <AccountPanel
+          auth={auth}
+          settings={settings}
+          settingsLoading={settingsLoading}
+          onSaveSettings={updateSettings}
+        />
       )}
     </div>
   );
