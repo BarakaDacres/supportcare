@@ -115,14 +115,26 @@
     --card-shadow-lg: 0 4px 16px hsl(0 0% 0% / 0.4), 0 32px 64px hsl(0 0% 0% / 0.35), inset 0 0.5px 0 hsl(220 14% 100% / 0.08);
 
     /* ── Semantic accents ── */
-    --stat-green: 152 55% 50%;
-    --stat-amber: 38 90% 54%;
+    --stat-green: 126 38% 58%;
+    --stat-amber: 35 65% 58%;
     --stat-red: 0 62% 52%;
-    --money-green: 152 55% 50%;
+
+    /* ── Money green — pastel premium green (dark) ── */
+    --money-green: 126 38% 58%;
     --money-green-fg: 0 0% 98%;
-    --evening-color: 28 90% 58%;
-    --sleepover-color: 213 90% 62%;
-    --weekend-color: 265 82% 70%;
+    --money-tint: 126 30% 14%;
+    --money-tint-border: 126 28% 22%;
+
+    /* ── Purple — secondary analytics accent (dark) ── */
+    --purple: 262 75% 72%;
+    --purple-dark: 249 58% 62%;
+    --purple-tint: 262 40% 14%;
+    --purple-tint-border: 262 35% 24%;
+
+    /* ── Shift type tags — reduced saturation (dark) ── */
+    --evening-color: 32 65% 60%;
+    --sleepover-color: 248 55% 72%;
+    --weekend-color: 265 55% 72%;
 
     --tab-bar-bg: 220 14% 5% / 0.88;
     --header-bg: 220 14% 5% / 0.93;
