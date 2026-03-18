@@ -1104,25 +1104,49 @@ const InvoicePanel = ({
               <div className={existingInvoice ? 'flex gap-2' : ''}>
                 {existingInvoice ? (
                   <>
+                    {/* PRIMARY — View Invoice (filled blue, ~60% width) */}
                     <button onClick={viewExistingInvoice} disabled={shiftsLoading}
-                      className="flex-1 flex items-center justify-center gap-2 min-h-[48px] rounded-2xl text-sm font-bold transition-all duration-200 disabled:opacity-40"
-                      style={{ background: 'hsl(var(--muted))', color: 'hsl(var(--foreground))', border: '1px solid hsl(var(--border))' }}>
-                      <Eye className="w-4 h-4" /> View
+                      className="flex items-center justify-center gap-2 min-h-[46px] rounded-2xl text-sm font-bold transition-all duration-150 disabled:opacity-40 active:scale-[0.97]"
+                      style={{
+                        flex: '6 0 0',
+                        background: 'hsl(var(--primary))',
+                        color: 'hsl(var(--primary-foreground))',
+                        boxShadow: '0 2px 10px hsl(var(--primary)/0.28)',
+                      }}>
+                      <Eye className="w-4 h-4" />
+                      View Invoice
                     </button>
-                    <button onClick={handleReloadClick} disabled={generating || shiftsLoading}
-                      className="flex-[2] flex items-center justify-center gap-2 min-h-[48px] rounded-2xl text-sm font-bold transition-all duration-200 disabled:opacity-40"
-                      style={{ background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', boxShadow: '0 4px 16px hsl(var(--primary)/0.3)' }}>
-                      {generating
-                        ? <><div className="w-4 h-4 rounded-full border-2 border-primary-foreground/30 border-t-primary-foreground animate-spin" /> Reloading…</>
-                        : <><RotateCcw className="w-4 h-4" /> Reload Invoice</>
-                      }
-                    </button>
+
+                    {/* SECONDARY — Reload Invoice (outline, ~40% width) */}
+                    {invoiceIsStale ? (
+                      <button onClick={handleReloadClick} disabled={generating || shiftsLoading}
+                        className="flex items-center justify-center gap-2 min-h-[46px] rounded-2xl text-sm font-semibold transition-all duration-150 disabled:opacity-40 active:scale-[0.97]"
+                        style={{
+                          flex: '4 0 0',
+                          background: 'transparent',
+                          color: 'hsl(var(--primary))',
+                          border: '1.5px solid hsl(var(--primary)/0.35)',
+                        }}>
+                        <RotateCcw className={`w-4 h-4 ${generating ? 'animate-spin' : ''}`} />
+                        {generating ? 'Reloading…' : 'Reload'}
+                      </button>
+                    ) : (
+                      <div className="flex items-center justify-center min-h-[46px] rounded-2xl text-xs font-semibold"
+                        style={{
+                          flex: '4 0 0',
+                          color: 'hsl(var(--stat-green))',
+                          border: '1.5px solid hsl(var(--stat-green)/0.25)',
+                          background: 'hsl(var(--stat-green)/0.07)',
+                        }}>
+                        ✓ Up to date
+                      </div>
+                    )}
                   </>
                 ) : (
                   <button onClick={createInvoice}
                     disabled={generating || shiftsLoading || (periodShifts.length === 0 && !shiftsLoading)}
-                    className="w-full flex items-center justify-center gap-2 min-h-[48px] rounded-2xl text-sm font-bold transition-all duration-200 disabled:opacity-40"
-                    style={{ background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', boxShadow: '0 4px 16px hsl(var(--primary)/0.3)' }}>
+                    className="w-full flex items-center justify-center gap-2 min-h-[46px] rounded-2xl text-sm font-bold transition-all duration-150 disabled:opacity-40 active:scale-[0.97]"
+                    style={{ background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', boxShadow: '0 2px 10px hsl(var(--primary)/0.28)' }}>
                     {shiftsLoading
                       ? <><div className="w-4 h-4 rounded-full border-2 border-primary-foreground/30 border-t-primary-foreground animate-spin" /> Loading shifts…</>
                       : generating
