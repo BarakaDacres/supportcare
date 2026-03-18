@@ -103,6 +103,7 @@ const Index = ({ auth }: IndexProps) => {
           locked={locked}
           onToggleTheme={store.toggleTheme}
           onToggleLock={store.toggleMonthLock}
+          onModeChange={(m) => store.update({ mode: m })}
         />
 
         <main
