@@ -15,6 +15,7 @@ import AppSettingsPanel from '@/components/AppSettingsPanel';
 import ClientsPanel from '@/components/ClientsPanel';
 import OverviewPanel from '@/components/OverviewPanel';
 import ProfileSettings from '@/components/ProfileSettings';
+import PreferencesPanel from '@/components/PreferencesPanel';
 import type { AuthState } from '@/hooks/useAuth';
 
 interface IndexProps {
@@ -25,7 +26,7 @@ const Index = ({ auth }: IndexProps) => {
   const store = useIncomeStore();
   const isMobile = useIsMobile();
   const [activeTab, setActiveTab] = useState<TabId>('overview');
-  const [settingsSubTab, setSettingsSubTab] = useState<'app' | 'clients' | 'account'>('app');
+  const [settingsSubTab, setSettingsSubTab] = useState<'preferences' | 'app' | 'clients' | 'account'>('preferences');
   const [sheetOpen, setSheetOpen] = useState(false);
 
   const { settings, loading: settingsLoading, updateSettings, incrementInvoiceCounter } = useUserSettings();
@@ -59,19 +60,30 @@ const Index = ({ auth }: IndexProps) => {
     <div className="space-y-4">
       {/* Sub-tab toggle */}
       <div className="segmented-control w-full">
-        {(['app', 'clients', 'account'] as const).map(t => (
+        {([
+          { id: 'preferences', label: 'Prefs' },
+          { id: 'app', label: 'Config' },
+          { id: 'clients', label: 'Clients' },
+          { id: 'account', label: 'Account' },
+        ] as { id: typeof settingsSubTab; label: string }[]).map(t => (
           <button
-            key={t}
-            onClick={() => setSettingsSubTab(t)}
-            className={`flex-1 capitalize ${
-              settingsSubTab === t ? 'segmented-button-active' : 'segmented-button'
-            }`}
+            key={t.id}
+            onClick={() => setSettingsSubTab(t.id)}
+            className={`flex-1 ${settingsSubTab === t.id ? 'segmented-button-active' : 'segmented-button'}`}
           >
-            {t.charAt(0).toUpperCase() + t.slice(1)}
+            {t.label}
           </button>
         ))}
       </div>
 
+      {settingsSubTab === 'preferences' && (
+        <PreferencesPanel
+          settings={settings}
+          onSave={updateSettings}
+          themeOverride={store.themeOverride}
+          onThemeChange={(v) => store.update({ themeOverride: v })}
+        />
+      )}
       {settingsSubTab === 'app' && (
         <AppSettingsPanel settings={settings} loading={settingsLoading} onSave={updateSettings} />
       )}
