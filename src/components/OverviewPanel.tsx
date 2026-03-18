@@ -467,6 +467,7 @@ const ElevatedCard = ({
 const MonthNavigator = ({
   year, month, onYearChange, onMonthChange,
   monthGross, monthShifts, monthHours,
+  mode, locked, onModeChange,
 }: {
   year: number; month: number;
   onYearChange: (y: number) => void;
@@ -474,6 +475,9 @@ const MonthNavigator = ({
   monthGross: number;
   monthShifts: number;
   monthHours: number;
+  mode?: EntryMode;
+  locked?: boolean;
+  onModeChange?: (mode: EntryMode) => void;
 }) => {
   const prev = () => {
     haptic('light');
