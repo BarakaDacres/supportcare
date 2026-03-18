@@ -815,8 +815,39 @@ const InvoicePanel = ({
     };
   }, [settings, selectedClient, selectedPeriod, selectedYear, periodShifts, total, clientExtra]);
 
-  // ─── Generate invoice ────────────────────────────────────────────────────────
-  const generateInvoice = async () => {
+  // ─── Core: reload existing invoice content without changing invoice number ────
+  const reloadInvoice = useCallback(async () => {
+    if (!existingInvoice || !selectedPeriod) return;
+    setGenerating(true);
+    setGenerateError(null);
+    setReloadConfirmOpen(false);
+    try {
+      const issueDate = existingInvoice.created_at.split('T')[0];
+      const dueDate   = addDays(issueDate, 7);
+      const { error } = await supabase
+        .from('invoices')
+        .update({ total_amount: total, updated_at: new Date().toISOString() })
+        .eq('id', existingInvoice.id);
+      if (error) { setGenerateError(`Failed to reload invoice: ${error.message}`); return; }
+      onRefreshInvoices();
+      setPreview(buildSnapshot(existingInvoice.id, existingInvoice.invoice_number, issueDate, dueDate));
+    } catch (e) {
+      setGenerateError(e instanceof Error ? e.message : 'An unexpected error occurred.');
+    } finally {
+      setGenerating(false);
+    }
+  }, [existingInvoice, selectedPeriod, total, buildSnapshot, onRefreshInvoices]);
+
+  // ─── View existing invoice without changing DB ────────────────────────────────
+  const viewExistingInvoice = useCallback(() => {
+    if (!existingInvoice) return;
+    const issueDate = existingInvoice.created_at.split('T')[0];
+    const dueDate   = addDays(issueDate, 7);
+    setPreview(buildSnapshot(existingInvoice.id, existingInvoice.invoice_number, issueDate, dueDate));
+  }, [existingInvoice, buildSnapshot]);
+
+  // ─── Create new invoice ────────────────────────────────────────────────────────
+  const createInvoice = async () => {
     if (!selectedPeriod) return;
     setGenerating(true);
     setGenerateError(null);
@@ -824,50 +855,45 @@ const InvoicePanel = ({
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) { setGenerateError('Not signed in. Please sign in and try again.'); return; }
 
-      let invoiceId: string;
-      let invoiceNumber: string;
-      let issueDate: string;
-      let dueDate: string;
+      const invoiceNumber = buildInvoiceNumber(await onIncrementCounter());
+      const issueDate     = formatDateISO(new Date());
+      const dueDate       = addDays(issueDate, 7);
 
-      if (existingInvoice) {
-        invoiceId     = existingInvoice.id;
-        invoiceNumber = existingInvoice.invoice_number;
-        issueDate     = existingInvoice.created_at.split('T')[0];
-        // Always compute due date as 7 days from issue date
-        dueDate = addDays(issueDate, 7);
-      } else {
-        invoiceNumber = buildInvoiceNumber(await onIncrementCounter());
-        issueDate     = formatDateISO(new Date());
-        dueDate       = addDays(issueDate, 7);
+      const { data: newInv, error } = await supabase
+        .from('invoices')
+        .insert({
+          user_id:          session.user.id,
+          invoice_number:   invoiceNumber,
+          status:           'generated',
+          total_amount:     total,
+          period_start:     formatDateISO(selectedPeriod.start),
+          period_end:       formatDateISO(selectedPeriod.end),
+          due_date:         dueDate,
+          fortnight_number: selectedPeriod.fnNumber,
+          year:             selectedYear,
+          client_id:        selectedClientId || null,
+          notes:            '',
+        })
+        .select('id')
+        .single();
 
-        const { data: newInv, error } = await supabase
-          .from('invoices')
-          .insert({
-            user_id:          session.user.id,
-            invoice_number:   invoiceNumber,
-            status:           'generated',
-            total_amount:     total,
-            period_start:     formatDateISO(selectedPeriod.start),
-            period_end:       formatDateISO(selectedPeriod.end),
-            due_date:         dueDate,
-            fortnight_number: selectedPeriod.fnNumber,
-            year:             selectedYear,
-            client_id:        selectedClientId || null,
-            notes:            '',
-          })
-          .select('id')
-          .single();
-
-        if (error) { setGenerateError(`Failed to create invoice: ${error.message}`); return; }
-        invoiceId = (newInv as { id: string }).id;
-        onRefreshInvoices();
-      }
-
-      setPreview(buildSnapshot(invoiceId, invoiceNumber, issueDate, dueDate));
+      if (error) { setGenerateError(`Failed to create invoice: ${error.message}`); return; }
+      onRefreshInvoices();
+      setPreview(buildSnapshot((newInv as { id: string }).id, invoiceNumber, issueDate, dueDate));
     } catch (e) {
       setGenerateError(e instanceof Error ? e.message : 'An unexpected error occurred.');
     } finally {
       setGenerating(false);
+    }
+  };
+
+  // ─── Handle reload click — guard sent/paid ────────────────────────────────────
+  const handleReloadClick = () => {
+    if (!existingInvoice) return;
+    if (['sent', 'paid'].includes(existingInvoice.status)) {
+      setReloadConfirmOpen(true);
+    } else {
+      reloadInvoice();
     }
   };
 
