@@ -15,6 +15,7 @@ import AppSettingsPanel from '@/components/AppSettingsPanel';
 import ClientsPanel from '@/components/ClientsPanel';
 import OverviewPanel from '@/components/OverviewPanel';
 import ProfileSettings from '@/components/ProfileSettings';
+import PreferencesPanel from '@/components/PreferencesPanel';
 import type { AuthState } from '@/hooks/useAuth';
 
 interface IndexProps {
