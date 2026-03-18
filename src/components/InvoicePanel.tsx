@@ -1060,8 +1060,8 @@ const InvoicePanel = ({
                   </p>
                 )}
                 {existingInvoice && invoiceIsStale && (
-                  <p className="text-[10px] mt-0.5 font-semibold" style={{ color: '#D97706' }}>
-                    ⚠ New shifts added since last update
+                  <p className="text-[10px] mt-0.5 font-semibold flex items-center gap-1" style={{ color: '#D97706' }}>
+                    <AlertTriangle className="w-2.5 h-2.5" /> New shifts added
                   </p>
                 )}
               </div>
