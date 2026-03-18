@@ -759,6 +759,15 @@ const InvoicePanel = ({
     ) ?? null;
   }, [invoices, selectedPeriod, selectedClientId]);
 
+  // Detect if shifts have changed since invoice was last saved
+  const invoiceIsStale = useMemo(() => {
+    if (!existingInvoice) return false;
+    return +total.toFixed(2) !== +existingInvoice.total_amount.toFixed(2);
+  }, [existingInvoice, total]);
+
+  // ─── Confirm overwrite of sent/paid invoice ─────────────────────────────────
+  const [reloadConfirmOpen, setReloadConfirmOpen] = useState(false);
+
   // ─── Helper: extract client billing fields ──────────────────────────────────
   const clientExtra = useCallback((c: Client | null) => ({
     organisation: c?.organisation_name ?? '',
