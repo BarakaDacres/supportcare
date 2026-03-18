@@ -837,7 +837,7 @@ const EarningsCalendarHeatmap = ({
 const OverviewPanel = ({
   shifts, clients, invoices, settings,
   selectedYear, selectedMonth, onYearChange, onMonthChange,
-  mode, locked, onModeChange,
+  locked,
 }: OverviewPanelProps) => {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
