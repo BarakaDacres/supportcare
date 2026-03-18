@@ -120,6 +120,9 @@ const Index = ({ auth }: IndexProps) => {
               selectedMonth={store.month}
               onYearChange={handleYearChange}
               onMonthChange={handleMonthChange}
+              mode={store.mode}
+              locked={locked}
+              onModeChange={(m) => store.update({ mode: m })}
             />
           )}
 
