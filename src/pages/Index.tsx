@@ -62,7 +62,7 @@ const Index = ({ auth }: IndexProps) => {
       <div className="segmented-control w-full">
         {([
           { id: 'preferences', label: 'Prefs' },
-          { id: 'app', label: 'Config' },
+          { id: 'rates', label: 'Rates' },
           { id: 'clients', label: 'Clients' },
           { id: 'account', label: 'Account' },
         ] as { id: typeof settingsSubTab; label: string }[]).map(t => (
@@ -84,8 +84,8 @@ const Index = ({ auth }: IndexProps) => {
           onThemeChange={(v) => store.update({ themeOverride: v })}
         />
       )}
-      {settingsSubTab === 'app' && (
-        <AppSettingsPanel settings={settings} loading={settingsLoading} onSave={updateSettings} />
+      {settingsSubTab === 'rates' && (
+        <RatesPanel settings={settings} loading={settingsLoading} onSave={updateSettings} />
       )}
       {settingsSubTab === 'clients' && (
         <ClientsPanel
@@ -98,7 +98,12 @@ const Index = ({ auth }: IndexProps) => {
         />
       )}
       {settingsSubTab === 'account' && auth && (
-        <ProfileSettings auth={auth} settings={settings} onSaveSettings={updateSettings} />
+        <AccountPanel
+          auth={auth}
+          settings={settings}
+          settingsLoading={settingsLoading}
+          onSaveSettings={updateSettings}
+        />
       )}
     </div>
   );
