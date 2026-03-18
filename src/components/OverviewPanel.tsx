@@ -471,9 +471,7 @@ const MonthNavigator = ({
   monthGross: number;
   monthShifts: number;
   monthHours: number;
-  mode?: EntryMode;
   locked?: boolean;
-  onModeChange?: (mode: EntryMode) => void;
 }) => {
   const prev = () => {
     haptic('light');
