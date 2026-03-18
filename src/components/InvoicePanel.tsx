@@ -680,6 +680,9 @@ const InvoiceCard = ({
   );
 };
 
+// ─── Persisted last-selected client key ─────────────────────────────────────
+const LAST_CLIENT_KEY = 'invoice_last_client_id';
+
 // ─── Main component ────────────────────────────────────────────────────────────
 const InvoicePanel = ({
   shifts, shiftsLoading = false, clients, settings,
@@ -690,8 +693,12 @@ const InvoicePanel = ({
   const currentYear = new Date().getFullYear();
 
   const [selectedYear, setSelectedYear]         = useState(currentYear);
-  const [selectedClientId, setSelectedClientId] = useState('');
+  // Smart default: restore last-selected client from localStorage
+  const [selectedClientId, setSelectedClientId] = useState<string>(() => {
+    try { return localStorage.getItem(LAST_CLIENT_KEY) ?? ''; } catch { return ''; }
+  });
   const [generating, setGenerating]             = useState(false);
+  const [reloadSuccess, setReloadSuccess]       = useState(false);
   const [generateError, setGenerateError]       = useState<string | null>(null);
   const [exporting, setExporting]               = useState(false);
   const [exportError, setExportError]           = useState<string | null>(null);
@@ -708,6 +715,27 @@ const InvoicePanel = ({
     setGenerateError(null);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedYear]);
+
+  // Validate stored client still exists; if not, clear to "All clients"
+  useEffect(() => {
+    if (clients.length === 0) return;
+    if (selectedClientId && !clients.find(c => c.id === selectedClientId)) {
+      setSelectedClientId('');
+      try { localStorage.removeItem(LAST_CLIENT_KEY); } catch { /* noop */ }
+    }
+  }, [clients, selectedClientId]);
+
+  // Persist client selection
+  const handleClientChange = useCallback((id: string) => {
+    setSelectedClientId(id);
+    setPreview(null);
+    setGenerateError(null);
+    setReloadSuccess(false);
+    try {
+      if (id) localStorage.setItem(LAST_CLIENT_KEY, id);
+      else localStorage.removeItem(LAST_CLIENT_KEY);
+    } catch { /* noop */ }
+  }, []);
 
   const selectedPeriod = periods[selectedFnIdx] ?? periods[0];
   const selectedClient = clients.find(c => c.id === selectedClientId) ?? null;
@@ -821,6 +849,7 @@ const InvoicePanel = ({
     setGenerating(true);
     setGenerateError(null);
     setReloadConfirmOpen(false);
+    setReloadSuccess(false);
     try {
       const issueDate = existingInvoice.created_at.split('T')[0];
       const dueDate   = addDays(issueDate, 7);
@@ -831,6 +860,8 @@ const InvoicePanel = ({
       if (error) { setGenerateError(`Failed to reload invoice: ${error.message}`); return; }
       onRefreshInvoices();
       setPreview(buildSnapshot(existingInvoice.id, existingInvoice.invoice_number, issueDate, dueDate));
+      setReloadSuccess(true);
+      setTimeout(() => setReloadSuccess(false), 4000);
     } catch (e) {
       setGenerateError(e instanceof Error ? e.message : 'An unexpected error occurred.');
     } finally {
@@ -1005,93 +1036,164 @@ const InvoicePanel = ({
       {/* ══════════════ GENERATOR TAB ══════════════ */}
       {activeTab === 'generator' && (
         <>
-          {/* Period selection card */}
-          <div className="glass-card p-4 space-y-3">
-            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Select Period</p>
+          {/* ── Invoice Generator Card ── */}
+          <div className="glass-card overflow-hidden">
 
-            {clients.length > 0 && (
-              <div className="space-y-1">
-                <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
-                  <User className="w-3 h-3" /> Client
-                </label>
+            {/* Section title */}
+            <div className="px-4 pt-4 pb-0">
+              <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest">Select Period</p>
+            </div>
+
+            {/* Inputs group */}
+            <div className="px-4 pt-3 space-y-2">
+              {/* Client */}
+              {clients.length > 0 && (
                 <div className="relative">
-                  <select value={selectedClientId}
-                    onChange={e => { setSelectedClientId(e.target.value); setPreview(null); setGenerateError(null); }}
-                    className="glass-input w-full text-foreground min-h-[44px] appearance-none pr-8">
+                  <label className="absolute left-3 top-1 text-[9px] font-semibold text-muted-foreground uppercase tracking-wider z-10 pointer-events-none">
+                    Client
+                  </label>
+                  <select
+                    value={selectedClientId}
+                    onChange={e => handleClientChange(e.target.value)}
+                    className="glass-input w-full text-foreground text-sm appearance-none pt-5 pb-2 pr-8 pl-3 min-h-[54px]"
+                  >
                     <option value="">All clients</option>
                     {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                   </select>
                   <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
                 </div>
-              </div>
-            )}
+              )}
 
-            <div className="flex gap-2 items-center">
-              <label className="text-xs text-muted-foreground shrink-0">Year</label>
-              <div className="relative">
-                <select value={selectedYear}
-                  onChange={e => { setSelectedYear(Number(e.target.value)); setPreview(null); setGenerateError(null); }}
-                  className="glass-input text-foreground min-h-[40px] text-sm appearance-none pr-8 pl-3">
-                  {[currentYear - 1, currentYear, currentYear + 1].map(y => (
-                    <option key={y} value={y}>{y}</option>
-                  ))}
-                </select>
-                <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none" />
+              {/* Year + Fortnight in a row */}
+              <div className="flex gap-2">
+                <div className="relative w-[100px] shrink-0">
+                  <label className="absolute left-3 top-1 text-[9px] font-semibold text-muted-foreground uppercase tracking-wider z-10 pointer-events-none">
+                    Year
+                  </label>
+                  <select
+                    value={selectedYear}
+                    onChange={e => { setSelectedYear(Number(e.target.value)); setPreview(null); setGenerateError(null); setReloadSuccess(false); }}
+                    className="glass-input w-full text-foreground text-sm appearance-none pt-5 pb-2 pr-7 pl-3 min-h-[54px]"
+                  >
+                    {[currentYear - 1, currentYear, currentYear + 1].map(y => (
+                      <option key={y} value={y}>{y}</option>
+                    ))}
+                  </select>
+                  <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none" />
+                </div>
+                <div className="relative flex-1 min-w-0">
+                  <label className="absolute left-3 top-1 text-[9px] font-semibold text-muted-foreground uppercase tracking-wider z-10 pointer-events-none">
+                    Fortnight
+                  </label>
+                  <select
+                    value={selectedFnIdx}
+                    onChange={e => { setSelectedFnIdx(Number(e.target.value)); setPreview(null); setGenerateError(null); setReloadSuccess(false); }}
+                    className="glass-input w-full text-foreground text-sm appearance-none pt-5 pb-2 pr-8 pl-3 min-h-[54px]"
+                  >
+                    {periods.map((p, i) => <option key={i} value={i}>{p.label}</option>)}
+                  </select>
+                  <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+                </div>
               </div>
             </div>
 
-            <div className="relative">
-              <select value={selectedFnIdx}
-                onChange={e => { setSelectedFnIdx(Number(e.target.value)); setPreview(null); setGenerateError(null); }}
-                className="glass-input w-full text-foreground min-h-[44px] appearance-none pr-8">
-                {periods.map((p, i) => <option key={i} value={i}>{p.label}</option>)}
-              </select>
-              <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
-            </div>
+            {/* Divider */}
+            <div className="mx-4 mt-3 border-t border-border" />
 
-            <div className="flex items-center justify-between py-2 border-t border-border">
-              <div>
-                <p className="text-xs text-muted-foreground">
-                  {periodShifts.length} shift{periodShifts.length !== 1 ? 's' : ''} in period
-                </p>
-                {existingInvoice && (
-                  <p className="text-[10px] mt-0.5 font-medium" style={{ color: 'hsl(var(--primary))' }}>
-                    Invoice exists: {existingInvoice.invoice_number}
-                  </p>
-                )}
-                {existingInvoice && invoiceIsStale && (
-                  <p className="text-[10px] mt-0.5 font-semibold flex items-center gap-1" style={{ color: '#D97706' }}>
-                    <AlertTriangle className="w-2.5 h-2.5" /> New shifts added
-                  </p>
-                )}
+            {/* Summary section */}
+            <div className="px-4 pt-3 pb-1">
+              <div className="flex items-start justify-between gap-3">
+
+                {/* Left: shift count + invoice status */}
+                <div className="space-y-1.5 min-w-0">
+                  {/* Shift count */}
+                  <div className="flex items-center gap-1.5">
+                    {shiftsLoading ? (
+                      <div className="w-3.5 h-3.5 rounded-full border-2 border-muted-foreground/30 border-t-muted-foreground animate-spin" />
+                    ) : (
+                      <FileText className="w-3.5 h-3.5 text-muted-foreground" />
+                    )}
+                    <span className="text-xs text-muted-foreground">
+                      {shiftsLoading ? 'Loading…' : `${periodShifts.length} shift${periodShifts.length !== 1 ? 's' : ''} in period`}
+                    </span>
+                  </div>
+
+                  {/* Invoice identity line */}
+                  {existingInvoice ? (
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-[11px] font-semibold" style={{ color: 'hsl(var(--primary))' }}>
+                        {existingInvoice.invoice_number}
+                      </span>
+                      <StatusBadge status={isOverdue(existingInvoice) ? 'overdue' : existingInvoice.status} />
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-[11px] text-muted-foreground">No invoice yet</span>
+                    </div>
+                  )}
+
+                  {/* Staleness indicator */}
+                  {existingInvoice && (
+                    <div className="flex items-center gap-1">
+                      {reloadSuccess ? (
+                        <span className="text-[10px] font-semibold flex items-center gap-1" style={{ color: 'hsl(var(--stat-green))' }}>
+                          <CheckCircle className="w-2.5 h-2.5" /> Updated just now
+                        </span>
+                      ) : invoiceIsStale ? (
+                        <span className="text-[10px] font-semibold flex items-center gap-1" style={{ color: '#D97706' }}>
+                          <AlertTriangle className="w-2.5 h-2.5" /> New shifts added
+                        </span>
+                      ) : (
+                        <span className="text-[10px] font-medium flex items-center gap-1" style={{ color: 'hsl(var(--stat-green))' }}>
+                          <CheckCircle className="w-2.5 h-2.5" /> Up to date
+                        </span>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* Right: total amount — primary emphasis */}
+                <div className="text-right shrink-0">
+                  <p className="text-2xl font-bold money-text leading-none">{fmt$(total)}</p>
+                  {periodShifts.length > 0 && (
+                    <p className="text-[9px] text-muted-foreground mt-1 uppercase tracking-wider">Total</p>
+                  )}
+                </div>
               </div>
-              <p className="text-lg font-bold money-text">{fmt$(total)}</p>
             </div>
 
+            {/* Error display */}
             {generateError && (
-              <div className="flex items-start gap-2 p-3 rounded-xl"
+              <div className="mx-4 mt-2 flex items-start gap-2 p-3 rounded-xl"
                 style={{ background: 'hsl(var(--destructive)/0.08)', border: '1px solid hsl(var(--destructive)/0.2)' }}>
                 <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" style={{ color: 'hsl(var(--destructive))' }} />
                 <p className="text-xs" style={{ color: 'hsl(var(--destructive))' }}>{generateError}</p>
               </div>
             )}
 
-            {/* Reload confirmation dialog for sent/paid invoices */}
+            {/* Sent/Paid reload confirmation */}
             {reloadConfirmOpen && existingInvoice && (
-              <div className="p-3 rounded-xl space-y-3"
+              <div className="mx-4 mt-2 p-3 rounded-2xl space-y-3"
                 style={{ background: 'hsl(var(--muted))', border: '1px solid hsl(var(--border))' }}>
-                <p className="text-xs font-semibold text-foreground">
-                  {existingInvoice.invoice_number} is marked <span style={{ color: existingInvoice.status === 'paid' ? '#16A34A' : '#7C3AED' }}>{existingInvoice.status}</span>.
-                </p>
-                <p className="text-xs text-muted-foreground">Reloading will update the totals on this invoice record. The invoice number stays the same.</p>
+                <div>
+                  <p className="text-xs font-semibold text-foreground">
+                    {existingInvoice.invoice_number} is marked{' '}
+                    <span style={{ color: existingInvoice.status === 'paid' ? 'hsl(var(--stat-green))' : '#7C3AED' }}>
+                      {existingInvoice.status}
+                    </span>
+                  </p>
+                  <p className="text-[11px] text-muted-foreground mt-0.5">
+                    Reloading updates totals but keeps the same invoice number.
+                  </p>
+                </div>
                 <div className="flex gap-2">
                   <button onClick={reloadInvoice} disabled={generating}
-                    className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-bold disabled:opacity-50"
+                    className="flex-1 flex items-center justify-center gap-1.5 min-h-[40px] rounded-xl text-xs font-bold transition-all duration-150 disabled:opacity-50 active:scale-[0.97]"
                     style={{ background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))' }}>
                     <RotateCcw className="w-3 h-3" /> Update {existingInvoice.invoice_number}
                   </button>
                   <button onClick={() => setReloadConfirmOpen(false)}
-                    className="flex-1 py-2 rounded-xl text-xs font-semibold text-muted-foreground"
+                    className="flex-1 min-h-[40px] rounded-xl text-xs font-semibold text-muted-foreground transition-all duration-150 active:scale-[0.97]"
                     style={{ background: 'hsl(var(--background))', border: '1px solid hsl(var(--border))' }}>
                     Cancel
                   </button>
@@ -1099,62 +1201,83 @@ const InvoicePanel = ({
               </div>
             )}
 
-            {/* Action buttons */}
+            {/* ── Action buttons ── */}
             {!reloadConfirmOpen && (
-              <div className={existingInvoice ? 'flex gap-2' : ''}>
+              <div className="px-4 pt-3 pb-4">
                 {existingInvoice ? (
-                  <>
-                    {/* PRIMARY — View Invoice (filled blue, ~60% width) */}
-                    <button onClick={viewExistingInvoice} disabled={shiftsLoading}
+                  <div className="flex gap-2">
+                    {/* PRIMARY — View Invoice (~60%) */}
+                    <button
+                      onClick={viewExistingInvoice}
+                      disabled={shiftsLoading}
                       className="flex items-center justify-center gap-2 min-h-[46px] rounded-2xl text-sm font-bold transition-all duration-150 disabled:opacity-40 active:scale-[0.97]"
                       style={{
                         flex: '6 0 0',
                         background: 'hsl(var(--primary))',
                         color: 'hsl(var(--primary-foreground))',
-                        boxShadow: '0 2px 10px hsl(var(--primary)/0.28)',
-                      }}>
+                        boxShadow: '0 2px 10px hsl(var(--primary)/0.25)',
+                      }}
+                    >
                       <Eye className="w-4 h-4" />
                       View Invoice
                     </button>
 
-                    {/* SECONDARY — Reload Invoice (outline, ~40% width) */}
+                    {/* SECONDARY — Reload (~40%) or Up to date pill */}
                     {invoiceIsStale ? (
-                      <button onClick={handleReloadClick} disabled={generating || shiftsLoading}
-                        className="flex items-center justify-center gap-2 min-h-[46px] rounded-2xl text-sm font-semibold transition-all duration-150 disabled:opacity-40 active:scale-[0.97]"
+                      <button
+                        onClick={handleReloadClick}
+                        disabled={generating || shiftsLoading}
+                        className="flex items-center justify-center gap-1.5 min-h-[46px] rounded-2xl text-sm font-semibold transition-all duration-150 disabled:opacity-40 active:scale-[0.97]"
                         style={{
                           flex: '4 0 0',
                           background: 'transparent',
                           color: 'hsl(var(--primary))',
-                          border: '1.5px solid hsl(var(--primary)/0.35)',
-                        }}>
-                        <RotateCcw className={`w-4 h-4 ${generating ? 'animate-spin' : ''}`} />
-                        {generating ? 'Reloading…' : 'Reload'}
+                          border: '1.5px solid hsl(var(--primary)/0.3)',
+                        }}
+                      >
+                        <RotateCcw className={`w-3.5 h-3.5 ${generating ? 'animate-spin' : ''}`} />
+                        {generating ? 'Updating…' : 'Reload'}
                       </button>
                     ) : (
-                      <div className="flex items-center justify-center min-h-[46px] rounded-2xl text-xs font-semibold"
+                      <div
+                        className="flex items-center justify-center gap-1.5 min-h-[46px] rounded-2xl text-xs font-semibold"
                         style={{
                           flex: '4 0 0',
                           color: 'hsl(var(--stat-green))',
                           border: '1.5px solid hsl(var(--stat-green)/0.25)',
-                          background: 'hsl(var(--stat-green)/0.07)',
-                        }}>
-                        ✓ Up to date
+                          background: 'hsl(var(--stat-green)/0.06)',
+                        }}
+                      >
+                        <CheckCircle className="w-3.5 h-3.5" />
+                        Up to date
                       </div>
                     )}
-                  </>
+                  </div>
                 ) : (
-                  <button onClick={createInvoice}
+                  /* No invoice — Create button full width */
+                  <button
+                    onClick={createInvoice}
                     disabled={generating || shiftsLoading || (periodShifts.length === 0 && !shiftsLoading)}
                     className="w-full flex items-center justify-center gap-2 min-h-[46px] rounded-2xl text-sm font-bold transition-all duration-150 disabled:opacity-40 active:scale-[0.97]"
-                    style={{ background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', boxShadow: '0 2px 10px hsl(var(--primary)/0.28)' }}>
-                    {shiftsLoading
-                      ? <><div className="w-4 h-4 rounded-full border-2 border-primary-foreground/30 border-t-primary-foreground animate-spin" /> Loading shifts…</>
-                      : generating
-                        ? <><FileText className="w-4 h-4" /> Creating…</>
-                        : periodShifts.length === 0
-                          ? <><FileText className="w-4 h-4" /> No shifts in period</>
-                          : <><FileText className="w-4 h-4" /> Create Invoice</>
-                    }
+                    style={{
+                      background: periodShifts.length === 0 && !shiftsLoading && !generating
+                        ? 'hsl(var(--muted))'
+                        : 'hsl(var(--primary))',
+                      color: periodShifts.length === 0 && !shiftsLoading && !generating
+                        ? 'hsl(var(--muted-foreground))'
+                        : 'hsl(var(--primary-foreground))',
+                      boxShadow: periodShifts.length > 0 ? '0 2px 10px hsl(var(--primary)/0.25)' : 'none',
+                    }}
+                  >
+                    {shiftsLoading ? (
+                      <><div className="w-4 h-4 rounded-full border-2 border-current/30 border-t-current animate-spin" /> Loading…</>
+                    ) : generating ? (
+                      <><FileText className="w-4 h-4" /> Creating…</>
+                    ) : periodShifts.length === 0 ? (
+                      <><FileText className="w-4 h-4" /> No shifts in period</>
+                    ) : (
+                      <><FileText className="w-4 h-4" /> Create Invoice</>
+                    )}
                   </button>
                 )}
               </div>
