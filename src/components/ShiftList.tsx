@@ -594,29 +594,5 @@ const ShiftCard = ({
   );
 };
 
-// Expose useLongPress outside of closure for ShiftCard
-function useLongPress(callback: () => void, ms = 500) {
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const movedRef = useRef(false);
-
-  const start = useCallback((e: React.TouchEvent | React.MouseEvent) => {
-    movedRef.current = false;
-    timerRef.current = setTimeout(() => {
-      if (!movedRef.current) callback();
-    }, ms);
-    e.preventDefault();
-  }, [callback, ms]);
-
-  const cancel = useCallback(() => {
-    if (timerRef.current) clearTimeout(timerRef.current);
-  }, []);
-
-  const move = useCallback(() => {
-    movedRef.current = true;
-    cancel();
-  }, [cancel]);
-
-  return { onTouchStart: start, onTouchMove: move, onTouchEnd: cancel, onMouseDown: start, onMouseUp: cancel, onMouseLeave: cancel };
-}
 
 export default ShiftList;
