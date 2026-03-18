@@ -14,10 +14,10 @@ const StatsCards = ({ monthGross, taxRate, yearGross, onTaxRateChange, locked }:
   const yearNet = yearGross - yearGross * (taxRate / 100);
 
   const cards = [
-    { label: 'Month Gross',   value: formatCurrency(monthGross), icon: DollarSign,  money: true,  glow: true  },
-    { label: 'Month Tax',     value: formatCurrency(monthTax),   icon: Calculator,  money: false, glow: false },
-    { label: 'Year Gross',    value: formatCurrency(yearGross),  icon: TrendingUp,  money: true,  glow: true  },
-    { label: 'Year Net Est.', value: formatCurrency(yearNet),    icon: Wallet,      money: true,  glow: false },
+    { label: 'Month Gross',   value: formatCurrency(monthGross), icon: DollarSign,  money: true,  tint: 'money' },
+    { label: 'Month Tax',     value: formatCurrency(monthTax),   icon: Calculator,  money: false, tint: 'none'  },
+    { label: 'Year Gross',    value: formatCurrency(yearGross),  icon: TrendingUp,  money: true,  tint: 'money' },
+    { label: 'Year Net Est.', value: formatCurrency(yearNet),    icon: Wallet,      money: true,  tint: 'none'  },
   ];
 
   return (
@@ -26,7 +26,7 @@ const StatsCards = ({ monthGross, taxRate, yearGross, onTaxRateChange, locked }:
         {cards.map(card => (
           <div
             key={card.label}
-            className={card.glow ? 'glass-card-glow overflow-hidden' : 'glass-card overflow-hidden'}
+            className={card.tint === 'money' ? 'card-money-tint overflow-hidden' : 'glass-card overflow-hidden'}
             style={{ padding: '12px 14px' }}
           >
             <div className="flex items-center gap-1.5 mb-1.5 min-w-0">

@@ -54,6 +54,14 @@ export default {
         },
         money: {
           green: "hsl(var(--money-green))",
+          tint: "hsl(var(--money-tint))",
+          "tint-border": "hsl(var(--money-tint-border))",
+        },
+        purple: {
+          DEFAULT: "hsl(var(--purple))",
+          dark: "hsl(var(--purple-dark))",
+          tint: "hsl(var(--purple-tint))",
+          "tint-border": "hsl(var(--purple-tint-border))",
         },
         evening: "hsl(var(--evening-color))",
         sleepover: "hsl(var(--sleepover-color))",
