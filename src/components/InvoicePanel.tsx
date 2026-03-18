@@ -849,6 +849,7 @@ const InvoicePanel = ({
     setGenerating(true);
     setGenerateError(null);
     setReloadConfirmOpen(false);
+    setReloadSuccess(false);
     try {
       const issueDate = existingInvoice.created_at.split('T')[0];
       const dueDate   = addDays(issueDate, 7);
@@ -859,6 +860,8 @@ const InvoicePanel = ({
       if (error) { setGenerateError(`Failed to reload invoice: ${error.message}`); return; }
       onRefreshInvoices();
       setPreview(buildSnapshot(existingInvoice.id, existingInvoice.invoice_number, issueDate, dueDate));
+      setReloadSuccess(true);
+      setTimeout(() => setReloadSuccess(false), 4000);
     } catch (e) {
       setGenerateError(e instanceof Error ? e.message : 'An unexpected error occurred.');
     } finally {
