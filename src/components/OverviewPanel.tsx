@@ -514,9 +514,27 @@ const MonthNavigator = ({
           <ChevronLeft className="w-4 h-4 text-foreground" />
         </button>
         <div className="text-center">
-          <span className="text-base font-bold text-foreground tracking-tight">
-            {MONTH_NAMES[month]} {year}
-          </span>
+          {/* Month + year + lock status inline */}
+          <div className="flex items-center justify-center gap-1.5">
+            <span className="text-base font-bold text-foreground tracking-tight">
+              {MONTH_NAMES[month]} {year}
+            </span>
+            {locked !== undefined && (
+              <span
+                className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full"
+                style={{
+                  background: locked
+                    ? 'hsl(var(--destructive)/0.10)'
+                    : 'hsl(var(--stat-green)/0.12)',
+                  color: locked
+                    ? 'hsl(var(--destructive))'
+                    : 'hsl(var(--stat-green))',
+                }}
+              >
+                {locked ? 'Locked' : 'Open'}
+              </span>
+            )}
+          </div>
           {(monthGross > 0 || monthShifts > 0) && (
             <p className="text-[11px] text-muted-foreground mt-0.5">
               <span className="font-bold money-text">{formatCurrency(monthGross)}</span>
@@ -525,6 +543,36 @@ const MonthNavigator = ({
               <span className="mx-1 opacity-40">·</span>
               <span>{monthHours.toFixed(0)}h</span>
             </p>
+          )}
+          {/* Week / Month segmented toggle — desktop only (mobile handled in header) */}
+          {onModeChange && mode && (
+            <div
+              className="hidden md:flex items-center mx-auto mt-2 rounded-[9px] p-[3px] gap-[2px]"
+              style={{
+                background: 'hsl(var(--secondary))',
+                border: '0.5px solid hsl(var(--border))',
+                width: 'fit-content',
+              }}
+            >
+              {(['weekly', 'fortnightly'] as EntryMode[]).map((m) => {
+                const label = m === 'weekly' ? 'Week' : 'Month';
+                const isActive = mode === m;
+                return (
+                  <button
+                    key={m}
+                    onClick={() => onModeChange(m)}
+                    className="px-3 py-0.5 rounded-[6px] text-[10px] font-semibold transition-all duration-150"
+                    style={{
+                      background: isActive ? 'hsl(var(--card))' : 'transparent',
+                      color: isActive ? 'hsl(var(--foreground))' : 'hsl(var(--muted-foreground))',
+                      boxShadow: isActive ? '0 1px 3px hsl(var(--foreground)/0.08)' : 'none',
+                    }}
+                  >
+                    {label}
+                  </button>
+                );
+              })}
+            </div>
           )}
         </div>
         <button
