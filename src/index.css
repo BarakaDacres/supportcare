@@ -363,65 +363,81 @@
   }
 
   /* ────────────────────────────────────────────────────
-     SHIFT TYPE BADGES  (strong-contrast solid fills)
+     SHIFT TYPE BADGES  (soft pastel fills, reduced saturation)
   ──────────────────────────────────────────────────── */
   .badge-active {
-    background: hsl(var(--stat-green) / 0.15);
+    background: hsl(var(--stat-green) / 0.13);
     color: hsl(var(--stat-green));
-    border: 1px solid hsl(var(--stat-green) / 0.3);
+    border: 1px solid hsl(var(--stat-green) / 0.22);
     border-radius: 100px;
-    padding: 2px 8px;
+    padding: 2px 7px;
     font-size: 0.625rem;
-    font-weight: 700;
+    font-weight: 600;
     display: inline-flex;
     align-items: center;
-    gap: 4px;
+    gap: 3px;
   }
   .badge-sleepover {
-    background: hsl(var(--sleepover-color));
-    color: #fff;
+    background: hsl(var(--sleepover-color) / 0.13);
+    color: hsl(var(--sleepover-color));
+    border: 1px solid hsl(var(--sleepover-color) / 0.25);
     border-radius: 100px;
-    padding: 2px 8px;
+    padding: 2px 7px;
     font-size: 0.625rem;
-    font-weight: 700;
+    font-weight: 600;
     display: inline-flex;
     align-items: center;
-    gap: 4px;
+    gap: 3px;
   }
   .badge-evening {
-    background: hsl(var(--evening-color) / 0.15);
+    background: hsl(var(--evening-color) / 0.12);
     color: hsl(var(--evening-color));
-    border: 1px solid hsl(var(--evening-color) / 0.3);
+    border: 1px solid hsl(var(--evening-color) / 0.22);
     border-radius: 100px;
-    padding: 2px 8px;
+    padding: 2px 7px;
     font-size: 0.625rem;
-    font-weight: 700;
+    font-weight: 600;
     display: inline-flex;
     align-items: center;
-    gap: 4px;
+    gap: 3px;
   }
   .badge-weekend {
-    background: hsl(var(--weekend-color));
-    color: #fff;
+    background: hsl(var(--weekend-color) / 0.13);
+    color: hsl(var(--weekend-color));
+    border: 1px solid hsl(var(--weekend-color) / 0.22);
     border-radius: 100px;
-    padding: 2px 8px;
+    padding: 2px 7px;
     font-size: 0.625rem;
-    font-weight: 700;
+    font-weight: 600;
     display: inline-flex;
     align-items: center;
-    gap: 4px;
+    gap: 3px;
   }
   .badge-holiday {
-    background: hsl(var(--stat-amber) / 0.15);
+    background: hsl(var(--stat-amber) / 0.12);
     color: hsl(var(--stat-amber));
-    border: 1px solid hsl(var(--stat-amber) / 0.3);
+    border: 1px solid hsl(var(--stat-amber) / 0.22);
     border-radius: 100px;
-    padding: 2px 8px;
+    padding: 2px 7px;
     font-size: 0.625rem;
-    font-weight: 700;
+    font-weight: 600;
     display: inline-flex;
     align-items: center;
-    gap: 4px;
+    gap: 3px;
+  }
+
+  /* ── Tinted card surfaces ── */
+  .card-money-tint {
+    background: hsl(var(--money-tint));
+    border: 1px solid hsl(var(--money-tint-border));
+    border-radius: 20px;
+    box-shadow: var(--card-shadow-sm);
+  }
+  .card-analytics-tint {
+    background: hsl(var(--purple-tint));
+    border: 1px solid hsl(var(--purple-tint-border));
+    border-radius: 20px;
+    box-shadow: var(--card-shadow-sm);
   }
 
   /* ────────────────────────────────────────────────────
