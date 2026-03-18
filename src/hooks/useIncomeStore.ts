@@ -9,10 +9,7 @@ export type EntryMode = 'weekly' | 'fortnightly';
 interface StoreState {
   year: number;
   month: number;
-  mode: EntryMode;
   taxRate: number;
-  weeklyEntries: Record<string, Record<string, number[]>>;
-  fortnightlyEntries: Record<string, Record<string, number[]>>;
   lockedMonths: Record<string, string[]>;
   /**
    * 'light' | 'dark'  → explicit user override
