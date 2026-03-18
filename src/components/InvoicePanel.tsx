@@ -1055,8 +1055,13 @@ const InvoicePanel = ({
                   {periodShifts.length} shift{periodShifts.length !== 1 ? 's' : ''} in period
                 </p>
                 {existingInvoice && (
-                  <p className="text-[10px] mt-0.5" style={{ color: 'hsl(var(--primary))' }}>
-                    ✓ Invoice exists: {existingInvoice.invoice_number}
+                  <p className="text-[10px] mt-0.5 font-medium" style={{ color: 'hsl(var(--primary))' }}>
+                    Invoice exists: {existingInvoice.invoice_number}
+                  </p>
+                )}
+                {existingInvoice && invoiceIsStale && (
+                  <p className="text-[10px] mt-0.5 font-semibold" style={{ color: '#D97706' }}>
+                    ⚠ New shifts added since last update
                   </p>
                 )}
               </div>
@@ -1071,21 +1076,65 @@ const InvoicePanel = ({
               </div>
             )}
 
-            <button onClick={generateInvoice}
-              disabled={generating || shiftsLoading || (periodShifts.length === 0 && !shiftsLoading)}
-              className="w-full flex items-center justify-center gap-2 min-h-[48px] rounded-2xl text-sm font-bold transition-all duration-200 disabled:opacity-40"
-              style={{ background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', boxShadow: '0 4px 16px hsl(var(--primary)/0.3)' }}>
-              {shiftsLoading
-                ? <><div className="w-4 h-4 rounded-full border-2 border-primary-foreground/30 border-t-primary-foreground animate-spin" /> Loading shifts…</>
-                : generating
-                  ? <><FileText className="w-4 h-4" /> Generating…</>
-                  : existingInvoice
-                    ? <><FileText className="w-4 h-4" /> {`View ${existingInvoice.invoice_number}`}</>
-                    : periodShifts.length === 0
-                      ? <><FileText className="w-4 h-4" /> No shifts in period</>
-                      : <><FileText className="w-4 h-4" /> Generate Invoice</>
-              }
-            </button>
+            {/* Reload confirmation dialog for sent/paid invoices */}
+            {reloadConfirmOpen && existingInvoice && (
+              <div className="p-3 rounded-xl space-y-3"
+                style={{ background: 'hsl(var(--muted))', border: '1px solid hsl(var(--border))' }}>
+                <p className="text-xs font-semibold text-foreground">
+                  {existingInvoice.invoice_number} is marked <span style={{ color: existingInvoice.status === 'paid' ? '#16A34A' : '#7C3AED' }}>{existingInvoice.status}</span>.
+                </p>
+                <p className="text-xs text-muted-foreground">Reloading will update the totals on this invoice record. The invoice number stays the same.</p>
+                <div className="flex gap-2">
+                  <button onClick={reloadInvoice} disabled={generating}
+                    className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-bold disabled:opacity-50"
+                    style={{ background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))' }}>
+                    <RotateCcw className="w-3 h-3" /> Update {existingInvoice.invoice_number}
+                  </button>
+                  <button onClick={() => setReloadConfirmOpen(false)}
+                    className="flex-1 py-2 rounded-xl text-xs font-semibold text-muted-foreground"
+                    style={{ background: 'hsl(var(--background))', border: '1px solid hsl(var(--border))' }}>
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Action buttons */}
+            {!reloadConfirmOpen && (
+              <div className={existingInvoice ? 'flex gap-2' : ''}>
+                {existingInvoice ? (
+                  <>
+                    <button onClick={viewExistingInvoice} disabled={shiftsLoading}
+                      className="flex-1 flex items-center justify-center gap-2 min-h-[48px] rounded-2xl text-sm font-bold transition-all duration-200 disabled:opacity-40"
+                      style={{ background: 'hsl(var(--muted))', color: 'hsl(var(--foreground))', border: '1px solid hsl(var(--border))' }}>
+                      <Eye className="w-4 h-4" /> View
+                    </button>
+                    <button onClick={handleReloadClick} disabled={generating || shiftsLoading}
+                      className="flex-[2] flex items-center justify-center gap-2 min-h-[48px] rounded-2xl text-sm font-bold transition-all duration-200 disabled:opacity-40"
+                      style={{ background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', boxShadow: '0 4px 16px hsl(var(--primary)/0.3)' }}>
+                      {generating
+                        ? <><div className="w-4 h-4 rounded-full border-2 border-primary-foreground/30 border-t-primary-foreground animate-spin" /> Reloading…</>
+                        : <><RotateCcw className="w-4 h-4" /> Reload Invoice</>
+                      }
+                    </button>
+                  </>
+                ) : (
+                  <button onClick={createInvoice}
+                    disabled={generating || shiftsLoading || (periodShifts.length === 0 && !shiftsLoading)}
+                    className="w-full flex items-center justify-center gap-2 min-h-[48px] rounded-2xl text-sm font-bold transition-all duration-200 disabled:opacity-40"
+                    style={{ background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', boxShadow: '0 4px 16px hsl(var(--primary)/0.3)' }}>
+                    {shiftsLoading
+                      ? <><div className="w-4 h-4 rounded-full border-2 border-primary-foreground/30 border-t-primary-foreground animate-spin" /> Loading shifts…</>
+                      : generating
+                        ? <><FileText className="w-4 h-4" /> Creating…</>
+                        : periodShifts.length === 0
+                          ? <><FileText className="w-4 h-4" /> No shifts in period</>
+                          : <><FileText className="w-4 h-4" /> Create Invoice</>
+                    }
+                  </button>
+                )}
+              </div>
+            )}
           </div>
 
           {/* ── Invoice Preview ── */}
