@@ -26,7 +26,7 @@ const Index = ({ auth }: IndexProps) => {
   const store = useIncomeStore();
   const isMobile = useIsMobile();
   const [activeTab, setActiveTab] = useState<TabId>('overview');
-  const [settingsSubTab, setSettingsSubTab] = useState<'preferences' | 'app' | 'clients' | 'account'>('preferences');
+  const [settingsSubTab, setSettingsSubTab] = useState<'preferences' | 'rates' | 'clients' | 'account'>('preferences');
   const [sheetOpen, setSheetOpen] = useState(false);
 
   const { settings, loading: settingsLoading, updateSettings, incrementInvoiceCounter } = useUserSettings();
