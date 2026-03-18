@@ -11,11 +11,11 @@ import BottomTabBar, { type TabId } from '@/components/BottomTabBar';
 import ShiftList from '@/components/ShiftList';
 import AnalyticsPanel from '@/components/AnalyticsPanel';
 import InvoicePanel from '@/components/InvoicePanel';
-import AppSettingsPanel from '@/components/AppSettingsPanel';
 import ClientsPanel from '@/components/ClientsPanel';
 import OverviewPanel from '@/components/OverviewPanel';
-import ProfileSettings from '@/components/ProfileSettings';
 import PreferencesPanel from '@/components/PreferencesPanel';
+import RatesPanel from '@/components/RatesPanel';
+import AccountPanel from '@/components/AccountPanel';
 import type { AuthState } from '@/hooks/useAuth';
 
 interface IndexProps {
