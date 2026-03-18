@@ -1,7 +1,8 @@
 import { getWeekRangesForMonth, getFortnightRanges } from '@/lib/dateUtils';
 import { formatCurrency, safeNum } from '@/lib/formatUtils';
-import type { EntryMode } from '@/hooks/useIncomeStore';
 import { useIsMobile } from '@/hooks/use-mobile';
+
+type EntryMode = 'weekly' | 'fortnightly';
 
 interface EntryTableProps {
   year: number;
