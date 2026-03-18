@@ -463,7 +463,7 @@ const ElevatedCard = ({
 const MonthNavigator = ({
   year, month, onYearChange, onMonthChange,
   monthGross, monthShifts, monthHours,
-  mode, locked, onModeChange,
+  locked,
 }: {
   year: number; month: number;
   onYearChange: (y: number) => void;
