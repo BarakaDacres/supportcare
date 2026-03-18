@@ -57,8 +57,6 @@ interface Invoice {
   invoice_number: string;
 }
 
-import type { EntryMode } from '@/hooks/useIncomeStore';
-
 interface OverviewPanelProps {
   shifts: Shift[];
   clients: Client[];
@@ -68,9 +66,7 @@ interface OverviewPanelProps {
   selectedMonth: number;
   onYearChange: (y: number) => void;
   onMonthChange: (m: number) => void;
-  mode?: EntryMode;
   locked?: boolean;
-  onModeChange?: (mode: EntryMode) => void;
 }
 
 function parseDate(dateStr: string): Date {
