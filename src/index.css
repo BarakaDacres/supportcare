@@ -6,8 +6,8 @@
 
 @layer base {
   :root {
-    /* ── Light: warm off-white, floating white cards ── */
-    --background: 220 14% 96%;
+    /* ── Light: soft off-white premium background ── */
+    --background: 220 11% 97%;
     --foreground: 220 20% 10%;
     --card: 0 0% 100%;
     --card-foreground: 220 20% 10%;
@@ -15,16 +15,16 @@
     --popover-foreground: 220 20% 10%;
     --primary: 211 100% 50%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 220 12% 92%;
+    --secondary: 220 10% 95%;
     --secondary-foreground: 220 10% 20%;
-    --muted: 220 10% 93%;
+    --muted: 220 10% 95%;
     --muted-foreground: 220 8% 46%;
     --accent: 211 100% 50%;
     --accent-foreground: 0 0% 100%;
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
-    --border: 220 10% 88%;
-    --input: 220 10% 88%;
+    --border: 220 10% 90%;
+    --input: 220 10% 90%;
     --ring: 211 100% 50%;
     --radius: 1rem;
 
@@ -37,23 +37,35 @@
     --surface-elevated: 0 0% 100% / 0.9;
 
     /* ── Card shadows (light mode = real drop shadows) ── */
-    --card-shadow-sm: 0 1px 3px hsl(220 20% 10% / 0.06), 0 4px 12px hsl(220 20% 10% / 0.06);
-    --card-shadow-md: 0 2px 8px hsl(220 20% 10% / 0.07), 0 12px 32px hsl(220 20% 10% / 0.08);
-    --card-shadow-lg: 0 4px 16px hsl(220 20% 10% / 0.08), 0 24px 56px hsl(220 20% 10% / 0.1);
+    --card-shadow-sm: 0 1px 3px hsl(220 20% 10% / 0.05), 0 4px 12px hsl(220 20% 10% / 0.05);
+    --card-shadow-md: 0 2px 8px hsl(220 20% 10% / 0.06), 0 12px 32px hsl(220 20% 10% / 0.07);
+    --card-shadow-lg: 0 4px 16px hsl(220 20% 10% / 0.07), 0 24px 56px hsl(220 20% 10% / 0.09);
 
     /* ── Semantic accents ── */
-    --stat-green: 152 60% 40%;
-    --stat-amber: 38 88% 48%;
-    --stat-red: 0 84% 60%;
-    --money-green: 152 60% 38%;
-    --money-green-fg: 152 60% 18%;
-    --evening-color: 28 88% 50%;
-    --sleepover-color: 213 90% 55%;
-    --weekend-color: 265 82% 62%;
+    --stat-green: 126 35% 52%;
+    --stat-amber: 35 65% 52%;
+    --stat-red: 0 72% 58%;
+
+    /* ── Money green — pastel premium green ── */
+    --money-green: 126 35% 51%;
+    --money-green-fg: 126 40% 22%;
+    --money-tint: 123 40% 96%;
+    --money-tint-border: 123 35% 88%;
+
+    /* ── Purple — secondary analytics accent ── */
+    --purple: 262 85% 76%;
+    --purple-dark: 249 62% 65%;
+    --purple-tint: 262 100% 97%;
+    --purple-tint-border: 262 60% 90%;
+
+    /* ── Shift type tags — reduced saturation ── */
+    --evening-color: 32 58% 52%;
+    --sleepover-color: 248 58% 68%;
+    --weekend-color: 265 55% 65%;
 
     /* ── Tab / header surfaces ── */
-    --tab-bar-bg: 220 14% 96% / 0.88;
-    --header-bg: 220 14% 96% / 0.92;
+    --tab-bar-bg: 220 11% 97% / 0.88;
+    --header-bg: 220 11% 97% / 0.92;
 
     /* ── iOS 26 Liquid Glass tokens ── */
     --lg-pill-bg: 0 0% 100% / 0.65;
@@ -64,7 +76,7 @@
     --lg-specular: 0 0% 100% / 0.7;
 
     /* ── Separator ── */
-    --divider: 220 10% 90%;
+    --divider: 220 10% 91%;
   }
 
   .dark {
