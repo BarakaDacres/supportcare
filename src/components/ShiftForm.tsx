@@ -20,15 +20,12 @@ const DEFAULT_NOTE_NORMAL = 'Assistance with Self-Care Activities';
 const DEFAULT_NOTE_EVENING = 'Assistance with Self-Care Activities — Evening';
 
 function getSleeoverNote(dateStr?: string, rates?: PayRates): string {
-  const weekdayRate = rates?.rate_sleepover_weekday ?? 300;
-  const weekendRate = rates?.rate_sleepover_weekend ?? 350;
   if (dateStr) {
     const dow = getDayOfWeek(dateStr);
     const isWeekend = isWeekendSleeperNight(dow);
-    const rateStr = isWeekend ? `$${weekendRate}` : `$${weekdayRate}`;
-    return `Night Sleepover Support\nWeekday $${weekdayRate} • Weekend $${weekendRate}\nThis shift: ${rateStr}`;
+    return isWeekend ? 'Night Sleepover Support - Weekend' : 'Night Sleepover Support - Weekday';
   }
-  return `Night Sleepover Support\nWeekday $${weekdayRate} • Weekend $${weekendRate}`;
+  return 'Night Sleepover Support - Weekday';
 }
 
 const DEFAULT_NOTE_SLEEPOVER = getSleeoverNote();
