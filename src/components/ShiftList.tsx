@@ -66,30 +66,6 @@ interface ContextMenuState {
   y: number;
 }
 
-function useLongPress(callback: () => void, ms = 500) {
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const movedRef = useRef(false);
-
-  const start = useCallback((e: React.TouchEvent | React.MouseEvent) => {
-    movedRef.current = false;
-    timerRef.current = setTimeout(() => {
-      if (!movedRef.current) callback();
-    }, ms);
-    e.preventDefault();
-  }, [callback, ms]);
-
-  const cancel = useCallback(() => {
-    if (timerRef.current) clearTimeout(timerRef.current);
-  }, []);
-
-  const move = useCallback(() => {
-    movedRef.current = true;
-    cancel();
-  }, [cancel]);
-
-  return { onTouchStart: start, onTouchMove: move, onTouchEnd: cancel, onMouseDown: start, onMouseUp: cancel, onMouseLeave: cancel };
-}
-
 const ShiftList = ({
   shifts, clients, loading, rates = DEFAULT_RATES, locked = false,
   onAdd, onUpdate, onDelete, onDuplicate, onSheetOpenChange,
@@ -474,7 +450,7 @@ const ShiftList = ({
   );
 };
 
-// ── Individual shift card ─────────────────────────────────────────────────────
+// ── Individual shift card with swipe gestures ─────────────────────────────────
 interface ShiftCardProps {
   shift: Shift;
   locked: boolean;
@@ -492,104 +468,202 @@ interface ShiftCardProps {
   onContextMenu: (e: React.MouseEvent | React.TouchEvent) => void;
 }
 
+const SWIPE_THRESHOLD = 60;   // px needed to reveal action
+const SWIPE_CONFIRM  = 110;   // px to auto-trigger action
+const SWIPE_MAX      = 90;    // max translate
+
 const ShiftCard = ({
   shift, locked, active, isSleepover, isEvening,
   displayPay, hasOverride, shiftTypeLabel, timeDisplay, dateLabel,
   onEdit, onDuplicate, onDelete, onContextMenu,
 }: ShiftCardProps) => {
-  const longPress = useLongPress(onContextMenu as () => void, 450);
+  const [translateX, setTranslateX] = useState(0);
+  const [swiping, setSwiping] = useState(false);
+  const touchStartX = useRef(0);
+  const touchStartY = useRef(0);
+  const trackingRef = useRef(false);
+  const animatingRef = useRef(false);
+
+  // Which action is revealed
+  const revealEdit   = translateX > SWIPE_THRESHOLD;
+  const revealDelete = translateX < -SWIPE_THRESHOLD;
+
+  const snapBack = useCallback(() => {
+    animatingRef.current = true;
+    setTranslateX(0);
+    setSwiping(false);
+    setTimeout(() => { animatingRef.current = false; }, 280);
+  }, []);
+
+  const onTouchStart = useCallback((e: React.TouchEvent) => {
+    if (locked || animatingRef.current) return;
+    touchStartX.current = e.touches[0].clientX;
+    touchStartY.current = e.touches[0].clientY;
+    trackingRef.current = false;
+  }, [locked]);
+
+  const onTouchMove = useCallback((e: React.TouchEvent) => {
+    if (locked) return;
+    const dx = e.touches[0].clientX - touchStartX.current;
+    const dy = e.touches[0].clientY - touchStartY.current;
+
+    // Lock axis: if vertical scroll is dominant, ignore
+    if (!trackingRef.current) {
+      if (Math.abs(dy) > Math.abs(dx) + 4) return;
+      if (Math.abs(dx) > 8) {
+        trackingRef.current = true;
+        setSwiping(true);
+      } else {
+        return;
+      }
+    }
+
+    e.preventDefault();
+    const clamped = Math.max(-SWIPE_MAX, Math.min(SWIPE_MAX, dx));
+    setTranslateX(clamped);
+  }, [locked]);
+
+  const onTouchEnd = useCallback(() => {
+    if (!trackingRef.current) { setSwiping(false); return; }
+    if (translateX > SWIPE_CONFIRM) {
+      snapBack();
+      setTimeout(onEdit, 50);
+    } else if (translateX < -SWIPE_CONFIRM) {
+      snapBack();
+      setTimeout(onDelete, 50);
+    } else {
+      snapBack();
+    }
+    trackingRef.current = false;
+  }, [translateX, snapBack, onEdit, onDelete]);
 
   return (
-    <div
-      className="card-elevated select-none"
-      style={{
-        padding: '12px 14px',
-        cursor: locked ? 'default' : 'pointer',
-        ...(active ? {
-          borderColor: 'hsl(var(--stat-green) / 0.4)',
-          boxShadow: 'var(--card-shadow-sm), 0 0 0 1.5px hsl(var(--stat-green) / 0.2)',
-          background: 'hsl(var(--stat-green) / 0.04)',
-        } : {}),
-        ...(isEvening && !active ? {
-          borderColor: 'hsl(var(--evening-color) / 0.25)',
-        } : {}),
-      }}
-      {...(!locked ? longPress : {})}
-    >
-      {/* Row 1: Date + Amount */}
-      <div className="flex items-start justify-between gap-2 mb-1">
-        <div className="flex items-center gap-1.5 flex-wrap min-w-0">
-          <span className="text-sm font-bold text-foreground">{dateLabel}</span>
-          {active && (
+    <div className="relative overflow-hidden rounded-2xl" style={{ touchAction: swiping ? 'none' : 'pan-y' }}>
+      {/* Edit reveal (left background) */}
+      <div
+        className="absolute inset-y-0 left-0 flex items-center justify-start pl-5 pointer-events-none"
+        style={{
+          background: 'hsl(142 71% 45%)',
+          width: '100%',
+          borderRadius: 'inherit',
+          opacity: Math.min(1, Math.max(0, translateX - 16) / (SWIPE_THRESHOLD - 16)),
+          transition: swiping ? 'none' : 'opacity 0.25s',
+        }}
+      >
+        <div className="flex items-center gap-2">
+          <Pencil className="w-4 h-4 text-white" strokeWidth={2.5} />
+          <span className="text-white text-sm font-bold">Edit</span>
+        </div>
+      </div>
+
+      {/* Delete reveal (right background) */}
+      <div
+        className="absolute inset-y-0 right-0 flex items-center justify-end pr-5 pointer-events-none"
+        style={{
+          background: 'hsl(var(--destructive))',
+          width: '100%',
+          borderRadius: 'inherit',
+          opacity: Math.min(1, Math.max(0, -translateX - 16) / (SWIPE_THRESHOLD - 16)),
+          transition: swiping ? 'none' : 'opacity 0.25s',
+        }}
+      >
+        <div className="flex items-center gap-2">
+          <span className="text-white text-sm font-bold">Delete</span>
+          <Trash2 className="w-4 h-4 text-white" strokeWidth={2.5} />
+        </div>
+      </div>
+
+      {/* Card content — slides */}
+      <div
+        className="card-elevated select-none relative z-10"
+        style={{
+          padding: '12px 14px',
+          cursor: locked ? 'default' : 'pointer',
+          transform: `translateX(${translateX}px)`,
+          transition: swiping ? 'none' : 'transform 0.26s cubic-bezier(0.25, 1, 0.5, 1)',
+          willChange: 'transform',
+          borderRadius: 'inherit',
+          ...(active ? {
+            borderColor: 'hsl(var(--stat-green) / 0.4)',
+            boxShadow: 'var(--card-shadow-sm), 0 0 0 1.5px hsl(var(--stat-green) / 0.2)',
+            background: 'hsl(var(--stat-green) / 0.04)',
+          } : {}),
+          ...(isEvening && !active ? {
+            borderColor: 'hsl(var(--evening-color) / 0.25)',
+          } : {}),
+        }}
+        onTouchStart={onTouchStart}
+        onTouchMove={onTouchMove}
+        onTouchEnd={onTouchEnd}
+        onContextMenu={e => { if (!locked) onContextMenu(e); }}
+      >
+        {/* Row 1: Date + Amount */}
+        <div className="flex items-start justify-between gap-2 mb-1">
+          <div className="flex items-center gap-1.5 flex-wrap min-w-0">
+            <span className="text-sm font-bold text-foreground">{dateLabel}</span>
+            {active && (
+              <span
+                className="inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-bold animate-pulse"
+                style={{
+                  background: 'hsl(var(--stat-green)/0.18)',
+                  color: 'hsl(var(--stat-green))',
+                  border: '1px solid hsl(var(--stat-green)/0.35)',
+                }}
+              >
+                ● Active
+              </span>
+            )}
+          </div>
+          <div className="text-right shrink-0">
+            <span className="text-sm font-bold money-text">{formatCurrency(displayPay)}</span>
+            {hasOverride && (
+              <p className="text-[10px] text-muted-foreground line-through leading-tight">{formatCurrency(Number(shift.gross_pay))}</p>
+            )}
+          </div>
+        </div>
+
+        {/* Row 2: Time + duration */}
+        <p className="text-[11px] text-muted-foreground mb-1.5">{timeDisplay}</p>
+
+        {/* Row 3: Client + type tag */}
+        <div className="flex items-center gap-1.5 flex-wrap">
+          {shift.client_name && (
+            <span className="text-[11px] text-muted-foreground flex items-center gap-1">
+              <User className="w-2.5 h-2.5" />
+              {shift.client_name}
+            </span>
+          )}
+          {shift.client_name && <span className="text-[10px] text-muted-foreground/40">·</span>}
+          <span
+            className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium"
+            style={shiftTypeLabel.style}
+          >
+            {shiftTypeLabel.icon}
+            {isSleepover ? `Sleepover · ${formatCurrency(displayPay)}` : shiftTypeLabel.label}
+          </span>
+          {hasOverride && !isSleepover && (
             <span
-              className="inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-bold animate-pulse"
-              style={{
-                background: 'hsl(var(--stat-green)/0.18)',
-                color: 'hsl(var(--stat-green))',
-                border: '1px solid hsl(var(--stat-green)/0.35)',
-              }}
+              className="inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-medium"
+              style={{ background: 'hsl(var(--stat-amber)/0.12)', color: 'hsl(var(--stat-amber))' }}
             >
-              ● Active
+              <AlertCircle className="w-2.5 h-2.5" /> Override
             </span>
           )}
         </div>
-        <div className="text-right shrink-0">
-          <span className="text-sm font-bold money-text">{formatCurrency(displayPay)}</span>
-          {hasOverride && (
-            <p className="text-[10px] text-muted-foreground line-through leading-tight">{formatCurrency(Number(shift.gross_pay))}</p>
-          )}
-        </div>
-      </div>
 
-      {/* Row 2: Time + duration */}
-      <p className="text-[11px] text-muted-foreground mb-1.5">{timeDisplay}</p>
-
-      {/* Row 3: Client + type tag */}
-      <div className="flex items-center gap-1.5 flex-wrap">
-        {shift.client_name && (
-          <span className="text-[11px] text-muted-foreground flex items-center gap-1">
-            <User className="w-2.5 h-2.5" />
-            {shift.client_name}
-          </span>
+        {/* Row 4: Notes */}
+        {shift.notes && (
+          <p className="text-[11px] text-muted-foreground/70 mt-1.5 line-clamp-2 leading-relaxed">{shift.notes}</p>
         )}
-        {shift.client_name && <span className="text-[10px] text-muted-foreground/40">·</span>}
-        {/* Primary shift type pill — simplified for sleepover */}
-        <span
-          className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium"
-          style={shiftTypeLabel.style}
-        >
-          {shiftTypeLabel.icon}
-          {isSleepover ? `Sleepover · ${formatCurrency(displayPay)}` : shiftTypeLabel.label}
-        </span>
-        {hasOverride && !isSleepover && (
-          <span
-            className="inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-medium"
-            style={{ background: 'hsl(var(--stat-amber)/0.12)', color: 'hsl(var(--stat-amber))' }}
-          >
-            <AlertCircle className="w-2.5 h-2.5" /> Override
-          </span>
+
+        {/* Locked indicator */}
+        {locked && (
+          <div className="flex items-center gap-1.5 mt-1.5">
+            <Lock className="w-2.5 h-2.5 text-muted-foreground/50" />
+            <span className="text-[10px] text-muted-foreground/50">Locked</span>
+          </div>
         )}
       </div>
-
-      {/* Row 4: Notes — muted, optional */}
-      {shift.notes && (
-        <p className="text-[11px] text-muted-foreground/70 mt-1.5 line-clamp-2 leading-relaxed">{shift.notes}</p>
-      )}
-
-      {/* Locked indicator */}
-      {locked && (
-        <div className="flex items-center gap-1.5 mt-1.5">
-          <Lock className="w-2.5 h-2.5 text-muted-foreground/50" />
-          <span className="text-[10px] text-muted-foreground/50">Locked</span>
-        </div>
-      )}
-
-      {/* Hint for unlocked cards */}
-      {!locked && (
-        <div className="flex items-center justify-end mt-1.5">
-          <span className="text-[10px] text-muted-foreground/35">Hold to edit</span>
-        </div>
-      )}
     </div>
   );
 };
