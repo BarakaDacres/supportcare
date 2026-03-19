@@ -397,43 +397,12 @@ const ShiftList = ({
         </div>
       )}
 
-      {/* Add form */}
-      {showForm && !locked && (
-        <ShiftForm
-          clients={clients}
-          rates={rates}
-          onSubmit={handleAdd}
-          onCancel={() => { setShowForm(false); openSheet(false); }}
-        />
-      )}
-
-      {/* Edit form */}
-      {editingShift && !locked && (
-        <ShiftForm
-          clients={clients}
-          rates={rates}
-          title="Edit Shift"
-          initialValues={{
-            date: editingShift.date,
-            start_time: editingShift.start_time,
-            end_time: editingShift.end_time,
-            is_sleepover: editingShift.is_sleepover,
-            is_public_holiday: editingShift.is_public_holiday,
-            client_id: editingShift.client_id,
-            notes: editingShift.notes,
-            fee_override: editingShift.fee_override,
-          }}
-          onSubmit={handleUpdate}
-          onCancel={() => { setEditingShift(null); openSheet(false); }}
-        />
-      )}
-
       {/* Floating add button */}
       {!locked && !showForm && !editingShift && (
         <button
           onClick={() => { setShowForm(true); openSheet(true); }}
           aria-label="Add shift"
-          className="fixed bottom-28 right-5 z-40 md:hidden w-13 h-13 rounded-full flex items-center justify-center transition-all duration-200 active:scale-90"
+          className="fixed bottom-28 right-5 z-40 md:hidden rounded-full flex items-center justify-center transition-all duration-200 active:scale-90"
           style={{
             width: 52,
             height: 52,
@@ -445,6 +414,49 @@ const ShiftList = ({
         >
           <Plus className="w-5 h-5" strokeWidth={2.5} />
         </button>
+      )}
+
+      {/* Add form — fixed overlay modal */}
+      {showForm && !locked && (
+        <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center"
+          style={{ background: 'hsl(var(--foreground)/0.25)', backdropFilter: 'blur(6px)' }}>
+          <div className="w-full max-w-lg mx-0 sm:mx-4 overflow-y-auto"
+            style={{ maxHeight: '92dvh' }}>
+            <ShiftForm
+              clients={clients}
+              rates={rates}
+              onSubmit={handleAdd}
+              onCancel={() => { setShowForm(false); openSheet(false); }}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Edit form — fixed overlay modal */}
+      {editingShift && !locked && (
+        <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center"
+          style={{ background: 'hsl(var(--foreground)/0.25)', backdropFilter: 'blur(6px)' }}>
+          <div className="w-full max-w-lg mx-0 sm:mx-4 overflow-y-auto"
+            style={{ maxHeight: '92dvh' }}>
+            <ShiftForm
+              clients={clients}
+              rates={rates}
+              title="Edit Shift"
+              initialValues={{
+                date: editingShift.date,
+                start_time: editingShift.start_time,
+                end_time: editingShift.end_time,
+                is_sleepover: editingShift.is_sleepover,
+                is_public_holiday: editingShift.is_public_holiday,
+                client_id: editingShift.client_id,
+                notes: editingShift.notes,
+                fee_override: editingShift.fee_override,
+              }}
+              onSubmit={handleUpdate}
+              onCancel={() => { setEditingShift(null); openSheet(false); }}
+            />
+          </div>
+        </div>
       )}
     </div>
   );
