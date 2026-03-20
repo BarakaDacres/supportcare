@@ -319,6 +319,7 @@ export type Database = {
           email: string | null
           id: string
           invoice_counter: number
+          invoice_due_days: number
           invoice_notes: string | null
           monthly_goal: number | null
           phone: string | null
@@ -349,6 +350,7 @@ export type Database = {
           email?: string | null
           id?: string
           invoice_counter?: number
+          invoice_due_days?: number
           invoice_notes?: string | null
           monthly_goal?: number | null
           phone?: string | null
@@ -379,6 +381,7 @@ export type Database = {
           email?: string | null
           id?: string
           invoice_counter?: number
+          invoice_due_days?: number
           invoice_notes?: string | null
           monthly_goal?: number | null
           phone?: string | null

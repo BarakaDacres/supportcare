@@ -1,4 +1,4 @@
-import { Sun, Moon, Printer } from 'lucide-react';
+import { Sun, Moon } from 'lucide-react';
 import UserMenu from '@/components/UserMenu';
 import type { AuthState } from '@/hooks/useAuth';
 
@@ -32,14 +32,6 @@ const Header = ({ theme, onToggleTheme, auth }: HeaderProps) => {
         </div>
       </div>
       <div className="flex items-center gap-2">
-        <button
-          onClick={() => window.print()}
-          className="glass-chip hover:opacity-80 transition-opacity"
-          title="Print report"
-        >
-          <Printer className="w-3.5 h-3.5" />
-          <span className="hidden sm:inline">Print</span>
-        </button>
         <button
           onClick={onToggleTheme}
           className="glass-chip hover:opacity-80 transition-opacity"

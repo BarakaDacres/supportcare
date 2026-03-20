@@ -51,7 +51,6 @@ const SettingsRow = ({ icon, label, sublabel, right, onClick, isLast }: Settings
       className="w-full flex items-center gap-3.5 px-4 transition-colors duration-150 disabled:cursor-default active:bg-accent/30"
       style={{ minHeight: 52 }}
     >
-      {/* bare icon — no background */}
       <span className="text-foreground shrink-0 w-5 flex items-center justify-center">
         {icon}
       </span>
@@ -140,6 +139,56 @@ const ThemePicker = ({
   );
 };
 
+/* ── Due Date Picker ── */
+const DUE_DATE_OPTIONS = [7, 14, 21, 30];
+
+const DueDatePicker = ({
+  current, onChange, onClose,
+}: { current: number; onChange: (v: number) => void; onClose: () => void }) => (
+  <div
+    className="fixed inset-0 z-50 flex items-end justify-center sm:items-center"
+    style={{ background: 'hsl(var(--foreground)/0.25)', backdropFilter: 'blur(4px)' }}
+    onClick={onClose}
+  >
+    <div
+      className="w-full max-w-sm mx-4 rounded-2xl overflow-hidden mb-6 sm:mb-0"
+      style={{ background: 'hsl(var(--card))', boxShadow: 'var(--card-shadow-lg)', border: '1px solid hsl(var(--border))' }}
+      onClick={e => e.stopPropagation()}
+    >
+      <div className="px-4 pt-5 pb-3 text-center">
+        <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-widest">Invoice Due Date</p>
+        <p className="text-[13px] text-muted-foreground mt-1">Days after issue date payment is due</p>
+      </div>
+      <div className="border-t" style={{ borderColor: 'hsl(var(--divider))' }}>
+        {DUE_DATE_OPTIONS.map((days, i) => (
+          <div key={days}>
+            <button
+              type="button"
+              onClick={() => { onChange(days); onClose(); }}
+              className="w-full flex items-center gap-3 px-4 transition-colors duration-150 active:bg-accent/30"
+              style={{ minHeight: 52 }}
+            >
+              <span className="flex-1 text-left text-[15px] text-foreground">{days} days</span>
+              {current === days && <Check className="w-4 h-4" style={{ color: 'hsl(var(--primary))' }} />}
+            </button>
+            {i < DUE_DATE_OPTIONS.length - 1 && <div className="ml-4 h-px" style={{ background: 'hsl(var(--divider))' }} />}
+          </div>
+        ))}
+      </div>
+      <div className="border-t p-3" style={{ borderColor: 'hsl(var(--divider))' }}>
+        <button
+          type="button"
+          onClick={onClose}
+          className="w-full rounded-xl text-[16px] font-semibold transition-colors duration-150 active:bg-accent/30"
+          style={{ minHeight: 50, background: 'hsl(var(--muted))', color: 'hsl(var(--foreground))' }}
+        >
+          Cancel
+        </button>
+      </div>
+    </div>
+  </div>
+);
+
 /* ── Main ── */
 interface PreferencesPanelProps {
   settings: UserSettings | null;
@@ -150,6 +199,7 @@ interface PreferencesPanelProps {
 
 const PreferencesPanel = ({ settings, onSave, themeOverride, onThemeChange }: PreferencesPanelProps) => {
   const [showThemePicker, setShowThemePicker] = useState(false);
+  const [showDueDatePicker, setShowDueDatePicker] = useState(false);
 
   const [shiftReminders, setShiftReminders]     = useState(() => localStorage.getItem('pref_shift_reminders')   !== 'false');
   const [invoiceReminders, setInvoiceReminders] = useState(() => localStorage.getItem('pref_invoice_reminders') !== 'false');
@@ -158,6 +208,7 @@ const PreferencesPanel = ({ settings, onSave, themeOverride, onThemeChange }: Pr
 
   const useDefaultNotes  = settings?.use_default_invoice_notes ?? true;
   const showTaxEstimate  = settings?.show_tax_estimate ?? false;
+  const invoiceDueDays   = settings?.invoice_due_days ?? 7;
 
   const themeLabels: Record<string, string> = { system: 'System', light: 'Light', dark: 'Dark' };
 
@@ -242,7 +293,14 @@ const PreferencesPanel = ({ settings, onSave, themeOverride, onThemeChange }: Pr
           <SettingsRow
             icon={<Clock className="w-[18px] h-[18px]" />}
             label="Invoice Due Date"
-            right={<span className="text-[15px] text-muted-foreground">7 days</span>}
+            sublabel="Days after issue date payment is due"
+            right={
+              <div className="flex items-center gap-1">
+                <span className="text-[15px] text-muted-foreground">{invoiceDueDays} days</span>
+                <ChevronRight className="w-4 h-4 text-muted-foreground/50" />
+              </div>
+            }
+            onClick={settings ? () => setShowDueDatePicker(true) : undefined}
             isLast
           />
         </SettingsGroup>
@@ -271,6 +329,13 @@ const PreferencesPanel = ({ settings, onSave, themeOverride, onThemeChange }: Pr
 
       {showThemePicker && (
         <ThemePicker current={themeOverride} onChange={onThemeChange} onClose={() => setShowThemePicker(false)} />
+      )}
+      {showDueDatePicker && (
+        <DueDatePicker
+          current={invoiceDueDays}
+          onChange={v => onSave({ invoice_due_days: v } as Partial<Omit<UserSettings, 'id' | 'user_id'>>)}
+          onClose={() => setShowDueDatePicker(false)}
+        />
       )}
     </div>
   );

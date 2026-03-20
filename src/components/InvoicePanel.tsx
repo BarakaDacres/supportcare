@@ -852,7 +852,7 @@ const InvoicePanel = ({
     setReloadSuccess(false);
     try {
       const issueDate = existingInvoice.created_at.split('T')[0];
-      const dueDate   = addDays(issueDate, 7);
+      const dueDate   = addDays(issueDate, settings?.invoice_due_days ?? 7);
       const { error } = await supabase
         .from('invoices')
         .update({ total_amount: total, updated_at: new Date().toISOString() })
@@ -873,7 +873,7 @@ const InvoicePanel = ({
   const viewExistingInvoice = useCallback(() => {
     if (!existingInvoice) return;
     const issueDate = existingInvoice.created_at.split('T')[0];
-    const dueDate   = addDays(issueDate, 7);
+    const dueDate   = addDays(issueDate, settings?.invoice_due_days ?? 7);
     setPreview(buildSnapshot(existingInvoice.id, existingInvoice.invoice_number, issueDate, dueDate));
   }, [existingInvoice, buildSnapshot]);
 
@@ -888,7 +888,7 @@ const InvoicePanel = ({
 
       const invoiceNumber = buildInvoiceNumber(await onIncrementCounter());
       const issueDate     = formatDateISO(new Date());
-      const dueDate       = addDays(issueDate, 7);
+      const dueDate       = addDays(issueDate, settings?.invoice_due_days ?? 7);
 
       const { data: newInv, error } = await supabase
         .from('invoices')
@@ -950,8 +950,7 @@ const InvoicePanel = ({
   // ─── View existing invoice from Records tab ──────────────────────────────────
   const viewInvoiceFromList = useCallback((inv: InvoiceSummary) => {
     const issueDate = inv.created_at.split('T')[0];
-    // Always 7 days from issue date
-    const dueDate   = addDays(issueDate, 7);
+    const dueDate   = addDays(issueDate, settings?.invoice_due_days ?? 7);
     const mc        = clients.find(c => c.id === inv.client_id) ?? null;
     const s         = settings as unknown as Record<string, string | null>;
     const useDefaults = settings?.use_default_invoice_notes !== false;
