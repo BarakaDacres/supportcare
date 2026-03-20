@@ -888,7 +888,7 @@ const InvoicePanel = ({
 
       const invoiceNumber = buildInvoiceNumber(await onIncrementCounter());
       const issueDate     = formatDateISO(new Date());
-      const dueDate       = addDays(issueDate, 7);
+      const dueDate       = addDays(issueDate, settings?.invoice_due_days ?? 7);
 
       const { data: newInv, error } = await supabase
         .from('invoices')
