@@ -873,7 +873,7 @@ const InvoicePanel = ({
   const viewExistingInvoice = useCallback(() => {
     if (!existingInvoice) return;
     const issueDate = existingInvoice.created_at.split('T')[0];
-    const dueDate   = addDays(issueDate, 7);
+    const dueDate   = addDays(issueDate, settings?.invoice_due_days ?? 7);
     setPreview(buildSnapshot(existingInvoice.id, existingInvoice.invoice_number, issueDate, dueDate));
   }, [existingInvoice, buildSnapshot]);
 
