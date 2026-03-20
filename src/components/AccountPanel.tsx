@@ -215,7 +215,7 @@ const AccountPanel = ({ auth, settings, settingsLoading, onSaveSettings }: Accou
     const promises: Promise<void>[] = [];
     if (profileDirty) {
       promises.push(
-        supabase.from('profiles').update({ display_name: displayName.trim() || null }).eq('user_id', auth.user!.id).then(() => {})
+        supabase.from('profiles').update({ display_name: displayName.trim() || null }).eq('user_id', auth.user!.id).then(() => {}) as Promise<void>
       );
     }
     const settingsUpdate: Partial<Omit<UserSettings, 'id' | 'user_id'>> = {};
