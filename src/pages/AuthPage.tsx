@@ -1,10 +1,11 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { lovable } from '@/integrations/lovable';
 
 type Mode = 'login' | 'signup' | 'forgot';
+type OnboardingStep = 'welcome' | 'business' | 'rates' | null;
 
-// Inline SVG icons
+// ── SVG icons ──────────────────────────────────────────────────────────────────
 const AppleIcon = () => (
   <svg width="17" height="20" viewBox="0 0 17 20" fill="currentColor" aria-hidden="true">
     <path d="M14.07 10.65c-.02-2.09 1.71-3.1 1.79-3.15-0.98-1.43-2.5-1.62-3.04-1.64-1.29-.13-2.52.76-3.17.76-.66 0-1.67-.74-2.75-.72-1.41.02-2.71.82-3.44 2.09-1.47 2.55-.38 6.33 1.06 8.4.7 1.02 1.54 2.16 2.63 2.12 1.06-.04 1.46-.68 2.74-.68 1.28 0 1.64.68 2.76.66 1.14-.02 1.87-1.04 2.56-2.07.81-1.18 1.14-2.33 1.16-2.39-.03-.01-2.28-.87-2.3-3.38z" />
@@ -21,6 +22,186 @@ const GoogleIcon = () => (
   </svg>
 );
 
+// ── Onboarding Wizard ─────────────────────────────────────────────────────────
+interface OnboardingWizardProps {
+  onComplete: () => void;
+}
+
+const OnboardingWizard = ({ onComplete }: OnboardingWizardProps) => {
+  const [step, setStep] = useState<'welcome' | 'business' | 'rates'>('welcome');
+  const [businessName, setBusinessName] = useState('');
+  const [abn, setAbn] = useState('');
+  const [weekdayRate, setWeekdayRate] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  const steps = ['welcome', 'business', 'rates'] as const;
+  const stepIdx = steps.indexOf(step);
+
+  const handleFinish = async () => {
+    setSaving(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) {
+        const updates: Record<string, unknown> = {};
+        if (businessName.trim()) updates.business_name = businessName.trim();
+        if (abn.trim()) updates.abn = abn.trim();
+        if (weekdayRate && !isNaN(Number(weekdayRate))) updates.rate_weekday = Number(weekdayRate);
+        if (Object.keys(updates).length > 0) {
+          await supabase.from('user_settings').update(updates).eq('user_id', session.user.id);
+        }
+      }
+    } catch (e) {
+      console.error('Onboarding save error:', e);
+    }
+    localStorage.setItem('onboarding_complete', 'true');
+    setSaving(false);
+    onComplete();
+  };
+
+  return (
+    <div className="min-h-screen flex items-center justify-center px-4 py-8" style={{ background: 'hsl(var(--background))' }}>
+      {/* Ambient glow */}
+      <div className="fixed inset-0 pointer-events-none" aria-hidden="true"
+        style={{ background: 'radial-gradient(ellipse 70% 50% at 50% 0%, hsl(var(--primary)/0.1) 0%, transparent 70%)' }} />
+
+      <div className="w-full max-w-[360px] relative space-y-6">
+        {/* Progress dots */}
+        <div className="flex items-center justify-center gap-2">
+          {steps.map((s, i) => (
+            <div key={s} className="rounded-full transition-all duration-300"
+              style={{
+                width: i === stepIdx ? 20 : 6,
+                height: 6,
+                background: i <= stepIdx ? 'hsl(var(--primary))' : 'hsl(var(--border))',
+              }} />
+          ))}
+        </div>
+
+        {/* Card */}
+        <div className="rounded-[28px] overflow-hidden"
+          style={{
+            background: 'hsl(var(--card))',
+            boxShadow: '0 2px 8px hsl(var(--foreground)/0.06), 0 20px 56px hsl(var(--foreground)/0.12), 0 0 0 0.5px hsl(var(--border))',
+          }}>
+
+          {/* Welcome step */}
+          {step === 'welcome' && (
+            <div className="p-8 flex flex-col items-center text-center gap-5">
+              <div className="w-20 h-20 rounded-[24px] flex items-center justify-center text-white font-black text-3xl tracking-tight select-none"
+                style={{
+                  background: 'hsl(var(--primary))',
+                  boxShadow: '0 8px 32px hsl(var(--primary)/0.4), 0 2px 8px hsl(var(--primary)/0.25), inset 0 1px 0 hsl(0 0% 100% / 0.25)',
+                  animation: 'logo-pop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1)',
+                }}>
+                SC
+              </div>
+              <div>
+                <h2 className="text-2xl font-bold tracking-tight text-foreground">Welcome to<br />Support Care</h2>
+                <p className="text-[14px] text-muted-foreground mt-2 leading-relaxed">
+                  Your personal shift and earnings tracker, built for NDIS support workers.
+                </p>
+              </div>
+              <div className="w-full space-y-2 pt-2">
+                {['Track shifts & earnings', 'Generate professional invoices', 'Analyse your income'].map(f => (
+                  <div key={f} className="flex items-center gap-3 px-4 py-2.5 rounded-xl text-left"
+                    style={{ background: 'hsl(var(--primary)/0.06)' }}>
+                    <span className="w-5 h-5 rounded-full flex items-center justify-center shrink-0 text-[11px] font-bold"
+                      style={{ background: 'hsl(var(--primary))', color: '#fff' }}>✓</span>
+                    <p className="text-[14px] text-foreground font-medium">{f}</p>
+                  </div>
+                ))}
+              </div>
+              <button onClick={() => setStep('business')}
+                className="w-full rounded-2xl px-4 py-3.5 text-[15px] font-bold min-h-[52px] transition-all active:scale-[0.98]"
+                style={{ background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', boxShadow: '0 4px 20px hsl(var(--primary)/0.35)' }}>
+                Let's get started →
+              </button>
+            </div>
+          )}
+
+          {/* Business step */}
+          {step === 'business' && (
+            <div className="p-6 space-y-5">
+              <div className="text-center">
+                <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-widest">Step 2 of 3</p>
+                <h2 className="text-[20px] font-bold text-foreground mt-1">Your Business</h2>
+                <p className="text-[13px] text-muted-foreground mt-1">Used on your invoices — you can update this anytime</p>
+              </div>
+              <div className="space-y-3">
+                <div className="space-y-1.5">
+                  <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Business / Your Name</label>
+                  <input type="text" placeholder="Your Name or Business Name" value={businessName}
+                    onChange={e => setBusinessName(e.target.value)}
+                    className="glass-input w-full text-foreground" style={{ minHeight: 48 }} />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">ABN <span className="normal-case text-muted-foreground font-normal">(optional)</span></label>
+                  <input type="text" placeholder="12 345 678 901" value={abn}
+                    onChange={e => setAbn(e.target.value)}
+                    className="glass-input w-full text-foreground" style={{ minHeight: 48 }} />
+                </div>
+              </div>
+              <div className="flex gap-3 pt-2">
+                <button onClick={() => setStep('rates')}
+                  className="flex-1 rounded-2xl px-4 py-3 text-[14px] font-semibold min-h-[48px] transition-all"
+                  style={{ background: 'hsl(var(--muted))', color: 'hsl(var(--muted-foreground))' }}>
+                  Skip
+                </button>
+                <button onClick={() => setStep('rates')}
+                  className="flex-[2] rounded-2xl px-4 py-3 text-[14px] font-bold min-h-[48px] transition-all active:scale-[0.98]"
+                  style={{ background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', boxShadow: '0 4px 16px hsl(var(--primary)/0.3)' }}>
+                  Continue →
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Rates step */}
+          {step === 'rates' && (
+            <div className="p-6 space-y-5">
+              <div className="text-center">
+                <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-widest">Step 3 of 3</p>
+                <h2 className="text-[20px] font-bold text-foreground mt-1">Your Pay Rate</h2>
+                <p className="text-[13px] text-muted-foreground mt-1">Set your weekday hourly rate to get started</p>
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Weekday Rate ($/hr)</label>
+                <div className="relative">
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[17px] font-semibold text-muted-foreground">$</span>
+                  <input type="number" placeholder="60" value={weekdayRate}
+                    onChange={e => setWeekdayRate(e.target.value)}
+                    className="glass-input w-full text-foreground pl-8" style={{ minHeight: 52, fontSize: 17 }} />
+                </div>
+                <p className="text-[11px] text-muted-foreground px-1">Other rates (weekend, public holiday, etc.) can be set in Settings → Rates</p>
+              </div>
+              <div className="flex gap-3 pt-2">
+                <button onClick={handleFinish}
+                  className="flex-1 rounded-2xl px-4 py-3 text-[14px] font-semibold min-h-[48px] transition-all"
+                  style={{ background: 'hsl(var(--muted))', color: 'hsl(var(--muted-foreground))' }}>
+                  Skip
+                </button>
+                <button onClick={handleFinish} disabled={saving}
+                  className="flex-[2] rounded-2xl px-4 py-3 text-[14px] font-bold min-h-[48px] transition-all active:scale-[0.98] disabled:opacity-50"
+                  style={{ background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', boxShadow: '0 4px 16px hsl(var(--primary)/0.3)' }}>
+                  {saving ? 'Setting up…' : 'Get Started 🎉'}
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      <style>{`
+        @keyframes logo-pop {
+          from { opacity: 0; transform: scale(0.7); }
+          to   { opacity: 1; transform: scale(1); }
+        }
+      `}</style>
+    </div>
+  );
+};
+
+// ── Main Auth Page ─────────────────────────────────────────────────────────────
 const AuthPage = () => {
   const [mode, setMode] = useState<Mode>('login');
   const [email, setEmail] = useState('');
@@ -28,24 +209,41 @@ const AuthPage = () => {
   const [name, setName] = useState('');
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<{ type: 'error' | 'success'; text: string } | null>(null);
+  const [showOnboarding, setShowOnboarding] = useState<OnboardingStep>(null);
+
+  // Check on mount if we're a freshly-confirmed new user
+  useEffect(() => {
+    const hash = window.location.hash;
+    if (hash.includes('type=signup') || hash.includes('type=recovery')) {
+      // handled by supabase redirect — do nothing here
+    }
+    // If user just signed up via OAuth and onboarding not done
+    supabase.auth.onAuthStateChange((event) => {
+      if (event === 'SIGNED_IN') {
+        const done = localStorage.getItem('onboarding_complete');
+        if (!done) {
+          // Small delay so App.tsx picks up the user state first
+          setTimeout(() => setShowOnboarding('welcome'), 300);
+        }
+      }
+    });
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setMessage(null);
-
     try {
       if (mode === 'login') {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) setMessage({ type: 'error', text: error.message });
       } else if (mode === 'signup') {
         const { error } = await supabase.auth.signUp({
-          email,
-          password,
+          email, password,
           options: { data: { full_name: name }, emailRedirectTo: window.location.origin },
         });
         if (error) setMessage({ type: 'error', text: error.message });
-        else setMessage({ type: 'success', text: 'Check your email for a confirmation link.' });
+        else setMessage({ type: 'success', text: 'Check your email for a confirmation link. Once confirmed, sign in to start the setup.' });
       } else {
         const { error } = await supabase.auth.resetPasswordForEmail(email, {
           redirectTo: `${window.location.origin}/reset-password`,
@@ -68,89 +266,62 @@ const AuthPage = () => {
     }
   };
 
+  // Show onboarding wizard instead of auth screen
+  if (showOnboarding) {
+    return <OnboardingWizard onComplete={() => setShowOnboarding(null)} />;
+  }
+
   return (
-    <div
-      className="min-h-screen flex items-center justify-center px-4 py-8"
-      style={{ background: 'hsl(var(--background))' }}
-    >
+    <div className="min-h-screen flex items-center justify-center px-4 py-8" style={{ background: 'hsl(var(--background))' }}>
       {/* Ambient glow */}
-      <div
-        className="fixed inset-0 pointer-events-none"
-        aria-hidden="true"
+      <div className="fixed inset-0 pointer-events-none" aria-hidden="true"
         style={{
           background:
             'radial-gradient(ellipse 70% 50% at 50% 0%, hsl(var(--primary)/0.1) 0%, transparent 70%),' +
             'radial-gradient(ellipse 40% 30% at 20% 80%, hsl(var(--primary)/0.04) 0%, transparent 60%)',
-        }}
-      />
+        }} />
 
       <div className="w-full max-w-[360px] relative">
-
-        {/* ── SC Logo mark ── */}
+        {/* Logo */}
         <div className="flex flex-col items-center mb-8 gap-3">
-          <div
-            className="w-16 h-16 rounded-[22px] flex items-center justify-center text-white font-black text-2xl tracking-tight select-none"
+          <div className="w-16 h-16 rounded-[22px] flex items-center justify-center text-white font-black text-2xl tracking-tight select-none"
             style={{
               background: 'hsl(var(--primary))',
-              boxShadow:
-                '0 8px 32px hsl(var(--primary)/0.4),' +
-                '0 2px 8px hsl(var(--primary)/0.25),' +
-                'inset 0 1px 0 hsl(0 0% 100% / 0.25)',
-            }}
-          >
+              boxShadow: '0 8px 32px hsl(var(--primary)/0.4), 0 2px 8px hsl(var(--primary)/0.25), inset 0 1px 0 hsl(0 0% 100% / 0.25)',
+            }}>
             SC
           </div>
           <div className="text-center">
             <h1 className="text-2xl font-bold tracking-tight text-foreground">Support Care</h1>
-            <p className="text-sm text-muted-foreground mt-0.5">
-              {mode === 'login' && 'Sign in to your account'}
-              {mode === 'signup' && 'Create your account'}
-              {mode === 'forgot' && 'Reset your password'}
+            <p className="text-[14px] text-muted-foreground mt-0.5">
+              {mode === 'login' ? 'Sign in to your account' : mode === 'signup' ? 'Create your account' : 'Reset your password'}
             </p>
           </div>
         </div>
 
-        {/* ── Main card ── */}
-        <div
-          className="rounded-[28px] overflow-hidden"
+        {/* Card */}
+        <div className="rounded-[28px] overflow-hidden"
           style={{
             background: 'hsl(var(--card))',
-            boxShadow:
-              '0 2px 8px hsl(var(--foreground)/0.06),' +
-              '0 20px 56px hsl(var(--foreground)/0.12),' +
-              '0 0 0 0.5px hsl(var(--border))',
-          }}
-        >
+            boxShadow: '0 2px 8px hsl(var(--foreground)/0.06), 0 20px 56px hsl(var(--foreground)/0.12), 0 0 0 0.5px hsl(var(--border))',
+          }}>
           <div className="p-6 space-y-5">
 
             {/* Social auth */}
             {mode !== 'forgot' && (
               <div className="space-y-2.5">
-                <button
-                  onClick={() => handleSocial('apple')}
-                  disabled={loading}
-                  className="w-full flex items-center justify-center gap-3 rounded-2xl px-4 py-3 text-sm font-semibold text-foreground min-h-[48px] transition-all duration-150 active:scale-[0.98] disabled:opacity-40"
-                  style={{
-                    background: 'hsl(var(--secondary))',
-                    border: '1px solid hsl(var(--border))',
-                  }}
-                >
+                <button onClick={() => handleSocial('apple')} disabled={loading}
+                  className="w-full flex items-center justify-center gap-3 rounded-2xl px-4 py-3 text-[14px] font-semibold text-foreground min-h-[48px] transition-all duration-150 active:scale-[0.98] disabled:opacity-40"
+                  style={{ background: 'hsl(var(--secondary))', border: '1px solid hsl(var(--border))' }}>
                   <AppleIcon />
                   Continue with Apple
                 </button>
-                <button
-                  onClick={() => handleSocial('google')}
-                  disabled={loading}
-                  className="w-full flex items-center justify-center gap-3 rounded-2xl px-4 py-3 text-sm font-semibold text-foreground min-h-[48px] transition-all duration-150 active:scale-[0.98] disabled:opacity-40"
-                  style={{
-                    background: 'hsl(var(--secondary))',
-                    border: '1px solid hsl(var(--border))',
-                  }}
-                >
+                <button onClick={() => handleSocial('google')} disabled={loading}
+                  className="w-full flex items-center justify-center gap-3 rounded-2xl px-4 py-3 text-[14px] font-semibold text-foreground min-h-[48px] transition-all duration-150 active:scale-[0.98] disabled:opacity-40"
+                  style={{ background: 'hsl(var(--secondary))', border: '1px solid hsl(var(--border))' }}>
                   <GoogleIcon />
                   Continue with Google
                 </button>
-
                 <div className="relative flex items-center gap-3 py-1">
                   <div className="flex-1 h-px" style={{ background: 'hsl(var(--border))' }} />
                   <span className="text-xs text-muted-foreground font-medium">or</span>
@@ -159,105 +330,60 @@ const AuthPage = () => {
               </div>
             )}
 
-            {/* Email/password form */}
+            {/* Form */}
             <form onSubmit={handleSubmit} className="space-y-3">
               {mode === 'signup' && (
                 <div className="space-y-1.5">
-                  <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Name</label>
-                  <input
-                    type="text"
-                    autoComplete="name"
-                    placeholder="Your name"
-                    value={name}
-                    onChange={e => setName(e.target.value)}
-                    required
-                    className="glass-input w-full text-foreground"
-                    style={{ minHeight: 48 }}
-                  />
+                  <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Name</label>
+                  <input type="text" autoComplete="name" placeholder="Your name" value={name}
+                    onChange={e => setName(e.target.value)} required
+                    className="glass-input w-full text-foreground" style={{ minHeight: 48 }} />
                 </div>
               )}
-
               <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Email</label>
-                <input
-                  type="email"
-                  autoComplete="email"
-                  placeholder="you@example.com"
-                  value={email}
-                  onChange={e => setEmail(e.target.value)}
-                  required
-                  className="glass-input w-full text-foreground"
-                  style={{ minHeight: 48 }}
-                />
+                <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Email</label>
+                <input type="email" autoComplete="email" placeholder="you@example.com" value={email}
+                  onChange={e => setEmail(e.target.value)} required
+                  className="glass-input w-full text-foreground" style={{ minHeight: 48 }} />
               </div>
-
               {mode !== 'forgot' && (
                 <div className="space-y-1.5">
-                  <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Password</label>
-                  <input
-                    type="password"
-                    autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
-                    placeholder="••••••••"
-                    value={password}
-                    onChange={e => setPassword(e.target.value)}
-                    required
-                    className="glass-input w-full text-foreground"
-                    style={{ minHeight: 48 }}
-                  />
+                  <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Password</label>
+                  <input type="password" autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
+                    placeholder="••••••••" value={password} onChange={e => setPassword(e.target.value)} required
+                    className="glass-input w-full text-foreground" style={{ minHeight: 48 }} />
                 </div>
               )}
 
               {message && (
-                <div
-                  className="text-xs font-medium px-4 py-3 rounded-xl"
+                <div className="text-[13px] font-medium px-4 py-3 rounded-xl leading-relaxed"
                   style={{
                     background: message.type === 'error' ? 'hsl(var(--destructive)/0.1)' : 'hsl(var(--stat-green)/0.12)',
                     color: message.type === 'error' ? 'hsl(var(--destructive))' : 'hsl(var(--stat-green))',
-                  }}
-                >
+                  }}>
                   {message.text}
                 </div>
               )}
 
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full rounded-2xl px-4 py-3 text-sm font-bold min-h-[50px] transition-all duration-200 disabled:opacity-40 active:scale-[0.98]"
-                style={{
-                  background: 'hsl(var(--primary))',
-                  color: 'hsl(var(--primary-foreground))',
-                  boxShadow: '0 4px 20px hsl(var(--primary)/0.35)',
-                  marginTop: 4,
-                }}
-              >
-                {loading
-                  ? 'Please wait…'
-                  : mode === 'login'
-                  ? 'Sign In'
-                  : mode === 'signup'
-                  ? 'Create Account'
-                  : 'Send Reset Link'}
+              <button type="submit" disabled={loading}
+                className="w-full rounded-2xl px-4 py-3.5 text-[15px] font-bold min-h-[52px] transition-all duration-200 disabled:opacity-40 active:scale-[0.98]"
+                style={{ background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', boxShadow: '0 4px 20px hsl(var(--primary)/0.35)', marginTop: 4 }}>
+                {loading ? 'Please wait…' : mode === 'login' ? 'Sign In' : mode === 'signup' ? 'Create Account' : 'Send Reset Link'}
               </button>
             </form>
           </div>
 
-          {/* Footer links */}
-          <div
-            className="px-6 py-4 text-center space-y-1.5"
-            style={{ borderTop: '0.5px solid hsl(var(--border))' }}
-          >
+          {/* Footer */}
+          <div className="px-6 py-4 text-center space-y-1.5" style={{ borderTop: '0.5px solid hsl(var(--border))' }}>
             {mode === 'login' && (
               <>
-                <button
-                  onClick={() => setMode('forgot')}
-                  className="text-xs font-medium block w-full"
-                  style={{ color: 'hsl(var(--primary))' }}
-                >
+                <button onClick={() => { setMode('forgot'); setMessage(null); }}
+                  className="text-xs font-medium block w-full" style={{ color: 'hsl(var(--primary))' }}>
                   Forgot password?
                 </button>
                 <p className="text-xs text-muted-foreground">
                   No account?{' '}
-                  <button onClick={() => setMode('signup')} className="font-semibold" style={{ color: 'hsl(var(--primary))' }}>
+                  <button onClick={() => { setMode('signup'); setMessage(null); }} className="font-semibold" style={{ color: 'hsl(var(--primary))' }}>
                     Sign up
                   </button>
                 </p>
@@ -266,17 +392,13 @@ const AuthPage = () => {
             {mode === 'signup' && (
               <p className="text-xs text-muted-foreground">
                 Already have an account?{' '}
-                <button onClick={() => setMode('login')} className="font-semibold" style={{ color: 'hsl(var(--primary))' }}>
+                <button onClick={() => { setMode('login'); setMessage(null); }} className="font-semibold" style={{ color: 'hsl(var(--primary))' }}>
                   Sign in
                 </button>
               </p>
             )}
             {mode === 'forgot' && (
-              <button
-                onClick={() => setMode('login')}
-                className="text-xs font-medium"
-                style={{ color: 'hsl(var(--primary))' }}
-              >
+              <button onClick={() => { setMode('login'); setMessage(null); }} className="text-xs font-medium" style={{ color: 'hsl(var(--primary))' }}>
                 ← Back to sign in
               </button>
             )}

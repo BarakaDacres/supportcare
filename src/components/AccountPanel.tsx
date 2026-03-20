@@ -1,7 +1,7 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import {
-  User, Camera, LogOut, Save, Loader2, Building2, CreditCard,
-  FileText, MapPin, Hash, RotateCcw, RefreshCw, AlertCircle
+  Camera, LogOut, Save, Loader2, Building2, CreditCard,
+  FileText, ChevronRight, RotateCcw, RefreshCw, AlertCircle, Hash
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import type { AuthState } from '@/hooks/useAuth';
@@ -14,14 +14,15 @@ interface AccountPanelProps {
   onSaveSettings: (updates: Partial<Omit<UserSettings, 'id' | 'user_id'>>) => Promise<void>;
 }
 
-/* ─────────────────────────────────────────────────────────────────
-   All sub-components at MODULE LEVEL to prevent focus-loss on mobile
-───────────────────────────────────────────────────────────────── */
+/* ── Sub-components at MODULE LEVEL ── */
 
-const SectionHeader = ({ label }: { label: string }) => (
-  <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-widest px-1 mb-1.5 mt-1">
-    {label}
-  </p>
+const SectionLabel = ({ children, dirty }: { children: string; dirty?: boolean }) => (
+  <div className="flex items-center gap-2 px-1 mb-1.5 mt-1">
+    <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-widest flex-1">{children}</p>
+    {dirty && (
+      <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: 'hsl(var(--primary))' }} />
+    )}
+  </div>
 );
 
 const SettingsGroup = ({ children }: { children: React.ReactNode }) => (
@@ -85,12 +86,7 @@ const GridFieldRow = ({ fields, isLast }: GridFieldRowProps) => (
   </div>
 );
 
-interface NotesRowProps {
-  value: string;
-  onChange: (v: string) => void;
-  isLast?: boolean;
-}
-const NotesRow = ({ value, onChange, isLast }: NotesRowProps) => (
+const NotesRow = ({ value, onChange, isLast }: { value: string; onChange: (v: string) => void; isLast?: boolean }) => (
   <div>
     <div className="px-4 py-3 space-y-1.5">
       <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-widest">Default Invoice Notes</label>
@@ -107,22 +103,7 @@ const NotesRow = ({ value, onChange, isLast }: NotesRowProps) => (
   </div>
 );
 
-const SaveButton = ({ onSave, saving, saved }: { onSave: () => void; saving: boolean; saved: boolean }) => (
-  <button
-    onClick={onSave}
-    disabled={saving}
-    className="w-full flex items-center justify-center gap-2 min-h-[50px] rounded-2xl text-[15px] font-semibold transition-all duration-200 disabled:opacity-50"
-    style={{
-      background: saved ? 'hsl(var(--stat-green) / 0.15)' : 'hsl(var(--primary))',
-      color: saved ? 'hsl(var(--stat-green))' : 'hsl(var(--primary-foreground))',
-      boxShadow: saved ? '0 0 20px hsl(var(--stat-green)/0.2)' : '0 4px 16px hsl(var(--primary)/0.3)',
-    }}
-  >
-    {saving ? <><Loader2 className="w-4 h-4 animate-spin" /> Saving…</> : saved ? '✓ Saved' : <><Save className="w-4 h-4" /> Save</>}
-  </button>
-);
-
-/* ── Main component ── */
+/* ── Main ── */
 const AccountPanel = ({ auth, settings, settingsLoading, onSaveSettings }: AccountPanelProps) => {
   const [displayName, setDisplayName] = useState(auth.displayName ?? '');
   const [avatarUrl, setAvatarUrl] = useState(auth.avatarUrl ?? null);
@@ -130,9 +111,8 @@ const AccountPanel = ({ auth, settings, settingsLoading, onSaveSettings }: Accou
   const [signingOut, setSigningOut] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
-  // Profile save state
-  const [profileSaving, setProfileSaving] = useState(false);
-  const [profileSaved, setProfileSaved] = useState(false);
+  // Profile dirty tracking
+  const [origDisplayName] = useState(auth.displayName ?? '');
 
   // Business fields
   const [businessName, setBusinessName] = useState('');
@@ -141,16 +121,20 @@ const AccountPanel = ({ auth, settings, settingsLoading, onSaveSettings }: Accou
   const [phone, setPhone] = useState('');
   const [address, setAddress] = useState('');
   const [invoiceNotes, setInvoiceNotes] = useState('');
-  const [bizSaving, setBizSaving] = useState(false);
-  const [bizSaved, setBizSaved] = useState(false);
 
   // Banking fields
   const [bankName, setBankName] = useState('');
   const [bsb, setBsb] = useState('');
   const [accountNumber, setAccountNumber] = useState('');
   const [accountName, setAccountName] = useState('');
-  const [bankSaving, setBankSaving] = useState(false);
-  const [bankSaved, setBankSaved] = useState(false);
+
+  // Original (DB) values for dirty tracking
+  const [origBiz, setOrigBiz] = useState({ businessName: '', abn: '', email: '', phone: '', address: '', invoiceNotes: '' });
+  const [origBank, setOrigBank] = useState({ bankName: '', bsb: '', accountNumber: '', accountName: '' });
+
+  // Save state
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
 
   // Invoice counter
   const [confirmReset, setConfirmReset] = useState(false);
@@ -167,26 +151,43 @@ const AccountPanel = ({ auth, settings, settingsLoading, onSaveSettings }: Accou
     return () => clearTimeout(t);
   }, [settingsLoading, retryKey]);
 
-  // Sync from settings once
   const settingsLoaded = useRef(false);
   useEffect(() => {
     if (!settings || settingsLoaded.current) return;
     settingsLoaded.current = true;
-    setBusinessName(settings.business_name ?? '');
-    setAbn(settings.abn ?? '');
-    setEmail(settings.email ?? '');
-    setPhone((settings as unknown as Record<string, string | null>).phone ?? '');
-    setAddress((settings as unknown as Record<string, string | null>).address ?? '');
-    setBankName(settings.bank_name ?? '');
-    setBsb(settings.bsb ?? '');
-    setAccountNumber(settings.account_number ?? '');
-    setAccountName((settings as unknown as Record<string, string | null>).account_name ?? '');
-    setInvoiceNotes(settings.invoice_notes ?? '');
+    const biz = {
+      businessName: settings.business_name ?? '',
+      abn: settings.abn ?? '',
+      email: settings.email ?? '',
+      phone: (settings as unknown as Record<string, string>).phone ?? '',
+      address: (settings as unknown as Record<string, string>).address ?? '',
+      invoiceNotes: settings.invoice_notes ?? '',
+    };
+    const bank = {
+      bankName: settings.bank_name ?? '',
+      bsb: settings.bsb ?? '',
+      accountNumber: settings.account_number ?? '',
+      accountName: (settings as unknown as Record<string, string>).account_name ?? '',
+    };
+    setBusinessName(biz.businessName); setAbn(biz.abn); setEmail(biz.email);
+    setPhone(biz.phone); setAddress(biz.address); setInvoiceNotes(biz.invoiceNotes);
+    setBankName(bank.bankName); setBsb(bank.bsb); setAccountNumber(bank.accountNumber); setAccountName(bank.accountName);
+    setOrigBiz(biz);
+    setOrigBank(bank);
   }, [settings]);
 
   if (!auth.user) return null;
 
   const initial = (auth.displayName ?? auth.user.email ?? '?')[0].toUpperCase();
+
+  // Dirty checks
+  const profileDirty = displayName !== origDisplayName;
+  const bizDirty = businessName !== origBiz.businessName || abn !== origBiz.abn ||
+    email !== origBiz.email || phone !== origBiz.phone ||
+    address !== origBiz.address || invoiceNotes !== origBiz.invoiceNotes;
+  const bankDirty = bankName !== origBank.bankName || bsb !== origBank.bsb ||
+    accountNumber !== origBank.accountNumber || accountName !== origBank.accountName;
+  const anyDirty = profileDirty || bizDirty || bankDirty;
 
   const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -208,39 +209,42 @@ const AccountPanel = ({ auth, settings, settingsLoading, onSaveSettings }: Accou
     }
   };
 
-  const handleSaveProfile = async () => {
-    if (!auth.user) return;
-    setProfileSaving(true);
-    await supabase.from('profiles').update({ display_name: displayName.trim() || null }).eq('user_id', auth.user.id);
-    setProfileSaving(false);
-    setProfileSaved(true);
-    setTimeout(() => setProfileSaved(false), 2500);
-  };
-
-  const handleSaveBusiness = async () => {
-    setBizSaving(true);
-    await onSaveSettings({
-      business_name: businessName.trim() || null,
-      abn: abn.trim() || null,
-      invoice_notes: invoiceNotes.trim() || null,
-      ...({ email: email.trim() || null, phone: phone.trim() || null, address: address.trim() || null } as unknown as Partial<Omit<UserSettings, 'id' | 'user_id'>>),
-    });
-    setBizSaving(false);
-    setBizSaved(true);
-    setTimeout(() => setBizSaved(false), 2500);
-  };
-
-  const handleSaveBank = async () => {
-    setBankSaving(true);
-    await onSaveSettings({
-      bank_name: bankName.trim() || null,
-      bsb: bsb.trim() || null,
-      account_number: accountNumber.trim() || null,
-      ...({ account_name: accountName.trim() || null } as unknown as Partial<Omit<UserSettings, 'id' | 'user_id'>>),
-    });
-    setBankSaving(false);
-    setBankSaved(true);
-    setTimeout(() => setBankSaved(false), 2500);
+  const handleSaveAll = async () => {
+    if (!anyDirty) return;
+    setSaving(true);
+    const promises: Promise<void>[] = [];
+    if (profileDirty) {
+      promises.push(
+        supabase.from('profiles').update({ display_name: displayName.trim() || null }).eq('user_id', auth.user!.id).then(() => {})
+      );
+    }
+    const settingsUpdate: Partial<Omit<UserSettings, 'id' | 'user_id'>> = {};
+    if (bizDirty) {
+      Object.assign(settingsUpdate, {
+        business_name: businessName.trim() || null,
+        abn: abn.trim() || null,
+        invoice_notes: invoiceNotes.trim() || null,
+        ...({ email: email.trim() || null, phone: phone.trim() || null, address: address.trim() || null } as unknown as Partial<Omit<UserSettings, 'id' | 'user_id'>>),
+      });
+    }
+    if (bankDirty) {
+      Object.assign(settingsUpdate, {
+        bank_name: bankName.trim() || null,
+        bsb: bsb.trim() || null,
+        account_number: accountNumber.trim() || null,
+        ...({ account_name: accountName.trim() || null } as unknown as Partial<Omit<UserSettings, 'id' | 'user_id'>>),
+      });
+    }
+    if (Object.keys(settingsUpdate).length > 0) {
+      promises.push(onSaveSettings(settingsUpdate));
+    }
+    await Promise.all(promises);
+    // Update originals
+    if (bizDirty) setOrigBiz({ businessName, abn, email, phone, address, invoiceNotes });
+    if (bankDirty) setOrigBank({ bankName, bsb, accountNumber, accountName });
+    setSaving(false);
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2500);
   };
 
   const handleResetCounter = async () => {
@@ -259,7 +263,6 @@ const AccountPanel = ({ auth, settings, settingsLoading, onSaveSettings }: Accou
     window.dispatchEvent(new CustomEvent('theme-sync'));
   };
 
-  // Loading state
   if (settingsLoading) {
     if (timedOut) {
       return (
@@ -288,62 +291,53 @@ const AccountPanel = ({ auth, settings, settingsLoading, onSaveSettings }: Accou
   }
 
   return (
-    <div className="space-y-6 pb-4">
+    <div className="space-y-6 pb-24">
 
-      {/* ── Profile ── */}
-      <div className="space-y-1.5">
-        <SectionHeader label="Profile" />
-        <SettingsGroup>
-          {/* Avatar row */}
-          <div className="px-4 py-4 flex items-center gap-4">
-            <button className="relative shrink-0 group" onClick={() => fileRef.current?.click()} title="Change photo" disabled={uploading}>
-              {avatarUrl ? (
-                <img src={avatarUrl} alt="Avatar" className="w-14 h-14 rounded-full object-cover ring-2 ring-primary/30 transition-opacity group-hover:opacity-70" />
-              ) : (
-                <div className="w-14 h-14 rounded-full flex items-center justify-center text-xl font-bold ring-2 ring-primary/30 transition-opacity group-hover:opacity-70"
-                  style={{ background: 'hsl(var(--primary)/0.15)', color: 'hsl(var(--primary))' }}>
-                  {initial}
-                </div>
-              )}
-              <div className="absolute inset-0 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                style={{ background: 'hsl(var(--foreground)/0.35)' }}>
-                {uploading ? <Loader2 className="w-4 h-4 text-white animate-spin" /> : <Camera className="w-4 h-4 text-white" />}
+      {/* ── Profile card ── */}
+      <SettingsGroup>
+        <div className="px-4 py-5 flex items-center gap-4">
+          <button className="relative shrink-0 group" onClick={() => fileRef.current?.click()} title="Change photo" disabled={uploading}>
+            {avatarUrl ? (
+              <img src={avatarUrl} alt="Avatar" className="w-16 h-16 rounded-full object-cover ring-2 transition-opacity group-hover:opacity-70"
+                style={{ ringColor: 'hsl(var(--primary)/0.3)' }} />
+            ) : (
+              <div className="w-16 h-16 rounded-full flex items-center justify-center text-2xl font-bold ring-2 transition-opacity group-hover:opacity-70"
+                style={{ background: 'hsl(var(--primary)/0.15)', color: 'hsl(var(--primary))', ringColor: 'hsl(var(--primary)/0.3)' }}>
+                {initial}
               </div>
-              <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full flex items-center justify-center shadow pointer-events-none"
-                style={{ background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))' }}>
-                {uploading ? <Loader2 className="w-2.5 h-2.5 animate-spin" /> : <Camera className="w-2.5 h-2.5" />}
-              </div>
-            </button>
-            <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarChange} />
-            <div className="min-w-0 flex-1">
-              <p className="text-[15px] font-semibold text-foreground truncate">
-                {auth.displayName ?? auth.user.email?.split('@')[0]}
-              </p>
-              <p className="text-[13px] text-muted-foreground truncate">{auth.user.email}</p>
-              <p className="text-[11px] mt-0.5" style={{ color: 'hsl(var(--primary))' }}>Tap to change photo</p>
+            )}
+            <div className="absolute inset-0 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+              style={{ background: 'hsl(var(--foreground)/0.35)' }}>
+              {uploading ? <Loader2 className="w-5 h-5 text-white animate-spin" /> : <Camera className="w-5 h-5 text-white" />}
             </div>
+            <div className="absolute -bottom-0.5 -right-0.5 w-5 h-5 rounded-full flex items-center justify-center shadow pointer-events-none"
+              style={{ background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))' }}>
+              <Camera className="w-2.5 h-2.5" />
+            </div>
+          </button>
+          <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarChange} />
+          <div className="min-w-0 flex-1">
+            <p className="text-[17px] font-bold text-foreground truncate leading-tight">
+              {auth.displayName ?? auth.user.email?.split('@')[0]}
+            </p>
+            <p className="text-[13px] text-muted-foreground truncate mt-0.5">{auth.user.email}</p>
+            <p className="text-[11px] mt-1 font-medium" style={{ color: 'hsl(var(--primary))' }}>Tap photo to change</p>
           </div>
-
-          <div className="ml-4 mr-0 h-px" style={{ background: 'hsl(var(--divider))' }} />
-
-          <FieldRow
-            label="Display Name"
-            value={displayName}
-            onChange={setDisplayName}
-            placeholder={auth.user.email?.split('@')[0] ?? 'Your name'}
-            isLast
-          />
-        </SettingsGroup>
-
-        <div className="px-1 pt-1">
-          <SaveButton onSave={handleSaveProfile} saving={profileSaving} saved={profileSaved} />
         </div>
-      </div>
+        <div className="h-px mx-4" style={{ background: 'hsl(var(--divider))' }} />
+        <FieldRow
+          label="Display Name"
+          value={displayName}
+          onChange={setDisplayName}
+          placeholder={auth.user.email?.split('@')[0] ?? 'Your name'}
+          isLast
+        />
+      </SettingsGroup>
 
       {/* ── Business Identity ── */}
       <div className="space-y-1.5">
-        <SectionHeader label="Business Identity" />
-        <p className="text-[11px] text-muted-foreground px-1 mb-1.5">Shown at the top of every invoice.</p>
+        <SectionLabel dirty={bizDirty}>Business Identity</SectionLabel>
+        <p className="text-[11px] text-muted-foreground px-1 -mt-1 mb-1.5">Shown at the top of every invoice.</p>
         <SettingsGroup>
           <FieldRow label="Business / Your Name" value={businessName} onChange={setBusinessName} placeholder="Your Name or Business Name" hint="Appears on all invoices" />
           <FieldRow label="ABN" value={abn} onChange={setAbn} placeholder="12 345 678 901" />
@@ -352,16 +346,12 @@ const AccountPanel = ({ auth, settings, settingsLoading, onSaveSettings }: Accou
           <FieldRow label="Address" value={address} onChange={setAddress} placeholder="Suburb, State" />
           <NotesRow value={invoiceNotes} onChange={setInvoiceNotes} isLast />
         </SettingsGroup>
-
-        <div className="px-1 pt-1">
-          <SaveButton onSave={handleSaveBusiness} saving={bizSaving} saved={bizSaved} />
-        </div>
       </div>
 
       {/* ── Banking ── */}
       <div className="space-y-1.5">
-        <SectionHeader label="Banking & Payment" />
-        <p className="text-[11px] text-muted-foreground px-1 mb-1.5">Shown in the payment section of your invoices.</p>
+        <SectionLabel dirty={bankDirty}>Banking & Payment</SectionLabel>
+        <p className="text-[11px] text-muted-foreground px-1 -mt-1 mb-1.5">Shown in the payment section of your invoices.</p>
         <SettingsGroup>
           <FieldRow label="Bank Name" value={bankName} onChange={setBankName} placeholder="Commonwealth Bank" />
           <GridFieldRow
@@ -372,70 +362,97 @@ const AccountPanel = ({ auth, settings, settingsLoading, onSaveSettings }: Accou
           />
           <FieldRow label="Account Name" value={accountName} onChange={setAccountName} placeholder="Your Full Name" isLast />
         </SettingsGroup>
-
-        <div className="px-1 pt-1">
-          <SaveButton onSave={handleSaveBank} saving={bankSaving} saved={bankSaved} />
-        </div>
       </div>
 
       {/* ── Invoice Numbering ── */}
       <div className="space-y-1.5">
-        <SectionHeader label="Invoice Numbering" />
+        <SectionLabel>Invoice Numbering</SectionLabel>
         {settings && (
           <SettingsGroup>
             <div className="px-4 py-4 flex items-center justify-between gap-3">
-              <div>
-                <p className="text-[15px] font-semibold text-foreground">Current Counter</p>
-                <p className="text-[13px] text-muted-foreground mt-0.5">
-                  Next: <span className="font-mono font-semibold" style={{ color: 'hsl(var(--primary))' }}>
-                    INV-{String((settings.invoice_counter ?? 0) + 1).padStart(3, '0')}
-                  </span>
-                </p>
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
+                  style={{ background: 'hsl(var(--primary)/0.1)' }}>
+                  <Hash className="w-4 h-4" style={{ color: 'hsl(var(--primary))' }} />
+                </div>
+                <div>
+                  <p className="text-[15px] font-semibold text-foreground">Invoice Counter</p>
+                  <p className="text-[13px] text-muted-foreground mt-0.5">
+                    Next: <span className="font-mono font-semibold" style={{ color: 'hsl(var(--primary))' }}>
+                      INV-{String((settings.invoice_counter ?? 0) + 1).padStart(3, '0')}
+                    </span>
+                  </p>
+                </div>
               </div>
-              <div className="text-2xl font-bold font-mono" style={{ color: 'hsl(var(--primary))' }}>
+              <div className="text-2xl font-bold font-mono shrink-0" style={{ color: 'hsl(var(--primary))' }}>
                 #{String(settings.invoice_counter ?? 0).padStart(3, '0')}
               </div>
             </div>
           </SettingsGroup>
         )}
-        <div className="px-1">
-          <button
-            onClick={handleResetCounter}
-            disabled={resetting}
-            className="w-full flex items-center justify-center gap-2 min-h-[44px] rounded-xl text-[15px] font-semibold transition-all duration-200"
-            style={{
-              background: resetDone ? 'hsl(var(--stat-green)/0.15)' : confirmReset ? 'hsl(var(--destructive)/0.12)' : 'hsl(var(--muted))',
-              color: resetDone ? 'hsl(var(--stat-green))' : confirmReset ? 'hsl(var(--destructive))' : 'hsl(var(--foreground))',
-              border: confirmReset ? '1px solid hsl(var(--destructive)/0.3)' : '1px solid hsl(var(--border))',
-            }}
-          >
-            {resetting ? <><Loader2 className="w-4 h-4 animate-spin" /> Resetting…</> : resetDone ? '✓ Counter Reset' : confirmReset ? '⚠ Tap again to confirm' : <><RotateCcw className="w-4 h-4" /> Reset to #000</>}
-          </button>
-          <p className="text-[11px] text-muted-foreground px-1 mt-2">Resets so the next invoice starts at INV-001. Existing invoices are not affected.</p>
-        </div>
       </div>
 
-      {/* ── Session ── */}
+      {/* ── Danger Zone ── */}
       <div className="space-y-1.5">
-        <SectionHeader label="Session" />
+        <SectionLabel>Danger Zone</SectionLabel>
         <SettingsGroup>
-          <div className="px-4 flex items-center gap-3" style={{ minHeight: 50 }}>
-            <User className="w-4 h-4 text-muted-foreground shrink-0" />
-            <span className="text-[15px] text-foreground truncate">{auth.user.email}</span>
+          <div className="p-4">
+            <button
+              onClick={handleResetCounter}
+              disabled={resetting}
+              className="w-full flex items-center justify-center gap-2 min-h-[44px] rounded-xl text-[15px] font-semibold transition-all duration-200"
+              style={{
+                background: resetDone ? 'hsl(var(--stat-green)/0.12)' : confirmReset ? 'hsl(var(--destructive)/0.12)' : 'hsl(var(--destructive)/0.08)',
+                color: resetDone ? 'hsl(var(--stat-green))' : 'hsl(var(--destructive))',
+                border: `1px solid ${resetDone ? 'hsl(var(--stat-green)/0.3)' : 'hsl(var(--destructive)/0.2)'}`,
+              }}
+            >
+              {resetting ? <><Loader2 className="w-4 h-4 animate-spin" />Resetting…</>
+                : resetDone ? '✓ Counter reset'
+                : confirmReset ? <><RotateCcw className="w-4 h-4" />Tap again to confirm reset</>
+                : <><RotateCcw className="w-4 h-4" />Reset Invoice Counter</>}
+            </button>
+            <p className="text-[11px] text-muted-foreground mt-2 text-center">
+              Resets the counter to #000. This cannot be undone.
+            </p>
           </div>
-          <div className="ml-4 h-px" style={{ background: 'hsl(var(--divider))' }} />
-          <button
-            onClick={handleSignOut}
-            disabled={signingOut}
-            className="w-full flex items-center gap-3 px-4 transition-colors duration-150"
-            style={{ minHeight: 50, color: 'hsl(var(--destructive))' }}
-          >
-            <LogOut className="w-5 h-5" />
-            <span className="text-[15px] font-semibold">{signingOut ? 'Signing out…' : 'Sign Out'}</span>
-          </button>
         </SettingsGroup>
       </div>
 
+      {/* ── Sign Out ── */}
+      <SettingsGroup>
+        <button
+          onClick={handleSignOut}
+          disabled={signingOut}
+          className="w-full flex items-center gap-3.5 px-4 transition-colors duration-150 active:bg-destructive/10"
+          style={{ minHeight: 52 }}
+        >
+          <LogOut className="w-5 h-5 shrink-0" style={{ color: 'hsl(var(--destructive))' }} />
+          <span className="text-[15px] font-semibold" style={{ color: 'hsl(var(--destructive))' }}>
+            {signingOut ? 'Signing out…' : 'Sign Out'}
+          </span>
+        </button>
+      </SettingsGroup>
+
+      {/* ── Sticky Save Changes button ── */}
+      {anyDirty && (
+        <div className="fixed bottom-[80px] left-0 right-0 flex justify-center px-4 z-30 pointer-events-none">
+          <button
+            onClick={handleSaveAll}
+            disabled={saving}
+            className="flex items-center gap-2 px-6 py-3.5 rounded-2xl text-[15px] font-bold shadow-2xl transition-all duration-200 pointer-events-auto active:scale-95"
+            style={{
+              background: saved ? 'hsl(var(--stat-green))' : 'hsl(var(--primary))',
+              color: 'hsl(var(--primary-foreground))',
+              boxShadow: `0 8px 32px hsl(var(--primary)/0.4)`,
+            }}
+          >
+            {saving ? <><Loader2 className="w-4 h-4 animate-spin" />Saving…</>
+              : saved ? '✓ Saved'
+              : <><Save className="w-4 h-4" />Save Changes</>}
+          </button>
+        </div>
+      )}
     </div>
   );
 };

@@ -30,6 +30,8 @@ export interface UserSettings {
   rate_public_holiday: number;
   rate_evening: number;
   invoice_counter: number;
+  /** Days after issue date the invoice is due */
+  invoice_due_days: number;
 }
 
 export const DEFAULT_SETTINGS: Omit<UserSettings, 'id' | 'user_id'> = {
@@ -57,6 +59,7 @@ export const DEFAULT_SETTINGS: Omit<UserSettings, 'id' | 'user_id'> = {
   rate_public_holiday: 150,
   rate_evening: 75,
   invoice_counter: 0,
+  invoice_due_days: 7,
 };
 
 export function useUserSettings() {
