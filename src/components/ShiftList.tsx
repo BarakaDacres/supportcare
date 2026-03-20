@@ -480,9 +480,9 @@ interface ShiftCardProps {
   onContextMenu: (e: React.MouseEvent | React.TouchEvent) => void;
 }
 
-const SWIPE_THRESHOLD = 60;   // px needed to reveal action
-const SWIPE_CONFIRM  = 110;   // px to auto-trigger action
-const SWIPE_MAX      = 90;    // max translate
+const SWIPE_THRESHOLD = 50;   // px needed to reveal action
+const SWIPE_CONFIRM  = 80;    // px to auto-trigger action (must be < SWIPE_MAX)
+const SWIPE_MAX      = 100;   // max translate
 
 const ShiftCard = ({
   shift, locked, active, isSleepover, isEvening,
