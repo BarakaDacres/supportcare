@@ -950,8 +950,7 @@ const InvoicePanel = ({
   // ─── View existing invoice from Records tab ──────────────────────────────────
   const viewInvoiceFromList = useCallback((inv: InvoiceSummary) => {
     const issueDate = inv.created_at.split('T')[0];
-    // Always 7 days from issue date
-    const dueDate   = addDays(issueDate, 7);
+    const dueDate   = addDays(issueDate, settings?.invoice_due_days ?? 7);
     const mc        = clients.find(c => c.id === inv.client_id) ?? null;
     const s         = settings as unknown as Record<string, string | null>;
     const useDefaults = settings?.use_default_invoice_notes !== false;
