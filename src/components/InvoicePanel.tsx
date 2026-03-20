@@ -852,7 +852,7 @@ const InvoicePanel = ({
     setReloadSuccess(false);
     try {
       const issueDate = existingInvoice.created_at.split('T')[0];
-      const dueDate   = addDays(issueDate, 7);
+      const dueDate   = addDays(issueDate, settings?.invoice_due_days ?? 7);
       const { error } = await supabase
         .from('invoices')
         .update({ total_amount: total, updated_at: new Date().toISOString() })
