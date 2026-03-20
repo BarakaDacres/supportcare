@@ -298,11 +298,10 @@ const AccountPanel = ({ auth, settings, settingsLoading, onSaveSettings }: Accou
         <div className="px-4 py-5 flex items-center gap-4">
           <button className="relative shrink-0 group" onClick={() => fileRef.current?.click()} title="Change photo" disabled={uploading}>
             {avatarUrl ? (
-              <img src={avatarUrl} alt="Avatar" className="w-16 h-16 rounded-full object-cover ring-2 transition-opacity group-hover:opacity-70"
-                style={{ ringColor: 'hsl(var(--primary)/0.3)' }} />
+              <img src={avatarUrl} alt="Avatar" className="w-16 h-16 rounded-full object-cover ring-2 ring-primary/30 transition-opacity group-hover:opacity-70" />
             ) : (
-              <div className="w-16 h-16 rounded-full flex items-center justify-center text-2xl font-bold ring-2 transition-opacity group-hover:opacity-70"
-                style={{ background: 'hsl(var(--primary)/0.15)', color: 'hsl(var(--primary))', ringColor: 'hsl(var(--primary)/0.3)' }}>
+              <div className="w-16 h-16 rounded-full flex items-center justify-center text-2xl font-bold ring-2 ring-primary/30 transition-opacity group-hover:opacity-70"
+                style={{ background: 'hsl(var(--primary)/0.15)', color: 'hsl(var(--primary))' }}>
                 {initial}
               </div>
             )}

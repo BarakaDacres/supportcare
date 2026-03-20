@@ -79,8 +79,7 @@ const UserMenu = ({ auth }: UserMenuProps) => {
             {/* User info header */}
             <div className="px-4 py-3.5 flex items-center gap-3">
               {auth.avatarUrl ? (
-                <img src={auth.avatarUrl} alt="" className="w-9 h-9 rounded-full object-cover shrink-0 ring-2"
-                  style={{ ringColor: 'hsl(var(--primary)/0.2)' }} />
+                <img src={auth.avatarUrl} alt="" className="w-9 h-9 rounded-full object-cover shrink-0 ring-2 ring-primary/20" />
               ) : (
                 <span
                   className="w-9 h-9 rounded-full flex items-center justify-center text-[14px] font-bold shrink-0"
