@@ -78,6 +78,7 @@ export function useShifts(rates: PayRates = DEFAULT_RATES) {
           .select(`*, clients (name)`)
           .order('date', { ascending: false })
           .order('start_time', { ascending: false })
+          .then(r => r)
       );
 
       if (err) {
