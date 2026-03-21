@@ -182,16 +182,31 @@ export function useUserSettings() {
     const uid = userIdRef.current;
     if (!uid || !settings) return;
 
-    const { data, error } = await supabase
-      .from('user_settings')
-      .update(updates)
-      .eq('user_id', uid)
-      .select()
-      .single();
+    // Optimistic update so UI feels instant
+    setSettings(prev => prev ? { ...prev, ...updates } : prev);
 
-    if (error) { console.error(error); return; }
-    setSettings(data as UserSettings);
-  }, [settings]);
+    try {
+      const { data, error } = await withTimeout(
+        supabase
+          .from('user_settings')
+          .update(updates)
+          .eq('user_id', uid)
+          .select()
+          .single()
+          .then(r => r)
+      );
+      if (error) {
+        console.error('[useUserSettings] updateSettings:', error);
+        // Revert on error
+        fetchSettings(uid);
+        return;
+      }
+      setSettings(data as UserSettings);
+    } catch (e) {
+      console.error('[useUserSettings] updateSettings timeout:', e);
+      fetchSettings(uid);
+    }
+  }, [settings, fetchSettings]);
 
   const incrementInvoiceCounter = useCallback(async (): Promise<number> => {
     if (!settings) return 1;
