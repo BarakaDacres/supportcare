@@ -242,7 +242,7 @@ export function useShifts(rates: PayRates = DEFAULT_RATES) {
   const deleteShift = useCallback(async (id: string): Promise<void> => {
     // Optimistic update
     setShifts(prev => prev.filter(s => s.id !== id));
-    const { error: err } = await withTimeout(supabase.from('shifts').delete().eq('id', id));
+    const { error: err } = await withTimeout(supabase.from('shifts').delete().eq('id', id).then(r => r));
     if (err) {
       console.error('[useShifts] deleteShift:', err);
       // Revert on error
