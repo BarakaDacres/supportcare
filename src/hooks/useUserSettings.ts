@@ -83,34 +83,42 @@ export function useUserSettings() {
 
     setLoading(true);
     try {
-      const { data, error } = await supabase
-        .from('user_settings')
-        .select('*')
-        .eq('user_id', uid)
-        .maybeSingle();
+      const { data, error } = await withTimeout(
+        supabase
+          .from('user_settings')
+          .select('*')
+          .eq('user_id', uid)
+          .maybeSingle()
+          .then(r => r)
+      );
 
       if (error) {
         console.error('fetchSettings error:', error);
-        setLoading(false);
         return;
       }
 
       if (!data) {
-        const { data: created, error: insertErr } = await supabase
-          .from('user_settings')
-          .insert({ user_id: uid })
-          .select()
-          .single();
-
-        if (insertErr) {
-          const { data: retry } = await supabase
-            .from('user_settings')
-            .select('*')
-            .eq('user_id', uid)
-            .maybeSingle();
-          setSettings((retry ?? null) as UserSettings | null);
-        } else {
-          setSettings(created as UserSettings);
+        // Row doesn't exist yet — create it
+        try {
+          const { data: created, error: insertErr } = await withTimeout(
+            supabase
+              .from('user_settings')
+              .insert({ user_id: uid })
+              .select()
+              .single()
+              .then(r => r)
+          );
+          if (insertErr) {
+            // Likely created by a concurrent request — just fetch again
+            const { data: retry } = await withTimeout(
+              supabase.from('user_settings').select('*').eq('user_id', uid).maybeSingle().then(r => r)
+            );
+            setSettings((retry ?? null) as UserSettings | null);
+          } else {
+            setSettings(created as UserSettings);
+          }
+        } catch {
+          // ignore insert failure silently — settings will be null
         }
       } else {
         setSettings(data as UserSettings);
