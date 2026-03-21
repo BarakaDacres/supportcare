@@ -232,6 +232,7 @@ export function useShifts(rates: PayRates = DEFAULT_RATES) {
         .eq('id', id)
         .select(`*, clients(name)`)
         .single()
+        .then(r => r)
     );
 
     if (err) { console.error('[useShifts] updateShift:', err); throw new Error(err.message); }
