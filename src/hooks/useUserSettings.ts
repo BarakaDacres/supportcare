@@ -2,6 +2,16 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import type { PayRates } from '@/lib/shiftCalculator';
 
+/** Wraps a thenable with a timeout so Supabase fetches never hang forever */
+async function withTimeout<T>(thenable: PromiseLike<T>, ms = 10000): Promise<T> {
+  return Promise.race([
+    Promise.resolve(thenable),
+    new Promise<T>((_, reject) =>
+      setTimeout(() => reject(new Error('Settings request timed out.')), ms)
+    ),
+  ]);
+}
+
 export interface UserSettings {
   id: string;
   user_id: string;
