@@ -47,6 +47,14 @@ export function effectiveGrossPay(shift: Shift): number {
   return Number(shift.gross_pay);
 }
 
+/** Wraps a thenable with a timeout so Supabase fetches never hang forever */
+async function withTimeout<T>(thenable: PromiseLike<T>, ms = 12000): Promise<T> {
+  return Promise.race([
+    Promise.resolve(thenable),
+    new Promise<T>((_, reject) => setTimeout(() => reject(new Error('Request timed out. Check your connection.')), ms)),
+  ]);
+}
+
 export function useShifts(rates: PayRates = DEFAULT_RATES) {
   const [shifts, setShifts] = useState<Shift[]>([]);
   const [loading, setLoading] = useState(true);
@@ -64,21 +72,25 @@ export function useShifts(rates: PayRates = DEFAULT_RATES) {
     setError(null);
 
     try {
-      const { data, error: err } = await supabase
-        .from('shifts')
-        .select(`*, clients (name)`)
-        .order('date', { ascending: false })
-        .order('start_time', { ascending: false });
+      const { data, error: err } = await withTimeout(
+        supabase
+          .from('shifts')
+          .select(`*, clients (name)`)
+          .order('date', { ascending: false })
+          .order('start_time', { ascending: false })
+          .then(r => r)
+      );
 
       if (err) {
         setError(err.message);
-        setLoading(false);
         return;
       }
 
       setShifts((data ?? []).map(row => mapShiftRow(row as Record<string, unknown>)));
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : 'Failed to load shifts.');
+      const msg = e instanceof Error ? e.message : 'Failed to load shifts.';
+      setError(msg);
+      console.error('[useShifts] fetchShifts:', msg);
     } finally {
       setLoading(false);
     }
@@ -91,7 +103,7 @@ export function useShifts(rates: PayRates = DEFAULT_RATES) {
       if (session) {
         userIdRef.current = session.user.id;
         initializedRef.current = true;
-        fetchShifts(session.user.id, true); // show loading spinner on initial load
+        fetchShifts(session.user.id, true);
       } else {
         userIdRef.current = null;
         setShifts([]);
@@ -105,7 +117,7 @@ export function useShifts(rates: PayRates = DEFAULT_RATES) {
         if (userIdRef.current !== uid || !initializedRef.current) {
           userIdRef.current = uid;
           initializedRef.current = true;
-          fetchShifts(uid, true); // show loading on user switch
+          fetchShifts(uid, true);
         }
       } else {
         userIdRef.current = null;
@@ -125,7 +137,7 @@ export function useShifts(rates: PayRates = DEFAULT_RATES) {
         'postgres_changes',
         { event: '*', schema: 'public', table: 'shifts' },
         () => {
-          if (userIdRef.current) fetchShifts(userIdRef.current, false); // silent background refresh
+          if (userIdRef.current) fetchShifts(userIdRef.current, false);
         }
       )
       .subscribe();
@@ -158,23 +170,26 @@ export function useShifts(rates: PayRates = DEFAULT_RATES) {
     const feeOverride = shift.fee_override != null && shift.fee_override > 0 ? shift.fee_override : null;
     const grossPay = feeOverride ?? calc.grossPay;
 
-    const { data, error: err } = await supabase
-      .from('shifts')
-      .insert({
-        user_id: session.user.id,
-        client_id: shift.client_id ?? null,
-        date: shift.date,
-        start_time: shift.start_time,
-        end_time: shift.end_time,
-        is_sleepover: shift.is_sleepover,
-        is_public_holiday: isPublicHoliday,
-        notes: shift.notes ?? null,
-        hours_worked: calc.hoursWorked,
-        gross_pay: grossPay,
-        fee_override: feeOverride,
-      })
-      .select(`*, clients(name)`)
-      .single();
+    const { data, error: err } = await withTimeout(
+      supabase
+        .from('shifts')
+        .insert({
+          user_id: session.user.id,
+          client_id: shift.client_id ?? null,
+          date: shift.date,
+          start_time: shift.start_time,
+          end_time: shift.end_time,
+          is_sleepover: shift.is_sleepover,
+          is_public_holiday: isPublicHoliday,
+          notes: shift.notes ?? null,
+          hours_worked: calc.hoursWorked,
+          gross_pay: grossPay,
+          fee_override: feeOverride,
+        })
+        .select(`*, clients(name)`)
+        .single()
+        .then(r => r)
+    );
 
     if (err) {
       console.error('addShift error:', err);
@@ -204,28 +219,36 @@ export function useShifts(rates: PayRates = DEFAULT_RATES) {
 
     const grossPay = feeOverride ?? calc.grossPay;
 
-    const { data, error: err } = await supabase
-      .from('shifts')
-      .update({
-        ...shift,
-        is_public_holiday: merged.is_public_holiday,
-        hours_worked: calc.hoursWorked,
-        gross_pay: grossPay,
-        fee_override: feeOverride,
-      })
-      .eq('id', id)
-      .select(`*, clients(name)`)
-      .single();
+    const { data, error: err } = await withTimeout(
+      supabase
+        .from('shifts')
+        .update({
+          ...shift,
+          is_public_holiday: merged.is_public_holiday,
+          hours_worked: calc.hoursWorked,
+          gross_pay: grossPay,
+          fee_override: feeOverride,
+        })
+        .eq('id', id)
+        .select(`*, clients(name)`)
+        .single()
+        .then(r => r)
+    );
 
-    if (err) { console.error(err); return; }
+    if (err) { console.error('[useShifts] updateShift:', err); throw new Error(err.message); }
     setShifts(prev => prev.map(s => s.id === id ? mapShiftRow(data as Record<string, unknown>) : s));
   }, [shifts, rates]);
 
   const deleteShift = useCallback(async (id: string): Promise<void> => {
-    const { error: err } = await supabase.from('shifts').delete().eq('id', id);
-    if (err) { console.error(err); return; }
+    // Optimistic update
     setShifts(prev => prev.filter(s => s.id !== id));
-  }, []);
+    const { error: err } = await withTimeout(supabase.from('shifts').delete().eq('id', id).then(r => r));
+    if (err) {
+      console.error('[useShifts] deleteShift:', err);
+      // Revert on error
+      fetchShifts(userIdRef.current ?? undefined, false);
+    }
+  }, [fetchShifts]);
 
   const duplicateShift = useCallback(async (id: string): Promise<void> => {
     const shift = shifts.find(s => s.id === id);
@@ -238,7 +261,6 @@ export function useShifts(rates: PayRates = DEFAULT_RATES) {
       is_sleepover: shift.is_sleepover,
       is_public_holiday: shift.is_public_holiday,
       notes: shift.notes,
-      // Do NOT copy fee_override — duplicates should recalculate fresh
     });
   }, [shifts, addShift]);
 

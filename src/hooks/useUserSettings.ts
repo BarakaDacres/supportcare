@@ -2,6 +2,16 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import type { PayRates } from '@/lib/shiftCalculator';
 
+/** Wraps a thenable with a timeout so Supabase fetches never hang forever */
+async function withTimeout<T>(thenable: PromiseLike<T>, ms = 10000): Promise<T> {
+  return Promise.race([
+    Promise.resolve(thenable),
+    new Promise<T>((_, reject) =>
+      setTimeout(() => reject(new Error('Settings request timed out.')), ms)
+    ),
+  ]);
+}
+
 export interface UserSettings {
   id: string;
   user_id: string;
@@ -73,34 +83,42 @@ export function useUserSettings() {
 
     setLoading(true);
     try {
-      const { data, error } = await supabase
-        .from('user_settings')
-        .select('*')
-        .eq('user_id', uid)
-        .maybeSingle();
+      const { data, error } = await withTimeout(
+        supabase
+          .from('user_settings')
+          .select('*')
+          .eq('user_id', uid)
+          .maybeSingle()
+          .then(r => r)
+      );
 
       if (error) {
         console.error('fetchSettings error:', error);
-        setLoading(false);
         return;
       }
 
       if (!data) {
-        const { data: created, error: insertErr } = await supabase
-          .from('user_settings')
-          .insert({ user_id: uid })
-          .select()
-          .single();
-
-        if (insertErr) {
-          const { data: retry } = await supabase
-            .from('user_settings')
-            .select('*')
-            .eq('user_id', uid)
-            .maybeSingle();
-          setSettings((retry ?? null) as UserSettings | null);
-        } else {
-          setSettings(created as UserSettings);
+        // Row doesn't exist yet — create it
+        try {
+          const { data: created, error: insertErr } = await withTimeout(
+            supabase
+              .from('user_settings')
+              .insert({ user_id: uid })
+              .select()
+              .single()
+              .then(r => r)
+          );
+          if (insertErr) {
+            // Likely created by a concurrent request — just fetch again
+            const { data: retry } = await withTimeout(
+              supabase.from('user_settings').select('*').eq('user_id', uid).maybeSingle().then(r => r)
+            );
+            setSettings((retry ?? null) as UserSettings | null);
+          } else {
+            setSettings(created as UserSettings);
+          }
+        } catch {
+          // ignore insert failure silently — settings will be null
         }
       } else {
         setSettings(data as UserSettings);
@@ -164,16 +182,31 @@ export function useUserSettings() {
     const uid = userIdRef.current;
     if (!uid || !settings) return;
 
-    const { data, error } = await supabase
-      .from('user_settings')
-      .update(updates)
-      .eq('user_id', uid)
-      .select()
-      .single();
+    // Optimistic update so UI feels instant
+    setSettings(prev => prev ? { ...prev, ...updates } : prev);
 
-    if (error) { console.error(error); return; }
-    setSettings(data as UserSettings);
-  }, [settings]);
+    try {
+      const { data, error } = await withTimeout(
+        supabase
+          .from('user_settings')
+          .update(updates)
+          .eq('user_id', uid)
+          .select()
+          .single()
+          .then(r => r)
+      );
+      if (error) {
+        console.error('[useUserSettings] updateSettings:', error);
+        // Revert on error
+        fetchSettings(uid);
+        return;
+      }
+      setSettings(data as UserSettings);
+    } catch (e) {
+      console.error('[useUserSettings] updateSettings timeout:', e);
+      fetchSettings(uid);
+    }
+  }, [settings, fetchSettings]);
 
   const incrementInvoiceCounter = useCallback(async (): Promise<number> => {
     if (!settings) return 1;
