@@ -1,8 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import {
-  Camera, LogOut, Save, Loader2, Building2, CreditCard,
-  FileText, ChevronRight, RotateCcw, RefreshCw, AlertCircle, Hash
-} from 'lucide-react';
+import { Camera, LogOut, Save, Loader2, Hash, RotateCcw, AlertCircle, RefreshCw } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import type { AuthState } from '@/hooks/useAuth';
 import type { UserSettings } from '@/hooks/useUserSettings';
@@ -111,7 +108,6 @@ const AccountPanel = ({ auth, settings, settingsLoading, onSaveSettings }: Accou
   const [signingOut, setSigningOut] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
-  // Profile dirty tracking
   const [origDisplayName] = useState(auth.displayName ?? '');
 
   // Business fields
@@ -128,20 +124,14 @@ const AccountPanel = ({ auth, settings, settingsLoading, onSaveSettings }: Accou
   const [accountNumber, setAccountNumber] = useState('');
   const [accountName, setAccountName] = useState('');
 
-  // Original (DB) values for dirty tracking
   const [origBiz, setOrigBiz] = useState({ businessName: '', abn: '', email: '', phone: '', address: '', invoiceNotes: '' });
   const [origBank, setOrigBank] = useState({ bankName: '', bsb: '', accountNumber: '', accountName: '' });
 
-  // Save state
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
-
-  // Invoice counter
   const [confirmReset, setConfirmReset] = useState(false);
   const [resetting, setResetting] = useState(false);
   const [resetDone, setResetDone] = useState(false);
-
-  // Timeout/retry
   const [timedOut, setTimedOut] = useState(false);
   const [retryKey, setRetryKey] = useState(0);
 
@@ -159,15 +149,15 @@ const AccountPanel = ({ auth, settings, settingsLoading, onSaveSettings }: Accou
       businessName: settings.business_name ?? '',
       abn: settings.abn ?? '',
       email: settings.email ?? '',
-      phone: (settings as unknown as Record<string, string>).phone ?? '',
-      address: (settings as unknown as Record<string, string>).address ?? '',
+      phone: settings.phone ?? '',
+      address: settings.address ?? '',
       invoiceNotes: settings.invoice_notes ?? '',
     };
     const bank = {
       bankName: settings.bank_name ?? '',
       bsb: settings.bsb ?? '',
       accountNumber: settings.account_number ?? '',
-      accountName: (settings as unknown as Record<string, string>).account_name ?? '',
+      accountName: settings.account_name ?? '',
     };
     setBusinessName(biz.businessName); setAbn(biz.abn); setEmail(biz.email);
     setPhone(biz.phone); setAddress(biz.address); setInvoiceNotes(biz.invoiceNotes);
@@ -180,7 +170,6 @@ const AccountPanel = ({ auth, settings, settingsLoading, onSaveSettings }: Accou
 
   const initial = (auth.displayName ?? auth.user.email ?? '?')[0].toUpperCase();
 
-  // Dirty checks
   const profileDirty = displayName !== origDisplayName;
   const bizDirty = businessName !== origBiz.businessName || abn !== origBiz.abn ||
     email !== origBiz.email || phone !== origBiz.phone ||
@@ -223,8 +212,10 @@ const AccountPanel = ({ auth, settings, settingsLoading, onSaveSettings }: Accou
       Object.assign(settingsUpdate, {
         business_name: businessName.trim() || null,
         abn: abn.trim() || null,
+        email: email.trim() || null,
+        phone: phone.trim() || null,
+        address: address.trim() || null,
         invoice_notes: invoiceNotes.trim() || null,
-        ...({ email: email.trim() || null, phone: phone.trim() || null, address: address.trim() || null } as unknown as Partial<Omit<UserSettings, 'id' | 'user_id'>>),
       });
     }
     if (bankDirty) {
@@ -232,14 +223,13 @@ const AccountPanel = ({ auth, settings, settingsLoading, onSaveSettings }: Accou
         bank_name: bankName.trim() || null,
         bsb: bsb.trim() || null,
         account_number: accountNumber.trim() || null,
-        ...({ account_name: accountName.trim() || null } as unknown as Partial<Omit<UserSettings, 'id' | 'user_id'>>),
+        account_name: accountName.trim() || null,
       });
     }
     if (Object.keys(settingsUpdate).length > 0) {
       promises.push(onSaveSettings(settingsUpdate));
     }
     await Promise.all(promises);
-    // Update originals
     if (bizDirty) setOrigBiz({ businessName, abn, email, phone, address, invoiceNotes });
     if (bankDirty) setOrigBank({ bankName, bsb, accountNumber, accountName });
     setSaving(false);
@@ -293,37 +283,59 @@ const AccountPanel = ({ auth, settings, settingsLoading, onSaveSettings }: Accou
   return (
     <div className="space-y-6 pb-24">
 
-      {/* ── Profile card ── */}
+      {/* ── Profile card — centered layout like reference ── */}
       <SettingsGroup>
-        <div className="px-4 py-5 flex items-center gap-4">
-          <button className="relative shrink-0 group" onClick={() => fileRef.current?.click()} title="Change photo" disabled={uploading}>
+        <div className="px-4 py-6 flex flex-col items-center gap-2 text-center">
+          {/* Avatar */}
+          <button
+            className="relative group"
+            onClick={() => fileRef.current?.click()}
+            title="Change photo"
+            disabled={uploading}
+          >
             {avatarUrl ? (
-              <img src={avatarUrl} alt="Avatar" className="w-16 h-16 rounded-full object-cover ring-2 ring-primary/30 transition-opacity group-hover:opacity-70" />
+              <img
+                src={avatarUrl}
+                alt="Avatar"
+                className="w-20 h-20 rounded-full object-cover transition-opacity group-hover:opacity-80"
+                style={{ boxShadow: '0 0 0 3px hsl(var(--border))' }}
+              />
             ) : (
-              <div className="w-16 h-16 rounded-full flex items-center justify-center text-2xl font-bold ring-2 ring-primary/30 transition-opacity group-hover:opacity-70"
-                style={{ background: 'hsl(var(--primary)/0.15)', color: 'hsl(var(--primary))' }}>
+              <div
+                className="w-20 h-20 rounded-full flex items-center justify-center text-2xl font-bold transition-opacity group-hover:opacity-80"
+                style={{
+                  background: 'hsl(var(--primary)/0.12)',
+                  color: 'hsl(var(--primary))',
+                  boxShadow: '0 0 0 3px hsl(var(--border))',
+                }}
+              >
                 {initial}
               </div>
             )}
-            <div className="absolute inset-0 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-              style={{ background: 'hsl(var(--foreground)/0.35)' }}>
-              {uploading ? <Loader2 className="w-5 h-5 text-white animate-spin" /> : <Camera className="w-5 h-5 text-white" />}
-            </div>
-            <div className="absolute -bottom-0.5 -right-0.5 w-5 h-5 rounded-full flex items-center justify-center shadow pointer-events-none"
-              style={{ background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))' }}>
-              <Camera className="w-2.5 h-2.5" />
+            {/* Camera badge */}
+            <div
+              className="absolute bottom-0 right-0 w-6 h-6 rounded-full flex items-center justify-center"
+              style={{ background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', boxShadow: '0 1px 4px hsl(0 0% 0% / 0.2)' }}
+            >
+              {uploading
+                ? <Loader2 className="w-3 h-3 animate-spin" />
+                : <Camera className="w-3 h-3" />}
             </div>
           </button>
           <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarChange} />
-          <div className="min-w-0 flex-1">
-            <p className="text-[17px] font-bold text-foreground truncate leading-tight">
+
+          {/* Name + email */}
+          <div className="mt-1">
+            <p className="text-[18px] font-bold text-foreground leading-tight">
               {auth.displayName ?? auth.user.email?.split('@')[0]}
             </p>
-            <p className="text-[13px] text-muted-foreground truncate mt-0.5">{auth.user.email}</p>
-            <p className="text-[11px] mt-1 font-medium" style={{ color: 'hsl(var(--primary))' }}>Tap photo to change</p>
+            <p className="text-[13px] text-muted-foreground mt-0.5">{auth.user.email}</p>
+            <p className="text-[11px] mt-1" style={{ color: 'hsl(var(--primary))' }}>Tap photo to change</p>
           </div>
         </div>
-        <div className="h-px mx-4" style={{ background: 'hsl(var(--divider))' }} />
+
+        {/* Display name editable row */}
+        <div className="h-px" style={{ background: 'hsl(var(--divider))' }} />
         <FieldRow
           label="Display Name"
           value={displayName}
@@ -364,9 +376,9 @@ const AccountPanel = ({ auth, settings, settingsLoading, onSaveSettings }: Accou
       </div>
 
       {/* ── Invoice Numbering ── */}
-      <div className="space-y-1.5">
-        <SectionLabel>Invoice Numbering</SectionLabel>
-        {settings && (
+      {settings && (
+        <div className="space-y-1.5">
+          <SectionLabel>Invoice Numbering</SectionLabel>
           <SettingsGroup>
             <div className="px-4 py-4 flex items-center justify-between gap-3">
               <div className="flex items-center gap-3">
@@ -388,8 +400,8 @@ const AccountPanel = ({ auth, settings, settingsLoading, onSaveSettings }: Accou
               </div>
             </div>
           </SettingsGroup>
-        )}
-      </div>
+        </div>
+      )}
 
       {/* ── Danger Zone ── */}
       <div className="space-y-1.5">
