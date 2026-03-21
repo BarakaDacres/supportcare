@@ -35,7 +35,7 @@ const IOSToggle = ({ checked, onChange, disabled }: IOSToggleProps) => (
 );
 
 interface SettingsRowProps {
-  icon: React.ReactNode;
+  icon?: React.ReactNode;
   label: string;
   sublabel?: string;
   right?: React.ReactNode;
@@ -51,9 +51,11 @@ const SettingsRow = ({ icon, label, sublabel, right, onClick, isLast }: Settings
       className="w-full flex items-center gap-3.5 px-4 transition-colors duration-150 disabled:cursor-default active:bg-accent/30"
       style={{ minHeight: 52 }}
     >
-      <span className="text-foreground shrink-0 w-5 flex items-center justify-center">
-        {icon}
-      </span>
+      {icon && (
+        <span className="text-muted-foreground shrink-0 w-5 flex items-center justify-center">
+          {icon}
+        </span>
+      )}
       <div className="flex-1 min-w-0 text-left">
         <p className="text-[15px] leading-tight text-foreground">{label}</p>
         {sublabel && <p className="text-[12px] text-muted-foreground mt-0.5 leading-tight">{sublabel}</p>}
@@ -61,7 +63,7 @@ const SettingsRow = ({ icon, label, sublabel, right, onClick, isLast }: Settings
       {right && <div className="shrink-0 flex items-center gap-1">{right}</div>}
     </button>
     {!isLast && (
-      <div className="ml-[56px]">
+      <div className={icon ? 'ml-[56px]' : 'ml-4'}>
         <div className="h-px" style={{ background: 'hsl(var(--divider))' }} />
       </div>
     )}
@@ -81,101 +83,90 @@ const SectionLabel = ({ children }: { children: string }) => (
   </p>
 );
 
-/* ── Theme picker ── */
+/* ── Inline Segmented Appearance Picker ── */
 type ThemeOption = 'system' | 'light' | 'dark';
 
-const ThemePicker = ({
-  current, onChange, onClose,
-}: { current: ThemeOption; onChange: (v: ThemeOption) => void; onClose: () => void }) => {
+const AppearanceCard = ({
+  current, onChange,
+}: { current: ThemeOption; onChange: (v: ThemeOption) => void }) => {
   const options: { value: ThemeOption; label: string; icon: React.ReactNode }[] = [
-    { value: 'system', label: 'System',    icon: <Monitor className="w-4 h-4" /> },
-    { value: 'light',  label: 'Light',     icon: <Sun className="w-4 h-4" />     },
-    { value: 'dark',   label: 'Dark',      icon: <Moon className="w-4 h-4" />    },
+    { value: 'system', label: 'Auto', icon: <Monitor className="w-[15px] h-[15px]" /> },
+    { value: 'light', label: 'Light', icon: <Sun className="w-[15px] h-[15px]" /> },
+    { value: 'dark', label: 'Dark', icon: <Moon className="w-[15px] h-[15px]" /> },
   ];
+
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-end justify-center sm:items-center"
-      style={{ background: 'hsl(var(--foreground)/0.25)', backdropFilter: 'blur(4px)' }}
-      onClick={onClose}
-    >
-      <div
-        className="w-full max-w-sm mx-4 rounded-2xl overflow-hidden mb-6 sm:mb-0"
-        style={{ background: 'hsl(var(--card))', boxShadow: 'var(--card-shadow-lg)', border: '1px solid hsl(var(--border))' }}
-        onClick={e => e.stopPropagation()}
-      >
-        <div className="px-4 pt-5 pb-3 text-center">
-          <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-widest">Appearance</p>
-          <p className="text-[13px] text-muted-foreground mt-1">Choose how the app looks</p>
-        </div>
-        <div className="border-t" style={{ borderColor: 'hsl(var(--divider))' }}>
-          {options.map((opt, i) => (
-            <div key={opt.value}>
-              <button
-                type="button"
-                onClick={() => { onChange(opt.value); onClose(); }}
-                className="w-full flex items-center gap-3 px-4 transition-colors duration-150 active:bg-accent/30"
-                style={{ minHeight: 52 }}
-              >
-                <span className="text-muted-foreground">{opt.icon}</span>
-                <span className="flex-1 text-left text-[15px] text-foreground">{opt.label}</span>
-                {current === opt.value && <Check className="w-4 h-4" style={{ color: 'hsl(var(--primary))' }} />}
-              </button>
-              {i < options.length - 1 && <div className="ml-10 h-px" style={{ background: 'hsl(var(--divider))' }} />}
-            </div>
+    <SettingsGroup>
+      <div className="px-4 py-4 space-y-3">
+        <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-widest">Appearance</p>
+        {/* Segmented control */}
+        <div
+          className="flex rounded-xl p-1 gap-1"
+          style={{ background: 'hsl(var(--muted))' }}
+        >
+          {options.map(opt => (
+            <button
+              key={opt.value}
+              type="button"
+              onClick={() => onChange(opt.value)}
+              className="flex-1 flex items-center justify-center gap-1.5 rounded-[9px] py-2 transition-all duration-200 text-[13px] font-semibold"
+              style={{
+                background: current === opt.value ? 'hsl(var(--card))' : 'transparent',
+                color: current === opt.value ? 'hsl(var(--foreground))' : 'hsl(var(--muted-foreground))',
+                boxShadow: current === opt.value ? '0 1px 4px hsl(0 0% 0% / 0.12)' : 'none',
+              }}
+            >
+              {opt.icon}
+              {opt.label}
+            </button>
           ))}
         </div>
-        <div className="border-t p-3" style={{ borderColor: 'hsl(var(--divider))' }}>
-          <button
-            type="button"
-            onClick={onClose}
-            className="w-full rounded-xl text-[16px] font-semibold transition-colors duration-150 active:bg-accent/30"
-            style={{ minHeight: 50, background: 'hsl(var(--muted))', color: 'hsl(var(--foreground))' }}
-          >
-            Cancel
-          </button>
-        </div>
       </div>
-    </div>
+    </SettingsGroup>
   );
 };
 
-/* ── Due Date Picker ── */
+/* ── Centered Due Date Modal ── */
 const DUE_DATE_OPTIONS = [7, 14, 21, 30];
 
-const DueDatePicker = ({
+const DueDateModal = ({
   current, onChange, onClose,
 }: { current: number; onChange: (v: number) => void; onClose: () => void }) => (
   <div
-    className="fixed inset-0 z-50 flex items-end justify-center sm:items-center"
-    style={{ background: 'hsl(var(--foreground)/0.25)', backdropFilter: 'blur(4px)' }}
+    className="fixed inset-0 z-[100] flex items-center justify-center px-4"
+    style={{ background: 'hsl(var(--foreground)/0.35)', backdropFilter: 'blur(8px)' }}
     onClick={onClose}
   >
     <div
-      className="w-full max-w-sm mx-4 rounded-2xl overflow-hidden mb-6 sm:mb-0"
+      className="w-full max-w-sm rounded-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200"
       style={{ background: 'hsl(var(--card))', boxShadow: 'var(--card-shadow-lg)', border: '1px solid hsl(var(--border))' }}
       onClick={e => e.stopPropagation()}
     >
-      <div className="px-4 pt-5 pb-3 text-center">
-        <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-widest">Invoice Due Date</p>
-        <p className="text-[13px] text-muted-foreground mt-1">Days after issue date payment is due</p>
+      <div className="px-4 pt-5 pb-3 text-center border-b" style={{ borderColor: 'hsl(var(--divider))' }}>
+        <p className="text-[15px] font-semibold text-foreground">Invoice Due Date</p>
+        <p className="text-[13px] text-muted-foreground mt-0.5">Days after issue date payment is due</p>
       </div>
-      <div className="border-t" style={{ borderColor: 'hsl(var(--divider))' }}>
+      <div>
         {DUE_DATE_OPTIONS.map((days, i) => (
           <div key={days}>
             <button
               type="button"
               onClick={() => { onChange(days); onClose(); }}
-              className="w-full flex items-center gap-3 px-4 transition-colors duration-150 active:bg-accent/30"
+              className="w-full flex items-center gap-3 px-5 transition-colors duration-150 active:bg-accent/30"
               style={{ minHeight: 52 }}
             >
               <span className="flex-1 text-left text-[15px] text-foreground">{days} days</span>
-              {current === days && <Check className="w-4 h-4" style={{ color: 'hsl(var(--primary))' }} />}
+              {current === days && (
+                <Check className="w-4 h-4" style={{ color: 'hsl(var(--primary))' }} />
+              )}
             </button>
-            {i < DUE_DATE_OPTIONS.length - 1 && <div className="ml-4 h-px" style={{ background: 'hsl(var(--divider))' }} />}
+            {i < DUE_DATE_OPTIONS.length - 1 && (
+              <div className="ml-5 h-px" style={{ background: 'hsl(var(--divider))' }} />
+            )}
           </div>
         ))}
       </div>
-      <div className="border-t p-3" style={{ borderColor: 'hsl(var(--divider))' }}>
+      <div className="p-3 border-t" style={{ borderColor: 'hsl(var(--divider))' }}>
         <button
           type="button"
           onClick={onClose}
@@ -198,8 +189,7 @@ interface PreferencesPanelProps {
 }
 
 const PreferencesPanel = ({ settings, onSave, themeOverride, onThemeChange }: PreferencesPanelProps) => {
-  const [showThemePicker, setShowThemePicker] = useState(false);
-  const [showDueDatePicker, setShowDueDatePicker] = useState(false);
+  const [showDueDateModal, setShowDueDateModal] = useState(false);
 
   const [shiftReminders, setShiftReminders]     = useState(() => localStorage.getItem('pref_shift_reminders')   !== 'false');
   const [invoiceReminders, setInvoiceReminders] = useState(() => localStorage.getItem('pref_invoice_reminders') !== 'false');
@@ -210,35 +200,18 @@ const PreferencesPanel = ({ settings, onSave, themeOverride, onThemeChange }: Pr
   const showTaxEstimate  = settings?.show_tax_estimate ?? false;
   const invoiceDueDays   = settings?.invoice_due_days ?? 7;
 
-  const themeLabels: Record<string, string> = { system: 'System', light: 'Light', dark: 'Dark' };
-
   const handleToggle = (key: string, value: boolean, setter: (v: boolean) => void) => {
     setter(value);
     localStorage.setItem(key, String(value));
   };
 
-  const themeIcon = themeOverride === 'dark' ? <Moon className="w-[18px] h-[18px]" /> : themeOverride === 'light' ? <Sun className="w-[18px] h-[18px]" /> : <Monitor className="w-[18px] h-[18px]" />;
-
   return (
     <div className="space-y-6 pb-4">
 
-      {/* ── Appearance ── */}
+      {/* ── Appearance — inline segmented control ── */}
       <div className="space-y-1.5">
         <SectionLabel>Appearance</SectionLabel>
-        <SettingsGroup>
-          <SettingsRow
-            icon={themeIcon}
-            label="Theme"
-            right={
-              <div className="flex items-center gap-1">
-                <span className="text-[15px] text-muted-foreground">{themeLabels[themeOverride]}</span>
-                <ChevronRight className="w-4 h-4 text-muted-foreground/50" />
-              </div>
-            }
-            onClick={() => setShowThemePicker(true)}
-            isLast
-          />
-        </SettingsGroup>
+        <AppearanceCard current={themeOverride} onChange={onThemeChange} />
       </div>
 
       {/* ── Notifications ── */}
@@ -296,11 +269,11 @@ const PreferencesPanel = ({ settings, onSave, themeOverride, onThemeChange }: Pr
             sublabel="Days after issue date payment is due"
             right={
               <div className="flex items-center gap-1">
-                <span className="text-[15px] text-muted-foreground">{invoiceDueDays} days</span>
+                <span className="text-[15px] text-muted-foreground font-medium">{invoiceDueDays} days</span>
                 <ChevronRight className="w-4 h-4 text-muted-foreground/50" />
               </div>
             }
-            onClick={settings ? () => setShowDueDatePicker(true) : undefined}
+            onClick={settings ? () => setShowDueDateModal(true) : undefined}
             isLast
           />
         </SettingsGroup>
@@ -327,14 +300,12 @@ const PreferencesPanel = ({ settings, onSave, themeOverride, onThemeChange }: Pr
         </SettingsGroup>
       </div>
 
-      {showThemePicker && (
-        <ThemePicker current={themeOverride} onChange={onThemeChange} onClose={() => setShowThemePicker(false)} />
-      )}
-      {showDueDatePicker && (
-        <DueDatePicker
+      {/* Due date modal — centered, always visible */}
+      {showDueDateModal && (
+        <DueDateModal
           current={invoiceDueDays}
           onChange={v => onSave({ invoice_due_days: v } as Partial<Omit<UserSettings, 'id' | 'user_id'>>)}
-          onClose={() => setShowDueDatePicker(false)}
+          onClose={() => setShowDueDateModal(false)}
         />
       )}
     </div>
