@@ -188,6 +188,7 @@ export function useShifts(rates: PayRates = DEFAULT_RATES) {
         })
         .select(`*, clients(name)`)
         .single()
+        .then(r => r)
     );
 
     if (err) {
