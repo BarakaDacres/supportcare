@@ -47,12 +47,12 @@ export function effectiveGrossPay(shift: Shift): number {
   return Number(shift.gross_pay);
 }
 
-/** Wraps a promise with an explicit timeout so loading never hangs forever */
-function withTimeout<T>(promise: Promise<T>, ms = 12000): Promise<T> {
-  return new Promise((resolve, reject) => {
-    const id = setTimeout(() => reject(new Error('Request timed out. Check your connection.')), ms);
-    promise.then(v => { clearTimeout(id); resolve(v); }, e => { clearTimeout(id); reject(e); });
-  });
+/** Wraps a thenable with a timeout so Supabase fetches never hang forever */
+async function withTimeout<T>(thenable: PromiseLike<T>, ms = 12000): Promise<T> {
+  return Promise.race([
+    Promise.resolve(thenable),
+    new Promise<T>((_, reject) => setTimeout(() => reject(new Error('Request timed out. Check your connection.')), ms)),
+  ]);
 }
 
 export function useShifts(rates: PayRates = DEFAULT_RATES) {
