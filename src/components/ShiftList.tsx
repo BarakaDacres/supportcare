@@ -281,7 +281,8 @@ const ShiftList = ({
             const { isSleepover, isWeekend, isWeekday, isPublicHoliday, isEvening } = getShiftBadges(shift);
             const hasOverride = shift.fee_override != null && shift.fee_override > 0;
             const displayPay = effectiveGrossPay(shift);
-            const active = isShiftActive(shift);
+            const shiftStatus = getShiftStatus(shift);
+            const active = shiftStatus === 'active';
 
             // Determine single primary shift-type label
             const shiftTypeLabel = (() => {
@@ -302,6 +303,7 @@ const ShiftList = ({
                 key={shift.id}
                 shift={shift}
                 locked={locked}
+                shiftStatus={shiftStatus}
                 active={active}
                 isSleepover={isSleepover}
                 isEvening={isEvening}
