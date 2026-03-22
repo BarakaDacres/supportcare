@@ -620,7 +620,7 @@ const ShiftCard = ({
         <div className="flex items-start justify-between gap-2 mb-1">
           <div className="flex items-center gap-1.5 flex-wrap min-w-0">
             <span className="text-sm font-bold text-foreground">{dateLabel}</span>
-            {active && (
+            {shiftStatus === 'active' && (
               <span
                 className="inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-bold animate-pulse"
                 style={{
@@ -630,6 +630,18 @@ const ShiftCard = ({
                 }}
               >
                 ● Active
+              </span>
+            )}
+            {shiftStatus === 'upcoming' && (
+              <span
+                className="inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-semibold"
+                style={{
+                  background: 'hsl(var(--primary)/0.10)',
+                  color: 'hsl(var(--primary))',
+                  border: '1px solid hsl(var(--primary)/0.22)',
+                }}
+              >
+                Upcoming
               </span>
             )}
           </div>
