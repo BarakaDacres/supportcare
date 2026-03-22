@@ -48,7 +48,9 @@ function getShiftBadges(shift: Shift) {
   return { isSleepover, isWeekend, isWeekday, isPublicHoliday, isEvening };
 }
 
-function isShiftActive(shift: Shift): boolean {
+type ShiftStatus = 'active' | 'upcoming' | 'completed';
+
+function getShiftStatus(shift: Shift): ShiftStatus {
   const now = new Date();
   const [sy, sm, sd] = shift.date.split('-').map(Number);
   const [startH, startM] = shift.start_time.split(':').map(Number);
@@ -56,7 +58,9 @@ function isShiftActive(shift: Shift): boolean {
   const shiftStart = new Date(sy, sm - 1, sd, startH, startM, 0, 0);
   const isOvernight = shift.is_sleepover || endH < startH || (endH === startH && endM < startM);
   const shiftEnd = new Date(sy, sm - 1, sd + (isOvernight ? 1 : 0), endH, endM, 0, 0);
-  return now >= shiftStart && now < shiftEnd;
+  if (now >= shiftStart && now < shiftEnd) return 'active';
+  if (shiftStart > now) return 'upcoming';
+  return 'completed';
 }
 
 // ── Long-press context menu ──────────────────────────────────────────────────
