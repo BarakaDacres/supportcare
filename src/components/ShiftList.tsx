@@ -472,6 +472,7 @@ const ShiftList = ({
 interface ShiftCardProps {
   shift: Shift;
   locked: boolean;
+  shiftStatus: ShiftStatus;
   active: boolean;
   isSleepover: boolean;
   isEvening: boolean;
@@ -491,7 +492,7 @@ const SWIPE_CONFIRM  = 80;    // px to auto-trigger action (must be < SWIPE_MAX)
 const SWIPE_MAX      = 100;   // max translate
 
 const ShiftCard = ({
-  shift, locked, active, isSleepover, isEvening,
+  shift, locked, shiftStatus, active, isSleepover, isEvening,
   displayPay, hasOverride, shiftTypeLabel, timeDisplay, dateLabel,
   onEdit, onDuplicate, onDelete, onContextMenu,
 }: ShiftCardProps) => {
