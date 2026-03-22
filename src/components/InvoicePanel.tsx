@@ -844,6 +844,7 @@ const InvoicePanel = ({
   }, [settings, selectedClient, selectedPeriod, selectedYear, periodShifts, total, clientExtra]);
 
   // ─── Core: reload existing invoice content without changing invoice number ────
+  // The submitted date is updated to today on each reload so the PDF reflects when it was last refreshed.
   const reloadInvoice = useCallback(async () => {
     if (!existingInvoice || !selectedPeriod) return;
     setGenerating(true);
@@ -851,15 +852,21 @@ const InvoicePanel = ({
     setReloadConfirmOpen(false);
     setReloadSuccess(false);
     try {
-      const issueDate = existingInvoice.created_at.split('T')[0];
-      const dueDate   = addDays(issueDate, settings?.invoice_due_days ?? 7);
+      const refreshedDate = formatDateISO(new Date()); // new submitted date = today
+      const dueDate = addDays(refreshedDate, settings?.invoice_due_days ?? 7);
+      const nowISO = new Date().toISOString();
       const { error } = await supabase
         .from('invoices')
-        .update({ total_amount: total, updated_at: new Date().toISOString() })
+        .update({
+          total_amount: total,
+          updated_at:   nowISO,
+          // Store the refreshed submitted date in due_date logic via the new issueDate
+          due_date:     dueDate,
+        })
         .eq('id', existingInvoice.id);
       if (error) { setGenerateError(`Failed to reload invoice: ${error.message}`); return; }
       onRefreshInvoices();
-      setPreview(buildSnapshot(existingInvoice.id, existingInvoice.invoice_number, issueDate, dueDate));
+      setPreview(buildSnapshot(existingInvoice.id, existingInvoice.invoice_number, refreshedDate, dueDate));
       setReloadSuccess(true);
       setTimeout(() => setReloadSuccess(false), 4000);
     } catch (e) {
@@ -867,7 +874,7 @@ const InvoicePanel = ({
     } finally {
       setGenerating(false);
     }
-  }, [existingInvoice, selectedPeriod, total, buildSnapshot, onRefreshInvoices]);
+  }, [existingInvoice, selectedPeriod, total, buildSnapshot, onRefreshInvoices, settings]);
 
   // ─── View existing invoice without changing DB ────────────────────────────────
   const viewExistingInvoice = useCallback(() => {

@@ -48,7 +48,9 @@ function getShiftBadges(shift: Shift) {
   return { isSleepover, isWeekend, isWeekday, isPublicHoliday, isEvening };
 }
 
-function isShiftActive(shift: Shift): boolean {
+type ShiftStatus = 'active' | 'upcoming' | 'completed';
+
+function getShiftStatus(shift: Shift): ShiftStatus {
   const now = new Date();
   const [sy, sm, sd] = shift.date.split('-').map(Number);
   const [startH, startM] = shift.start_time.split(':').map(Number);
@@ -56,7 +58,9 @@ function isShiftActive(shift: Shift): boolean {
   const shiftStart = new Date(sy, sm - 1, sd, startH, startM, 0, 0);
   const isOvernight = shift.is_sleepover || endH < startH || (endH === startH && endM < startM);
   const shiftEnd = new Date(sy, sm - 1, sd + (isOvernight ? 1 : 0), endH, endM, 0, 0);
-  return now >= shiftStart && now < shiftEnd;
+  if (now >= shiftStart && now < shiftEnd) return 'active';
+  if (shiftStart > now) return 'upcoming';
+  return 'completed';
 }
 
 // ── Long-press context menu ──────────────────────────────────────────────────
@@ -277,7 +281,8 @@ const ShiftList = ({
             const { isSleepover, isWeekend, isWeekday, isPublicHoliday, isEvening } = getShiftBadges(shift);
             const hasOverride = shift.fee_override != null && shift.fee_override > 0;
             const displayPay = effectiveGrossPay(shift);
-            const active = isShiftActive(shift);
+            const shiftStatus = getShiftStatus(shift);
+            const active = shiftStatus === 'active';
 
             // Determine single primary shift-type label
             const shiftTypeLabel = (() => {
@@ -298,6 +303,7 @@ const ShiftList = ({
                 key={shift.id}
                 shift={shift}
                 locked={locked}
+                shiftStatus={shiftStatus}
                 active={active}
                 isSleepover={isSleepover}
                 isEvening={isEvening}
@@ -466,6 +472,7 @@ const ShiftList = ({
 interface ShiftCardProps {
   shift: Shift;
   locked: boolean;
+  shiftStatus: ShiftStatus;
   active: boolean;
   isSleepover: boolean;
   isEvening: boolean;
@@ -485,7 +492,7 @@ const SWIPE_CONFIRM  = 80;    // px to auto-trigger action (must be < SWIPE_MAX)
 const SWIPE_MAX      = 100;   // max translate
 
 const ShiftCard = ({
-  shift, locked, active, isSleepover, isEvening,
+  shift, locked, shiftStatus, active, isSleepover, isEvening,
   displayPay, hasOverride, shiftTypeLabel, timeDisplay, dateLabel,
   onEdit, onDuplicate, onDelete, onContextMenu,
 }: ShiftCardProps) => {
@@ -613,7 +620,7 @@ const ShiftCard = ({
         <div className="flex items-start justify-between gap-2 mb-1">
           <div className="flex items-center gap-1.5 flex-wrap min-w-0">
             <span className="text-sm font-bold text-foreground">{dateLabel}</span>
-            {active && (
+            {shiftStatus === 'active' && (
               <span
                 className="inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-bold animate-pulse"
                 style={{
@@ -623,6 +630,18 @@ const ShiftCard = ({
                 }}
               >
                 ● Active
+              </span>
+            )}
+            {shiftStatus === 'upcoming' && (
+              <span
+                className="inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-semibold"
+                style={{
+                  background: 'hsl(var(--primary)/0.10)',
+                  color: 'hsl(var(--primary))',
+                  border: '1px solid hsl(var(--primary)/0.22)',
+                }}
+              >
+                Upcoming
               </span>
             )}
           </div>
