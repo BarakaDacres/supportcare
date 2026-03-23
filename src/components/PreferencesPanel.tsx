@@ -127,7 +127,13 @@ const AppearanceCard = ({
 };
 
 /* ── Centered Due Date Modal ── */
-const DUE_DATE_OPTIONS = [7, 14, 21, 30];
+const DUE_DATE_OPTIONS = [
+  { value: 0,  label: 'Due on Receipt' },
+  { value: 7,  label: '7 days' },
+  { value: 14, label: '14 days' },
+  { value: 21, label: '21 days' },
+  { value: 30, label: '30 days' },
+];
 
 const DueDateModal = ({
   current, onChange, onClose,
@@ -144,19 +150,19 @@ const DueDateModal = ({
     >
       <div className="px-4 pt-5 pb-3 text-center border-b" style={{ borderColor: 'hsl(var(--divider))' }}>
         <p className="text-[15px] font-semibold text-foreground">Invoice Due Date</p>
-        <p className="text-[13px] text-muted-foreground mt-0.5">Days after issue date payment is due</p>
+        <p className="text-[13px] text-muted-foreground mt-0.5">When should payment be due?</p>
       </div>
       <div>
-        {DUE_DATE_OPTIONS.map((days, i) => (
-          <div key={days}>
+        {DUE_DATE_OPTIONS.map((opt, i) => (
+          <div key={opt.value}>
             <button
               type="button"
-              onClick={() => { onChange(days); onClose(); }}
+              onClick={() => { onChange(opt.value); onClose(); }}
               className="w-full flex items-center gap-3 px-5 transition-colors duration-150 active:bg-accent/30"
               style={{ minHeight: 52 }}
             >
-              <span className="flex-1 text-left text-[15px] text-foreground">{days} days</span>
-              {current === days && (
+              <span className="flex-1 text-left text-[15px] text-foreground">{opt.label}</span>
+              {current === opt.value && (
                 <Check className="w-4 h-4" style={{ color: 'hsl(var(--primary))' }} />
               )}
             </button>
@@ -266,10 +272,12 @@ const PreferencesPanel = ({ settings, onSave, themeOverride, onThemeChange }: Pr
           <SettingsRow
             icon={<Clock className="w-[18px] h-[18px]" />}
             label="Invoice Due Date"
-            sublabel="Days after issue date payment is due"
+            sublabel="When payment is due after invoice issue"
             right={
               <div className="flex items-center gap-1">
-                <span className="text-[15px] text-muted-foreground font-medium">{invoiceDueDays} days</span>
+                <span className="text-[15px] text-muted-foreground font-medium">
+                  {invoiceDueDays === 0 ? 'On Receipt' : `${invoiceDueDays} days`}
+                </span>
                 <ChevronRight className="w-4 h-4 text-muted-foreground/50" />
               </div>
             }

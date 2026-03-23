@@ -1142,6 +1142,30 @@ const OverviewPanel = ({
   // Use month+year as animation deps so numbers animate on navigation
   const animDeps = [selectedMonth, selectedYear];
 
+  // ── Countdown to next shift ──────────────────────────────────────────────
+  const [countdown, setCountdown] = useState<string | null>(null);
+  useEffect(() => {
+    if (!stats.nextShift || stats.activeShift) { setCountdown(null); return; }
+    const calcCountdown = () => {
+      const s = stats.nextShift!;
+      const [h, m] = s.start_time.split(':').map(Number);
+      const [sy, sm, sd] = s.date.split('-').map(Number);
+      const shiftStart = new Date(sy, sm - 1, sd, h, m, 0, 0);
+      const diff = shiftStart.getTime() - Date.now();
+      if (diff <= 0) { setCountdown(null); return; }
+      const totalMinutes = Math.floor(diff / 60000);
+      const days = Math.floor(totalMinutes / 1440);
+      const hrs  = Math.floor((totalMinutes % 1440) / 60);
+      const mins = totalMinutes % 60;
+      if (days > 0) setCountdown(`${days}d ${hrs}h`);
+      else if (hrs > 0) setCountdown(`${hrs}h ${mins}m`);
+      else setCountdown(`${mins}m`);
+    };
+    calcCountdown();
+    const timer = setInterval(calcCountdown, 30000);
+    return () => clearInterval(timer);
+  }, [stats.nextShift, stats.activeShift]);
+
   return (
     <div className="space-y-4">
 
@@ -1235,10 +1259,11 @@ const OverviewPanel = ({
           );
         })()}
 
-        {/* ── Active Now / Next Shift — refined iOS-style status card ── */}
+        {/* ── Active Now / Next Shift — refined iOS-style status card with countdown ── */}
         {(activeShiftInfo || nextShiftInfo) && (() => {
           const info = activeShiftInfo ?? nextShiftInfo!;
           const isActive = !!activeShiftInfo;
+          const shift = isActive ? stats.activeShift : stats.nextShift;
 
           // Progress bar calculation for active shifts
           let progressPct = 0;
@@ -1256,22 +1281,30 @@ const OverviewPanel = ({
             progressPct = Math.min(100, Math.max(0, (elapsed / total) * 100));
           }
 
-          // Background and border colors
+          // Background and border colors — stronger in light mode for Next Shift
           const bgColor = isActive
             ? 'hsl(var(--stat-green)/0.06)'
             : info.isEvening
-            ? 'hsl(38 90% 52% / 0.06)'
+            ? 'hsl(38 90% 52% / 0.08)'
             : info.isPublicHoliday
-            ? 'hsl(34 97% 52% / 0.06)'
-            : 'hsl(var(--primary)/0.05)';
+            ? 'hsl(34 97% 52% / 0.08)'
+            : 'hsl(var(--primary)/0.08)';
 
           const borderColor = isActive
-            ? 'hsl(var(--stat-green)/0.18)'
+            ? 'hsl(var(--stat-green)/0.25)'
             : info.isEvening
-            ? 'hsl(38 90% 52% / 0.2)'
+            ? 'hsl(38 90% 52% / 0.30)'
             : info.isPublicHoliday
-            ? 'hsl(34 97% 52% / 0.2)'
-            : 'hsl(var(--primary)/0.16)';
+            ? 'hsl(34 97% 52% / 0.30)'
+            : 'hsl(var(--primary)/0.25)';
+
+          const accentColor = isActive
+            ? 'hsl(var(--stat-green))'
+            : info.isEvening
+            ? 'hsl(38 90% 48%)'
+            : info.isPublicHoliday
+            ? 'hsl(34 90% 40%)'
+            : 'hsl(var(--primary))';
 
           // Progress bar color
           const progressColor = isActive
@@ -1280,74 +1313,58 @@ const OverviewPanel = ({
             ? 'hsl(38 90% 48%)'
             : 'hsl(var(--primary))';
 
-          // Type tag colors — softer, label-style
+          // Type tag colors
           const tagStyle: React.CSSProperties = info.isSleepover ? {
-            background: 'hsl(221 83% 53% / 0.12)',
-            color: 'hsl(221 83% 48%)',
+            background: 'hsl(221 83% 53% / 0.14)',
+            color: 'hsl(221 83% 45%)',
+            border: '1px solid hsl(221 83% 53% / 0.25)',
           } : info.isPublicHoliday ? {
-            background: 'hsl(34 97% 52% / 0.12)',
-            color: 'hsl(34 90% 40%)',
+            background: 'hsl(34 97% 52% / 0.14)',
+            color: 'hsl(34 90% 38%)',
+            border: '1px solid hsl(34 97% 52% / 0.25)',
           } : info.isEvening ? {
-            background: 'hsl(38 90% 52% / 0.12)',
-            color: 'hsl(38 90% 38%)',
+            background: 'hsl(38 90% 52% / 0.14)',
+            color: 'hsl(38 90% 35%)',
+            border: '1px solid hsl(38 90% 52% / 0.25)',
           } : isActive ? {
-            background: 'hsl(var(--stat-green)/0.12)',
+            background: 'hsl(var(--stat-green)/0.14)',
             color: 'hsl(var(--stat-green))',
+            border: '1px solid hsl(var(--stat-green)/0.25)',
           } : {
-            background: 'hsl(var(--primary)/0.10)',
+            background: 'hsl(var(--primary)/0.12)',
             color: 'hsl(var(--primary))',
+            border: '1px solid hsl(var(--primary)/0.22)',
           };
 
           return (
             <div className="pt-4 mt-1" style={{ borderTop: '0.5px solid hsl(var(--border))' }}>
               {/* Status label row with pulsing dot */}
               <div className="flex items-center gap-1.5 mb-3">
-                {/* Pulsing dot */}
                 <span
                   style={{
                     display: 'inline-block',
-                    width: 6,
-                    height: 6,
-                    borderRadius: '50%',
-                    background: isActive ? 'hsl(var(--stat-green))' : 'hsl(var(--muted-foreground))',
-                    opacity: isActive ? 1 : 0.5,
+                    width: 6, height: 6, borderRadius: '50%',
+                    background: isActive ? 'hsl(var(--stat-green))' : accentColor,
+                    opacity: isActive ? 1 : 0.8,
                     animation: isActive ? 'shiftDotPulse 1.8s ease-in-out infinite' : 'none',
                     flexShrink: 0,
                   }}
                 />
                 <span
                   className="text-[9px] font-semibold uppercase tracking-widest"
-                  style={{ color: isActive ? 'hsl(var(--stat-green))' : 'hsl(var(--muted-foreground))' }}
+                  style={{ color: isActive ? 'hsl(var(--stat-green))' : accentColor }}
                 >
                   {isActive ? 'In Progress' : 'Next Shift'}
                 </span>
               </div>
 
               {/* The card itself */}
-              <button
+              <div
                 className="w-full text-left overflow-hidden"
                 style={{
                   borderRadius: 'var(--radius)',
                   background: bgColor,
-                  border: `0.5px solid ${borderColor}`,
-                  WebkitTapHighlightColor: 'transparent',
-                  transition: 'transform 120ms ease-out, box-shadow 120ms ease-out',
-                }}
-                onPointerDown={e => {
-                  haptic('light');
-                  const el = e.currentTarget;
-                  el.style.transform = 'scale(0.98)';
-                  el.style.boxShadow = '0 4px 12px hsl(var(--foreground)/0.06)';
-                }}
-                onPointerUp={e => {
-                  const el = e.currentTarget;
-                  el.style.transform = '';
-                  el.style.boxShadow = '';
-                }}
-                onPointerLeave={e => {
-                  const el = e.currentTarget;
-                  el.style.transform = '';
-                  el.style.boxShadow = '';
+                  border: `1px solid ${borderColor}`,
                 }}
               >
                 {/* Card content */}
@@ -1357,40 +1374,53 @@ const OverviewPanel = ({
                     <p className="text-sm font-semibold text-foreground leading-snug tracking-tight">
                       {info.dateLabel}
                     </p>
-                    {/* Time — regular weight, slightly muted */}
-                    <p className="text-xs font-normal leading-snug" style={{ color: 'hsl(var(--muted-foreground)/0.8)' }}>
+                    {/* Time — regular weight */}
+                    <p className="text-xs font-normal leading-snug" style={{ color: 'hsl(var(--muted-foreground))' }}>
                       {info.timeLabel}
                     </p>
                     {/* Client name if available */}
-                    {(isActive ? stats.activeShift?.client_name : stats.nextShift?.client_name) && (
-                      <p className="text-[10px] font-normal" style={{ color: 'hsl(var(--muted-foreground)/0.55)' }}>
-                        {isActive ? stats.activeShift?.client_name : stats.nextShift?.client_name}
+                    {shift?.client_name && (
+                      <p className="text-[10px] font-normal" style={{ color: 'hsl(var(--muted-foreground)/0.7)' }}>
+                        {shift.client_name}
                       </p>
                     )}
                   </div>
 
-                  {/* Type tag — label-style, not button-like */}
-                  <span
-                    className="shrink-0 text-[10px] font-medium rounded-md"
-                    style={{
-                      ...tagStyle,
-                      padding: '3px 8px',
-                      letterSpacing: '0.01em',
-                    }}
-                  >
-                    {info.typeLabel}
-                  </span>
+                  {/* Right side: type tag + countdown */}
+                  <div className="flex flex-col items-end gap-1.5 shrink-0">
+                    <span
+                      className="text-[10px] font-medium rounded-lg"
+                      style={{ ...tagStyle, padding: '3px 8px', letterSpacing: '0.01em' }}
+                    >
+                      {info.typeLabel}
+                    </span>
+                    {/* Countdown — only for next shift, not active */}
+                    {!isActive && countdown && (
+                      <div
+                        className="flex items-center gap-1 rounded-lg px-2 py-1"
+                        style={{
+                          background: 'hsl(var(--primary)/0.10)',
+                          border: '1px solid hsl(var(--primary)/0.18)',
+                        }}
+                      >
+                        <svg width="9" height="9" viewBox="0 0 24 24" fill="none" style={{ flexShrink: 0 }}>
+                          <circle cx="12" cy="12" r="9" stroke="hsl(var(--primary))" strokeWidth="2" />
+                          <path d="M12 7v5l3 3" stroke="hsl(var(--primary))" strokeWidth="2" strokeLinecap="round" />
+                        </svg>
+                        <span
+                          className="text-[10px] font-bold tabular-nums"
+                          style={{ color: 'hsl(var(--primary))', letterSpacing: '-0.01em' }}
+                        >
+                          {countdown}
+                        </span>
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 {/* Progress bar — active shifts only, 2px height at bottom */}
                 {isActive && (
-                  <div
-                    style={{
-                      height: 2,
-                      background: 'hsl(var(--border)/0.5)',
-                      borderRadius: 0,
-                    }}
-                  >
+                  <div style={{ height: 2, background: 'hsl(var(--border)/0.5)', borderRadius: 0 }}>
                     <div
                       style={{
                         height: '100%',
@@ -1398,12 +1428,12 @@ const OverviewPanel = ({
                         background: progressColor,
                         borderRadius: 0,
                         transition: 'width 1s linear',
-                        opacity: 0.7,
+                        opacity: 0.75,
                       }}
                     />
                   </div>
                 )}
-              </button>
+              </div>
             </div>
           );
         })()}
@@ -1454,15 +1484,33 @@ const OverviewPanel = ({
           {stats.monthShiftCount} shifts · {stats.monthHours.toFixed(0)}h
         </p>
 
-        {/* Full-width sparkline */}
+        {/* Full-width sparkline with per-week earnings */}
         {stats.weeklySparkline.some(v => v > 0) && (
           <div style={{ margin: '0 -2px' }}>
             <Sparkline
               data={stats.weeklySparkline}
               width={340}
-              height={52}
+              height={56}
               id={`month-${selectedYear}-${selectedMonth}`}
             />
+            {/* Per-week earnings row */}
+            <div
+              className="flex mt-0"
+              style={{ paddingLeft: 4, paddingRight: 4 }}
+            >
+              {stats.weeklySparkline.map((v, i) => (
+                <div key={i} className="flex-1 text-center">
+                  {v > 0 && (
+                    <span
+                      className="text-[8px] font-semibold tabular-nums"
+                      style={{ color: 'hsl(var(--primary))', opacity: 0.75, letterSpacing: '-0.01em' }}
+                    >
+                      {v >= 1000 ? `$${(v / 1000).toFixed(1)}k` : `$${v.toFixed(0)}`}
+                    </span>
+                  )}
+                </div>
+              ))}
+            </div>
           </div>
         )}
       </ElevatedCard>

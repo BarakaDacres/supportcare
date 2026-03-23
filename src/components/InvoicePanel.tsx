@@ -70,6 +70,7 @@ interface InvoiceSnapshot {
   clientContact: string;
   clientEmail: string;
   clientPhone: string;
+  invoiceDueDays: number;
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -120,6 +121,7 @@ function formatDateShort(dateStr: string): string {
   return `${d} ${MONTH_NAMES[m - 1]?.slice(0, 3) ?? ''} ${y}`;
 }
 function addDays(dateStr: string, days: number): string {
+  if (days === 0) return dateStr; // "Due on Receipt" — same date
   const [y, m, d] = dateStr.split('-').map(Number);
   const dt = new Date(y, m - 1, d);
   dt.setDate(dt.getDate() + days);
@@ -403,7 +405,7 @@ async function exportToPDF(snap: InvoiceSnapshot, lineGroups: ReturnType<typeof 
   const detailPairs: [string, string][] = [
     ['Service From', formatDateShort(snap.periodStart)],
     ['Service To',   formatDateShort(snap.periodEnd)],
-    ['Due Date',     formatDateShort(snap.dueDate)],
+    ['Due Date',     (snap.invoiceDueDays ?? 7) === 0 ? 'Due on Receipt' : formatDateShort(snap.dueDate)],
     ['GST Rate',     '0% (GST-Free)'],
   ];
   detailPairs.forEach(([lbl, val]) => {
@@ -554,7 +556,7 @@ async function exportToPDF(snap: InvoiceSnapshot, lineGroups: ReturnType<typeof 
   });
   y += totH + 5;
 
-  // ── PAYMENT DETAILS — tight box, reference = participant name ─────────────
+  // ── PAYMENT DETAILS — tight box, dynamic due-date text ───────────────────
   if (snap.accountName || snap.bsb || snap.accountNumber || snap.bankName) {
     const referenceVal = snap.clientName || snap.invoiceNumber;
     const payRows: Array<[string, string]> = [];
@@ -565,10 +567,9 @@ async function exportToPDF(snap: InvoiceSnapshot, lineGroups: ReturnType<typeof 
     payRows.push(['Reference', referenceVal]);
 
     const colsPerRow = Math.min(payRows.length, 5);
-    // Use same padding as services table so inner content aligns identically
     const payInnerW = CW - TABLE_PAD_X * 2;
     const colW3 = payInnerW / colsPerRow;
-    const payH  = 28;  // reduced from 33
+    const payH  = 28;
 
     box(M, y, CW, payH, P.cardBorder, 0.5);
     let py = y + 5;
@@ -585,7 +586,12 @@ async function exportToPDF(snap: InvoiceSnapshot, lineGroups: ReturnType<typeof 
     doc.line(M + TABLE_PAD_X, py, M + CW - TABLE_PAD_X, py);
     py += 5.5;
     sf(6.5, 'normal', P.muted);
-    tx('Payment due within 7 days of invoice date.', M + TABLE_PAD_X, py);
+    // Dynamic payment due text: "Due on receipt" vs "Payment due within N days..."
+    const dueDaysVal = snap.invoiceDueDays ?? 7;
+    const payDueText = dueDaysVal === 0
+      ? 'Payment due on receipt of this invoice.'
+      : `Payment due within ${dueDaysVal} day${dueDaysVal !== 1 ? 's' : ''} of invoice date.`;
+    tx(payDueText, M + TABLE_PAD_X, py);
     y += payH + 5;
   }
 
@@ -840,6 +846,7 @@ const InvoicePanel = ({
       clientContact:      ext.contact,
       clientEmail:        ext.email,
       clientPhone:        ext.phone,
+      invoiceDueDays:     settings?.invoice_due_days ?? 7,
     };
   }, [settings, selectedClient, selectedPeriod, selectedYear, periodShifts, total, clientExtra]);
 
@@ -1002,6 +1009,7 @@ const InvoicePanel = ({
       clientContact:      ext.contact,
       clientEmail:        ext.email,
       clientPhone:        ext.phone,
+      invoiceDueDays:     settings?.invoice_due_days ?? 7,
     });
     setActiveTab('generator');
   }, [clients, settings, clientExtra]);
@@ -1433,12 +1441,12 @@ const InvoicePanel = ({
                      {/* INVOICE DETAILS — values not bold (except BALANCE DUE) */}
                       <div style={{ borderRadius: 8, padding: '8px 11px 9px', border: `1px solid ${P.cardBorder}` }}>
                        <div style={{ fontSize: 6.5, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.07em', color: P.muted, marginBottom: 4 }}>INVOICE DETAILS</div>
-                       {[
-                         ['Service From', formatDateShort(preview.periodStart)],
-                         ['Service To',   formatDateShort(preview.periodEnd)],
-                         ['Due Date',     formatDateShort(preview.dueDate)],
-                         ['GST Rate',     '0% (GST-Free)'],
-                       ].map(([l, v]) => (
+                        {[
+                          ['Service From', formatDateShort(preview.periodStart)],
+                          ['Service To',   formatDateShort(preview.periodEnd)],
+                          ['Due Date',     (preview.invoiceDueDays ?? 7) === 0 ? 'Due on Receipt' : formatDateShort(preview.dueDate)],
+                          ['GST Rate',     '0% (GST-Free)'],
+                        ].map(([l, v]) => (
                          <div key={l} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 6, marginBottom: 3.5 }}>
                            <span style={{ fontSize: 7.5, color: P.muted, flexShrink: 0, lineHeight: '1.35' }}>{l}</span>
                            <span style={{ fontSize: 7.5, fontWeight: 400, color: P.mid, textAlign: 'right', lineHeight: '1.35' }}>{v}</span>

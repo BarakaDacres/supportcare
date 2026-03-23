@@ -154,12 +154,14 @@ const Index = ({ auth }: IndexProps) => {
             />
           )}
 
-          {activeTab === 'analytics' && (
-            <AnalyticsPanel
+          {activeTab === 'clients' && (
+            <ClientsPanel
+              clients={clients}
               shifts={shifts}
-              settings={settings}
-              selectedYear={store.year}
-              selectedMonth={store.month}
+              loading={clientsLoading}
+              onAdd={addClient}
+              onUpdate={updateClient}
+              onDelete={deleteClient}
             />
           )}
 
@@ -175,6 +177,15 @@ const Index = ({ auth }: IndexProps) => {
               onUpdateStatus={updateInvoiceStatus}
               onDeleteInvoice={deleteInvoice}
               onRefreshInvoices={fetchInvoices}
+            />
+          )}
+
+          {activeTab === 'analytics' && (
+            <AnalyticsPanel
+              shifts={shifts}
+              settings={settings}
+              selectedYear={store.year}
+              selectedMonth={store.month}
             />
           )}
 
@@ -195,11 +206,11 @@ const Index = ({ auth }: IndexProps) => {
         <div className="segmented-control mb-6 no-print">
           {(
             [
-              { id: 'overview', label: 'Home' },
-              { id: 'shifts', label: 'Shifts' },
-              { id: 'analytics', label: 'Analytics' },
-              { id: 'invoices', label: 'Invoices' },
-              { id: 'settings', label: 'Settings' },
+          { id: 'overview', label: 'Home' },
+          { id: 'shifts', label: 'Shifts' },
+          { id: 'clients', label: 'Clients' },
+          { id: 'invoices', label: 'Invoices' },
+          { id: 'settings', label: 'Settings' },
             ] as { id: TabId; label: string }[]
           ).map(t => (
             <button
@@ -241,12 +252,14 @@ const Index = ({ auth }: IndexProps) => {
             />
           )}
 
-          {activeTab === 'analytics' && (
-            <AnalyticsPanel
+          {activeTab === 'clients' && (
+            <ClientsPanel
+              clients={clients}
               shifts={shifts}
-              settings={settings}
-              selectedYear={store.year}
-              selectedMonth={store.month}
+              loading={clientsLoading}
+              onAdd={addClient}
+              onUpdate={updateClient}
+              onDelete={deleteClient}
             />
           )}
 
@@ -262,6 +275,15 @@ const Index = ({ auth }: IndexProps) => {
               onUpdateStatus={updateInvoiceStatus}
               onDeleteInvoice={deleteInvoice}
               onRefreshInvoices={fetchInvoices}
+            />
+          )}
+
+          {activeTab === 'analytics' && (
+            <AnalyticsPanel
+              shifts={shifts}
+              settings={settings}
+              selectedYear={store.year}
+              selectedMonth={store.month}
             />
           )}
 

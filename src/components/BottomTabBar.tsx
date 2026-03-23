@@ -7,7 +7,7 @@
 import type { AuthState } from '@/hooks/useAuth';
 import { haptic } from '@/components/OverviewPanel';
 
-export type TabId = 'overview' | 'shifts' | 'analytics' | 'invoices' | 'settings';
+export type TabId = 'overview' | 'shifts' | 'analytics' | 'clients' | 'invoices' | 'settings';
 
 // ── SF Symbols–style icons (regular weight, 22px) ────────────────────────────
 
@@ -73,6 +73,26 @@ const IconChart = ({ active }: { active: boolean }) => (
   </svg>
 );
 
+// person.2 / person.2.fill — clients icon
+const IconPeople = ({ active }: { active: boolean }) => (
+  <svg width="21" height="21" viewBox="0 0 24 24" fill="none" style={{ display: 'block', flexShrink: 0 }}>
+    {active ? (
+      <>
+        <circle cx="8" cy="7" r="3.5" fill="hsl(var(--primary))" />
+        <path d="M2 19.5C2 16.46 4.46 14 8 14s6 2.46 6 5.5H2Z" fill="hsl(var(--primary))" />
+        <circle cx="16" cy="7" r="2.5" fill="hsl(var(--primary))" opacity="0.7" />
+        <path d="M14.5 19.5c.3-1.7 1.6-2.9 3.5-3.2l1 .2c2.2.5 3.5 1.9 3.5 3H14.5Z" fill="hsl(var(--primary))" opacity="0.7" />
+      </>
+    ) : (
+      <>
+        <circle cx="8" cy="7" r="3.5" stroke="hsl(var(--muted-foreground))" strokeWidth="1.65" />
+        <path d="M2 19.5C2 16.46 4.46 14 8 14s6 2.46 6 5.5H2Z" stroke="hsl(var(--muted-foreground))" strokeWidth="1.65" strokeLinejoin="round" />
+        <circle cx="16" cy="7" r="2.5" stroke="hsl(var(--muted-foreground))" strokeWidth="1.4" />
+        <path d="M14.5 19.5c.3-1.7 1.6-2.9 3.5-3.2l1 .2c2.2.5 3.5 1.9 3.5 3" stroke="hsl(var(--muted-foreground))" strokeWidth="1.4" strokeLinecap="round" />
+      </>
+    )}
+  </svg>
+);
 // doc.text / doc.text.fill
 const IconInvoice = ({ active }: { active: boolean }) => (
   <svg width="21" height="21" viewBox="0 0 24 24" fill="none" style={{ display: 'block', flexShrink: 0 }}>
@@ -163,7 +183,7 @@ interface Tab {
 const TABS: Tab[] = [
   { id: 'overview',  label: 'Home'     },
   { id: 'shifts',    label: 'Shifts'   },
-  { id: 'analytics', label: 'Analytics'},
+  { id: 'clients',   label: 'Clients'  },
   { id: 'invoices',  label: 'Invoices' },
   { id: 'settings',  label: 'Profile'  },
 ];
@@ -267,7 +287,7 @@ const BottomTabBar = ({ activeTab, onTabChange, hidden = false, auth }: Props) =
                 >
                   {tab.id === 'overview'  && <IconHome    active={isActive} />}
                   {tab.id === 'shifts'    && <IconList    active={isActive} />}
-                  {tab.id === 'analytics' && <IconChart   active={isActive} />}
+                  {tab.id === 'clients'   && <IconPeople  active={isActive} />}
                   {tab.id === 'invoices'  && <IconInvoice active={isActive} />}
                   {tab.id === 'settings'  && <AvatarIcon  auth={auth} active={isActive} />}
                 </span>
