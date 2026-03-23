@@ -70,6 +70,7 @@ interface InvoiceSnapshot {
   clientContact: string;
   clientEmail: string;
   clientPhone: string;
+  invoiceDueDays: number;
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
