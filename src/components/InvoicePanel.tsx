@@ -1440,12 +1440,12 @@ const InvoicePanel = ({
                      {/* INVOICE DETAILS — values not bold (except BALANCE DUE) */}
                       <div style={{ borderRadius: 8, padding: '8px 11px 9px', border: `1px solid ${P.cardBorder}` }}>
                        <div style={{ fontSize: 6.5, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.07em', color: P.muted, marginBottom: 4 }}>INVOICE DETAILS</div>
-                       {[
-                         ['Service From', formatDateShort(preview.periodStart)],
-                         ['Service To',   formatDateShort(preview.periodEnd)],
-                         ['Due Date',     formatDateShort(preview.dueDate)],
-                         ['GST Rate',     '0% (GST-Free)'],
-                       ].map(([l, v]) => (
+                        {[
+                          ['Service From', formatDateShort(preview.periodStart)],
+                          ['Service To',   formatDateShort(preview.periodEnd)],
+                          ['Due Date',     (preview.invoiceDueDays ?? 7) === 0 ? 'Due on Receipt' : formatDateShort(preview.dueDate)],
+                          ['GST Rate',     '0% (GST-Free)'],
+                        ].map(([l, v]) => (
                          <div key={l} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 6, marginBottom: 3.5 }}>
                            <span style={{ fontSize: 7.5, color: P.muted, flexShrink: 0, lineHeight: '1.35' }}>{l}</span>
                            <span style={{ fontSize: 7.5, fontWeight: 400, color: P.mid, textAlign: 'right', lineHeight: '1.35' }}>{v}</span>
