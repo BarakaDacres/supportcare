@@ -1008,6 +1008,7 @@ const InvoicePanel = ({
       clientContact:      ext.contact,
       clientEmail:        ext.email,
       clientPhone:        ext.phone,
+      invoiceDueDays:     settings?.invoice_due_days ?? 7,
     });
     setActiveTab('generator');
   }, [clients, settings, clientExtra]);
