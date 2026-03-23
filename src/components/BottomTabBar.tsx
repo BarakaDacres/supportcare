@@ -93,6 +93,8 @@ const IconPeople = ({ active }: { active: boolean }) => (
     )}
   </svg>
 );
+// doc.text / doc.text.fill
+const IconInvoice = ({ active }: { active: boolean }) => (
   <svg width="21" height="21" viewBox="0 0 24 24" fill="none" style={{ display: 'block', flexShrink: 0 }}>
     {active ? (
       <>
