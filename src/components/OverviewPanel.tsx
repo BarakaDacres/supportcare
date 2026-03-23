@@ -1142,6 +1142,30 @@ const OverviewPanel = ({
   // Use month+year as animation deps so numbers animate on navigation
   const animDeps = [selectedMonth, selectedYear];
 
+  // ── Countdown to next shift ──────────────────────────────────────────────
+  const [countdown, setCountdown] = useState<string | null>(null);
+  useEffect(() => {
+    if (!stats.nextShift || stats.activeShift) { setCountdown(null); return; }
+    const calcCountdown = () => {
+      const s = stats.nextShift!;
+      const [h, m] = s.start_time.split(':').map(Number);
+      const [sy, sm, sd] = s.date.split('-').map(Number);
+      const shiftStart = new Date(sy, sm - 1, sd, h, m, 0, 0);
+      const diff = shiftStart.getTime() - Date.now();
+      if (diff <= 0) { setCountdown(null); return; }
+      const totalMinutes = Math.floor(diff / 60000);
+      const days = Math.floor(totalMinutes / 1440);
+      const hrs  = Math.floor((totalMinutes % 1440) / 60);
+      const mins = totalMinutes % 60;
+      if (days > 0) setCountdown(`${days}d ${hrs}h`);
+      else if (hrs > 0) setCountdown(`${hrs}h ${mins}m`);
+      else setCountdown(`${mins}m`);
+    };
+    calcCountdown();
+    const timer = setInterval(calcCountdown, 30000);
+    return () => clearInterval(timer);
+  }, [stats.nextShift, stats.activeShift]);
+
   return (
     <div className="space-y-4">
 
