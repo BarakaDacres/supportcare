@@ -404,7 +404,7 @@ async function exportToPDF(snap: InvoiceSnapshot, lineGroups: ReturnType<typeof 
   const detailPairs: [string, string][] = [
     ['Service From', formatDateShort(snap.periodStart)],
     ['Service To',   formatDateShort(snap.periodEnd)],
-    ['Due Date',     formatDateShort(snap.dueDate)],
+    ['Due Date',     (snap.invoiceDueDays ?? 7) === 0 ? 'Due on Receipt' : formatDateShort(snap.dueDate)],
     ['GST Rate',     '0% (GST-Free)'],
   ];
   detailPairs.forEach(([lbl, val]) => {
