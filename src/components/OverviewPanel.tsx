@@ -1484,15 +1484,33 @@ const OverviewPanel = ({
           {stats.monthShiftCount} shifts · {stats.monthHours.toFixed(0)}h
         </p>
 
-        {/* Full-width sparkline */}
+        {/* Full-width sparkline with per-week earnings */}
         {stats.weeklySparkline.some(v => v > 0) && (
           <div style={{ margin: '0 -2px' }}>
             <Sparkline
               data={stats.weeklySparkline}
               width={340}
-              height={52}
+              height={56}
               id={`month-${selectedYear}-${selectedMonth}`}
             />
+            {/* Per-week earnings row */}
+            <div
+              className="flex mt-0"
+              style={{ paddingLeft: 4, paddingRight: 4 }}
+            >
+              {stats.weeklySparkline.map((v, i) => (
+                <div key={i} className="flex-1 text-center">
+                  {v > 0 && (
+                    <span
+                      className="text-[8px] font-semibold tabular-nums"
+                      style={{ color: 'hsl(var(--primary))', opacity: 0.75, letterSpacing: '-0.01em' }}
+                    >
+                      {v >= 1000 ? `$${(v / 1000).toFixed(1)}k` : `$${v.toFixed(0)}`}
+                    </span>
+                  )}
+                </div>
+              ))}
+            </div>
           </div>
         )}
       </ElevatedCard>
