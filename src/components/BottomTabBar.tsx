@@ -163,7 +163,7 @@ interface Tab {
 const TABS: Tab[] = [
   { id: 'overview',  label: 'Home'     },
   { id: 'shifts',    label: 'Shifts'   },
-  { id: 'analytics', label: 'Analytics'},
+  { id: 'clients',   label: 'Clients'  },
   { id: 'invoices',  label: 'Invoices' },
   { id: 'settings',  label: 'Profile'  },
 ];
