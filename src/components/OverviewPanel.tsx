@@ -1265,30 +1265,6 @@ const OverviewPanel = ({
           const isActive = !!activeShiftInfo;
           const shift = isActive ? stats.activeShift : stats.nextShift;
 
-          // Countdown to next shift start
-          const [countdown, setCountdown] = useState<string | null>(null);
-          useEffect(() => {
-            if (isActive || !stats.nextShift) return;
-            const calcCountdown = () => {
-              const s = stats.nextShift!;
-              const [h, m] = s.start_time.split(':').map(Number);
-              const [sy, sm, sd] = s.date.split('-').map(Number);
-              const shiftStart = new Date(sy, sm - 1, sd, h, m, 0, 0);
-              const diff = shiftStart.getTime() - Date.now();
-              if (diff <= 0) { setCountdown(null); return; }
-              const totalMinutes = Math.floor(diff / 60000);
-              const days = Math.floor(totalMinutes / 1440);
-              const hrs  = Math.floor((totalMinutes % 1440) / 60);
-              const mins = totalMinutes % 60;
-              if (days > 0) setCountdown(`${days}d ${hrs}h`);
-              else if (hrs > 0) setCountdown(`${hrs}h ${mins}m`);
-              else setCountdown(`${mins}m`);
-            };
-            calcCountdown();
-            const timer = setInterval(calcCountdown, 30000);
-            return () => clearInterval(timer);
-          }, [isActive, stats.nextShift]);
-
           // Progress bar calculation for active shifts
           let progressPct = 0;
           if (isActive && stats.activeShift) {
