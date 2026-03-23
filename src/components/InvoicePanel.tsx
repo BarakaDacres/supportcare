@@ -845,6 +845,7 @@ const InvoicePanel = ({
       clientContact:      ext.contact,
       clientEmail:        ext.email,
       clientPhone:        ext.phone,
+      invoiceDueDays:     settings?.invoice_due_days ?? 7,
     };
   }, [settings, selectedClient, selectedPeriod, selectedYear, periodShifts, total, clientExtra]);
 
