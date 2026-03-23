@@ -554,7 +554,7 @@ async function exportToPDF(snap: InvoiceSnapshot, lineGroups: ReturnType<typeof 
   });
   y += totH + 5;
 
-  // ── PAYMENT DETAILS — tight box, reference = participant name ─────────────
+  // ── PAYMENT DETAILS — tight box, dynamic due-date text ───────────────────
   if (snap.accountName || snap.bsb || snap.accountNumber || snap.bankName) {
     const referenceVal = snap.clientName || snap.invoiceNumber;
     const payRows: Array<[string, string]> = [];
@@ -565,10 +565,9 @@ async function exportToPDF(snap: InvoiceSnapshot, lineGroups: ReturnType<typeof 
     payRows.push(['Reference', referenceVal]);
 
     const colsPerRow = Math.min(payRows.length, 5);
-    // Use same padding as services table so inner content aligns identically
     const payInnerW = CW - TABLE_PAD_X * 2;
     const colW3 = payInnerW / colsPerRow;
-    const payH  = 28;  // reduced from 33
+    const payH  = 28;
 
     box(M, y, CW, payH, P.cardBorder, 0.5);
     let py = y + 5;
@@ -585,7 +584,12 @@ async function exportToPDF(snap: InvoiceSnapshot, lineGroups: ReturnType<typeof 
     doc.line(M + TABLE_PAD_X, py, M + CW - TABLE_PAD_X, py);
     py += 5.5;
     sf(6.5, 'normal', P.muted);
-    tx('Payment due within 7 days of invoice date.', M + TABLE_PAD_X, py);
+    // Dynamic payment due text: "Due on receipt" vs "Payment due within N days..."
+    const dueDaysVal = snap.invoiceDueDays ?? 7;
+    const payDueText = dueDaysVal === 0
+      ? 'Payment due on receipt of this invoice.'
+      : `Payment due within ${dueDaysVal} day${dueDaysVal !== 1 ? 's' : ''} of invoice date.`;
+    tx(payDueText, M + TABLE_PAD_X, py);
     y += payH + 5;
   }
 
