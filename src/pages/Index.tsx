@@ -241,12 +241,14 @@ const Index = ({ auth }: IndexProps) => {
             />
           )}
 
-          {activeTab === 'analytics' && (
-            <AnalyticsPanel
+          {activeTab === 'clients' && (
+            <ClientsPanel
+              clients={clients}
               shifts={shifts}
-              settings={settings}
-              selectedYear={store.year}
-              selectedMonth={store.month}
+              loading={clientsLoading}
+              onAdd={addClient}
+              onUpdate={updateClient}
+              onDelete={deleteClient}
             />
           )}
 
@@ -262,6 +264,15 @@ const Index = ({ auth }: IndexProps) => {
               onUpdateStatus={updateInvoiceStatus}
               onDeleteInvoice={deleteInvoice}
               onRefreshInvoices={fetchInvoices}
+            />
+          )}
+
+          {activeTab === 'analytics' && (
+            <AnalyticsPanel
+              shifts={shifts}
+              settings={settings}
+              selectedYear={store.year}
+              selectedMonth={store.month}
             />
           )}
 
