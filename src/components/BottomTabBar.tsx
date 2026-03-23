@@ -267,7 +267,7 @@ const BottomTabBar = ({ activeTab, onTabChange, hidden = false, auth }: Props) =
                 >
                   {tab.id === 'overview'  && <IconHome    active={isActive} />}
                   {tab.id === 'shifts'    && <IconList    active={isActive} />}
-                  {tab.id === 'analytics' && <IconChart   active={isActive} />}
+                  {tab.id === 'clients'   && <IconPeople  active={isActive} />}
                   {tab.id === 'invoices'  && <IconInvoice active={isActive} />}
                   {tab.id === 'settings'  && <AvatarIcon  auth={auth} active={isActive} />}
                 </span>
