@@ -195,11 +195,11 @@ const Index = ({ auth }: IndexProps) => {
         <div className="segmented-control mb-6 no-print">
           {(
             [
-              { id: 'overview', label: 'Home' },
-              { id: 'shifts', label: 'Shifts' },
-              { id: 'analytics', label: 'Analytics' },
-              { id: 'invoices', label: 'Invoices' },
-              { id: 'settings', label: 'Settings' },
+          { id: 'overview', label: 'Home' },
+          { id: 'shifts', label: 'Shifts' },
+          { id: 'clients', label: 'Clients' },
+          { id: 'invoices', label: 'Invoices' },
+          { id: 'settings', label: 'Settings' },
             ] as { id: TabId; label: string }[]
           ).map(t => (
             <button
