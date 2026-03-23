@@ -121,6 +121,7 @@ function formatDateShort(dateStr: string): string {
   return `${d} ${MONTH_NAMES[m - 1]?.slice(0, 3) ?? ''} ${y}`;
 }
 function addDays(dateStr: string, days: number): string {
+  if (days === 0) return dateStr; // "Due on Receipt" — same date
   const [y, m, d] = dateStr.split('-').map(Number);
   const dt = new Date(y, m - 1, d);
   dt.setDate(dt.getDate() + days);
