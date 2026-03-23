@@ -272,10 +272,12 @@ const PreferencesPanel = ({ settings, onSave, themeOverride, onThemeChange }: Pr
           <SettingsRow
             icon={<Clock className="w-[18px] h-[18px]" />}
             label="Invoice Due Date"
-            sublabel="Days after issue date payment is due"
+            sublabel="When payment is due after invoice issue"
             right={
               <div className="flex items-center gap-1">
-                <span className="text-[15px] text-muted-foreground font-medium">{invoiceDueDays} days</span>
+                <span className="text-[15px] text-muted-foreground font-medium">
+                  {invoiceDueDays === 0 ? 'On Receipt' : `${invoiceDueDays} days`}
+                </span>
                 <ChevronRight className="w-4 h-4 text-muted-foreground/50" />
               </div>
             }
