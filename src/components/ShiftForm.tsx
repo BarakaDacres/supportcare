@@ -329,66 +329,110 @@ const ShiftForm = ({
                 className="w-full flex items-center gap-3 rounded-2xl border transition-all duration-200 px-4"
                 style={{
                   minHeight: 48,
-                  borderColor: isSleepover ? 'hsl(var(--primary)/0.5)' : 'hsl(var(--border))',
-                  background: isSleepover ? 'hsl(var(--primary)/0.08)' : 'transparent',
+                  borderColor: isSleepover && !isPhSleepover ? 'hsl(var(--primary)/0.5)' : 'hsl(var(--border))',
+                  background: isSleepover && !isPhSleepover ? 'hsl(var(--primary)/0.08)' : 'transparent',
                 }}
               >
                 <Moon
                   className="w-4 h-4 shrink-0"
-                  style={{ color: isSleepover ? 'hsl(var(--primary))' : 'hsl(var(--muted-foreground))' }}
+                  style={{ color: isSleepover && !isPhSleepover ? 'hsl(var(--primary))' : 'hsl(var(--muted-foreground))' }}
                 />
                 <span
                   className="text-sm font-semibold flex-1 text-left"
-                  style={{ color: isSleepover ? 'hsl(var(--primary))' : 'hsl(var(--foreground))' }}
+                  style={{ color: isSleepover && !isPhSleepover ? 'hsl(var(--primary))' : 'hsl(var(--foreground))' }}
                 >
                   Sleepover
                 </span>
                 <span className="text-[10px] text-muted-foreground mr-2">Flat rate</span>
                 <span
                   className="relative shrink-0 rounded-full transition-all duration-200"
-                  style={{ width: 42, height: 24, background: isSleepover ? 'hsl(var(--primary))' : 'hsl(var(--muted))' }}
+                  style={{ width: 42, height: 24, background: isSleepover && !isPhSleepover ? 'hsl(var(--primary))' : 'hsl(var(--muted))' }}
                 >
                   <span
                     className="absolute top-[3px] rounded-full bg-white shadow-sm transition-all duration-200"
-                    style={{ width: 18, height: 18, left: isSleepover ? 21 : 3 }}
+                    style={{ width: 18, height: 18, left: isSleepover && !isPhSleepover ? 21 : 3 }}
                   />
                 </span>
               </button>
 
-              {/* Public Holiday */}
-              <button
-                type="button"
-                onClick={() => setIsPublicHoliday(prev => !prev)}
-                className="w-full flex items-center gap-3 rounded-2xl border transition-all duration-200 px-4"
-                style={{
-                  minHeight: 48,
-                  borderColor: isPublicHoliday ? 'hsl(34 97% 52% / 0.5)' : 'hsl(var(--border))',
-                  background: isPublicHoliday ? 'hsl(34 97% 52% / 0.08)' : 'transparent',
-                }}
-              >
-                <Star
-                  className="w-4 h-4 shrink-0"
-                  style={{ color: isPublicHoliday ? 'hsl(34 97% 52%)' : 'hsl(var(--muted-foreground))' }}
-                />
-                <span
-                  className="text-sm font-semibold flex-1 text-left"
-                  style={{ color: isPublicHoliday ? 'hsl(34 97% 52%)' : 'hsl(var(--foreground))' }}
+              {/* Public Holiday (hourly) */}
+              {!isSleepover && (
+                <button
+                  type="button"
+                  onClick={() => setIsPublicHoliday(prev => !prev)}
+                  className="w-full flex items-center gap-3 rounded-2xl border transition-all duration-200 px-4"
+                  style={{
+                    minHeight: 48,
+                    borderColor: isPublicHoliday ? 'hsl(34 97% 52% / 0.5)' : 'hsl(var(--border))',
+                    background: isPublicHoliday ? 'hsl(34 97% 52% / 0.08)' : 'transparent',
+                  }}
                 >
-                  Public Holiday
-                </span>
-                <span className="text-[10px] text-muted-foreground mr-2">
-                  {!isSleepover ? `$${phRate}/hr` : 'No effect on sleepover'}
-                </span>
-                <span
-                  className="relative shrink-0 rounded-full transition-all duration-200"
-                  style={{ width: 42, height: 24, background: isPublicHoliday ? 'hsl(34 97% 52%)' : 'hsl(var(--muted))' }}
-                >
-                  <span
-                    className="absolute top-[3px] rounded-full bg-white shadow-sm transition-all duration-200"
-                    style={{ width: 18, height: 18, left: isPublicHoliday ? 21 : 3 }}
+                  <Star
+                    className="w-4 h-4 shrink-0"
+                    style={{ color: isPublicHoliday ? 'hsl(34 97% 52%)' : 'hsl(var(--muted-foreground))' }}
                   />
-                </span>
-              </button>
+                  <span
+                    className="text-sm font-semibold flex-1 text-left"
+                    style={{ color: isPublicHoliday ? 'hsl(34 97% 52%)' : 'hsl(var(--foreground))' }}
+                  >
+                    Public Holiday
+                  </span>
+                  <span className="text-[10px] text-muted-foreground mr-2">${phRate}/hr</span>
+                  <span
+                    className="relative shrink-0 rounded-full transition-all duration-200"
+                    style={{ width: 42, height: 24, background: isPublicHoliday ? 'hsl(34 97% 52%)' : 'hsl(var(--muted))' }}
+                  >
+                    <span
+                      className="absolute top-[3px] rounded-full bg-white shadow-sm transition-all duration-200"
+                      style={{ width: 18, height: 18, left: isPublicHoliday ? 21 : 3 }}
+                    />
+                  </span>
+                </button>
+              )}
+
+              {/* Public Holiday Sleepover — only shown when sleepover is active */}
+              {isSleepover && (
+                <button
+                  type="button"
+                  onClick={handlePhSleepoverToggle}
+                  className="w-full flex items-center gap-3 rounded-2xl border transition-all duration-200 px-4"
+                  style={{
+                    minHeight: 48,
+                    borderColor: isPhSleepover ? 'hsl(34 97% 52% / 0.6)' : 'hsl(var(--border))',
+                    background: isPhSleepover ? 'hsl(34 97% 52% / 0.10)' : 'transparent',
+                  }}
+                >
+                  <div className="relative shrink-0">
+                    <Moon
+                      className="w-4 h-4"
+                      style={{ color: isPhSleepover ? 'hsl(34 97% 52%)' : 'hsl(var(--muted-foreground))' }}
+                    />
+                    <Star
+                      className="w-2.5 h-2.5 absolute -top-1 -right-1"
+                      style={{
+                        color: isPhSleepover ? 'hsl(34 97% 52%)' : 'hsl(var(--muted-foreground))',
+                        fill: isPhSleepover ? 'hsl(34 97% 52%)' : 'transparent',
+                      }}
+                    />
+                  </div>
+                  <span
+                    className="text-sm font-semibold flex-1 text-left"
+                    style={{ color: isPhSleepover ? 'hsl(34 90% 40%)' : 'hsl(var(--foreground))' }}
+                  >
+                    Public Holiday Sleepover
+                  </span>
+                  <span className="text-[10px] text-muted-foreground mr-2">${phSleepoverRate} flat</span>
+                  <span
+                    className="relative shrink-0 rounded-full transition-all duration-200"
+                    style={{ width: 42, height: 24, background: isPhSleepover ? 'hsl(34 97% 52%)' : 'hsl(var(--muted))' }}
+                  >
+                    <span
+                      className="absolute top-[3px] rounded-full bg-white shadow-sm transition-all duration-200"
+                      style={{ width: 18, height: 18, left: isPhSleepover ? 21 : 3 }}
+                    />
+                  </span>
+                </button>
+              )}
             </div>
 
             {/* Fee override */}
@@ -406,13 +450,16 @@ const ShiftForm = ({
                     step={0.01}
                     value={feeOverride}
                     onChange={e => setFeeOverride(e.target.value)}
-                    placeholder={calc ? String(calc.grossPay) : ''}
+                    placeholder={isPhSleepover ? '400' : calc ? String(calc.grossPay) : ''}
                     className="glass-input flex-1 text-foreground"
                     style={{ minHeight: 44 }}
                   />
                 </div>
                 <p className="text-[10px] text-muted-foreground">
-                  One-off override. Leave blank to use calculated rate ({calc ? formatCurrency(calc.grossPay) : '—'}).
+                  {isPhSleepover
+                    ? `PH Sleepover flat fee. Default: $${phSleepoverRate}.`
+                    : `One-off override. Leave blank to use calculated rate (${calc ? formatCurrency(calc.grossPay) : '—'}).`
+                  }
                 </p>
               </div>
             )}
