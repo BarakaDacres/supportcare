@@ -145,7 +145,7 @@ const AnimatedCurrency = ({
 const Sparkline = ({
   data,
   width = 200,
-  height = 44,
+  height = 64,
   id = 'spark',
 }: {
   data: number[];
@@ -156,7 +156,6 @@ const Sparkline = ({
   const lineRef = useRef<SVGPathElement>(null);
   const fillRef = useRef<SVGPathElement>(null);
   const dotsRef = useRef<SVGGElement>(null);
-  const labelRef = useRef<SVGTextElement>(null);
   // Re-run animation whenever data identity changes (month/year switch)
   const dataKey = data.join(',');
 
@@ -164,26 +163,18 @@ const Sparkline = ({
     const line = lineRef.current;
     if (!line) return;
     const len = line.getTotalLength();
-    // Start fully hidden
     line.style.strokeDasharray = `${len}`;
     line.style.strokeDashoffset = `${len}`;
     line.style.transition = 'none';
-    // Fill starts transparent
     if (fillRef.current) {
       fillRef.current.style.opacity = '0';
       fillRef.current.style.transition = 'none';
     }
-    // Dots + labels start invisible
     if (dotsRef.current) {
       dotsRef.current.style.opacity = '0';
       dotsRef.current.style.transition = 'none';
     }
-    if (labelRef.current) {
-      labelRef.current.style.opacity = '0';
-      labelRef.current.style.transition = 'none';
-    }
 
-    // Force reflow, then animate
     const raf = requestAnimationFrame(() => {
       requestAnimationFrame(() => {
         line.style.transition = 'stroke-dashoffset 680ms cubic-bezier(0.4,0,0.2,1)';
@@ -196,10 +187,6 @@ const Sparkline = ({
           dotsRef.current.style.transition = 'opacity 300ms ease 500ms';
           dotsRef.current.style.opacity = '1';
         }
-        if (labelRef.current) {
-          labelRef.current.style.transition = 'opacity 300ms ease 600ms';
-          labelRef.current.style.opacity = '1';
-        }
       });
     });
     return () => cancelAnimationFrame(raf);
@@ -209,8 +196,8 @@ const Sparkline = ({
   if (!data || data.length < 2) return null;
 
   const max = Math.max(...data, 1);
-  const padX = 4;
-  const padTop = 6;
+  const padX = 8;
+  const padTop = 20;   // extra room above dots for $$ labels
   const padBottom = 16;
   const w = width - padX * 2;
   const h = height - padTop - padBottom;
@@ -231,7 +218,6 @@ const Sparkline = ({
 
   const fillPath = `${linePath} L ${pts[pts.length - 1].x.toFixed(2)} ${(padTop + h).toFixed(2)} L ${pts[0].x.toFixed(2)} ${(padTop + h).toFixed(2)} Z`;
 
-  const last = pts[pts.length - 1];
   const gradId = `sg-${id}`;
   const weekLabels = ['W1', 'W2', 'W3', 'W4', 'W5'].slice(0, data.length);
 
@@ -250,10 +236,10 @@ const Sparkline = ({
         </linearGradient>
       </defs>
 
-      {/* Filled area — fades in after line draws */}
+      {/* Filled area */}
       <path ref={fillRef} d={fillPath} fill={`url(#${gradId})`} style={{ opacity: 0 }} />
 
-      {/* Smooth line — draws left to right */}
+      {/* Line */}
       <path
         ref={lineRef}
         d={linePath}
@@ -265,13 +251,40 @@ const Sparkline = ({
         opacity="0.7"
       />
 
-      {/* Dots + week labels — pop in after line */}
+      {/* Dots + $$ labels above + W-labels below — pop in after line */}
       <g ref={dotsRef} style={{ opacity: 0 }}>
         {pts.map((p, i) => {
           const isLast = i === pts.length - 1;
           const isEmpty = p.v === 0;
+          const valLabel = p.v >= 1000
+            ? `$${(p.v / 1000).toFixed(1)}k`
+            : p.v > 0
+            ? `$${p.v.toFixed(0)}`
+            : '';
+          // Clamp label x so it doesn't bleed off edges
+          const labelX = Math.max(padX + 2, Math.min(width - padX - 2, p.x));
+          const labelAnchor = p.x < padX + 10 ? 'start' : p.x > width - padX - 10 ? 'end' : 'middle';
+
           return (
             <g key={i}>
+              {/* $$ label above dot — animate up from dot position */}
+              {valLabel && (
+                <text
+                  x={labelX}
+                  y={p.y - 5}
+                  textAnchor={labelAnchor}
+                  fontSize={isLast ? '7.5' : '6.5'}
+                  fill="#3B82F6"
+                  opacity={isLast ? '0.9' : '0.6'}
+                  fontFamily="system-ui, -apple-system, sans-serif"
+                  fontWeight={isLast ? '700' : '600'}
+                  style={{
+                    animation: `sparkLabelRise 0.4s cubic-bezier(0.34,1.56,0.64,1) ${300 + i * 60}ms both`,
+                  }}
+                >
+                  {valLabel}
+                </text>
+              )}
               <circle
                 cx={p.x}
                 cy={p.y}
@@ -279,13 +292,14 @@ const Sparkline = ({
                 fill={isEmpty ? '#93C5FD' : '#3B82F6'}
                 opacity={isEmpty ? 0.3 : isLast ? 1 : 0.55}
               />
+              {/* W-label below */}
               <text
                 x={p.x}
                 y={padTop + h + 11}
                 textAnchor="middle"
                 fontSize="7"
                 fill="#3B82F6"
-                opacity="0.45"
+                opacity="0.4"
                 fontFamily="system-ui, -apple-system, sans-serif"
                 fontWeight="600"
                 letterSpacing="0.3"
@@ -297,23 +311,12 @@ const Sparkline = ({
         })}
       </g>
 
-      {/* Last point value callout — appears last */}
-      {last.v > 0 && (
-        <text
-          ref={labelRef}
-          x={last.x}
-          y={last.y - 5}
-          textAnchor={last.x > width * 0.75 ? 'end' : 'middle'}
-          fontSize="7.5"
-          fill="#3B82F6"
-          opacity="0.8"
-          fontFamily="system-ui, -apple-system, sans-serif"
-          fontWeight="700"
-          style={{ opacity: 0 }}
-        >
-          ${last.v >= 1000 ? `${(last.v / 1000).toFixed(1)}k` : last.v.toFixed(0)}
-        </text>
-      )}
+      <style>{`
+        @keyframes sparkLabelRise {
+          from { opacity: 0; transform: translateY(4px); }
+          to   { opacity: 1; transform: translateY(0); }
+        }
+      `}</style>
     </svg>
   );
 };

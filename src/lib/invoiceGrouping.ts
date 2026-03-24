@@ -17,17 +17,19 @@ export interface NdisItemCodes {
   saturday_sleepover: string;
   sunday_sleepover: string;
   public_holiday: string;
+  public_holiday_sleepover: string;
 }
 
 export const DEFAULT_NDIS_CODES: NdisItemCodes = {
-  daily:             '01_011_0107_1_1',
-  evening:           '01_015_0107_1_1',
-  saturday:          '01_013_0107_1_1',
-  sunday:            '01_014_0107_1_1',
-  weekday_sleepover: '01_019_0107_1_1',
-  saturday_sleepover:'01_019_0107_1_1',
-  sunday_sleepover:  '01_019_0107_1_1',
-  public_holiday:    '01_012_0107_1_1',
+  daily:                    '01_011_0107_1_1',
+  evening:                  '01_015_0107_1_1',
+  saturday:                 '01_013_0107_1_1',
+  sunday:                   '01_014_0107_1_1',
+  weekday_sleepover:        '01_019_0107_1_1',
+  saturday_sleepover:       '01_019_0107_1_1',
+  sunday_sleepover:         '01_019_0107_1_1',
+  public_holiday:           '01_012_0107_1_1',
+  public_holiday_sleepover: '01_019_0107_1_1',
 };
 
 export type InvoiceCategory =
@@ -38,17 +40,19 @@ export type InvoiceCategory =
   | 'weekday_sleepover'
   | 'saturday_sleepover'
   | 'sunday_sleepover'
-  | 'public_holiday';
+  | 'public_holiday'
+  | 'public_holiday_sleepover';
 
 export const CATEGORY_LABELS: Record<InvoiceCategory, string> = {
-  daily:              'Daily Support',
-  evening:            'Evening Support (Mon–Fri)',
-  saturday:           'Saturday Support',
-  sunday:             'Sunday Support',
-  weekday_sleepover:  'Weekday Sleepover',
-  saturday_sleepover: 'Saturday Sleepover',
-  sunday_sleepover:   'Sunday Sleepover',
-  public_holiday:     'Public Holiday Support',
+  daily:                    'Daily Support',
+  evening:                  'Evening Support (Mon–Fri)',
+  saturday:                 'Saturday Support',
+  sunday:                   'Sunday Support',
+  weekday_sleepover:        'Weekday Sleepover',
+  saturday_sleepover:       'Saturday Sleepover',
+  sunday_sleepover:         'Sunday Sleepover',
+  public_holiday:           'Public Holiday Support',
+  public_holiday_sleepover: 'Public Holiday Sleepover',
 };
 
 export interface InvoiceLineGroup {
@@ -56,8 +60,8 @@ export interface InvoiceLineGroup {
   label: string;
   ndisCode: string;
   shifts: Shift[];
-  totalHours: number;    // null for sleepovers (quantity-based)
-  quantity: number;      // nights for sleepovers, hours for hourly
+  totalHours: number;
+  quantity: number;
   rate: number;
   subtotal: number;
   isSleepover: boolean;
@@ -66,10 +70,13 @@ export interface InvoiceLineGroup {
 function getShiftCategory(shift: Shift): InvoiceCategory {
   const dow = getDayOfWeek(shift.date);
 
-  // Sleepovers: classify by day first (sleepover categories take priority)
+  // Public holiday sleepover — highest priority, own line
+  if (shift.is_sleepover && shift.is_public_holiday) return 'public_holiday_sleepover';
+
+  // Regular sleepovers: classify by day
   if (shift.is_sleepover) {
-    if (dow === 6) return 'saturday_sleepover'; // Saturday night
-    if (dow === 0) return 'sunday_sleepover';   // Sunday night
+    if (dow === 6) return 'saturday_sleepover';
+    if (dow === 0) return 'sunday_sleepover';
     return 'weekday_sleepover';
   }
 
@@ -91,18 +98,19 @@ function getShiftCategory(shift: Shift): InvoiceCategory {
 
 function getEffectiveRate(shift: Shift, category: InvoiceCategory, rates: PayRates): number {
   if (shift.fee_override != null && shift.fee_override > 0) {
-    return shift.fee_override; // override treated as flat rate
+    return shift.fee_override;
   }
   switch (category) {
-    case 'public_holiday':     return rates.rate_public_holiday ?? 150;
-    case 'saturday':           return rates.rate_saturday;
-    case 'sunday':             return rates.rate_sunday;
-    case 'evening':            return rates.rate_evening ?? 75;
-    case 'weekday_sleepover':  return rates.rate_sleepover_weekday;
-    case 'saturday_sleepover': return rates.rate_sleepover_weekend;
-    case 'sunday_sleepover':   return rates.rate_sleepover_weekend;
+    case 'public_holiday_sleepover': return (rates as PayRates & { rate_ph_sleepover?: number }).rate_ph_sleepover ?? 400;
+    case 'public_holiday':           return rates.rate_public_holiday ?? 150;
+    case 'saturday':                 return rates.rate_saturday;
+    case 'sunday':                   return rates.rate_sunday;
+    case 'evening':                  return rates.rate_evening ?? 75;
+    case 'weekday_sleepover':        return rates.rate_sleepover_weekday;
+    case 'saturday_sleepover':       return rates.rate_sleepover_weekend;
+    case 'sunday_sleepover':         return rates.rate_sleepover_weekend;
     case 'daily':
-    default:                   return rates.rate_weekday;
+    default:                         return rates.rate_weekday;
   }
 }
 
@@ -124,7 +132,7 @@ export function groupShiftsForInvoice(
   const ORDER: InvoiceCategory[] = [
     'daily', 'evening', 'saturday', 'sunday',
     'weekday_sleepover', 'saturday_sleepover', 'sunday_sleepover',
-    'public_holiday',
+    'public_holiday', 'public_holiday_sleepover',
   ];
 
   const groups: InvoiceLineGroup[] = [];
@@ -147,7 +155,6 @@ export function groupShiftsForInvoice(
       }
     }
 
-    // Rate: for grouped display use the rate from first shift (or default)
     const rate = getEffectiveRate(catShifts[0], cat, rates);
     const quantity = isSleepover ? catShifts.length : +totalHours.toFixed(2);
 
