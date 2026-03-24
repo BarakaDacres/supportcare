@@ -49,6 +49,9 @@ const ShiftForm = ({
   const [endTime, setEndTime] = useState(initialValues?.end_time ?? '17:00');
   const [isSleepover, setIsSleepover] = useState(initialValues?.is_sleepover ?? false);
   const [isPublicHoliday, setIsPublicHoliday] = useState(initialValues?.is_public_holiday ?? false);
+  const [isPhSleepover, setIsPhSleepover] = useState(
+    initialValues?.is_sleepover === true && initialValues?.is_public_holiday === true
+  );
   const [clientId, setClientId] = useState(initialValues?.client_id ?? '');
   const [feeOverride, setFeeOverride] = useState<string>(
     initialValues?.fee_override != null && initialValues.fee_override > 0
@@ -111,7 +114,33 @@ const ShiftForm = ({
         setStartTime(nextStart);
         setEndTime(nextEnd);
       }
-      if (!next) setFeeOverride('');
+      if (!next) {
+        setFeeOverride('');
+        setIsPhSleepover(false);
+      }
+      return next;
+    });
+  };
+
+  const handlePhSleepoverToggle = () => {
+    setIsPhSleepover(prev => {
+      const next = !prev;
+      if (next) {
+        // PH Sleepover implies sleepover + public holiday
+        setIsSleepover(true);
+        setIsPublicHoliday(true);
+        setStartTime('22:00');
+        setEndTime('06:00');
+        // Default fee to $400 if not already overridden
+        if (!feeOverride) setFeeOverride('400');
+        if (!notesCustomised.current) {
+          setNotes('Night Sleepover Support - Public Holiday');
+          notesCustomised.current = true;
+        }
+      } else {
+        setIsPublicHoliday(false);
+        if (feeOverride === '400') setFeeOverride('');
+      }
       return next;
     });
   };
@@ -123,7 +152,6 @@ const ShiftForm = ({
     }
   };
 
-  // Auto-update note when start/end changes (only if not customised)
   const handleStartTimeChange = (val: string) => {
     setStartTime(val);
     if (!notesCustomised.current && !isSleepover) {
@@ -150,15 +178,21 @@ const ShiftForm = ({
   };
 
   const phRate = rates.rate_public_holiday ?? 150;
+  const phSleepoverRate = 400;
   const eveningRate = rates.rate_evening ?? 75;
 
+  // For PH sleepover, effective pay is $400 flat (or override)
   const calc =
     date && startTime && endTime
       ? calculateShiftPay(date, startTime, endTime, isSleepover, rates, isPublicHoliday)
       : null;
 
   const feeOverrideNum = feeOverride !== '' ? parseFloat(feeOverride) : null;
-  const effectivePay = feeOverrideNum != null && feeOverrideNum > 0 ? feeOverrideNum : calc?.grossPay ?? 0;
+  const effectivePay = feeOverrideNum != null && feeOverrideNum > 0
+    ? feeOverrideNum
+    : isPhSleepover
+    ? phSleepoverRate
+    : calc?.grossPay ?? 0;
 
   const phActive = isPublicHoliday && !isSleepover;
   const hasEvening = !isSleepover && !isPublicHoliday && shiftHasEveningHours(startTime, endTime);
@@ -169,6 +203,11 @@ const ShiftForm = ({
     setSubmitError(null);
     setSubmitting(true);
     try {
+      // For PH sleepover: set fee_override to $400 if not already overridden
+      const finalFeeOverride = isPhSleepover && (feeOverrideNum == null || feeOverrideNum <= 0)
+        ? phSleepoverRate
+        : (feeOverrideNum != null && feeOverrideNum > 0 ? feeOverrideNum : null);
+
       await onSubmit({
         date,
         start_time: startTime,
@@ -177,14 +216,14 @@ const ShiftForm = ({
         is_public_holiday: isPublicHoliday,
         client_id: clientId || null,
         notes: notes.trim() || null,
-        fee_override: feeOverrideNum != null && feeOverrideNum > 0 ? feeOverrideNum : null,
+        fee_override: finalFeeOverride,
       });
+      // Success — form closure is handled by parent after onSubmit resolves
     } catch (err) {
       console.error('Failed to save shift:', err);
       setSubmitError(
         err instanceof Error ? err.message : 'Failed to save shift. Please try again.'
       );
-    } finally {
       setSubmitting(false);
     }
   };
