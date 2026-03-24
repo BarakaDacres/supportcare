@@ -233,7 +233,10 @@ const ShiftForm = ({
     <div
       className="fixed inset-0 z-[60] flex items-center justify-center"
       style={{
-        padding: '16px',
+        paddingLeft: 16,
+        paddingRight: 16,
+        paddingTop: 'max(16px, env(safe-area-inset-top, 16px))',
+        paddingBottom: 'max(16px, env(safe-area-inset-bottom, 16px))',
         background: 'hsl(var(--foreground)/0.45)',
         backdropFilter: 'blur(4px)',
       }}
@@ -246,7 +249,7 @@ const ShiftForm = ({
         style={{
           maxWidth: 420,
           width: '100%',
-          maxHeight: 'min(92dvh, 700px)',
+          maxHeight: 'min(90dvh, 680px)',
           background: 'hsl(var(--card))',
           borderRadius: 24,
           boxShadow:
@@ -255,13 +258,14 @@ const ShiftForm = ({
             '0 0 0 0.5px hsl(var(--border))',
           overflow: 'hidden',
           boxSizing: 'border-box',
+          contain: 'layout',
         }}
         onClick={(e) => e.stopPropagation()}
       >
         {/* ── Header ── */}
         <div
-          className="flex items-center justify-between px-5 py-4 shrink-0"
-          style={{ borderBottom: '0.5px solid hsl(var(--border))' }}
+          className="flex items-center justify-between shrink-0"
+          style={{ borderBottom: '0.5px solid hsl(var(--border))', padding: '16px 20px' }}
         >
           <h2 className="text-base font-bold text-foreground">{title}</h2>
           <button
@@ -275,7 +279,10 @@ const ShiftForm = ({
         </div>
 
         {/* ── Scrollable body ── */}
-        <div className="flex-1 overflow-y-auto overscroll-contain" style={{ padding: '20px 24px', boxSizing: 'border-box' }}>
+        <div
+          className="flex-1 min-h-0 overflow-y-auto overscroll-contain"
+          style={{ padding: '18px 20px 4px', boxSizing: 'border-box' }}
+        >
           <div className="space-y-4">
             {/* Date */}
             <div className="space-y-1.5">
