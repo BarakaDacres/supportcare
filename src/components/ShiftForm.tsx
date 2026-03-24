@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { X, Clock, Moon, User, FileText, ChevronDown, DollarSign, Star, Sunset } from 'lucide-react';
-import { calculateShiftPay, formatTime12h, type PayRates, DEFAULT_RATES, getDayOfWeek, isWeekendSleeperNight, shiftHasEveningHours } from '@/lib/shiftCalculator';
+import { calculateShiftPay, formatTime12h, type PayRates, DEFAULT_RATES, getDayOfWeek, isWeekendSleeperNight, shiftHasEveningHours, dayLabel } from '@/lib/shiftCalculator';
 import { formatCurrency } from '@/lib/formatUtils';
 import type { NewShift } from '@/hooks/useShifts';
 import type { Client } from '@/hooks/useClients';
