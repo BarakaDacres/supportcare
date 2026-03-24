@@ -509,10 +509,13 @@ const ShiftForm = ({
             </div>
 
             {/* Pay preview */}
-            {calc && (
+            {(calc || isPhSleepover) && (
               <div
                 className="rounded-2xl p-3 space-y-1.5 transition-all duration-300"
-                style={phActive ? {
+                style={isPhSleepover ? {
+                  background: 'hsl(34 97% 52% / 0.10)',
+                  border: '1px solid hsl(34 97% 52% / 0.4)',
+                } : phActive ? {
                   background: 'hsl(34 97% 52% / 0.1)',
                   border: '1px solid hsl(34 97% 52% / 0.35)',
                 } : hasEvening ? {
@@ -523,7 +526,18 @@ const ShiftForm = ({
                   border: '1px solid hsl(var(--money-green)/0.2)',
                 }}
               >
-                {phActive && (
+                {isPhSleepover && (
+                  <div className="flex items-center gap-1.5 mb-1">
+                    <div className="relative shrink-0">
+                      <Moon className="w-3 h-3" style={{ color: 'hsl(34 97% 52%)' }} />
+                      <Star className="w-2 h-2 absolute -top-0.5 -right-0.5" style={{ color: 'hsl(34 97% 52%)', fill: 'hsl(34 97% 52%)' }} />
+                    </div>
+                    <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: 'hsl(34 90% 40%)' }}>
+                      Public Holiday Sleepover — $400 flat
+                    </span>
+                  </div>
+                )}
+                {!isPhSleepover && phActive && (
                   <div className="flex items-center gap-1.5 mb-1">
                     <Star className="w-3 h-3" style={{ color: 'hsl(34 97% 52%)' }} />
                     <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: 'hsl(34 97% 52%)' }}>
@@ -544,29 +558,31 @@ const ShiftForm = ({
                   <div>
                     <p
                       className="text-xl font-bold leading-none"
-                      style={{ color: phActive ? 'hsl(34 97% 52%)' : 'hsl(var(--money-green))' }}
+                      style={{ color: (isPhSleepover || phActive) ? 'hsl(34 97% 52%)' : 'hsl(var(--money-green))' }}
                     >
                       {formatCurrency(effectivePay)}
                     </p>
-                    {feeOverrideNum != null && feeOverrideNum > 0 && (
+                    {feeOverrideNum != null && feeOverrideNum > 0 && calc && (
                       <p className="text-[10px] text-muted-foreground mt-0.5">
                         Override active · calculated was {formatCurrency(calc.grossPay)}
                       </p>
                     )}
-                    {!isSleepover && (
+                    {!isSleepover && calc && (
                       <p className="text-[11px] text-muted-foreground mt-0.5">{calc.hoursWorked}h total</p>
                     )}
                   </div>
-                  <div className="text-right space-y-0.5 min-w-0 flex-1 overflow-hidden">
-                    {calc.breakdown.map((b, i) => (
-                      <p key={i} className="text-[10px] text-muted-foreground truncate">
-                        {b.label}
-                        {b.hours != null ? ` · ${b.hours}h @ $${b.rate}` : ''} = {formatCurrency(b.amount)}
-                      </p>
-                    ))}
-                  </div>
+                  {calc && !isPhSleepover && (
+                    <div className="text-right space-y-0.5 min-w-0 flex-1 overflow-hidden">
+                      {calc.breakdown.map((b, i) => (
+                        <p key={i} className="text-[10px] text-muted-foreground truncate">
+                          {b.label}
+                          {b.hours != null ? ` · ${b.hours}h @ $${b.rate}` : ''} = {formatCurrency(b.amount)}
+                        </p>
+                      ))}
+                    </div>
+                  )}
                 </div>
-                {!isSleepover && startTime && endTime && (
+                {!isSleepover && startTime && endTime && calc && (
                   <p
                     className="text-[10px] text-muted-foreground border-t pt-1.5"
                     style={{ borderColor: phActive ? 'hsl(34 97% 52% / 0.2)' : 'hsl(var(--primary)/0.1)' }}
