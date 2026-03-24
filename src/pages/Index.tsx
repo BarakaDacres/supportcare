@@ -63,7 +63,7 @@ const Index = ({ auth }: IndexProps) => {
         {([
           { id: 'preferences', label: 'Prefs' },
           { id: 'rates', label: 'Rates' },
-          { id: 'clients', label: 'Clients' },
+          { id: 'analytics', label: 'Analytics' },
           { id: 'account', label: 'Account' },
         ] as { id: typeof settingsSubTab; label: string }[]).map(t => (
           <button
@@ -87,14 +87,12 @@ const Index = ({ auth }: IndexProps) => {
       {settingsSubTab === 'rates' && (
         <RatesPanel settings={settings} loading={settingsLoading} onSave={updateSettings} />
       )}
-      {settingsSubTab === 'clients' && (
-        <ClientsPanel
-          clients={clients}
+      {settingsSubTab === 'analytics' && (
+        <AnalyticsPanel
           shifts={shifts}
-          loading={clientsLoading}
-          onAdd={addClient}
-          onUpdate={updateClient}
-          onDelete={deleteClient}
+          settings={settings}
+          selectedYear={store.year}
+          selectedMonth={store.month}
         />
       )}
       {settingsSubTab === 'account' && auth && (
