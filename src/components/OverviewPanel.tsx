@@ -197,8 +197,8 @@ const Sparkline = ({
 
   const max = Math.max(...data, 1);
   const padX = 8;
-  const padTop = 20;   // extra room above dots for $$ labels
-  const padBottom = 16;
+  const padTop = 22;   // extra room above dots for $$ labels
+  const padBottom = 6;  // tight bottom — no W-labels inside SVG
   const w = width - padX * 2;
   const h = height - padTop - padBottom;
 
