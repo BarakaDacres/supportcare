@@ -47,7 +47,7 @@ const ShiftForm = ({
   onCancel,
   title = 'Add Shift',
 }: ShiftFormProps) => {
-  const [date, setDate] = useState(initialValues?.date ?? today());
+  const [date, setDate] = useState(initialValues?.date ?? todayStr());
   const [startTime, setStartTime] = useState(initialValues?.start_time ?? '09:00');
   const [endTime, setEndTime] = useState(initialValues?.end_time ?? '17:00');
   const [isSleepover, setIsSleepover] = useState(initialValues?.is_sleepover ?? false);
