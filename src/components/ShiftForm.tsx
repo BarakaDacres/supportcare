@@ -14,7 +14,10 @@ interface ShiftFormProps {
   title?: string;
 }
 
-const today = () => new Date().toISOString().split('T')[0];
+const todayStr = () => {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+};
 
 const DEFAULT_NOTE_NORMAL = 'Assistance with Self-Care Activities';
 const DEFAULT_NOTE_EVENING = 'Assistance with Self-Care Activities — Evening';
