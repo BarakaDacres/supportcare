@@ -267,7 +267,7 @@ const Sparkline = ({
 
           return (
             <g key={i}>
-              {/* $$ label above dot — animate up from dot position */}
+              {/* $$ label above dot */}
               {valLabel && (
                 <text
                   x={labelX}
@@ -292,20 +292,6 @@ const Sparkline = ({
                 fill={isEmpty ? '#93C5FD' : '#3B82F6'}
                 opacity={isEmpty ? 0.3 : isLast ? 1 : 0.55}
               />
-              {/* W-label below */}
-              <text
-                x={p.x}
-                y={padTop + h + 11}
-                textAnchor="middle"
-                fontSize="7"
-                fill="#3B82F6"
-                opacity="0.4"
-                fontFamily="system-ui, -apple-system, sans-serif"
-                fontWeight="600"
-                letterSpacing="0.3"
-              >
-                {weekLabels[i]}
-              </text>
             </g>
           );
         })}
