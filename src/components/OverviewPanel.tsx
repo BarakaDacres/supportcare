@@ -1220,19 +1220,21 @@ const OverviewPanel = ({
           type BreakdownRow = { label: string; value: number; meta: string; color: string };
           const rows: BreakdownRow[] = [];
           if (wb.regularDay > 0)
-            rows.push({ label: 'Weekday Day',        value: wb.regularDay,        meta: `${wb.regularDayH.toFixed(1)}h`,          color: 'hsl(var(--money-green))' });
+            rows.push({ label: 'Weekday Day',           value: wb.regularDay,        meta: `${wb.regularDayH.toFixed(1)}h`,           color: 'hsl(var(--money-green))' });
           if (wb.evening > 0)
-            rows.push({ label: 'Evening',            value: wb.evening,           meta: `${wb.eveningH.toFixed(1)}h`,              color: 'hsl(38 90% 45%)' });
+            rows.push({ label: 'Evening',               value: wb.evening,           meta: `${wb.eveningH.toFixed(1)}h`,              color: 'hsl(38 90% 45%)' });
           if (wb.satDay > 0)
-            rows.push({ label: 'Saturday Day',       value: wb.satDay,            meta: `${wb.satDayH.toFixed(1)}h`,               color: 'hsl(var(--primary))' });
+            rows.push({ label: 'Saturday Day',          value: wb.satDay,            meta: `${wb.satDayH.toFixed(1)}h`,               color: 'hsl(var(--primary))' });
           if (wb.sunDay > 0)
-            rows.push({ label: 'Sunday Day',         value: wb.sunDay,            meta: `${wb.sunDayH.toFixed(1)}h`,               color: 'hsl(271 91% 65%)' });
+            rows.push({ label: 'Sunday Day',            value: wb.sunDay,            meta: `${wb.sunDayH.toFixed(1)}h`,               color: 'hsl(271 91% 65%)' });
           if (wb.weekdaySleepover > 0)
-            rows.push({ label: 'Weekday Sleepover',  value: wb.weekdaySleepover,  meta: `${wb.weekdaySleepoverN} night${wb.weekdaySleepoverN !== 1 ? 's' : ''}`, color: '#2563EB' });
+            rows.push({ label: 'Weekday Sleepover',     value: wb.weekdaySleepover,  meta: `${wb.weekdaySleepoverN} night${wb.weekdaySleepoverN !== 1 ? 's' : ''}`, color: '#2563EB' });
           if (wb.weekendSleepover > 0)
-            rows.push({ label: 'Weekend Sleepover',  value: wb.weekendSleepover,  meta: `${wb.weekendSleepoverN} night${wb.weekendSleepoverN !== 1 ? 's' : ''}`, color: '#7C3AED' });
+            rows.push({ label: 'Weekend Sleepover',     value: wb.weekendSleepover,  meta: `${wb.weekendSleepoverN} night${wb.weekendSleepoverN !== 1 ? 's' : ''}`, color: '#7C3AED' });
           if (wb.publicHoliday > 0)
-            rows.push({ label: 'Public Holiday',     value: wb.publicHoliday,     meta: `${wb.publicHolidayH.toFixed(1)}h`,         color: 'hsl(34 97% 48%)' });
+            rows.push({ label: 'Public Holiday',        value: wb.publicHoliday,     meta: `${wb.publicHolidayH.toFixed(1)}h`,        color: 'hsl(34 97% 48%)' });
+          if (wb.phSleepover > 0)
+            rows.push({ label: 'PH Sleepover',          value: wb.phSleepover,       meta: `${wb.phSleepoverN} night${wb.phSleepoverN !== 1 ? 's' : ''}`,          color: 'hsl(34 90% 38%)' });
           if (rows.length <= 1) return null;
           return (
             <div className="mt-4 pt-4 space-y-1.5" style={{ borderTop: '0.5px solid hsl(var(--border))' }}>
