@@ -197,8 +197,8 @@ const Sparkline = ({
 
   const max = Math.max(...data, 1);
   const padX = 8;
-  const padTop = 20;   // extra room above dots for $$ labels
-  const padBottom = 16;
+  const padTop = 22;   // extra room above dots for $$ labels
+  const padBottom = 6;  // tight bottom — no W-labels inside SVG
   const w = width - padX * 2;
   const h = height - padTop - padBottom;
 
@@ -267,7 +267,7 @@ const Sparkline = ({
 
           return (
             <g key={i}>
-              {/* $$ label above dot — animate up from dot position */}
+              {/* $$ label above dot */}
               {valLabel && (
                 <text
                   x={labelX}
@@ -292,20 +292,6 @@ const Sparkline = ({
                 fill={isEmpty ? '#93C5FD' : '#3B82F6'}
                 opacity={isEmpty ? 0.3 : isLast ? 1 : 0.55}
               />
-              {/* W-label below */}
-              <text
-                x={p.x}
-                y={padTop + h + 11}
-                textAnchor="middle"
-                fontSize="7"
-                fill="#3B82F6"
-                opacity="0.4"
-                fontFamily="system-ui, -apple-system, sans-serif"
-                fontWeight="600"
-                letterSpacing="0.3"
-              >
-                {weekLabels[i]}
-              </text>
             </g>
           );
         })}
@@ -946,12 +932,16 @@ const OverviewPanel = ({
       let weekdaySleepover = 0, weekdaySleepoverN = 0;
       let weekendSleepover = 0, weekendSleepoverN = 0;
       let publicHoliday = 0,    publicHolidayH = 0;
+      let phSleepover = 0,      phSleepoverN = 0;
 
       for (const s of thisWeekShifts) {
         const pay = effectiveGrossPay(s);
         const h = Number(s.hours_worked);
         const dow = getDayOfWeek(s.date);
 
+        if (s.is_public_holiday && s.is_sleepover) {
+          phSleepover += pay; phSleepoverN += 1; continue;
+        }
         if (s.is_public_holiday && !s.is_sleepover) {
           publicHoliday += pay; publicHolidayH += h; continue;
         }
@@ -979,6 +969,7 @@ const OverviewPanel = ({
         weekdaySleepover, weekdaySleepoverN,
         weekendSleepover, weekendSleepoverN,
         publicHoliday,    publicHolidayH,
+        phSleepover,      phSleepoverN,
       };
     })();
 
@@ -1229,19 +1220,21 @@ const OverviewPanel = ({
           type BreakdownRow = { label: string; value: number; meta: string; color: string };
           const rows: BreakdownRow[] = [];
           if (wb.regularDay > 0)
-            rows.push({ label: 'Weekday Day',        value: wb.regularDay,        meta: `${wb.regularDayH.toFixed(1)}h`,          color: 'hsl(var(--money-green))' });
+            rows.push({ label: 'Weekday Day',           value: wb.regularDay,        meta: `${wb.regularDayH.toFixed(1)}h`,           color: 'hsl(var(--money-green))' });
           if (wb.evening > 0)
-            rows.push({ label: 'Evening',            value: wb.evening,           meta: `${wb.eveningH.toFixed(1)}h`,              color: 'hsl(38 90% 45%)' });
+            rows.push({ label: 'Evening',               value: wb.evening,           meta: `${wb.eveningH.toFixed(1)}h`,              color: 'hsl(38 90% 45%)' });
           if (wb.satDay > 0)
-            rows.push({ label: 'Saturday Day',       value: wb.satDay,            meta: `${wb.satDayH.toFixed(1)}h`,               color: 'hsl(var(--primary))' });
+            rows.push({ label: 'Saturday Day',          value: wb.satDay,            meta: `${wb.satDayH.toFixed(1)}h`,               color: 'hsl(var(--primary))' });
           if (wb.sunDay > 0)
-            rows.push({ label: 'Sunday Day',         value: wb.sunDay,            meta: `${wb.sunDayH.toFixed(1)}h`,               color: 'hsl(271 91% 65%)' });
+            rows.push({ label: 'Sunday Day',            value: wb.sunDay,            meta: `${wb.sunDayH.toFixed(1)}h`,               color: 'hsl(271 91% 65%)' });
           if (wb.weekdaySleepover > 0)
-            rows.push({ label: 'Weekday Sleepover',  value: wb.weekdaySleepover,  meta: `${wb.weekdaySleepoverN} night${wb.weekdaySleepoverN !== 1 ? 's' : ''}`, color: '#2563EB' });
+            rows.push({ label: 'Weekday Sleepover',     value: wb.weekdaySleepover,  meta: `${wb.weekdaySleepoverN} night${wb.weekdaySleepoverN !== 1 ? 's' : ''}`, color: '#2563EB' });
           if (wb.weekendSleepover > 0)
-            rows.push({ label: 'Weekend Sleepover',  value: wb.weekendSleepover,  meta: `${wb.weekendSleepoverN} night${wb.weekendSleepoverN !== 1 ? 's' : ''}`, color: '#7C3AED' });
+            rows.push({ label: 'Weekend Sleepover',     value: wb.weekendSleepover,  meta: `${wb.weekendSleepoverN} night${wb.weekendSleepoverN !== 1 ? 's' : ''}`, color: '#7C3AED' });
           if (wb.publicHoliday > 0)
-            rows.push({ label: 'Public Holiday',     value: wb.publicHoliday,     meta: `${wb.publicHolidayH.toFixed(1)}h`,         color: 'hsl(34 97% 48%)' });
+            rows.push({ label: 'Public Holiday',        value: wb.publicHoliday,     meta: `${wb.publicHolidayH.toFixed(1)}h`,        color: 'hsl(34 97% 48%)' });
+          if (wb.phSleepover > 0)
+            rows.push({ label: 'PH Sleepover',          value: wb.phSleepover,       meta: `${wb.phSleepoverN} night${wb.phSleepoverN !== 1 ? 's' : ''}`,          color: 'hsl(34 90% 38%)' });
           if (rows.length <= 1) return null;
           return (
             <div className="mt-4 pt-4 space-y-1.5" style={{ borderTop: '0.5px solid hsl(var(--border))' }}>
@@ -1487,33 +1480,15 @@ const OverviewPanel = ({
           {stats.monthShiftCount} shifts · {stats.monthHours.toFixed(0)}h
         </p>
 
-        {/* Full-width sparkline with per-week earnings */}
+        {/* Full-width sparkline — $$ labels rendered above each dot inside SVG */}
         {stats.weeklySparkline.some(v => v > 0) && (
           <div style={{ margin: '0 -2px' }}>
             <Sparkline
               data={stats.weeklySparkline}
               width={340}
-              height={56}
+              height={68}
               id={`month-${selectedYear}-${selectedMonth}`}
             />
-            {/* Per-week earnings row */}
-            <div
-              className="flex mt-0"
-              style={{ paddingLeft: 4, paddingRight: 4 }}
-            >
-              {stats.weeklySparkline.map((v, i) => (
-                <div key={i} className="flex-1 text-center">
-                  {v > 0 && (
-                    <span
-                      className="text-[8px] font-semibold tabular-nums"
-                      style={{ color: 'hsl(var(--primary))', opacity: 0.75, letterSpacing: '-0.01em' }}
-                    >
-                      {v >= 1000 ? `$${(v / 1000).toFixed(1)}k` : `$${v.toFixed(0)}`}
-                    </span>
-                  )}
-                </div>
-              ))}
-            </div>
           </div>
         )}
       </ElevatedCard>
@@ -1548,47 +1523,103 @@ const OverviewPanel = ({
       {/* ── Top client + Unpaid invoices row ── */}
       <div className="grid grid-cols-2 gap-3">
         {stats.topClient ? (
-          <ElevatedCard style={{ padding: '16px 18px' }}>
-            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest mb-2 flex items-center gap-1">
-              <Users className="w-3 h-3" /> Top Client
-            </p>
-            <p className="text-sm font-bold text-foreground leading-tight truncate">{stats.topClient.name}</p>
-            <p className="text-sm font-bold money-text mt-0.5">{formatCurrency(stats.topClient.gross)}</p>
-            <p className="text-[10px] text-muted-foreground mt-0.5">
-              {stats.topClient.count} shift{stats.topClient.count !== 1 ? 's' : ''} this month
-            </p>
-          </ElevatedCard>
+          <div
+            className="card-elevated overflow-hidden"
+            style={{ padding: 0 }}
+          >
+            {/* Coloured top bar */}
+            <div
+              style={{
+                height: 3,
+                background: 'linear-gradient(90deg, hsl(var(--primary)/0.7), hsl(var(--primary)/0.3))',
+                borderRadius: '20px 20px 0 0',
+              }}
+            />
+            <div style={{ padding: '14px 16px' }}>
+              <div className="flex items-center gap-1.5 mb-2">
+                <div
+                  className="w-6 h-6 rounded-lg flex items-center justify-center shrink-0"
+                  style={{ background: 'hsl(var(--primary)/0.12)' }}
+                >
+                  <Users className="w-3.5 h-3.5" style={{ color: 'hsl(var(--primary))' }} />
+                </div>
+                <span className="section-label">Top Client</span>
+              </div>
+              <p className="text-sm font-bold text-foreground leading-tight truncate">{stats.topClient.name}</p>
+              <p className="text-base font-bold money-text mt-0.5 leading-tight">{formatCurrency(stats.topClient.gross)}</p>
+              <p className="text-[10px] text-muted-foreground mt-1">
+                {stats.topClient.count} shift{stats.topClient.count !== 1 ? 's' : ''} · {MONTH_SHORT[selectedMonth]}
+              </p>
+            </div>
+          </div>
         ) : clients.length > 0 ? (
-          <ElevatedCard style={{ padding: '16px 18px' }}>
-            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest mb-2 flex items-center gap-1">
-              <Users className="w-3 h-3" /> Top Client
-            </p>
-            <p className="text-xs text-muted-foreground">No client shifts this month.</p>
-          </ElevatedCard>
+          <div className="card-elevated overflow-hidden" style={{ padding: 0 }}>
+            <div style={{ height: 3, background: 'hsl(var(--border))', borderRadius: '20px 20px 0 0' }} />
+            <div style={{ padding: '14px 16px' }}>
+              <div className="flex items-center gap-1.5 mb-2">
+                <div className="w-6 h-6 rounded-lg flex items-center justify-center shrink-0" style={{ background: 'hsl(var(--muted))' }}>
+                  <Users className="w-3.5 h-3.5 text-muted-foreground" />
+                </div>
+                <span className="section-label">Top Client</span>
+              </div>
+              <p className="text-xs text-muted-foreground">No client shifts this month.</p>
+            </div>
+          </div>
         ) : null}
 
         {invoices.length > 0 && (
-          <ElevatedCard
-            style={{ padding: '16px 18px' }}
-            className={!stats.topClient && clients.length === 0 ? 'col-span-2' : ''}
+          <div
+            className={`card-elevated overflow-hidden ${!stats.topClient && clients.length === 0 ? 'col-span-2' : ''}`}
+            style={{ padding: 0 }}
           >
-            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest mb-2 flex items-center gap-1">
-              <FileText className="w-3 h-3" /> Invoices
-            </p>
-            {unpaidStats.count > 0 ? (
-              <>
-                <p className="text-sm font-bold money-text">{formatCurrency(unpaidStats.total)}</p>
-                <p className="text-[10px] text-muted-foreground mt-0.5">{unpaidStats.count} unpaid pending</p>
-              </>
-            ) : (
-              <>
-                <p className="text-sm font-bold text-foreground">All paid</p>
-                <p className="text-[10px] text-muted-foreground mt-0.5">
-                  {invoices.length} invoice{invoices.length !== 1 ? 's' : ''} total
-                </p>
-              </>
-            )}
-          </ElevatedCard>
+            {/* Coloured top bar — green if all paid, amber if unpaid */}
+            <div
+              style={{
+                height: 3,
+                background: unpaidStats.count > 0
+                  ? 'linear-gradient(90deg, hsl(var(--stat-amber)/0.8), hsl(var(--stat-amber)/0.3))'
+                  : 'linear-gradient(90deg, hsl(var(--stat-green)/0.7), hsl(var(--stat-green)/0.3))',
+                borderRadius: '20px 20px 0 0',
+              }}
+            />
+            <div style={{ padding: '14px 16px' }}>
+              <div className="flex items-center gap-1.5 mb-2">
+                <div
+                  className="w-6 h-6 rounded-lg flex items-center justify-center shrink-0"
+                  style={{
+                    background: unpaidStats.count > 0
+                      ? 'hsl(var(--stat-amber)/0.12)'
+                      : 'hsl(var(--stat-green)/0.12)',
+                  }}
+                >
+                  <FileText
+                    className="w-3.5 h-3.5"
+                    style={{
+                      color: unpaidStats.count > 0 ? 'hsl(var(--stat-amber))' : 'hsl(var(--stat-green))',
+                    }}
+                  />
+                </div>
+                <span className="section-label">Invoices</span>
+              </div>
+              {unpaidStats.count > 0 ? (
+                <>
+                  <p className="text-base font-bold leading-tight" style={{ color: 'hsl(var(--stat-amber))' }}>
+                    {formatCurrency(unpaidStats.total)}
+                  </p>
+                  <p className="text-[10px] text-muted-foreground mt-1">
+                    {unpaidStats.count} unpaid pending
+                  </p>
+                </>
+              ) : (
+                <>
+                  <p className="text-sm font-bold money-text leading-tight">All paid ✓</p>
+                  <p className="text-[10px] text-muted-foreground mt-1">
+                    {invoices.length} invoice{invoices.length !== 1 ? 's' : ''} total
+                  </p>
+                </>
+              )}
+            </div>
+          </div>
         )}
       </div>
 

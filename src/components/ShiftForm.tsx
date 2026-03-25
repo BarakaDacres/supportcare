@@ -14,7 +14,10 @@ interface ShiftFormProps {
   title?: string;
 }
 
-const today = () => new Date().toISOString().split('T')[0];
+const todayStr = () => {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+};
 
 const DEFAULT_NOTE_NORMAL = 'Assistance with Self-Care Activities';
 const DEFAULT_NOTE_EVENING = 'Assistance with Self-Care Activities — Evening';
@@ -44,7 +47,7 @@ const ShiftForm = ({
   onCancel,
   title = 'Add Shift',
 }: ShiftFormProps) => {
-  const [date, setDate] = useState(initialValues?.date ?? today());
+  const [date, setDate] = useState(initialValues?.date ?? todayStr());
   const [startTime, setStartTime] = useState(initialValues?.start_time ?? '09:00');
   const [endTime, setEndTime] = useState(initialValues?.end_time ?? '17:00');
   const [isSleepover, setIsSleepover] = useState(initialValues?.is_sleepover ?? false);
@@ -245,10 +248,10 @@ const ShiftForm = ({
       {/* ── Modal card ── */}
       <form
         onSubmit={handleSubmit}
-        className="flex flex-col w-full"
+        className="flex flex-col"
         style={{
+          width: 'calc(100vw - 32px)',
           maxWidth: 420,
-          width: '100%',
           maxHeight: 'min(90dvh, 680px)',
           background: 'hsl(var(--card))',
           borderRadius: 24,
@@ -258,7 +261,6 @@ const ShiftForm = ({
             '0 0 0 0.5px hsl(var(--border))',
           overflow: 'hidden',
           boxSizing: 'border-box',
-          contain: 'layout',
         }}
         onClick={(e) => e.stopPropagation()}
       >
@@ -283,23 +285,35 @@ const ShiftForm = ({
           className="flex-1 min-h-0 overflow-y-auto overscroll-contain"
           style={{ padding: '18px 20px 4px', boxSizing: 'border-box' }}
         >
-          <div className="space-y-4">
+          <div className="space-y-4" style={{ width: '100%', boxSizing: 'border-box' }}>
             {/* Date */}
-            <div className="space-y-1.5">
+            <div className="space-y-1.5" style={{ width: '100%' }}>
               <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Date</label>
               <input
                 type="date"
                 value={date}
                 onChange={e => handleDateChange(e.target.value)}
                 required
-                className="glass-input w-full text-foreground block"
-                style={{ minHeight: 44 }}
+                style={{
+                  display: 'block',
+                  width: '100%',
+                  minHeight: 44,
+                  boxSizing: 'border-box',
+                  background: 'hsl(var(--muted)/0.6)',
+                  border: '1px solid hsl(var(--border))',
+                  borderRadius: 12,
+                  padding: '8px 14px',
+                  fontSize: '0.875rem',
+                  fontWeight: 500,
+                  color: 'hsl(var(--foreground))',
+                  outline: 'none',
+                }}
               />
             </div>
 
-            {/* Times */}
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5 min-w-0">
+            {/* Times — two equal columns */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, width: '100%', boxSizing: 'border-box' }}>
+              <div className="space-y-1.5" style={{ minWidth: 0, width: '100%' }}>
                 <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
                   <Clock className="w-3 h-3" /> Start
                 </label>
@@ -308,11 +322,23 @@ const ShiftForm = ({
                   value={startTime}
                   onChange={e => handleStartTimeChange(e.target.value)}
                   required
-                  className="glass-input w-full text-foreground block"
-                  style={{ minHeight: 44 }}
+                  style={{
+                    display: 'block',
+                    width: '100%',
+                    minHeight: 44,
+                    boxSizing: 'border-box',
+                    background: 'hsl(var(--muted)/0.6)',
+                    border: '1px solid hsl(var(--border))',
+                    borderRadius: 12,
+                    padding: '8px 10px',
+                    fontSize: '0.875rem',
+                    fontWeight: 500,
+                    color: 'hsl(var(--foreground))',
+                    outline: 'none',
+                  }}
                 />
               </div>
-              <div className="space-y-1.5 min-w-0">
+              <div className="space-y-1.5" style={{ minWidth: 0, width: '100%' }}>
                 <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
                   <Clock className="w-3 h-3" /> End
                 </label>
@@ -321,8 +347,20 @@ const ShiftForm = ({
                   value={endTime}
                   onChange={e => handleEndTimeChange(e.target.value)}
                   required
-                  className="glass-input w-full text-foreground block"
-                  style={{ minHeight: 44 }}
+                  style={{
+                    display: 'block',
+                    width: '100%',
+                    minHeight: 44,
+                    boxSizing: 'border-box',
+                    background: 'hsl(var(--muted)/0.6)',
+                    border: '1px solid hsl(var(--border))',
+                    borderRadius: 12,
+                    padding: '8px 10px',
+                    fontSize: '0.875rem',
+                    fontWeight: 500,
+                    color: 'hsl(var(--foreground))',
+                    outline: 'none',
+                  }}
                 />
               </div>
             </div>
