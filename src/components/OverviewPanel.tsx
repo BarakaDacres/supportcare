@@ -932,12 +932,16 @@ const OverviewPanel = ({
       let weekdaySleepover = 0, weekdaySleepoverN = 0;
       let weekendSleepover = 0, weekendSleepoverN = 0;
       let publicHoliday = 0,    publicHolidayH = 0;
+      let phSleepover = 0,      phSleepoverN = 0;
 
       for (const s of thisWeekShifts) {
         const pay = effectiveGrossPay(s);
         const h = Number(s.hours_worked);
         const dow = getDayOfWeek(s.date);
 
+        if (s.is_public_holiday && s.is_sleepover) {
+          phSleepover += pay; phSleepoverN += 1; continue;
+        }
         if (s.is_public_holiday && !s.is_sleepover) {
           publicHoliday += pay; publicHolidayH += h; continue;
         }
@@ -965,6 +969,7 @@ const OverviewPanel = ({
         weekdaySleepover, weekdaySleepoverN,
         weekendSleepover, weekendSleepoverN,
         publicHoliday,    publicHolidayH,
+        phSleepover,      phSleepoverN,
       };
     })();
 
