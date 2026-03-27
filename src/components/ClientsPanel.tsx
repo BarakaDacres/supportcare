@@ -337,48 +337,91 @@ const ClientProfile = ({
         <ChevronLeft className="w-4 h-4" /> All Clients
       </button>
 
-      {/* Client header */}
-      <div className="glass-card p-5 space-y-3">
-        <div className="flex items-start justify-between gap-3">
-          <div className="flex items-center gap-3 min-w-0">
-            <div className="w-12 h-12 rounded-full flex items-center justify-center text-lg font-bold shrink-0"
-              style={{ background: 'hsl(var(--primary)/0.12)', color: 'hsl(var(--primary))' }}>
-              {client.name[0].toUpperCase()}
+      {/* Client hero card */}
+      <div className="card-elevated overflow-hidden">
+        {/* Accent header band */}
+        <div style={{ height: 4, background: 'linear-gradient(90deg, hsl(var(--primary)), hsl(var(--primary)/0.5))' }} />
+        <div className="p-5 space-y-4">
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex items-center gap-3.5 min-w-0">
+              <div className="w-14 h-14 rounded-2xl flex items-center justify-center text-lg font-bold shrink-0"
+                style={{ background: 'hsl(var(--primary)/0.1)', color: 'hsl(var(--primary))' }}>
+                {client.name[0].toUpperCase()}
+              </div>
+              <div className="min-w-0">
+                <h2 className="text-lg font-bold text-foreground leading-tight">{client.name}</h2>
+                {client.display_name && <p className="text-xs text-muted-foreground mt-0.5">{client.display_name}</p>}
+                <span className={`inline-flex items-center gap-1 mt-1.5 rounded-full px-2.5 py-0.5 text-[10px] font-semibold`}
+                  style={{
+                    background: client.active ? 'hsl(var(--stat-green)/0.1)' : 'hsl(var(--muted))',
+                    color: client.active ? 'hsl(var(--stat-green))' : 'hsl(var(--muted-foreground))',
+                  }}>
+                  {client.active ? '● Active' : '○ Inactive'}
+                </span>
+              </div>
             </div>
-            <div className="min-w-0">
-              <h2 className="text-base font-bold text-foreground">{client.name}</h2>
-              {client.display_name && <p className="text-xs text-muted-foreground">{client.display_name}</p>}
-              <span className={`inline-flex items-center gap-1 mt-1 rounded-full px-2 py-0.5 text-[10px] font-semibold ${client.active ? 'text-emerald-600' : 'text-muted-foreground'}`}
-                style={{ background: client.active ? 'hsl(142 76% 36%/0.1)' : 'hsl(var(--muted))' }}>
-                {client.active ? '● Active' : '○ Inactive'}
-              </span>
-            </div>
+            <button onClick={onEdit}
+              className="flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-semibold shrink-0 transition-all active:scale-95"
+              style={{ background: 'hsl(var(--primary)/0.1)', color: 'hsl(var(--primary))' }}>
+              <Pencil className="w-3 h-3" /> Edit
+            </button>
           </div>
-          <button onClick={onEdit}
-            className="glass-chip py-2 px-3 text-xs shrink-0 gap-1.5">
-            <Pencil className="w-3 h-3" /> Edit
-          </button>
-        </div>
 
-      {/* Detail chips */}
-        <div className="flex flex-wrap gap-2">
-          {client.participant_number && (
-            <span className="glass-chip text-xs gap-1.5"><Hash className="w-3 h-3" /> {client.participant_number}</span>
+          {/* Info chips */}
+          {(client.participant_number || client.phone || client.address) && (
+            <div className="flex flex-wrap gap-2">
+              {client.participant_number && (
+                <span className="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-xl"
+                  style={{ background: 'hsl(var(--muted)/0.6)', color: 'hsl(var(--foreground))' }}>
+                  <Hash className="w-3 h-3 text-muted-foreground" /> {client.participant_number}
+                </span>
+              )}
+              {client.phone && (
+                <span className="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-xl"
+                  style={{ background: 'hsl(var(--muted)/0.6)', color: 'hsl(var(--foreground))' }}>
+                  <Phone className="w-3 h-3 text-muted-foreground" /> {client.phone}
+                </span>
+              )}
+              {client.address && (
+                <span className="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-xl"
+                  style={{ background: 'hsl(var(--muted)/0.6)', color: 'hsl(var(--foreground))' }}>
+                  <MapPin className="w-3 h-3 text-muted-foreground" /> {client.address}
+                </span>
+              )}
+            </div>
           )}
-          {client.phone && (
-            <span className="glass-chip text-xs gap-1.5"><Phone className="w-3 h-3" /> {client.phone}</span>
-          )}
-          {client.address && (
-            <span className="glass-chip text-xs gap-1.5"><MapPin className="w-3 h-3" /> {client.address}</span>
+
+          {client.notes && (
+            <p className="text-xs text-muted-foreground border-t border-border pt-3">{client.notes}</p>
           )}
         </div>
-
-        {client.notes && (
-          <p className="text-xs text-muted-foreground border-t border-border pt-2.5">{client.notes}</p>
-        )}
       </div>
 
-      {/* Billing / participant details */}
+      {/* Stats row */}
+      <div className="grid grid-cols-3 gap-2.5">
+        {[
+          { label: 'Total Earned', value: formatCurrency(totalEarnings), icon: <DollarSign className="w-4 h-4" />, color: 'hsl(var(--money-green))' },
+          { label: 'Hours', value: `${totalHours.toFixed(0)}h`, icon: <Clock className="w-4 h-4" />, color: 'hsl(var(--primary))' },
+          { label: 'Shifts', value: String(clientShifts.length), icon: <BarChart2 className="w-4 h-4" />, color: 'hsl(var(--purple))' },
+        ].map(s => (
+          <div key={s.label} className="card-elevated p-3.5 space-y-1.5 text-center">
+            <div className="w-8 h-8 rounded-xl mx-auto flex items-center justify-center" style={{ background: `${s.color}15`, color: s.color }}>{s.icon}</div>
+            <p className="text-base font-bold text-foreground">{s.value}</p>
+            <p className="text-[10px] text-muted-foreground font-medium">{s.label}</p>
+          </div>
+        ))}
+      </div>
+
+      {totalSleepovers > 0 && (
+        <div className="flex items-center justify-center gap-2 py-2.5 rounded-2xl"
+          style={{ background: 'hsl(var(--primary)/0.06)', border: '1px solid hsl(var(--primary)/0.12)' }}>
+          <Moon className="w-3.5 h-3.5" style={{ color: 'hsl(var(--primary))' }} />
+          <span className="text-sm font-semibold text-foreground">{totalSleepovers}</span>
+          <span className="text-xs text-muted-foreground">sleepover{totalSleepovers !== 1 ? 's' : ''}</span>
+        </div>
+      )}
+
+      {/* Billing & Participant details */}
       {(() => {
         const org     = client.organisation_name;
         const contact = client.billing_contact;
@@ -386,120 +429,115 @@ const ClientProfile = ({
         const pn      = client.participant_number;
         if (!org && !contact && !email && !pn && !client.phone) return null;
         return (
-          <div className="glass-card p-4 space-y-2">
-            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Participant &amp; Billing</p>
-            {org && (
-              <div className="flex items-start gap-2">
-                <FileText className="w-3.5 h-3.5 text-muted-foreground shrink-0 mt-0.5" />
-                <div className="min-w-0">
-                  <p className="text-[9px] text-muted-foreground uppercase tracking-wider mb-0.5">Organisation</p>
-                  <p className="text-xs font-semibold text-foreground">{org}</p>
+          <div className="card-elevated p-4 space-y-3">
+            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Participant & Billing</p>
+            <div className="space-y-2.5">
+              {org && (
+                <div className="flex items-start gap-2.5">
+                  <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0 mt-0.5" style={{ background: 'hsl(var(--muted))' }}>
+                    <FileText className="w-3.5 h-3.5 text-muted-foreground" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-[9px] text-muted-foreground uppercase tracking-wider mb-0.5">Organisation</p>
+                    <p className="text-xs font-semibold text-foreground">{org}</p>
+                  </div>
                 </div>
-              </div>
-            )}
-            {contact && (
-              <div className="flex items-start gap-2">
-                <User className="w-3.5 h-3.5 text-muted-foreground shrink-0 mt-0.5" />
-                <div className="min-w-0">
-                  <p className="text-[9px] text-muted-foreground uppercase tracking-wider mb-0.5">Billing Contact</p>
-                  <p className="text-xs font-semibold text-foreground">{contact}</p>
+              )}
+              {contact && (
+                <div className="flex items-start gap-2.5">
+                  <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0 mt-0.5" style={{ background: 'hsl(var(--muted))' }}>
+                    <User className="w-3.5 h-3.5 text-muted-foreground" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-[9px] text-muted-foreground uppercase tracking-wider mb-0.5">Billing Contact</p>
+                    <p className="text-xs font-semibold text-foreground">{contact}</p>
+                  </div>
                 </div>
-              </div>
-            )}
-            {email && (
-              <div className="flex items-start gap-2">
-                <FileText className="w-3.5 h-3.5 text-muted-foreground shrink-0 mt-0.5" />
-                <div className="min-w-0">
-                  <p className="text-[9px] text-muted-foreground uppercase tracking-wider mb-0.5">Email</p>
-                  <p className="text-xs font-semibold text-foreground">{email}</p>
+              )}
+              {email && (
+                <div className="flex items-start gap-2.5">
+                  <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0 mt-0.5" style={{ background: 'hsl(var(--muted))' }}>
+                    <FileText className="w-3.5 h-3.5 text-muted-foreground" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-[9px] text-muted-foreground uppercase tracking-wider mb-0.5">Email</p>
+                    <p className="text-xs font-semibold text-foreground">{email}</p>
+                  </div>
                 </div>
-              </div>
-            )}
-            {pn && (
-              <div className="flex items-start gap-2">
-                <Hash className="w-3.5 h-3.5 text-muted-foreground shrink-0 mt-0.5" />
-                <div className="min-w-0">
-                  <p className="text-[9px] text-muted-foreground uppercase tracking-wider mb-0.5">NDIS Participant No.</p>
-                  <p className="text-xs font-semibold text-foreground">{pn}</p>
+              )}
+              {pn && (
+                <div className="flex items-start gap-2.5">
+                  <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0 mt-0.5" style={{ background: 'hsl(var(--muted))' }}>
+                    <Hash className="w-3.5 h-3.5 text-muted-foreground" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-[9px] text-muted-foreground uppercase tracking-wider mb-0.5">NDIS Participant No.</p>
+                    <p className="text-xs font-semibold text-foreground">{pn}</p>
+                  </div>
                 </div>
-              </div>
-            )}
-            {client.phone && (
-              <div className="flex items-start gap-2">
-                <Phone className="w-3.5 h-3.5 text-muted-foreground shrink-0 mt-0.5" />
-                <div className="min-w-0">
-                  <p className="text-[9px] text-muted-foreground uppercase tracking-wider mb-0.5">Phone</p>
-                  <p className="text-xs font-semibold text-foreground">{client.phone}</p>
+              )}
+              {client.phone && !pn && (
+                <div className="flex items-start gap-2.5">
+                  <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0 mt-0.5" style={{ background: 'hsl(var(--muted))' }}>
+                    <Phone className="w-3.5 h-3.5 text-muted-foreground" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-[9px] text-muted-foreground uppercase tracking-wider mb-0.5">Phone</p>
+                    <p className="text-xs font-semibold text-foreground">{client.phone}</p>
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
+            </div>
           </div>
         );
       })()}
 
-      {/* Stats */}
-      <div className="grid grid-cols-3 gap-2">
-        {[
-          { label: 'Total Earned', value: formatCurrency(totalEarnings), icon: <DollarSign className="w-4 h-4" /> },
-          { label: 'Hours', value: `${totalHours.toFixed(0)}h`, icon: <Clock className="w-4 h-4" /> },
-          { label: 'Shifts', value: String(clientShifts.length), icon: <BarChart2 className="w-4 h-4" /> },
-        ].map(s => (
-          <div key={s.label} className="glass-card p-3 space-y-1 text-center">
-            <div className="flex justify-center" style={{ color: 'hsl(var(--primary))' }}>{s.icon}</div>
-            <p className="text-base font-bold text-foreground">{s.value}</p>
-            <p className="text-[10px] text-muted-foreground">{s.label}</p>
-          </div>
-        ))}
-      </div>
-
-      {totalSleepovers > 0 && (
-        <div className="glass-chip w-full justify-center gap-2 py-2.5">
-          <Moon className="w-3.5 h-3.5 text-primary" />
-          <span className="text-sm font-semibold text-foreground">{totalSleepovers}</span>
-          <span className="text-xs text-muted-foreground">sleepover{totalSleepovers !== 1 ? 's' : ''}</span>
-        </div>
-      )}
-
-      {/* Shift defaults summary */}
+      {/* Shift defaults */}
       {(client.default_start_time || client.default_end_time || client.default_service_note) && (
-        <div className="glass-card p-4 space-y-2">
+        <div className="card-elevated p-4 space-y-2.5">
           <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Shift Defaults</p>
           {(client.default_start_time || client.default_end_time) && (
-            <div className="flex items-center gap-2">
-              <Clock className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
-              <span className="text-xs text-foreground">
+            <div className="flex items-center gap-2.5">
+              <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0" style={{ background: 'hsl(var(--muted))' }}>
+                <Clock className="w-3.5 h-3.5 text-muted-foreground" />
+              </div>
+              <span className="text-xs font-medium text-foreground">
                 {client.default_start_time ? formatTime12h(client.default_start_time) : '—'}
                 {' – '}
                 {client.default_end_time ? formatTime12h(client.default_end_time) : '—'}
               </span>
               {client.default_is_sleepover && (
-                <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full text-white"
-                  style={{ background: '#2563EB' }}>Sleepover</span>
+                <span className="text-[10px] font-semibold px-2.5 py-0.5 rounded-full"
+                  style={{ background: 'hsl(var(--primary)/0.1)', color: 'hsl(var(--primary))' }}>Sleepover</span>
               )}
             </div>
           )}
           {client.default_service_note && (
-            <p className="text-xs text-muted-foreground">{client.default_service_note}</p>
+            <p className="text-xs text-muted-foreground pl-9">{client.default_service_note}</p>
           )}
         </div>
       )}
 
       {/* Recent shifts */}
       {recentShifts.length > 0 && (
-        <div className="glass-card p-4 space-y-3">
-          <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Recent Shifts</p>
-          {recentShifts.map(s => (
-            <div key={s.id} className="flex items-center justify-between gap-3 py-2 border-t border-border first:border-0 first:pt-0">
-              <div className="min-w-0">
-                <p className="text-xs font-semibold text-foreground">{formatDateLabel(s.date)}</p>
-                <p className="text-[10px] text-muted-foreground">
-                  {formatTime12h(s.start_time)} – {formatTime12h(s.end_time)}
-                  {s.is_sleepover ? ' · Sleepover' : ''}
-                </p>
+        <div className="card-elevated overflow-hidden">
+          <div className="px-4 pt-4 pb-2">
+            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Recent Shifts</p>
+          </div>
+          <div className="divide-y divide-border">
+            {recentShifts.map(s => (
+              <div key={s.id} className="flex items-center justify-between gap-3 px-4 py-3">
+                <div className="min-w-0">
+                  <p className="text-xs font-semibold text-foreground">{formatDateLabel(s.date)}</p>
+                  <p className="text-[10px] text-muted-foreground">
+                    {formatTime12h(s.start_time)} – {formatTime12h(s.end_time)}
+                    {s.is_sleepover ? ' · Sleepover' : ''}
+                  </p>
+                </div>
+                <span className="text-xs font-bold money-text shrink-0">{formatCurrency(effectiveGrossPay(s))}</span>
               </div>
-              <span className="text-xs font-bold money-text shrink-0">{formatCurrency(effectiveGrossPay(s))}</span>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       )}
     </div>
