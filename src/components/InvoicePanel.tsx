@@ -1453,8 +1453,8 @@ const InvoicePanel = ({
                          </div>
                        ))}
                        <div style={{ borderTop: `1px solid ${P.cardBorder}`, marginTop: 6, paddingTop: 6, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                         <span style={{ fontSize: 7.5, fontWeight: 700, color: P.mid, textTransform: 'uppercase' as const, letterSpacing: '0.06em' }}>BALANCE DUE</span>
-                         <span style={{ fontSize: 12, fontWeight: 800, color: P.ink }}>{fmt$(preview.total)}</span>
+                         <span style={{ fontSize: 7.5, fontWeight: 700, color: P.accent, textTransform: 'uppercase' as const, letterSpacing: '0.06em' }}>BALANCE DUE</span>
+                         <span style={{ fontSize: 12, fontWeight: 800, color: P.accent }}>{fmt$(preview.total)}</span>
                        </div>
                      </div>
                   </div>
