@@ -381,7 +381,7 @@ const ShiftForm = ({
                   label="Start"
                   icon={<Clock className="w-4 h-4" />}
                   displayValue={formatTimeDisplay(startTime)}
-                  onClick={() => startRef.current?.showPicker?.() || startRef.current?.focus()}
+                  onClick={() => { startRef.current?.showPicker?.(); startRef.current?.focus(); }}
                 />
                 <InputTile
                   label="End"
