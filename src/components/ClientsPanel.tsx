@@ -665,10 +665,13 @@ const ClientsPanel = ({ clients, shifts, loading, onAdd, onUpdate, onDelete }: C
         /* List view */
         <div className="space-y-3">
           <div className="flex items-center justify-between">
-            <h2 className="text-lg font-bold text-foreground">Clients</h2>
+            <div>
+              <h2 className="text-lg font-bold text-foreground">Clients</h2>
+              <p className="text-xs text-muted-foreground mt-0.5">{clients.length} client{clients.length !== 1 ? 's' : ''}</p>
+            </div>
             <button
               onClick={() => setView('add')}
-              className="flex items-center gap-1.5 rounded-2xl px-4 py-2.5 text-sm font-bold transition-all duration-200"
+              className="flex items-center gap-1.5 rounded-xl px-4 py-2.5 text-sm font-bold transition-all duration-200 active:scale-95"
               style={{
                 background: 'hsl(var(--primary))',
                 color: 'hsl(var(--primary-foreground))',
@@ -680,54 +683,64 @@ const ClientsPanel = ({ clients, shifts, loading, onAdd, onUpdate, onDelete }: C
           </div>
 
           {clients.length === 0 ? (
-            <div className="glass-card p-10 text-center space-y-3">
-              <User className="w-10 h-10 mx-auto text-muted-foreground opacity-40" />
+            <div className="card-elevated p-10 text-center space-y-3">
+              <div className="w-16 h-16 rounded-2xl mx-auto flex items-center justify-center" style={{ background: 'hsl(var(--primary)/0.08)' }}>
+                <User className="w-8 h-8" style={{ color: 'hsl(var(--primary)/0.4)' }} />
+              </div>
               <p className="text-sm font-semibold text-foreground">No clients yet</p>
-              <p className="text-xs text-muted-foreground">Add a client to assign them to shifts and generate targeted invoices.</p>
+              <p className="text-xs text-muted-foreground max-w-[240px] mx-auto">Add a client to assign them to shifts and generate targeted invoices.</p>
               <button
                 onClick={() => setView('add')}
-                className="mt-2 px-5 py-2.5 rounded-2xl text-sm font-bold"
+                className="mt-2 px-5 py-2.5 rounded-xl text-sm font-bold transition-all active:scale-95"
                 style={{ background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))' }}>
                 Add your first client
               </button>
             </div>
           ) : (
-            <div className="space-y-2">
+            <div className="space-y-2.5">
               {clients.map(client => {
                 const clientShifts = shifts.filter(s => s.client_id === client.id);
                 const earned = clientShifts.reduce((s, sh) => s + effectiveGrossPay(sh), 0);
                 return (
                   <div
                     key={client.id}
-                    className="glass-card p-4 flex items-center gap-3 cursor-pointer active:scale-[0.99] transition-transform duration-100"
+                    className="card-elevated overflow-hidden cursor-pointer active:scale-[0.99] transition-transform duration-100"
                     onClick={() => { setSelectedClientId(client.id); setView('profile'); }}
                   >
-                    <div className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold shrink-0"
-                      style={{ background: 'hsl(var(--primary)/0.12)', color: 'hsl(var(--primary))' }}>
-                      {client.name[0].toUpperCase()}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-foreground truncate">{client.name}</p>
-                      <p className="text-[10px] text-muted-foreground">
-                        {clientShifts.length} shift{clientShifts.length !== 1 ? 's' : ''}
-                        {earned > 0 ? ` · ${formatCurrency(earned)}` : ''}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-2 shrink-0">
-                      {!client.active && (
-                        <span className="text-[9px] font-semibold px-2 py-0.5 rounded-full"
-                          style={{ background: 'hsl(var(--muted))', color: 'hsl(var(--muted-foreground))' }}>
-                          Inactive
-                        </span>
-                      )}
-                      <button
-                        onClick={e => { e.stopPropagation(); setDeleteConfirm(client.id); }}
-                        className="w-7 h-7 flex items-center justify-center rounded-full transition-colors hover:bg-destructive/10"
-                        style={{ color: 'hsl(var(--muted-foreground))' }}
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                      <ChevronRight className="w-4 h-4 text-muted-foreground" />
+                    {/* Subtle accent line */}
+                    <div style={{ height: 2, background: client.active ? 'hsl(var(--primary)/0.3)' : 'hsl(var(--muted-foreground)/0.15)' }} />
+                    <div className="p-4 flex items-center gap-3.5">
+                      <div className="w-11 h-11 rounded-xl flex items-center justify-center text-sm font-bold shrink-0"
+                        style={{ background: 'hsl(var(--primary)/0.1)', color: 'hsl(var(--primary))' }}>
+                        {client.name[0].toUpperCase()}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-foreground truncate">{client.name}</p>
+                        <div className="flex items-center gap-2 mt-0.5">
+                          <p className="text-[10px] text-muted-foreground">
+                            {clientShifts.length} shift{clientShifts.length !== 1 ? 's' : ''}
+                          </p>
+                          {earned > 0 && (
+                            <span className="text-[10px] font-semibold money-text">{formatCurrency(earned)}</span>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        {!client.active && (
+                          <span className="text-[9px] font-semibold px-2 py-0.5 rounded-full"
+                            style={{ background: 'hsl(var(--muted))', color: 'hsl(var(--muted-foreground))' }}>
+                            Inactive
+                          </span>
+                        )}
+                        <button
+                          onClick={e => { e.stopPropagation(); setDeleteConfirm(client.id); }}
+                          className="w-7 h-7 flex items-center justify-center rounded-lg transition-colors hover:bg-destructive/10"
+                          style={{ color: 'hsl(var(--muted-foreground))' }}
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                        <ChevronRight className="w-4 h-4 text-muted-foreground" />
+                      </div>
                     </div>
                   </div>
                 );
