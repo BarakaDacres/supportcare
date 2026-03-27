@@ -419,9 +419,9 @@ async function exportToPDF(snap: InvoiceSnapshot, lineGroups: ReturnType<typeof 
   doc.setDrawColor(...rgb(P.cardBorder)); doc.setLineWidth(0.25);
   doc.line(rx + CARD_PAD_X, dy, rx + halfW - CARD_PAD_X, dy);
   dy += 4;
-  sf(7.5, 'bold', P.mid);
+  sf(7.5, 'bold', P.accent);
   tx('BALANCE DUE', rx + CARD_PAD_X, dy);
-  sf(10, 'bold', P.ink);
+  sf(10, 'bold', P.accent);
   tx(fmt$(snap.total), rx + halfW - CARD_PAD_X, dy, { align: 'right' });
 
   y += finalCardH + 6;
