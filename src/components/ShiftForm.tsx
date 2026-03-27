@@ -372,7 +372,7 @@ const ShiftForm = ({
                 label="Date"
                 icon={<Calendar className="w-4 h-4" />}
                 displayValue={formatDateDisplay(date)}
-                onClick={() => dateRef.current?.showPicker?.() || dateRef.current?.focus()}
+                onClick={() => { dateRef.current?.showPicker?.(); dateRef.current?.focus(); }}
               />
 
               {/* Time tiles row */}
