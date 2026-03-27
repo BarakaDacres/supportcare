@@ -1573,7 +1573,10 @@ const InvoicePanel = ({
                         ))}
                       </div>
                       <div style={{ borderTop: `1px solid ${P.cardBorder}`, paddingTop: 5, fontSize: 7.5, color: P.muted }}>
-                        Payment due within 7 days of invoice date.
+                        {(preview.invoiceDueDays ?? 7) === 0
+                          ? 'Payment due on receipt of this invoice.'
+                          : `Payment due within ${preview.invoiceDueDays ?? 7} day${(preview.invoiceDueDays ?? 7) !== 1 ? 's' : ''} of invoice date.`
+                        }
                       </div>
                     </div>
                   )}
