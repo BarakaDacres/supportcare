@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { X, Clock, Moon, User, FileText, ChevronDown, DollarSign, Star, Sunset } from 'lucide-react';
+import { X, Clock, Moon, User, FileText, ChevronDown, DollarSign, Star, Sunset, Calendar } from 'lucide-react';
 import { calculateShiftPay, formatTime12h, type PayRates, DEFAULT_RATES, getDayOfWeek, isWeekendSleeperNight, shiftHasEveningHours, dayLabel } from '@/lib/shiftCalculator';
 import { formatCurrency } from '@/lib/formatUtils';
 import type { NewShift } from '@/hooks/useShifts';
@@ -37,6 +37,25 @@ function getDefaultNote(isSleepover: boolean, startTime: string, endTime: string
   if (isSleepover) return getSleeoverNote(dateStr, rates);
   if (shiftHasEveningHours(startTime, endTime)) return DEFAULT_NOTE_EVENING;
   return DEFAULT_NOTE_NORMAL;
+}
+
+/* Format date for display */
+function formatDateDisplay(dateStr: string): string {
+  if (!dateStr) return '';
+  const [y, m, d] = dateStr.split('-').map(Number);
+  const date = new Date(y, m - 1, d);
+  const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  return `${days[date.getDay()]}, ${d} ${months[m - 1]} ${y}`;
+}
+
+/* Format time for display */
+function formatTimeDisplay(time: string): string {
+  if (!time) return '';
+  const [h, m] = time.split(':').map(Number);
+  const ampm = h >= 12 ? 'PM' : 'AM';
+  const h12 = h === 0 ? 12 : h > 12 ? h - 12 : h;
+  return `${h12}:${String(m).padStart(2, '0')} ${ampm}`;
 }
 
 const ShiftForm = ({
@@ -81,12 +100,15 @@ const ShiftForm = ({
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
+  const dateRef = useRef<HTMLInputElement>(null);
+  const startRef = useRef<HTMLInputElement>(null);
+  const endRef = useRef<HTMLInputElement>(null);
+
   useEffect(() => {
     document.body.style.overflow = 'hidden';
     return () => { document.body.style.overflow = ''; };
   }, []);
 
-  // Apply client defaults when a new client is selected (only for new shifts)
   const handleClientChange = (newClientId: string) => {
     setClientId(newClientId);
     if (!isNew) return;
@@ -129,12 +151,10 @@ const ShiftForm = ({
     setIsPhSleepover(prev => {
       const next = !prev;
       if (next) {
-        // PH Sleepover implies sleepover + public holiday
         setIsSleepover(true);
         setIsPublicHoliday(true);
         setStartTime('22:00');
         setEndTime('06:00');
-        // Default fee to $400 if not already overridden
         if (!feeOverride) setFeeOverride('400');
         if (!notesCustomised.current) {
           setNotes('Night Sleepover Support - Public Holiday');
@@ -184,7 +204,6 @@ const ShiftForm = ({
   const phSleepoverRate = 400;
   const eveningRate = rates.rate_evening ?? 75;
 
-  // For PH sleepover, effective pay is $400 flat (or override)
   const calc =
     date && startTime && endTime
       ? calculateShiftPay(date, startTime, endTime, isSleepover, rates, isPublicHoliday)
@@ -206,7 +225,6 @@ const ShiftForm = ({
     setSubmitError(null);
     setSubmitting(true);
     try {
-      // For PH sleepover: set fee_override to $400 if not already overridden
       const finalFeeOverride = isPhSleepover && (feeOverrideNum == null || feeOverrideNum <= 0)
         ? phSleepoverRate
         : (feeOverrideNum != null && feeOverrideNum > 0 ? feeOverrideNum : null);
@@ -221,7 +239,6 @@ const ShiftForm = ({
         notes: notes.trim() || null,
         fee_override: finalFeeOverride,
       });
-      // Success — form closure is handled by parent after onSubmit resolves
     } catch (err) {
       console.error('Failed to save shift:', err);
       setSubmitError(
@@ -231,8 +248,44 @@ const ShiftForm = ({
     }
   };
 
+  /* Styled input tile component */
+  const InputTile = ({
+    label,
+    icon,
+    displayValue,
+    onClick,
+  }: {
+    label: string;
+    icon: React.ReactNode;
+    displayValue: string;
+    onClick: () => void;
+  }) => (
+    <button
+      type="button"
+      onClick={onClick}
+      className="flex items-center gap-3 rounded-2xl border transition-all duration-150 active:scale-[0.98] w-full text-left"
+      style={{
+        minHeight: 52,
+        padding: '10px 14px',
+        borderColor: 'hsl(var(--border))',
+        background: 'hsl(var(--muted)/0.4)',
+      }}
+    >
+      <div
+        className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
+        style={{ background: 'hsl(var(--primary)/0.1)' }}
+      >
+        <span style={{ color: 'hsl(var(--primary))' }}>{icon}</span>
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider leading-none mb-1">{label}</p>
+        <p className="text-sm font-semibold text-foreground truncate">{displayValue || '—'}</p>
+      </div>
+      <ChevronDown className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+    </button>
+  );
+
   return (
-    /* ── Backdrop ── */
     <div
       className="fixed inset-0 z-[60] flex items-center justify-center"
       style={{
@@ -241,18 +294,17 @@ const ShiftForm = ({
         paddingTop: 'max(16px, env(safe-area-inset-top, 16px))',
         paddingBottom: 'max(16px, env(safe-area-inset-bottom, 16px))',
         background: 'hsl(var(--foreground)/0.45)',
-        backdropFilter: 'blur(4px)',
+        backdropFilter: 'blur(6px)',
       }}
       onClick={(e) => { if (e.target === e.currentTarget) onCancel(); }}
     >
-      {/* ── Modal card ── */}
       <form
         onSubmit={handleSubmit}
         className="flex flex-col"
         style={{
           width: 'calc(100vw - 32px)',
           maxWidth: 420,
-          maxHeight: 'min(90dvh, 680px)',
+          maxHeight: 'min(90dvh, 700px)',
           background: 'hsl(var(--card))',
           borderRadius: 24,
           boxShadow:
@@ -267,7 +319,7 @@ const ShiftForm = ({
         {/* ── Header ── */}
         <div
           className="flex items-center justify-between shrink-0"
-          style={{ borderBottom: '0.5px solid hsl(var(--border))', padding: '16px 20px' }}
+          style={{ borderBottom: '0.5px solid hsl(var(--border))', padding: '14px 20px' }}
         >
           <h2 className="text-base font-bold text-foreground">{title}</h2>
           <button
@@ -283,90 +335,65 @@ const ShiftForm = ({
         {/* ── Scrollable body ── */}
         <div
           className="flex-1 min-h-0 overflow-y-auto overscroll-contain"
-          style={{ padding: '18px 20px 4px', boxSizing: 'border-box' }}
+          style={{ padding: '16px 20px 4px', boxSizing: 'border-box' }}
         >
-          <div className="space-y-4" style={{ width: '100%', boxSizing: 'border-box' }}>
-            {/* Date */}
-            <div className="space-y-1.5" style={{ width: '100%' }}>
-              <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Date</label>
+          <div className="space-y-3" style={{ width: '100%', boxSizing: 'border-box' }}>
+
+            {/* ── Date & Time Section ── */}
+            <div className="space-y-2">
+              {/* Hidden native inputs */}
               <input
+                ref={dateRef}
                 type="date"
                 value={date}
                 onChange={e => handleDateChange(e.target.value)}
-                required
-                style={{
-                  display: 'block',
-                  width: '100%',
-                  minHeight: 44,
-                  boxSizing: 'border-box',
-                  background: 'hsl(var(--muted)/0.6)',
-                  border: '1px solid hsl(var(--border))',
-                  borderRadius: 12,
-                  padding: '8px 14px',
-                  fontSize: '0.875rem',
-                  fontWeight: 500,
-                  color: 'hsl(var(--foreground))',
-                  outline: 'none',
-                }}
+                className="sr-only"
+                tabIndex={-1}
               />
-            </div>
+              <input
+                ref={startRef}
+                type="time"
+                value={startTime}
+                onChange={e => handleStartTimeChange(e.target.value)}
+                className="sr-only"
+                tabIndex={-1}
+              />
+              <input
+                ref={endRef}
+                type="time"
+                value={endTime}
+                onChange={e => handleEndTimeChange(e.target.value)}
+                className="sr-only"
+                tabIndex={-1}
+              />
 
-            {/* Times — two equal columns */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, width: '100%', boxSizing: 'border-box' }}>
-              <div className="space-y-1.5" style={{ minWidth: 0, width: '100%' }}>
-                <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
-                  <Clock className="w-3 h-3" /> Start
-                </label>
-                <input
-                  type="time"
-                  value={startTime}
-                  onChange={e => handleStartTimeChange(e.target.value)}
-                  required
-                  style={{
-                    display: 'block',
-                    width: '100%',
-                    minHeight: 44,
-                    boxSizing: 'border-box',
-                    background: 'hsl(var(--muted)/0.6)',
-                    border: '1px solid hsl(var(--border))',
-                    borderRadius: 12,
-                    padding: '8px 10px',
-                    fontSize: '0.875rem',
-                    fontWeight: 500,
-                    color: 'hsl(var(--foreground))',
-                    outline: 'none',
-                  }}
+              {/* Date tile */}
+              <InputTile
+                label="Date"
+                icon={<Calendar className="w-4 h-4" />}
+                displayValue={formatDateDisplay(date)}
+                onClick={() => { dateRef.current?.showPicker?.(); dateRef.current?.focus(); }}
+              />
+
+              {/* Time tiles row */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, width: '100%', boxSizing: 'border-box' }}>
+                <InputTile
+                  label="Start"
+                  icon={<Clock className="w-4 h-4" />}
+                  displayValue={formatTimeDisplay(startTime)}
+                  onClick={() => { startRef.current?.showPicker?.(); startRef.current?.focus(); }}
                 />
-              </div>
-              <div className="space-y-1.5" style={{ minWidth: 0, width: '100%' }}>
-                <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
-                  <Clock className="w-3 h-3" /> End
-                </label>
-                <input
-                  type="time"
-                  value={endTime}
-                  onChange={e => handleEndTimeChange(e.target.value)}
-                  required
-                  style={{
-                    display: 'block',
-                    width: '100%',
-                    minHeight: 44,
-                    boxSizing: 'border-box',
-                    background: 'hsl(var(--muted)/0.6)',
-                    border: '1px solid hsl(var(--border))',
-                    borderRadius: 12,
-                    padding: '8px 10px',
-                    fontSize: '0.875rem',
-                    fontWeight: 500,
-                    color: 'hsl(var(--foreground))',
-                    outline: 'none',
-                  }}
+                <InputTile
+                  label="End"
+                  icon={<Clock className="w-4 h-4" />}
+                  displayValue={formatTimeDisplay(endTime)}
+                  onClick={() => { endRef.current?.showPicker?.(); endRef.current?.focus(); }}
                 />
               </div>
             </div>
 
             {/* Toggles */}
-            <div className="space-y-2.5">
+            <div className="space-y-2">
               {/* Sleepover */}
               <button
                 type="button"
@@ -435,7 +462,7 @@ const ShiftForm = ({
                 </button>
               )}
 
-              {/* Public Holiday Sleepover — only shown when sleepover is active */}
+              {/* Public Holiday Sleepover */}
               {isSleepover && (
                 <button
                   type="button"
@@ -497,7 +524,7 @@ const ShiftForm = ({
                     onChange={e => setFeeOverride(e.target.value)}
                     placeholder={isPhSleepover ? '400' : calc ? String(calc.grossPay) : ''}
                     className="glass-input flex-1 text-foreground"
-                    style={{ minHeight: 44 }}
+                    style={{ minHeight: 44, width: '100%', boxSizing: 'border-box' }}
                   />
                 </div>
                 <p className="text-[10px] text-muted-foreground">
@@ -521,7 +548,7 @@ const ShiftForm = ({
                     value={clientId}
                     onChange={e => handleClientChange(e.target.value)}
                     className="glass-input w-full text-foreground appearance-none pr-8"
-                    style={{ minHeight: 44 }}
+                    style={{ minHeight: 44, boxSizing: 'border-box' }}
                   >
                     <option value="">No client</option>
                     {clients.filter(c => c.active).map(c => (
@@ -550,6 +577,7 @@ const ShiftForm = ({
                 rows={2}
                 placeholder="Any notes…"
                 className="glass-input w-full text-foreground resize-none"
+                style={{ boxSizing: 'border-box' }}
               />
             </div>
 
@@ -645,7 +673,7 @@ const ShiftForm = ({
         {/* ── Footer ── */}
         <div
           className="shrink-0 space-y-2"
-          style={{ borderTop: '0.5px solid hsl(var(--border))', padding: '12px 24px 20px', boxSizing: 'border-box' }}
+          style={{ borderTop: '0.5px solid hsl(var(--border))', padding: '12px 20px 20px', boxSizing: 'border-box' }}
         >
           {submitError && (
             <p className="text-xs text-destructive text-center px-2">{submitError}</p>

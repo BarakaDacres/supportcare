@@ -419,16 +419,16 @@ async function exportToPDF(snap: InvoiceSnapshot, lineGroups: ReturnType<typeof 
   doc.setDrawColor(...rgb(P.cardBorder)); doc.setLineWidth(0.25);
   doc.line(rx + CARD_PAD_X, dy, rx + halfW - CARD_PAD_X, dy);
   dy += 4;
-  sf(7.5, 'bold', P.mid);
+  sf(7.5, 'bold', P.accent);
   tx('BALANCE DUE', rx + CARD_PAD_X, dy);
-  sf(10, 'bold', P.ink);
+  sf(10, 'bold', P.accent);
   tx(fmt$(snap.total), rx + halfW - CARD_PAD_X, dy, { align: 'right' });
 
   y += finalCardH + 6;
 
   // ── SERVICES RENDERED ────────────────────────────────────────────────────
-  const TABLE_PAD_X = 4; // consistent internal horizontal padding
-  sf(5.5, 'bold', P.muted);
+  const TABLE_PAD_X = 4;
+  sf(6.5, 'bold', P.muted);
   tx('SERVICES RENDERED', M + TABLE_PAD_X, y);
   y += 3.5;
 
@@ -1453,15 +1453,15 @@ const InvoicePanel = ({
                          </div>
                        ))}
                        <div style={{ borderTop: `1px solid ${P.cardBorder}`, marginTop: 6, paddingTop: 6, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                         <span style={{ fontSize: 7.5, fontWeight: 700, color: P.mid, textTransform: 'uppercase' as const, letterSpacing: '0.06em' }}>BALANCE DUE</span>
-                         <span style={{ fontSize: 12, fontWeight: 800, color: P.ink }}>{fmt$(preview.total)}</span>
+                         <span style={{ fontSize: 7.5, fontWeight: 700, color: P.accent, textTransform: 'uppercase' as const, letterSpacing: '0.06em' }}>BALANCE DUE</span>
+                         <span style={{ fontSize: 12, fontWeight: 800, color: P.accent }}>{fmt$(preview.total)}</span>
                        </div>
                      </div>
                   </div>
 
                   {/* ── SERVICES RENDERED ── */}
                   <div style={{ marginBottom: 12 }}>
-                    <div style={{ fontSize: 7.5, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.07em', color: P.muted, marginBottom: 5 }}>SERVICES RENDERED</div>
+                    <div style={{ fontSize: 8.5, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.07em', color: P.muted, marginBottom: 5 }}>SERVICES RENDERED</div>
                     <div style={{ border: `1px solid ${P.cardBorder}`, borderRadius: 8, overflow: 'hidden' }}>
                       <table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed' }}>
                         <colgroup>
@@ -1573,7 +1573,10 @@ const InvoicePanel = ({
                         ))}
                       </div>
                       <div style={{ borderTop: `1px solid ${P.cardBorder}`, paddingTop: 5, fontSize: 7.5, color: P.muted }}>
-                        Payment due within 7 days of invoice date.
+                        {(preview.invoiceDueDays ?? 7) === 0
+                          ? 'Payment due on receipt of this invoice.'
+                          : `Payment due within ${preview.invoiceDueDays ?? 7} day${(preview.invoiceDueDays ?? 7) !== 1 ? 's' : ''} of invoice date.`
+                        }
                       </div>
                     </div>
                   )}
