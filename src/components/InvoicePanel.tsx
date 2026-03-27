@@ -427,8 +427,8 @@ async function exportToPDF(snap: InvoiceSnapshot, lineGroups: ReturnType<typeof 
   y += finalCardH + 6;
 
   // ── SERVICES RENDERED ────────────────────────────────────────────────────
-  const TABLE_PAD_X = 4; // consistent internal horizontal padding
-  sf(5.5, 'bold', P.muted);
+  const TABLE_PAD_X = 4;
+  sf(6.5, 'bold', P.muted);
   tx('SERVICES RENDERED', M + TABLE_PAD_X, y);
   y += 3.5;
 
