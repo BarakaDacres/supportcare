@@ -1523,102 +1523,74 @@ const OverviewPanel = ({
       {/* ── Top client + Unpaid invoices row ── */}
       <div className="grid grid-cols-2 gap-3">
         {stats.topClient ? (
-          <div
-            className="card-elevated overflow-hidden"
-            style={{ padding: 0 }}
-          >
-            {/* Coloured top bar */}
-            <div
-              style={{
-                height: 3,
-                background: 'linear-gradient(90deg, hsl(var(--primary)/0.7), hsl(var(--primary)/0.3))',
-                borderRadius: '20px 20px 0 0',
-              }}
-            />
-            <div style={{ padding: '14px 16px' }}>
-              <div className="flex items-center gap-1.5 mb-2">
-                <div
-                  className="w-6 h-6 rounded-lg flex items-center justify-center shrink-0"
-                  style={{ background: 'hsl(var(--primary)/0.12)' }}
-                >
-                  <Users className="w-3.5 h-3.5" style={{ color: 'hsl(var(--primary))' }} />
-                </div>
-                <span className="section-label">Top Client</span>
+          <div className="card-elevated" style={{ padding: '14px 16px' }}>
+            <div className="flex items-center gap-1.5 mb-2.5">
+              <div
+                className="w-7 h-7 rounded-xl flex items-center justify-center shrink-0 text-[11px] font-bold"
+                style={{ background: 'hsl(var(--primary)/0.1)', color: 'hsl(var(--primary))' }}
+              >
+                {stats.topClient.name[0]?.toUpperCase()}
               </div>
-              <p className="text-sm font-bold text-foreground leading-tight truncate">{stats.topClient.name}</p>
-              <p className="text-base font-bold money-text mt-0.5 leading-tight">{formatCurrency(stats.topClient.gross)}</p>
-              <p className="text-[10px] text-muted-foreground mt-1">
-                {stats.topClient.count} shift{stats.topClient.count !== 1 ? 's' : ''} · {MONTH_SHORT[selectedMonth]}
-              </p>
+              <span className="section-label">Top Client</span>
             </div>
+            <p className="text-sm font-bold text-foreground leading-tight truncate">{stats.topClient.name}</p>
+            <p className="text-base font-bold money-text mt-0.5 leading-tight">{formatCurrency(stats.topClient.gross)}</p>
+            <p className="text-[10px] text-muted-foreground mt-1">
+              {stats.topClient.count} shift{stats.topClient.count !== 1 ? 's' : ''} · {MONTH_SHORT[selectedMonth]}
+            </p>
           </div>
         ) : clients.length > 0 ? (
-          <div className="card-elevated overflow-hidden" style={{ padding: 0 }}>
-            <div style={{ height: 3, background: 'hsl(var(--border))', borderRadius: '20px 20px 0 0' }} />
-            <div style={{ padding: '14px 16px' }}>
-              <div className="flex items-center gap-1.5 mb-2">
-                <div className="w-6 h-6 rounded-lg flex items-center justify-center shrink-0" style={{ background: 'hsl(var(--muted))' }}>
-                  <Users className="w-3.5 h-3.5 text-muted-foreground" />
-                </div>
-                <span className="section-label">Top Client</span>
+          <div className="card-elevated" style={{ padding: '14px 16px' }}>
+            <div className="flex items-center gap-1.5 mb-2">
+              <div className="w-7 h-7 rounded-xl flex items-center justify-center shrink-0" style={{ background: 'hsl(var(--muted))' }}>
+                <Users className="w-3.5 h-3.5 text-muted-foreground" />
               </div>
-              <p className="text-xs text-muted-foreground">No client shifts this month.</p>
+              <span className="section-label">Top Client</span>
             </div>
+            <p className="text-xs text-muted-foreground">No client shifts this month.</p>
           </div>
         ) : null}
 
         {invoices.length > 0 && (
           <div
-            className={`card-elevated overflow-hidden ${!stats.topClient && clients.length === 0 ? 'col-span-2' : ''}`}
-            style={{ padding: 0 }}
+            className={`card-elevated ${!stats.topClient && clients.length === 0 ? 'col-span-2' : ''}`}
+            style={{ padding: '14px 16px' }}
           >
-            {/* Coloured top bar — green if all paid, amber if unpaid */}
-            <div
-              style={{
-                height: 3,
-                background: unpaidStats.count > 0
-                  ? 'linear-gradient(90deg, hsl(var(--stat-amber)/0.8), hsl(var(--stat-amber)/0.3))'
-                  : 'linear-gradient(90deg, hsl(var(--stat-green)/0.7), hsl(var(--stat-green)/0.3))',
-                borderRadius: '20px 20px 0 0',
-              }}
-            />
-            <div style={{ padding: '14px 16px' }}>
-              <div className="flex items-center gap-1.5 mb-2">
-                <div
-                  className="w-6 h-6 rounded-lg flex items-center justify-center shrink-0"
+            <div className="flex items-center gap-1.5 mb-2.5">
+              <div
+                className="w-7 h-7 rounded-xl flex items-center justify-center shrink-0"
+                style={{
+                  background: unpaidStats.count > 0
+                    ? 'hsl(var(--stat-amber)/0.12)'
+                    : 'hsl(var(--stat-green)/0.12)',
+                }}
+              >
+                <FileText
+                  className="w-3.5 h-3.5"
                   style={{
-                    background: unpaidStats.count > 0
-                      ? 'hsl(var(--stat-amber)/0.12)'
-                      : 'hsl(var(--stat-green)/0.12)',
+                    color: unpaidStats.count > 0 ? 'hsl(var(--stat-amber))' : 'hsl(var(--stat-green))',
                   }}
-                >
-                  <FileText
-                    className="w-3.5 h-3.5"
-                    style={{
-                      color: unpaidStats.count > 0 ? 'hsl(var(--stat-amber))' : 'hsl(var(--stat-green))',
-                    }}
-                  />
-                </div>
-                <span className="section-label">Invoices</span>
+                />
               </div>
-              {unpaidStats.count > 0 ? (
-                <>
-                  <p className="text-base font-bold leading-tight" style={{ color: 'hsl(var(--stat-amber))' }}>
-                    {formatCurrency(unpaidStats.total)}
-                  </p>
-                  <p className="text-[10px] text-muted-foreground mt-1">
-                    {unpaidStats.count} unpaid pending
-                  </p>
-                </>
-              ) : (
-                <>
-                  <p className="text-sm font-bold money-text leading-tight">All paid ✓</p>
-                  <p className="text-[10px] text-muted-foreground mt-1">
-                    {invoices.length} invoice{invoices.length !== 1 ? 's' : ''} total
-                  </p>
-                </>
-              )}
+              <span className="section-label">Invoices</span>
             </div>
+            {unpaidStats.count > 0 ? (
+              <>
+                <p className="text-base font-bold leading-tight" style={{ color: 'hsl(var(--stat-amber))' }}>
+                  {formatCurrency(unpaidStats.total)}
+                </p>
+                <p className="text-[10px] text-muted-foreground mt-1">
+                  {unpaidStats.count} unpaid pending
+                </p>
+              </>
+            ) : (
+              <>
+                <p className="text-sm font-bold money-text leading-tight">All paid ✓</p>
+                <p className="text-[10px] text-muted-foreground mt-1">
+                  {invoices.length} invoice{invoices.length !== 1 ? 's' : ''} total
+                </p>
+              </>
+            )}
           </div>
         )}
       </div>
