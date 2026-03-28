@@ -110,12 +110,12 @@ const Index = ({ auth }: IndexProps) => {
   if (isMobile) {
     return (
       <div className="min-h-dvh bg-background overflow-x-hidden relative">
-        {/* Status bar fade overlay */}
+        {/* Status bar + header fade overlay — covers status bar AND title area */}
         <div
           className="fixed top-0 left-0 right-0 z-[35] pointer-events-none md:hidden"
           style={{
-            height: 'calc(env(safe-area-inset-top, 0px) + 8px)',
-            background: 'linear-gradient(to bottom, hsl(var(--background)), hsl(var(--background)/0.85) 60%, transparent)',
+            height: 'calc(env(safe-area-inset-top, 0px) + 56px)',
+            background: 'linear-gradient(to bottom, hsl(var(--background)) 0%, hsl(var(--background)/0.95) 50%, hsl(var(--background)/0.7) 75%, transparent 100%)',
           }}
         />
         <MobileHeader
