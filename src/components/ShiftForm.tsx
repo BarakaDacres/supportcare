@@ -293,8 +293,9 @@ const ShiftForm = ({
         paddingRight: 16,
         paddingTop: 'max(16px, env(safe-area-inset-top, 16px))',
         paddingBottom: 'max(16px, env(safe-area-inset-bottom, 16px))',
-        background: 'hsl(var(--foreground)/0.45)',
-        backdropFilter: 'blur(6px)',
+        background: 'hsl(var(--foreground)/0.4)',
+        backdropFilter: 'blur(24px) saturate(1.6)',
+        WebkitBackdropFilter: 'blur(24px) saturate(1.6)',
       }}
       onClick={(e) => { if (e.target === e.currentTarget) onCancel(); }}
     >
