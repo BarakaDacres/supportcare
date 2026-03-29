@@ -438,7 +438,7 @@ const ClientProfile = ({
       </div>
 
       {/* Map */}
-      {client.address && <AddressMap address={client.address} />}
+      {client.address && <AddressMap address={client.address} clientName={client.name} isActive={client.active} />}
 
       {/* Stats row */}
       <div className="grid grid-cols-3 gap-2.5">
