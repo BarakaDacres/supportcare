@@ -223,9 +223,9 @@ const BottomTabBar = ({ activeTab, onTabChange, hidden = false, auth }: Props) =
           borderRadius: 26,
           paddingLeft: 2,
           paddingRight: 2,
-          background: 'hsl(var(--lg-pill-bg))',
-          backdropFilter: 'blur(48px) saturate(200%)',
-          WebkitBackdropFilter: 'blur(48px) saturate(200%)',
+          background: 'hsl(var(--lg-pill-bg) / 0.75)',
+          backdropFilter: 'blur(40px) saturate(180%)',
+          WebkitBackdropFilter: 'blur(40px) saturate(180%)',
           border: '0.5px solid hsl(var(--lg-pill-border))',
           boxShadow: [
             '0 2px 12px hsl(var(--lg-pill-shadow-color))',

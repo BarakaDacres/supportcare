@@ -244,6 +244,7 @@ const ShiftForm = ({
       setSubmitError(
         err instanceof Error ? err.message : 'Failed to save shift. Please try again.'
       );
+    } finally {
       setSubmitting(false);
     }
   };
