@@ -7,6 +7,9 @@ import { useMemo, useState, useEffect, useRef } from 'react';
 //   3. Web fallback: tiny silent AudioContext click (perceived as "feel" on some devices)
 function haptic(style: 'light' | 'medium' | 'selection' = 'light') {
   try {
+    // Check if haptics are disabled in preferences
+    if (localStorage.getItem('pref_haptics') === 'false') return;
+
     // 1. Native iOS WKWebView bridge
     const win = window as unknown as {
       webkit?: { messageHandlers?: { hapticFeedback?: { postMessage: (s: string) => void } } };
