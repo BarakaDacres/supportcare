@@ -422,47 +422,35 @@ const ShiftList = ({
         </button>
       )}
 
-      {/* Add form — fixed overlay modal */}
+      {/* Add form */}
       {showForm && !locked && (
-        <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center"
-          style={{ background: 'hsl(var(--foreground)/0.25)', backdropFilter: 'blur(6px)' }}>
-          <div className="w-full max-w-lg mx-0 sm:mx-4 overflow-y-auto"
-            style={{ maxHeight: '92dvh' }}>
-            <ShiftForm
-              clients={clients}
-              rates={rates}
-              onSubmit={handleAdd}
-              onCancel={() => { setShowForm(false); openSheet(false); }}
-            />
-          </div>
-        </div>
+        <ShiftForm
+          clients={clients}
+          rates={rates}
+          onSubmit={handleAdd}
+          onCancel={() => { setShowForm(false); openSheet(false); }}
+        />
       )}
 
-      {/* Edit form — fixed overlay modal */}
+      {/* Edit form */}
       {editingShift && !locked && (
-        <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center"
-          style={{ background: 'hsl(var(--foreground)/0.25)', backdropFilter: 'blur(6px)' }}>
-          <div className="w-full max-w-lg mx-0 sm:mx-4 overflow-y-auto"
-            style={{ maxHeight: '92dvh' }}>
-            <ShiftForm
-              clients={clients}
-              rates={rates}
-              title="Edit Shift"
-              initialValues={{
-                date: editingShift.date,
-                start_time: editingShift.start_time,
-                end_time: editingShift.end_time,
-                is_sleepover: editingShift.is_sleepover,
-                is_public_holiday: editingShift.is_public_holiday,
-                client_id: editingShift.client_id,
-                notes: editingShift.notes,
-                fee_override: editingShift.fee_override,
-              }}
-              onSubmit={handleUpdate}
-              onCancel={() => { setEditingShift(null); openSheet(false); }}
-            />
-          </div>
-        </div>
+        <ShiftForm
+          clients={clients}
+          rates={rates}
+          title="Edit Shift"
+          initialValues={{
+            date: editingShift.date,
+            start_time: editingShift.start_time,
+            end_time: editingShift.end_time,
+            is_sleepover: editingShift.is_sleepover,
+            is_public_holiday: editingShift.is_public_holiday,
+            client_id: editingShift.client_id,
+            notes: editingShift.notes,
+            fee_override: editingShift.fee_override,
+          }}
+          onSubmit={handleUpdate}
+          onCancel={() => { setEditingShift(null); openSheet(false); }}
+        />
       )}
     </div>
   );

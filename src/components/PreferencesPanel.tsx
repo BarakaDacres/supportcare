@@ -209,6 +209,13 @@ const PreferencesPanel = ({ settings, onSave, themeOverride, onThemeChange }: Pr
   const handleToggle = (key: string, value: boolean, setter: (v: boolean) => void) => {
     setter(value);
     localStorage.setItem(key, String(value));
+
+    // Request notification permission when enabling reminders
+    if (value && (key === 'pref_shift_reminders' || key === 'pref_invoice_reminders')) {
+      if ('Notification' in window && Notification.permission === 'default') {
+        Notification.requestPermission();
+      }
+    }
   };
 
   return (

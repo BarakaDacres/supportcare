@@ -254,20 +254,40 @@ const ClientFormSheet = ({
   );
 };
 
-/* ── Static map preview ── */
+/* ── Dark-themed map preview ── */
 const AddressMap = ({ address }: { address: string }) => {
   const q = encodeURIComponent(address);
   return (
-    <div className="rounded-2xl overflow-hidden" style={{ height: 140, background: 'hsl(var(--muted))' }}>
+    <div className="rounded-2xl overflow-hidden relative" style={{ height: 180, background: 'hsl(var(--muted))' }}>
       <iframe
         title="Location"
         width="100%"
         height="100%"
-        style={{ border: 0, filter: 'saturate(0.85)' }}
+        style={{
+          border: 0,
+          filter: 'invert(0.92) hue-rotate(180deg) saturate(0.6) brightness(0.85) contrast(1.15)',
+        }}
         loading="lazy"
         referrerPolicy="no-referrer-when-downgrade"
-        src={`https://www.google.com/maps?q=${q}&output=embed&z=14`}
+        src={`https://www.google.com/maps?q=${q}&output=embed&z=15`}
       />
+      {/* Map overlay link */}
+      <a
+        href={`https://maps.google.com/?q=${q}`}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="absolute top-3 left-3 flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold"
+        style={{
+          background: 'hsl(var(--card)/0.85)',
+          backdropFilter: 'blur(12px)',
+          WebkitBackdropFilter: 'blur(12px)',
+          color: 'hsl(var(--primary))',
+          boxShadow: '0 2px 8px hsl(var(--foreground)/0.12)',
+        }}
+        onClick={e => e.stopPropagation()}
+      >
+        <MapPin className="w-3 h-3" /> Maps ↗
+      </a>
     </div>
   );
 };
