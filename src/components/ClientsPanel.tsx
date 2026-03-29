@@ -254,39 +254,114 @@ const ClientFormSheet = ({
   );
 };
 
-/* ── Dark-themed map preview ── */
-const AddressMap = ({ address }: { address: string }) => {
+/* ── Premium dark iOS-style map ── */
+const AddressMap = ({ address, clientName, isActive }: { address: string; clientName?: string; isActive?: boolean }) => {
   const q = encodeURIComponent(address);
+  const initial = clientName ? clientName[0].toUpperCase() : '?';
   return (
-    <div className="rounded-2xl overflow-hidden relative" style={{ height: 180, background: 'hsl(var(--muted))' }}>
+    <div
+      className="relative overflow-hidden"
+      style={{
+        height: 240,
+        borderRadius: 22,
+        background: 'hsl(220 14% 8%)',
+        boxShadow: 'var(--card-shadow-md)',
+        border: '1px solid hsl(var(--border)/0.5)',
+      }}
+    >
+      {/* Dark-styled map iframe */}
       <iframe
         title="Location"
         width="100%"
         height="100%"
         style={{
           border: 0,
-          filter: 'invert(0.92) hue-rotate(180deg) saturate(0.6) brightness(0.85) contrast(1.15)',
+          filter: 'invert(0.93) hue-rotate(180deg) saturate(0.45) brightness(0.78) contrast(1.2)',
+          pointerEvents: 'auto',
         }}
         loading="lazy"
         referrerPolicy="no-referrer-when-downgrade"
         src={`https://www.google.com/maps?q=${q}&output=embed&z=15`}
       />
-      {/* Map overlay link */}
+
+      {/* Top edge fade for depth */}
+      <div className="absolute inset-x-0 top-0 pointer-events-none" style={{ height: 48, background: 'linear-gradient(to bottom, hsl(220 14% 8% / 0.5), transparent)' }} />
+      {/* Bottom edge fade */}
+      <div className="absolute inset-x-0 bottom-0 pointer-events-none" style={{ height: 64, background: 'linear-gradient(to top, hsl(220 14% 8% / 0.7), transparent)' }} />
+
+      {/* Custom center marker */}
+      <div className="absolute inset-0 flex items-center justify-center pointer-events-none" style={{ marginTop: -20 }}>
+        <div className="flex flex-col items-center gap-0">
+          <div
+            className="flex items-center justify-center text-xs font-bold"
+            style={{
+              width: 36, height: 36, borderRadius: 12,
+              background: 'hsl(var(--primary))',
+              color: 'white',
+              boxShadow: '0 4px 16px hsl(var(--primary)/0.5), 0 0 0 3px hsl(0 0% 100% / 0.2)',
+            }}
+          >
+            {initial}
+          </div>
+          <div style={{ width: 2, height: 10, background: 'hsl(var(--primary))', borderRadius: 1, opacity: 0.7 }} />
+          <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'hsl(var(--primary)/0.4)', marginTop: -1 }} />
+        </div>
+      </div>
+
+      {/* Floating info card — bottom-left */}
+      {clientName && (
+        <div
+          className="absolute bottom-3 left-3 right-3 flex items-center gap-3 px-3.5 py-2.5"
+          style={{
+            borderRadius: 16,
+            background: 'hsl(220 14% 10% / 0.82)',
+            backdropFilter: 'blur(24px) saturate(1.4)',
+            WebkitBackdropFilter: 'blur(24px) saturate(1.4)',
+            border: '1px solid hsl(0 0% 100% / 0.08)',
+            boxShadow: '0 4px 20px hsl(0 0% 0% / 0.4), inset 0 0.5px 0 hsl(0 0% 100% / 0.06)',
+          }}
+        >
+          <div
+            className="w-8 h-8 rounded-lg flex items-center justify-center text-[11px] font-bold shrink-0"
+            style={{ background: 'hsl(var(--primary)/0.2)', color: 'hsl(var(--primary))' }}
+          >
+            {initial}
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-xs font-semibold text-white truncate">{clientName}</p>
+            <p className="text-[10px] text-white/50 truncate">{address}</p>
+          </div>
+          {isActive !== undefined && (
+            <span
+              className="text-[9px] font-semibold px-2 py-0.5 rounded-full shrink-0"
+              style={{
+                background: isActive ? 'hsl(var(--stat-green)/0.2)' : 'hsl(0 0% 100% / 0.08)',
+                color: isActive ? 'hsl(var(--stat-green))' : 'hsl(0 0% 100% / 0.4)',
+              }}
+            >
+              {isActive ? 'Active' : 'Inactive'}
+            </span>
+          )}
+        </div>
+      )}
+
+      {/* Open in Maps floating pill — top-right */}
       <a
         href={`https://maps.google.com/?q=${q}`}
         target="_blank"
         rel="noopener noreferrer"
-        className="absolute top-3 left-3 flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold"
+        className="absolute top-3 right-3 flex items-center gap-1.5 px-3.5 py-2 text-[11px] font-semibold active:scale-95 transition-transform"
         style={{
-          background: 'hsl(var(--card)/0.85)',
-          backdropFilter: 'blur(12px)',
-          WebkitBackdropFilter: 'blur(12px)',
-          color: 'hsl(var(--primary))',
-          boxShadow: '0 2px 8px hsl(var(--foreground)/0.12)',
+          borderRadius: 100,
+          background: 'hsl(var(--primary)/0.9)',
+          color: 'white',
+          boxShadow: '0 4px 16px hsl(var(--primary)/0.4), 0 1px 4px hsl(0 0% 0% / 0.3)',
+          backdropFilter: 'blur(8px)',
+          WebkitBackdropFilter: 'blur(8px)',
         }}
         onClick={e => e.stopPropagation()}
       >
-        <MapPin className="w-3 h-3" /> Maps ↗
+        <MapPin className="w-3 h-3" /> Open in Maps
       </a>
     </div>
   );
