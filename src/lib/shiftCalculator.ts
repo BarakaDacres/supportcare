@@ -34,9 +34,26 @@ export const DEFAULT_RATES: PayRates = {
   rate_evening: 75,
 };
 
-/** Evening window in minutes since midnight (6 PM – midnight) */
-const EVENING_START_MIN = 18 * 60; // 1080
-const EVENING_END_MIN   = 24 * 60; // 1440 (midnight)
+/** Evening window in minutes since midnight — user-configurable via localStorage */
+function getEveningStartMin(): number {
+  const stored = typeof window !== 'undefined' ? localStorage.getItem('pref_evening_start') : null;
+  if (stored) { const [h, m] = stored.split(':').map(Number); return h * 60 + (m || 0); }
+  return 18 * 60; // default 6 PM
+}
+function getEveningEndMin(): number {
+  const stored = typeof window !== 'undefined' ? localStorage.getItem('pref_evening_end') : null;
+  if (stored) { const [h, m] = stored.split(':').map(Number); return (h === 0 && (m || 0) === 0) ? 1440 : h * 60 + (m || 0); }
+  return 24 * 60; // default midnight
+}
+
+// Keep as lazy getters so they pick up localStorage changes
+let EVENING_START_MIN = 18 * 60;
+let EVENING_END_MIN = 24 * 60;
+
+function refreshEveningWindow() {
+  EVENING_START_MIN = getEveningStartMin();
+  EVENING_END_MIN = getEveningEndMin();
+}
 
 /**
  * Returns the day-of-week integer (0=Sun,1=Mon...6=Sat) for a given date string (YYYY-MM-DD).
@@ -70,6 +87,7 @@ export function isWeekendSleeperNight(dayOfWeek: number): boolean {
  * Works for overnight shifts too.
  */
 export function shiftHasEveningHours(startTime: string, endTime: string): boolean {
+  refreshEveningWindow();
   const startMin = timeToMinutes(startTime);
   let endMin = timeToMinutes(endTime);
   if (endMin <= startMin) endMin += 1440; // overnight
@@ -195,6 +213,9 @@ export function calculateShiftPay(
   rates: PayRates = DEFAULT_RATES,
   isPublicHoliday = false,
 ): ShiftCalculation {
+  // Refresh evening window from user prefs
+  refreshEveningWindow();
+
   let startMinutes = timeToMinutes(startTime);
   let endMinutes = timeToMinutes(endTime);
 

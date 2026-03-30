@@ -159,6 +159,12 @@ const RatesPanel = ({ settings, loading, onSave }: RatesPanelProps) => {
   const ndisCodes = useRef<NdisItemCodes>({ ...DEFAULT_NDIS_CODES });
   const [ndisCodesState, setNdisCodesState] = useState<NdisItemCodes>({ ...DEFAULT_NDIS_CODES });
 
+  // Editable evening/sleepover hour windows (stored in localStorage)
+  const [eveningStart, setEveningStart] = useState(() => localStorage.getItem('pref_evening_start') || '18:00');
+  const [eveningEnd, setEveningEnd] = useState(() => localStorage.getItem('pref_evening_end') || '00:00');
+  const [sleepoverStart, setSleepoverStart] = useState(() => localStorage.getItem('pref_sleepover_start') || '00:00');
+  const [sleepoverEnd, setSleepoverEnd] = useState(() => localStorage.getItem('pref_sleepover_end') || '06:00');
+
   useEffect(() => {
     if (!loading) { setTimedOut(false); return; }
     const t = setTimeout(() => setTimedOut(true), 6000);
@@ -246,22 +252,35 @@ const RatesPanel = ({ settings, loading, onSave }: RatesPanelProps) => {
         <SectionHeader label="Evening Shift" />
         <SettingsGroup>
           <RateRow
-            label="Mon–Fri 18:00–00:00"
-            sublabel="Overrides weekday rate for evening hours (6 PM – midnight)"
+            label="Evening Rate"
+            sublabel="Mon–Fri evening override"
             value={val('rate_evening', settings.rate_evening) as number}
             onChange={v => set('rate_evening', v)}
           />
           <div>
+            <div className="ml-4 mr-0 h-px" style={{ background: 'hsl(var(--divider))' }} />
             <div className="px-4 py-3">
               <div className="flex items-center justify-between gap-3">
                 <div className="flex-1 min-w-0">
-                  <p className="text-[15px] text-foreground leading-tight">Evening Hours</p>
-                  <p className="text-[12px] text-muted-foreground mt-0.5 leading-tight">6:00 PM – 12:00 AM (fixed window)</p>
+                  <p className="text-[15px] text-foreground leading-tight">Evening Window</p>
+                  <p className="text-[12px] text-muted-foreground mt-0.5 leading-tight">Set when evening rate applies</p>
                 </div>
-                <div className="flex items-center gap-2 shrink-0">
-                  <span className="text-[13px] font-mono text-muted-foreground px-3 py-1.5 rounded-lg" style={{ background: 'hsl(var(--muted))' }}>
-                    6 hrs
-                  </span>
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <input
+                    type="time"
+                    value={eveningStart}
+                    onChange={e => { setEveningStart(e.target.value); localStorage.setItem('pref_evening_start', e.target.value); }}
+                    className="glass-input text-foreground text-[13px] font-mono text-center"
+                    style={{ minHeight: 38, width: 80 }}
+                  />
+                  <span className="text-[11px] text-muted-foreground">–</span>
+                  <input
+                    type="time"
+                    value={eveningEnd}
+                    onChange={e => { setEveningEnd(e.target.value); localStorage.setItem('pref_evening_end', e.target.value); }}
+                    className="glass-input text-foreground text-[13px] font-mono text-center"
+                    style={{ minHeight: 38, width: 80 }}
+                  />
                 </div>
               </div>
             </div>
@@ -281,13 +300,25 @@ const RatesPanel = ({ settings, loading, onSave }: RatesPanelProps) => {
             <div className="px-4 py-3">
               <div className="flex items-center justify-between gap-3">
                 <div className="flex-1 min-w-0">
-                  <p className="text-[15px] text-foreground leading-tight">Sleepover Hours</p>
-                  <p className="text-[12px] text-muted-foreground mt-0.5 leading-tight">Typical overnight duration</p>
+                  <p className="text-[15px] text-foreground leading-tight">Sleepover Window</p>
+                  <p className="text-[12px] text-muted-foreground mt-0.5 leading-tight">Set your overnight hours</p>
                 </div>
-                <div className="flex items-center gap-2 shrink-0">
-                  <span className="text-[13px] font-mono text-muted-foreground px-3 py-1.5 rounded-lg" style={{ background: 'hsl(var(--muted))' }}>
-                    10:00 PM – 6:00 AM
-                  </span>
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <input
+                    type="time"
+                    value={sleepoverStart}
+                    onChange={e => { setSleepoverStart(e.target.value); localStorage.setItem('pref_sleepover_start', e.target.value); }}
+                    className="glass-input text-foreground text-[13px] font-mono text-center"
+                    style={{ minHeight: 38, width: 80 }}
+                  />
+                  <span className="text-[11px] text-muted-foreground">–</span>
+                  <input
+                    type="time"
+                    value={sleepoverEnd}
+                    onChange={e => { setSleepoverEnd(e.target.value); localStorage.setItem('pref_sleepover_end', e.target.value); }}
+                    className="glass-input text-foreground text-[13px] font-mono text-center"
+                    style={{ minHeight: 38, width: 80 }}
+                  />
                 </div>
               </div>
             </div>

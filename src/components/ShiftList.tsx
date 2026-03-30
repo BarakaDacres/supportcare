@@ -15,6 +15,7 @@ interface ShiftListProps {
   loading: boolean;
   rates?: PayRates;
   locked?: boolean;
+  isMonthLocked?: (year: number, month: number) => boolean;
   onAdd: (shift: NewShift) => Promise<unknown> | Promise<void>;
   onUpdate: (id: string, shift: Partial<NewShift>) => Promise<void>;
   onDelete: (id: string) => Promise<void>;
@@ -72,6 +73,7 @@ interface ContextMenuState {
 
 const ShiftList = ({
   shifts, clients, loading, rates = DEFAULT_RATES, locked = false,
+  isMonthLocked,
   onAdd, onUpdate, onDelete, onDuplicate, onSheetOpenChange,
 }: ShiftListProps) => {
   const [showForm, setShowForm] = useState(false);
@@ -171,11 +173,6 @@ const ShiftList = ({
       {/* Header — title only, no Add button */}
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-bold text-foreground">Shifts</h2>
-        {locked && (
-          <span className="flex items-center gap-1.5 glass-chip text-xs text-muted-foreground">
-            <Lock className="w-3 h-3" /> Month Locked
-          </span>
-        )}
       </div>
 
       {/* Filters */}
@@ -265,7 +262,7 @@ const ShiftList = ({
       ) : filtered.length === 0 ? (
         <div className="card-elevated p-8 text-center space-y-2">
           <p className="text-muted-foreground text-sm">No shifts found</p>
-          {!locked && (
+          {(
             <button
               onClick={() => { setShowForm(true); openSheet(true); }}
               className="text-sm font-semibold"
@@ -283,6 +280,12 @@ const ShiftList = ({
             const displayPay = effectiveGrossPay(shift);
             const shiftStatus = getShiftStatus(shift);
             const active = shiftStatus === 'active';
+
+            // Per-shift lock: check if the shift's month is locked
+            const shiftDate = parseLocalDate(shift.date);
+            const shiftLocked = isMonthLocked
+              ? isMonthLocked(shiftDate.getFullYear(), shiftDate.getMonth())
+              : locked;
 
             // Determine single primary shift-type label
             const shiftTypeLabel = (() => {
@@ -302,7 +305,7 @@ const ShiftList = ({
               <ShiftCard
                 key={shift.id}
                 shift={shift}
-                locked={locked}
+                locked={shiftLocked}
                 shiftStatus={shiftStatus}
                 active={active}
                 isSleepover={isSleepover}
@@ -323,7 +326,7 @@ const ShiftList = ({
       )}
 
       {/* Context menu */}
-      {contextMenu && !locked && (() => {
+      {contextMenu && (() => {
         const menuShift = shifts.find(s => s.id === contextMenu.shiftId);
         if (!menuShift) return null;
         // Position: clamp to screen
@@ -404,7 +407,7 @@ const ShiftList = ({
       )}
 
       {/* Floating add button */}
-      {!locked && !showForm && !editingShift && (
+      {!showForm && !editingShift && (
         <button
           onClick={() => { setShowForm(true); openSheet(true); }}
           aria-label="Add shift"
@@ -423,7 +426,7 @@ const ShiftList = ({
       )}
 
       {/* Add form */}
-      {showForm && !locked && (
+      {showForm && (
         <ShiftForm
           clients={clients}
           rates={rates}
@@ -433,7 +436,7 @@ const ShiftList = ({
       )}
 
       {/* Edit form */}
-      {editingShift && !locked && (
+      {editingShift && (
         <ShiftForm
           clients={clients}
           rates={rates}

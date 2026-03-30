@@ -151,7 +151,7 @@ const Index = ({ auth }: IndexProps) => {
               clients={clients}
               loading={shiftsLoading}
               rates={rates}
-              locked={locked}
+              isMonthLocked={store.isMonthLocked}
               onAdd={addShift}
               onUpdate={updateShift}
               onDelete={deleteShift}
@@ -250,7 +250,7 @@ const Index = ({ auth }: IndexProps) => {
               clients={clients}
               loading={shiftsLoading}
               rates={rates}
-              locked={locked}
+              isMonthLocked={store.isMonthLocked}
               onAdd={addShift}
               onUpdate={updateShift}
               onDelete={deleteShift}
