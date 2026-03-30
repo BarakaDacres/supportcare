@@ -15,6 +15,7 @@ interface ShiftListProps {
   loading: boolean;
   rates?: PayRates;
   locked?: boolean;
+  isMonthLocked?: (year: number, month: number) => boolean;
   onAdd: (shift: NewShift) => Promise<unknown> | Promise<void>;
   onUpdate: (id: string, shift: Partial<NewShift>) => Promise<void>;
   onDelete: (id: string) => Promise<void>;

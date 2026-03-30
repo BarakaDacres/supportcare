@@ -159,6 +159,12 @@ const RatesPanel = ({ settings, loading, onSave }: RatesPanelProps) => {
   const ndisCodes = useRef<NdisItemCodes>({ ...DEFAULT_NDIS_CODES });
   const [ndisCodesState, setNdisCodesState] = useState<NdisItemCodes>({ ...DEFAULT_NDIS_CODES });
 
+  // Editable evening/sleepover hour windows (stored in localStorage)
+  const [eveningStart, setEveningStart] = useState(() => localStorage.getItem('pref_evening_start') || '18:00');
+  const [eveningEnd, setEveningEnd] = useState(() => localStorage.getItem('pref_evening_end') || '00:00');
+  const [sleepoverStart, setSleepoverStart] = useState(() => localStorage.getItem('pref_sleepover_start') || '00:00');
+  const [sleepoverEnd, setSleepoverEnd] = useState(() => localStorage.getItem('pref_sleepover_end') || '06:00');
+
   useEffect(() => {
     if (!loading) { setTimedOut(false); return; }
     const t = setTimeout(() => setTimedOut(true), 6000);
