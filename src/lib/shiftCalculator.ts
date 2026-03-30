@@ -34,9 +34,9 @@ export const DEFAULT_RATES: PayRates = {
   rate_evening: 75,
 };
 
-/** Evening window in minutes since midnight */
+/** Evening window in minutes since midnight (6 PM – midnight) */
 const EVENING_START_MIN = 18 * 60; // 1080
-const EVENING_END_MIN   = 22 * 60; // 1320
+const EVENING_END_MIN   = 24 * 60; // 1440 (midnight)
 
 /**
  * Returns the day-of-week integer (0=Sun,1=Mon...6=Sat) for a given date string (YYYY-MM-DD).
