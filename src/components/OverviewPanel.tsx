@@ -726,7 +726,7 @@ const EarningsCalendarHeatmap = ({
     <div className="card-elevated" style={{ padding: '16px 14px 14px' }}>
       {/* Header — legend baseline-aligned with title */}
       <div className="flex items-center justify-between mb-3" style={{ lineHeight: 1 }}>
-        <p className="section-label" style={{ lineHeight: 1 }}>Earnings Calendar</p>
+        <p className="section-label" style={{ lineHeight: 1 }}>Shifts Calendar</p>
         {/* Legend — tighter, lower opacity */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 2.5 }}>
           <span style={{ fontSize: 8, color: 'hsl(var(--muted-foreground))', opacity: 0.5, lineHeight: 1 }}>Low</span>
