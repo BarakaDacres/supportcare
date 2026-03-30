@@ -436,7 +436,7 @@ const ShiftList = ({
       )}
 
       {/* Edit form */}
-      {editingShift && !locked && (
+      {editingShift && (
         <ShiftForm
           clients={clients}
           rates={rates}
