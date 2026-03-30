@@ -286,6 +286,12 @@ const ShiftList = ({
             const shiftStatus = getShiftStatus(shift);
             const active = shiftStatus === 'active';
 
+            // Per-shift lock: check if the shift's month is locked
+            const shiftDate = parseLocalDate(shift.date);
+            const shiftLocked = isMonthLocked
+              ? isMonthLocked(shiftDate.getFullYear(), shiftDate.getMonth())
+              : locked;
+
             // Determine single primary shift-type label
             const shiftTypeLabel = (() => {
               if (isPublicHoliday) return { label: 'Public Holiday', icon: <Star className="w-2.5 h-2.5" />, style: { background: 'hsl(34 97% 52% / 0.13)', color: 'hsl(34 97% 44%)', border: '1px solid hsl(34 97% 52% / 0.25)' } };
@@ -304,7 +310,7 @@ const ShiftList = ({
               <ShiftCard
                 key={shift.id}
                 shift={shift}
-                locked={locked}
+                locked={shiftLocked}
                 shiftStatus={shiftStatus}
                 active={active}
                 isSleepover={isSleepover}
