@@ -241,28 +241,59 @@ const RatesPanel = ({ settings, loading, onSave }: RatesPanelProps) => {
         </SettingsGroup>
       </div>
 
-      {/* ── Evening Rate ── */}
+      {/* ── Evening Shift ── */}
       <div className="space-y-1.5">
-        <SectionHeader label="Evening Rate" />
+        <SectionHeader label="Evening Shift" />
         <SettingsGroup>
           <RateRow
-            label="Mon–Fri 18:00–22:00"
-            sublabel="Overrides weekday rate for evening hours only"
+            label="Mon–Fri 18:00–00:00"
+            sublabel="Overrides weekday rate for evening hours (6 PM – midnight)"
             value={val('rate_evening', settings.rate_evening) as number}
             onChange={v => set('rate_evening', v)}
-            isLast
           />
+          <div>
+            <div className="px-4 py-3">
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex-1 min-w-0">
+                  <p className="text-[15px] text-foreground leading-tight">Evening Hours</p>
+                  <p className="text-[12px] text-muted-foreground mt-0.5 leading-tight">6:00 PM – 12:00 AM (fixed window)</p>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <span className="text-[13px] font-mono text-muted-foreground px-3 py-1.5 rounded-lg" style={{ background: 'hsl(var(--muted))' }}>
+                    6 hrs
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
         </SettingsGroup>
         <p className="text-[11px] text-muted-foreground px-1">Sat/Sun use their own rates regardless of time.</p>
       </div>
 
-      {/* ── Sleepover Rates ── */}
+      {/* ── Sleepover Shifts ── */}
       <div className="space-y-1.5">
-        <SectionHeader label="Sleepover Flat Rates" />
+        <SectionHeader label="Sleepover Shifts" />
         <SettingsGroup>
           <RateRow label="Weekday Night" sublabel="Mon – Fri" value={val('rate_sleepover_weekday', settings.rate_sleepover_weekday) as number} onChange={v => set('rate_sleepover_weekday', v)} unit="flat" />
-          <RateRow label="Weekend Night" sublabel="Sat & Sun" value={val('rate_sleepover_weekend', settings.rate_sleepover_weekend) as number} onChange={v => set('rate_sleepover_weekend', v)} unit="flat" isLast />
+          <RateRow label="Weekend Night" sublabel="Sat & Sun" value={val('rate_sleepover_weekend', settings.rate_sleepover_weekend) as number} onChange={v => set('rate_sleepover_weekend', v)} unit="flat" />
+          <div>
+            <div className="ml-4 mr-0 h-px" style={{ background: 'hsl(var(--divider))' }} />
+            <div className="px-4 py-3">
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex-1 min-w-0">
+                  <p className="text-[15px] text-foreground leading-tight">Sleepover Hours</p>
+                  <p className="text-[12px] text-muted-foreground mt-0.5 leading-tight">Typical overnight duration</p>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <span className="text-[13px] font-mono text-muted-foreground px-3 py-1.5 rounded-lg" style={{ background: 'hsl(var(--muted))' }}>
+                    10:00 PM – 6:00 AM
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
         </SettingsGroup>
+        <p className="text-[11px] text-muted-foreground px-1">Sleepover is a flat fee regardless of hours.</p>
       </div>
 
       {/* ── Tax ── */}
