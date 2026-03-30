@@ -73,6 +73,7 @@ interface ContextMenuState {
 
 const ShiftList = ({
   shifts, clients, loading, rates = DEFAULT_RATES, locked = false,
+  isMonthLocked,
   onAdd, onUpdate, onDelete, onDuplicate, onSheetOpenChange,
 }: ShiftListProps) => {
   const [showForm, setShowForm] = useState(false);
