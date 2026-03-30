@@ -212,6 +212,9 @@ export function calculateShiftPay(
   rates: PayRates = DEFAULT_RATES,
   isPublicHoliday = false,
 ): ShiftCalculation {
+  // Refresh evening window from user prefs
+  refreshEveningWindow();
+
   let startMinutes = timeToMinutes(startTime);
   let endMinutes = timeToMinutes(endTime);
 
