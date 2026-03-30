@@ -173,11 +173,6 @@ const ShiftList = ({
       {/* Header — title only, no Add button */}
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-bold text-foreground">Shifts</h2>
-        {locked && (
-          <span className="flex items-center gap-1.5 glass-chip text-xs text-muted-foreground">
-            <Lock className="w-3 h-3" /> Month Locked
-          </span>
-        )}
       </div>
 
       {/* Filters */}
