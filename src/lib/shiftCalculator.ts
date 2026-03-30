@@ -87,6 +87,7 @@ export function isWeekendSleeperNight(dayOfWeek: number): boolean {
  * Works for overnight shifts too.
  */
 export function shiftHasEveningHours(startTime: string, endTime: string): boolean {
+  refreshEveningWindow();
   const startMin = timeToMinutes(startTime);
   let endMin = timeToMinutes(endTime);
   if (endMin <= startMin) endMin += 1440; // overnight
