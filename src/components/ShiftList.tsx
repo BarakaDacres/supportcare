@@ -262,7 +262,7 @@ const ShiftList = ({
       ) : filtered.length === 0 ? (
         <div className="card-elevated p-8 text-center space-y-2">
           <p className="text-muted-foreground text-sm">No shifts found</p>
-          {!locked && (
+          {(
             <button
               onClick={() => { setShowForm(true); openSheet(true); }}
               className="text-sm font-semibold"
