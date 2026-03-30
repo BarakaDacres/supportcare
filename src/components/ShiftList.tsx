@@ -326,7 +326,7 @@ const ShiftList = ({
       )}
 
       {/* Context menu */}
-      {contextMenu && !locked && (() => {
+      {contextMenu && (() => {
         const menuShift = shifts.find(s => s.id === contextMenu.shiftId);
         if (!menuShift) return null;
         // Position: clamp to screen
