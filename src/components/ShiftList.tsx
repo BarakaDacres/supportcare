@@ -407,7 +407,7 @@ const ShiftList = ({
       )}
 
       {/* Floating add button */}
-      {!locked && !showForm && !editingShift && (
+      {!showForm && !editingShift && (
         <button
           onClick={() => { setShowForm(true); openSheet(true); }}
           aria-label="Add shift"
