@@ -128,8 +128,11 @@ const ShiftForm = ({
   };
 
   const handleSleepoverToggle = () => {
-    const nextStart = '22:00';
-    const nextEnd   = '06:00';
+    // Read user-configured sleepover window from settings, fallback to defaults
+    const storedStart = localStorage.getItem('pref_sleepover_start');
+    const storedEnd = localStorage.getItem('pref_sleepover_end');
+    const nextStart = storedStart || '00:00';
+    const nextEnd   = storedEnd || '06:00';
     setIsSleepover(prev => {
       const next = !prev;
       if (!notesCustomised.current) {
@@ -148,13 +151,17 @@ const ShiftForm = ({
   };
 
   const handlePhSleepoverToggle = () => {
+    const storedStart = localStorage.getItem('pref_sleepover_start');
+    const storedEnd = localStorage.getItem('pref_sleepover_end');
+    const sleepoStart = storedStart || '00:00';
+    const sleepoEnd   = storedEnd || '06:00';
     setIsPhSleepover(prev => {
       const next = !prev;
       if (next) {
         setIsSleepover(true);
         setIsPublicHoliday(true);
-        setStartTime('22:00');
-        setEndTime('06:00');
+        setStartTime(sleepoStart);
+        setEndTime(sleepoEnd);
         if (!feeOverride) setFeeOverride('400');
         if (!notesCustomised.current) {
           setNotes('Night Sleepover Support - Public Holiday');
