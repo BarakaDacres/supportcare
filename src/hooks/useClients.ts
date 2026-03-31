@@ -36,14 +36,19 @@ export function useClients() {
     if (!uid) { setLoading(false); return; }
 
     if (showLoading) setLoading(true);
-    const { data, error } = await supabase
-      .from('clients')
-      .select('*')
-      .order('name');
+    try {
+      const { data, error } = await Promise.race([
+        supabase.from('clients').select('*').order('name').then(r => r),
+        new Promise<never>((_, reject) => setTimeout(() => reject(new Error('Clients request timed out')), 12000)),
+      ]);
 
-    if (error) { console.error('fetchClients error:', error); }
-    setClients((data ?? []) as Client[]);
-    setLoading(false);
+      if (error) { console.error('fetchClients error:', error); }
+      setClients((data ?? []) as Client[]);
+    } catch (e) {
+      console.error('fetchClients timeout:', e);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   useEffect(() => {
