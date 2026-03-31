@@ -272,139 +272,218 @@ const AuthPage = () => {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 py-8" style={{ background: 'hsl(var(--background))' }}>
-      {/* Ambient glow */}
+    <div className="min-h-screen flex flex-col items-center justify-end px-5 pb-10 pt-8 relative overflow-hidden"
+      style={{ background: '#0a0a0c' }}>
+
+      {/* ── Subtle grid texture ── */}
       <div className="fixed inset-0 pointer-events-none" aria-hidden="true"
         style={{
-          background:
-            'radial-gradient(ellipse 70% 50% at 50% 0%, hsl(var(--primary)/0.1) 0%, transparent 70%),' +
-            'radial-gradient(ellipse 40% 30% at 20% 80%, hsl(var(--primary)/0.04) 0%, transparent 60%)',
+          backgroundImage: `
+            linear-gradient(hsl(220 20% 20% / 0.06) 1px, transparent 1px),
+            linear-gradient(90deg, hsl(220 20% 20% / 0.06) 1px, transparent 1px)
+          `,
+          backgroundSize: '48px 48px',
+          maskImage: 'radial-gradient(ellipse 80% 70% at 50% 30%, black 0%, transparent 80%)',
+          WebkitMaskImage: 'radial-gradient(ellipse 80% 70% at 50% 30%, black 0%, transparent 80%)',
         }} />
 
-      <div className="w-full max-w-[360px] relative">
-        {/* Logo */}
-        <div className="flex flex-col items-center mb-8 gap-3">
-          <div className="w-16 h-16 rounded-[22px] flex items-center justify-center text-white font-black text-2xl tracking-tight select-none"
-            style={{
-              background: 'hsl(var(--primary))',
-              boxShadow: '0 8px 32px hsl(var(--primary)/0.4), 0 2px 8px hsl(var(--primary)/0.25), inset 0 1px 0 hsl(0 0% 100% / 0.25)',
-            }}>
-            SC
-          </div>
-          <div className="text-center">
-            <h1 className="text-2xl font-bold tracking-tight text-foreground">Support Care</h1>
-            <p className="text-[14px] text-muted-foreground mt-0.5">
-              {mode === 'login' ? 'Sign in to your account' : mode === 'signup' ? 'Create your account' : 'Reset your password'}
-            </p>
-          </div>
-        </div>
+      {/* ── Ambient glow ── */}
+      <div className="fixed inset-0 pointer-events-none" aria-hidden="true"
+        style={{
+          background: 'radial-gradient(ellipse 60% 40% at 50% 15%, hsl(211 100% 50% / 0.06) 0%, transparent 70%)',
+        }} />
 
-        {/* Card */}
-        <div className="rounded-[28px] overflow-hidden"
+      {/* ── Centered brand area (fills upper space) ── */}
+      <div className="flex-1 flex flex-col items-center justify-center gap-4 relative z-10 mb-10">
+        <div className="w-20 h-20 rounded-[24px] flex items-center justify-center text-white font-black text-3xl tracking-tight select-none"
           style={{
-            background: 'hsl(var(--card))',
-            boxShadow: '0 2px 8px hsl(var(--foreground)/0.06), 0 20px 56px hsl(var(--foreground)/0.12), 0 0 0 0.5px hsl(var(--border))',
+            background: 'hsl(211 100% 50%)',
+            boxShadow: '0 12px 48px hsl(211 100% 50% / 0.35), 0 4px 16px hsl(211 100% 50% / 0.2), inset 0 1px 0 hsl(0 0% 100% / 0.2)',
+            animation: 'logo-pop 0.6s cubic-bezier(0.34, 1.56, 0.64, 1)',
           }}>
-          <div className="p-6 space-y-5">
+          SC
+        </div>
+        <div className="text-center">
+          <h1 className="text-[28px] font-bold tracking-tight text-white">Support Care</h1>
+          <p className="text-[14px] mt-1" style={{ color: 'hsl(220 10% 50%)' }}>
+            Shift tracking & invoicing for NDIS workers
+          </p>
+        </div>
+      </div>
 
-            {/* Social auth */}
+      {/* ── Auth card — smoked glass ── */}
+      <div className="w-full max-w-[380px] relative z-10 space-y-5">
+
+        {mode !== 'forgot' ? (
+          <>
+            {/* Social sign-in buttons — premium dark pill style */}
+            <div className="space-y-3">
+              <button onClick={() => handleSocial('google')} disabled={loading}
+                className="w-full flex items-center gap-4 rounded-[20px] px-5 text-[15px] font-medium text-white transition-all duration-200 active:scale-[0.98] disabled:opacity-40"
+                style={{
+                  minHeight: 56,
+                  background: 'hsl(220 14% 12% / 0.85)',
+                  border: '0.5px solid hsl(220 10% 100% / 0.08)',
+                  boxShadow: '0 2px 12px hsl(0 0% 0% / 0.4), inset 0 0.5px 0 hsl(0 0% 100% / 0.04)',
+                  backdropFilter: 'blur(20px)',
+                }}>
+                <GoogleIcon />
+                <span className="flex-1 text-left">Sign in with Google</span>
+                {/* "Last used" badge — shown if last provider was Google */}
+                {localStorage.getItem('last_auth_provider') === 'google' && (
+                  <span className="text-[10px] font-medium rounded-full px-2.5 py-1"
+                    style={{ background: 'hsl(220 10% 100% / 0.08)', color: 'hsl(220 10% 60%)' }}>
+                    Last used
+                  </span>
+                )}
+              </button>
+
+              <button onClick={() => handleSocial('apple')} disabled={loading}
+                className="w-full flex items-center gap-4 rounded-[20px] px-5 text-[15px] font-medium text-white transition-all duration-200 active:scale-[0.98] disabled:opacity-40"
+                style={{
+                  minHeight: 56,
+                  background: 'hsl(220 14% 12% / 0.85)',
+                  border: '0.5px solid hsl(220 10% 100% / 0.08)',
+                  boxShadow: '0 2px 12px hsl(0 0% 0% / 0.4), inset 0 0.5px 0 hsl(0 0% 100% / 0.04)',
+                  backdropFilter: 'blur(20px)',
+                }}>
+                <AppleIcon />
+                <span className="flex-1 text-left">Sign in with Apple</span>
+                {localStorage.getItem('last_auth_provider') === 'apple' && (
+                  <span className="text-[10px] font-medium rounded-full px-2.5 py-1"
+                    style={{ background: 'hsl(220 10% 100% / 0.08)', color: 'hsl(220 10% 60%)' }}>
+                    Last used
+                  </span>
+                )}
+              </button>
+            </div>
+
+            <div className="flex items-center gap-3 py-1">
+              <div className="flex-1 h-px" style={{ background: 'hsl(220 10% 100% / 0.06)' }} />
+              <span className="text-[12px] font-medium" style={{ color: 'hsl(220 10% 40%)' }}>or choose another option</span>
+              <div className="flex-1 h-px" style={{ background: 'hsl(220 10% 100% / 0.06)' }} />
+            </div>
+          </>
+        ) : null}
+
+        {/* Email/password form — smoked glass card */}
+        <div className="rounded-[20px] overflow-hidden"
+          style={{
+            background: 'hsl(220 14% 10% / 0.8)',
+            border: '0.5px solid hsl(220 10% 100% / 0.07)',
+            boxShadow: '0 4px 24px hsl(0 0% 0% / 0.4), inset 0 0.5px 0 hsl(0 0% 100% / 0.03)',
+            backdropFilter: 'blur(24px)',
+          }}>
+          <form onSubmit={handleSubmit} className="p-5 space-y-3.5">
+            {mode === 'signup' && (
+              <div className="space-y-1.5">
+                <label className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: 'hsl(220 10% 45%)' }}>Name</label>
+                <input type="text" autoComplete="name" placeholder="Your name" value={name}
+                  onChange={e => setName(e.target.value)} required
+                  className="w-full rounded-xl px-4 text-white placeholder:text-[hsl(220_10%_35%)] outline-none transition-all"
+                  style={{
+                    minHeight: 48, fontSize: '0.875rem', fontWeight: 500,
+                    background: 'hsl(220 14% 8% / 0.8)',
+                    border: '0.5px solid hsl(220 10% 100% / 0.08)',
+                  }}
+                  onFocus={e => e.currentTarget.style.borderColor = 'hsl(211 100% 58% / 0.5)'}
+                  onBlur={e => e.currentTarget.style.borderColor = 'hsl(220 10% 100% / 0.08)'}
+                />
+              </div>
+            )}
+            <div className="space-y-1.5">
+              <label className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: 'hsl(220 10% 45%)' }}>Email</label>
+              <input type="email" autoComplete="email" placeholder="you@example.com" value={email}
+                onChange={e => setEmail(e.target.value)} required
+                className="w-full rounded-xl px-4 text-white placeholder:text-[hsl(220_10%_35%)] outline-none transition-all"
+                style={{
+                  minHeight: 48, fontSize: '0.875rem', fontWeight: 500,
+                  background: 'hsl(220 14% 8% / 0.8)',
+                  border: '0.5px solid hsl(220 10% 100% / 0.08)',
+                }}
+                onFocus={e => e.currentTarget.style.borderColor = 'hsl(211 100% 58% / 0.5)'}
+                onBlur={e => e.currentTarget.style.borderColor = 'hsl(220 10% 100% / 0.08)'}
+              />
+            </div>
             {mode !== 'forgot' && (
-              <div className="space-y-2.5">
-                <button onClick={() => handleSocial('apple')} disabled={loading}
-                  className="w-full flex items-center justify-center gap-3 rounded-2xl px-4 py-3 text-[14px] font-semibold text-foreground min-h-[48px] transition-all duration-150 active:scale-[0.98] disabled:opacity-40"
-                  style={{ background: 'hsl(var(--secondary))', border: '1px solid hsl(var(--border))' }}>
-                  <AppleIcon />
-                  Continue with Apple
-                </button>
-                <button onClick={() => handleSocial('google')} disabled={loading}
-                  className="w-full flex items-center justify-center gap-3 rounded-2xl px-4 py-3 text-[14px] font-semibold text-foreground min-h-[48px] transition-all duration-150 active:scale-[0.98] disabled:opacity-40"
-                  style={{ background: 'hsl(var(--secondary))', border: '1px solid hsl(var(--border))' }}>
-                  <GoogleIcon />
-                  Continue with Google
-                </button>
-                <div className="relative flex items-center gap-3 py-1">
-                  <div className="flex-1 h-px" style={{ background: 'hsl(var(--border))' }} />
-                  <span className="text-xs text-muted-foreground font-medium">or</span>
-                  <div className="flex-1 h-px" style={{ background: 'hsl(var(--border))' }} />
-                </div>
+              <div className="space-y-1.5">
+                <label className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: 'hsl(220 10% 45%)' }}>Password</label>
+                <input type="password" autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
+                  placeholder="••••••••" value={password} onChange={e => setPassword(e.target.value)} required
+                  className="w-full rounded-xl px-4 text-white placeholder:text-[hsl(220_10%_35%)] outline-none transition-all"
+                  style={{
+                    minHeight: 48, fontSize: '0.875rem', fontWeight: 500,
+                    background: 'hsl(220 14% 8% / 0.8)',
+                    border: '0.5px solid hsl(220 10% 100% / 0.08)',
+                  }}
+                  onFocus={e => e.currentTarget.style.borderColor = 'hsl(211 100% 58% / 0.5)'}
+                  onBlur={e => e.currentTarget.style.borderColor = 'hsl(220 10% 100% / 0.08)'}
+                />
               </div>
             )}
 
-            {/* Form */}
-            <form onSubmit={handleSubmit} className="space-y-3">
-              {mode === 'signup' && (
-                <div className="space-y-1.5">
-                  <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Name</label>
-                  <input type="text" autoComplete="name" placeholder="Your name" value={name}
-                    onChange={e => setName(e.target.value)} required
-                    className="glass-input w-full text-foreground" style={{ minHeight: 48 }} />
-                </div>
-              )}
-              <div className="space-y-1.5">
-                <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Email</label>
-                <input type="email" autoComplete="email" placeholder="you@example.com" value={email}
-                  onChange={e => setEmail(e.target.value)} required
-                  className="glass-input w-full text-foreground" style={{ minHeight: 48 }} />
+            {message && (
+              <div className="text-[13px] font-medium px-4 py-3 rounded-xl leading-relaxed"
+                style={{
+                  background: message.type === 'error' ? 'hsl(0 62% 52% / 0.15)' : 'hsl(126 38% 58% / 0.15)',
+                  color: message.type === 'error' ? 'hsl(0 62% 70%)' : 'hsl(126 38% 70%)',
+                  border: `0.5px solid ${message.type === 'error' ? 'hsl(0 62% 52% / 0.25)' : 'hsl(126 38% 58% / 0.25)'}`,
+                }}>
+                {message.text}
               </div>
-              {mode !== 'forgot' && (
-                <div className="space-y-1.5">
-                  <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Password</label>
-                  <input type="password" autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
-                    placeholder="••••••••" value={password} onChange={e => setPassword(e.target.value)} required
-                    className="glass-input w-full text-foreground" style={{ minHeight: 48 }} />
-                </div>
-              )}
+            )}
 
-              {message && (
-                <div className="text-[13px] font-medium px-4 py-3 rounded-xl leading-relaxed"
-                  style={{
-                    background: message.type === 'error' ? 'hsl(var(--destructive)/0.1)' : 'hsl(var(--stat-green)/0.12)',
-                    color: message.type === 'error' ? 'hsl(var(--destructive))' : 'hsl(var(--stat-green))',
-                  }}>
-                  {message.text}
-                </div>
-              )}
+            <button type="submit" disabled={loading}
+              className="w-full rounded-2xl px-4 py-3.5 text-[15px] font-bold min-h-[52px] transition-all duration-200 disabled:opacity-40 active:scale-[0.98]"
+              style={{
+                background: 'hsl(211 100% 50%)',
+                color: '#fff',
+                boxShadow: '0 4px 24px hsl(211 100% 50% / 0.35)',
+                marginTop: 4,
+              }}>
+              {loading ? 'Please wait…' : mode === 'login' ? 'Sign In' : mode === 'signup' ? 'Create Account' : 'Send Reset Link'}
+            </button>
+          </form>
 
-              <button type="submit" disabled={loading}
-                className="w-full rounded-2xl px-4 py-3.5 text-[15px] font-bold min-h-[52px] transition-all duration-200 disabled:opacity-40 active:scale-[0.98]"
-                style={{ background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', boxShadow: '0 4px 20px hsl(var(--primary)/0.35)', marginTop: 4 }}>
-                {loading ? 'Please wait…' : mode === 'login' ? 'Sign In' : mode === 'signup' ? 'Create Account' : 'Send Reset Link'}
-              </button>
-            </form>
-          </div>
-
-          {/* Footer */}
-          <div className="px-6 py-4 text-center space-y-1.5" style={{ borderTop: '0.5px solid hsl(var(--border))' }}>
+          {/* Footer links */}
+          <div className="px-5 py-4 text-center space-y-1.5" style={{ borderTop: '0.5px solid hsl(220 10% 100% / 0.06)' }}>
             {mode === 'login' && (
               <>
                 <button onClick={() => { setMode('forgot'); setMessage(null); }}
-                  className="text-xs font-medium block w-full" style={{ color: 'hsl(var(--primary))' }}>
+                  className="text-xs font-medium block w-full" style={{ color: 'hsl(211 100% 58%)' }}>
                   Forgot password?
                 </button>
-                <p className="text-xs text-muted-foreground">
+                <p className="text-xs" style={{ color: 'hsl(220 10% 40%)' }}>
                   No account?{' '}
-                  <button onClick={() => { setMode('signup'); setMessage(null); }} className="font-semibold" style={{ color: 'hsl(var(--primary))' }}>
+                  <button onClick={() => { setMode('signup'); setMessage(null); }} className="font-semibold" style={{ color: 'hsl(211 100% 58%)' }}>
                     Sign up
                   </button>
                 </p>
               </>
             )}
             {mode === 'signup' && (
-              <p className="text-xs text-muted-foreground">
+              <p className="text-xs" style={{ color: 'hsl(220 10% 40%)' }}>
                 Already have an account?{' '}
-                <button onClick={() => { setMode('login'); setMessage(null); }} className="font-semibold" style={{ color: 'hsl(var(--primary))' }}>
+                <button onClick={() => { setMode('login'); setMessage(null); }} className="font-semibold" style={{ color: 'hsl(211 100% 58%)' }}>
                   Sign in
                 </button>
               </p>
             )}
             {mode === 'forgot' && (
-              <button onClick={() => { setMode('login'); setMessage(null); }} className="text-xs font-medium" style={{ color: 'hsl(var(--primary))' }}>
+              <button onClick={() => { setMode('login'); setMessage(null); }} className="text-xs font-medium" style={{ color: 'hsl(211 100% 58%)' }}>
                 ← Back to sign in
               </button>
             )}
           </div>
         </div>
       </div>
+
+      <style>{`
+        @keyframes logo-pop {
+          from { opacity: 0; transform: scale(0.7); }
+          to   { opacity: 1; transform: scale(1); }
+        }
+      `}</style>
     </div>
   );
 };
