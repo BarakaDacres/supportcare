@@ -259,6 +259,7 @@ const AuthPage = () => {
   const handleSocial = async (provider: 'google' | 'apple') => {
     setLoading(true);
     setMessage(null);
+    localStorage.setItem('last_auth_provider', provider);
     const result = await lovable.auth.signInWithOAuth(provider, { redirect_uri: window.location.origin });
     if (result && 'error' in result && result.error) {
       setMessage({ type: 'error', text: String(result.error) });
