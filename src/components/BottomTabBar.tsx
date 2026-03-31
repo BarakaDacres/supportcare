@@ -132,10 +132,10 @@ const BottomTabBar = ({ activeTab, onTabChange, hidden = false, auth }: Props) =
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
-  // Dynamic values based on scroll depth
-  const blurAmount = 40 + scrollDepth * 20; // 40px → 60px
-  const bgOpacity = 0.78 + scrollDepth * 0.12; // 0.78 → 0.90
-  const shadowOpacity = 0.12 + scrollDepth * 0.18; // subtle → stronger
+  // Dynamic values based on scroll depth — darker, smokier glass
+  const blurAmount = 44 + scrollDepth * 16; // 44px → 60px
+  const bgOpacity = 0.85 + scrollDepth * 0.10; // 0.85 → 0.95
+  const shadowOpacity = 0.18 + scrollDepth * 0.22; // subtle → stronger
 
   return (
     <>
