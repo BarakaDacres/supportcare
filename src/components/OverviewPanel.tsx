@@ -1208,7 +1208,31 @@ const OverviewPanel = ({
             className="text-4xl font-bold money-text leading-none tracking-tight"
             deps={animDeps}
           />
-          <p className="text-xs text-muted-foreground mt-1.5">weekly gross</p>
+          <div className="flex items-center gap-2 mt-1.5">
+            <p className="text-xs text-muted-foreground">weekly gross</p>
+            {stats.prevWeekGross > 0 && (() => {
+              const diff = stats.weekGross - stats.prevWeekGross;
+              const pct = (diff / stats.prevWeekGross) * 100;
+              const isUp = diff >= 0;
+              return (
+                <span
+                  className="inline-flex items-center gap-0.5 text-[10px] font-semibold rounded-full px-1.5 py-0.5"
+                  style={{
+                    background: isUp ? 'hsl(var(--stat-green)/0.10)' : 'hsl(var(--stat-red)/0.10)',
+                    color: isUp ? 'hsl(var(--stat-green))' : 'hsl(var(--stat-red))',
+                  }}
+                >
+                  {isUp ? <ArrowUpRight className="w-2.5 h-2.5" /> : <ArrowDownRight className="w-2.5 h-2.5" />}
+                  {Math.abs(pct).toFixed(0)}%
+                </span>
+              );
+            })()}
+          </div>
+          {stats.prevWeekGross > 0 && (
+            <p className="text-[10px] text-muted-foreground/60 mt-0.5">
+              Last week: {formatCurrency(stats.prevWeekGross)}
+            </p>
+          )}
         </div>
         <div
           className="grid grid-cols-3 gap-3 pt-4"
