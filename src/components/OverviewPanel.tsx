@@ -898,14 +898,25 @@ const OverviewPanel = ({
 
   // Day popup is now handled inline inside EarningsCalendarHeatmap
 
-  const stats = useMemo(() => {
+      const stats = useMemo(() => {
     const weekStart = getMondayOf(today);
     const weekEnd = new Date(weekStart);
     weekEnd.setDate(weekEnd.getDate() + 6);
 
+    // Previous week
+    const prevWeekStart = new Date(weekStart);
+    prevWeekStart.setDate(prevWeekStart.getDate() - 7);
+    const prevWeekEnd = new Date(prevWeekStart);
+    prevWeekEnd.setDate(prevWeekEnd.getDate() + 6);
+
     const thisWeekShifts = shifts.filter(s => {
       const d = parseDate(s.date);
       return d >= weekStart && d <= weekEnd;
+    });
+
+    const prevWeekShifts = shifts.filter(s => {
+      const d = parseDate(s.date);
+      return d >= prevWeekStart && d <= prevWeekEnd;
     });
 
     const thisMonthShifts = shifts.filter(s => {
