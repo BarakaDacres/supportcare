@@ -1050,6 +1050,7 @@ const OverviewPanel = ({
 
     return {
       weekGross: gross(thisWeekShifts),
+      prevWeekGross: gross(prevWeekShifts),
       weekHours: hours(thisWeekShifts),
       weekShiftCount: thisWeekShifts.length,
       weekSleepovers: thisWeekShifts.filter(s => s.is_sleepover).length,
