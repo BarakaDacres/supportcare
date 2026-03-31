@@ -971,7 +971,9 @@ const OverviewPanel = ({
         const hasEvening = shiftHasEveningHours(s.start_time, s.end_time);
         const [startH] = s.start_time.split(':').map(Number);
         const [endH]   = s.end_time.split(':').map(Number);
-        const purelyEvening = startH >= 18 && (endH <= 22 || endH < startH);
+        const evStartH = (() => { const st = localStorage.getItem('pref_evening_start'); if (st) { const [h] = st.split(':').map(Number); return h; } return 18; })();
+        const evEndH = (() => { const st = localStorage.getItem('pref_evening_end'); if (st) { const [h] = st.split(':').map(Number); return h === 0 ? 24 : h; } return 24; })();
+        const purelyEvening = startH >= evStartH && (endH <= evEndH || endH < startH);
         if (hasEvening && purelyEvening) { evening += pay; eveningH += h; }
         else { regularDay += pay; regularDayH += h; }
       }
