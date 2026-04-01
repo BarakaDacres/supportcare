@@ -1,8 +1,10 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import {
   Plus, Pencil, Trash2, User, Check, X, ChevronRight, ChevronLeft,
   Clock, FileText, Hash, Phone, MapPin, Moon, DollarSign, BarChart2, Mail,
 } from 'lucide-react';
+import maplibregl from 'maplibre-gl';
+import 'maplibre-gl/dist/maplibre-gl.css';
 import type { Client } from '@/hooks/useClients';
 import type { Shift } from '@/hooks/useShifts';
 import { effectiveGrossPay } from '@/hooks/useShifts';
