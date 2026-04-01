@@ -29,6 +29,15 @@ function defaultState(): StoreState {
   };
 }
 
+/**
+ * Always reset year+month to the current calendar month on load
+ * so the home page defaults to "now" regardless of what was persisted.
+ */
+function forceCurrentMonth(state: StoreState): StoreState {
+  const now = new Date();
+  return { ...state, year: now.getFullYear(), month: now.getMonth() };
+}
+
 function resolveTheme(override: 'light' | 'dark' | 'system'): 'light' | 'dark' {
   if (override === 'system') {
     return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
