@@ -996,14 +996,12 @@ const OverviewPanel = ({
     });
     const maxMonth = Math.max(...byMonth.map(b => b.gross), 1);
 
-    const completedMonths = Math.max(1,
-      selectedYear < today.getFullYear()
-        ? 12
-        : selectedYear > today.getFullYear()
-        ? 1
-        : today.getMonth() + 1
-    );
-    const projected = (gross(thisYearShifts) / completedMonths) * 12;
+    // For projected annual, always use current year's data and completed months
+    const currentYearShifts = selectedYear === currentYear
+      ? thisYearShifts
+      : shifts.filter(s => parseDate(s.date).getFullYear() === currentYear);
+    const completedMonths = Math.max(1, today.getMonth() + 1);
+    const projected = (gross(currentYearShifts) / completedMonths) * 12;
 
     // Use the actual current wall-clock time for accurate shift state detection
     const now = new Date();
