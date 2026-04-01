@@ -1,5 +1,8 @@
-import { useMemo } from 'react';
-import { TrendingUp, Moon, BarChart3, Target, Sunset, Star, DollarSign, Clock } from 'lucide-react';
+import { useMemo, useState, useEffect, useRef } from 'react';
+import {
+  TrendingUp, Moon, BarChart3, Target, Sunset, Star, DollarSign, Clock,
+  Zap, Award, ArrowUpRight, ArrowDownRight, Calendar, Flame,
+} from 'lucide-react';
 import { formatCurrency } from '@/lib/formatUtils';
 import type { Shift } from '@/hooks/useShifts';
 import { effectiveGrossPay } from '@/hooks/useShifts';
@@ -28,14 +31,64 @@ function getMondayOf(date: Date): Date {
   return d;
 }
 
-/* ── Apple-style stat tile ── */
+// ── Count-up animation ──
+function useCountUp(target: number, duration = 700) {
+  const [value, setValue] = useState(0);
+  const rafRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    const start = performance.now();
+    const from = 0;
+    const animate = (ts: number) => {
+      const progress = Math.min((ts - start) / duration, 1);
+      const eased = 1 - Math.pow(1 - progress, 3);
+      setValue(from + (target - from) * eased);
+      if (progress < 1) rafRef.current = requestAnimationFrame(animate);
+    };
+    rafRef.current = requestAnimationFrame(animate);
+    return () => { if (rafRef.current) cancelAnimationFrame(rafRef.current); };
+  }, [target, duration]);
+
+  return value;
+}
+
+// ── Animated currency ──
+const AnimatedCurrency = ({ value, className, style }: {
+  value: number; className?: string; style?: React.CSSProperties;
+}) => {
+  const animated = useCountUp(value, 800);
+  return <span className={className} style={style}>{formatCurrency(animated)}</span>;
+};
+
+// ── Insight pill ──
+const InsightPill = ({ icon: Icon, text, color, delay = 0 }: {
+  icon: React.ElementType; text: string; color: string; delay?: number;
+}) => (
+  <div
+    className="flex items-center gap-2 rounded-2xl px-3.5 py-2.5"
+    style={{
+      background: `${color}08`,
+      border: `1px solid ${color}18`,
+      animation: `insightFadeIn 0.4s ease ${delay}ms both`,
+    }}
+  >
+    <Icon className="w-3.5 h-3.5 shrink-0" style={{ color }} />
+    <span className="text-[11px] font-medium text-foreground leading-snug">{text}</span>
+  </div>
+);
+
+/* ── Stat tile with press feedback ── */
 const StatTile = ({
-  label, value, sub, icon: Icon, iconColor,
+  label, value, sub, icon: Icon, iconColor, animateValue,
 }: {
   label: string; value: string; sub?: string;
   icon?: React.ElementType; iconColor?: string;
+  animateValue?: number;
 }) => (
-  <div className="card-elevated" style={{ padding: '14px 16px' }}>
+  <div
+    className="card-elevated transition-transform duration-150 active:scale-[0.97]"
+    style={{ padding: '14px 16px' }}
+  >
     <div className="flex items-center gap-2 mb-1.5">
       {Icon && (
         <div className="w-6 h-6 rounded-lg flex items-center justify-center shrink-0"
@@ -45,9 +98,17 @@ const StatTile = ({
       )}
       <span className="section-label truncate">{label}</span>
     </div>
-    <p className="font-bold leading-tight" style={{ fontSize: 'clamp(1rem, 3.5vw, 1.35rem)', color: 'hsl(var(--money-green))' }}>
-      {value}
-    </p>
+    {animateValue !== undefined ? (
+      <AnimatedCurrency
+        value={animateValue}
+        className="font-bold leading-tight"
+        style={{ fontSize: 'clamp(1rem, 3.5vw, 1.35rem)', color: 'hsl(var(--money-green))' }}
+      />
+    ) : (
+      <p className="font-bold leading-tight" style={{ fontSize: 'clamp(1rem, 3.5vw, 1.35rem)', color: 'hsl(var(--money-green))' }}>
+        {value}
+      </p>
+    )}
     {sub && <p className="text-[10px] text-muted-foreground mt-0.5">{sub}</p>}
   </div>
 );
@@ -56,6 +117,12 @@ const StatTile = ({
 const GoalRow = ({ label, current, goal }: { label: string; current: number; goal: number }) => {
   const pct = Math.min(100, (current / goal) * 100);
   const done = pct >= 100;
+  const [animPct, setAnimPct] = useState(0);
+  useEffect(() => {
+    const timer = setTimeout(() => setAnimPct(pct), 100);
+    return () => clearTimeout(timer);
+  }, [pct]);
+
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between gap-2">
@@ -64,13 +131,76 @@ const GoalRow = ({ label, current, goal }: { label: string; current: number; goa
       </div>
       <div className="h-2 rounded-full overflow-hidden" style={{ background: 'hsl(var(--muted))' }}>
         <div
-          className="h-full rounded-full transition-all duration-700"
-          style={{ width: `${pct.toFixed(1)}%`, background: done ? 'hsl(142 71% 45%)' : 'hsl(var(--money-green))' }}
+          className="h-full rounded-full"
+          style={{
+            width: `${animPct.toFixed(1)}%`,
+            background: done ? 'hsl(142 71% 45%)' : 'hsl(var(--money-green))',
+            transition: 'width 0.8s cubic-bezier(0.4,0,0.2,1)',
+          }}
         />
       </div>
       <p className="text-[10px] text-right" style={{ color: done ? 'hsl(142 71% 45%)' : 'hsl(var(--muted-foreground))' }}>
         {done ? '✓ Goal reached' : `${pct.toFixed(0)}% · ${formatCurrency(goal - current)} to go`}
       </p>
+    </div>
+  );
+};
+
+/* ── Animated bar chart ── */
+const AnimatedBarChart = ({
+  data, selectedMonth, maxGross,
+}: {
+  data: { month: number; gross: number }[];
+  selectedMonth: number;
+  maxGross: number;
+}) => {
+  const [animate, setAnimate] = useState(false);
+  useEffect(() => { 
+    const t = setTimeout(() => setAnimate(true), 100);
+    return () => clearTimeout(t);
+  }, [data]);
+
+  const bestGross = Math.max(...data.map(d => d.gross));
+
+  return (
+    <div className="flex items-end gap-1" style={{ height: 100 }}>
+      {data.map(({ month, gross }) => {
+        const pct = maxGross > 0 ? (gross / maxGross) * 100 : 0;
+        const isBest = gross === bestGross && gross > 0;
+        const isSelected = month === selectedMonth;
+        return (
+          <div key={month} className="flex-1 flex flex-col items-center gap-1 h-full group">
+            <div className="w-full flex items-end flex-1">
+              <div
+                className="w-full transition-all duration-700 ease-out relative overflow-hidden"
+                style={{
+                  height: animate ? `${Math.max(pct, gross > 0 ? 4 : 0)}%` : '0%',
+                  borderRadius: '5px 5px 0 0',
+                  background: isBest
+                    ? 'linear-gradient(to top, hsl(var(--money-green)), hsl(var(--money-green)/0.7))'
+                    : isSelected
+                    ? 'hsl(var(--money-green)/0.55)'
+                    : 'hsl(var(--muted-foreground)/0.15)',
+                  boxShadow: isBest ? '0 0 12px hsl(var(--money-green)/0.2)' : 'none',
+                  transitionDelay: `${month * 40}ms`,
+                }}
+              >
+                {/* Gradient overlay for depth */}
+                <div
+                  className="absolute inset-0"
+                  style={{
+                    background: 'linear-gradient(to right, transparent, hsl(0 0% 100% / 0.08), transparent)',
+                  }}
+                />
+              </div>
+            </div>
+            <span className="text-[8px] font-medium leading-none transition-colors"
+              style={{ color: isSelected ? 'hsl(var(--money-green))' : 'hsl(var(--muted-foreground))' }}>
+              {MONTH_SHORT[month]}
+            </span>
+          </div>
+        );
+      })}
     </div>
   );
 };
@@ -93,6 +223,14 @@ const AnalyticsPanel = ({ shifts, settings, selectedYear, selectedMonth }: Analy
     const thisMonthShifts = shifts.filter(s => { const d = parseDate(s.date); return d.getMonth() === selectedMonth && d.getFullYear() === selectedYear; });
     const thisYearShifts = shifts.filter(s => parseDate(s.date).getFullYear() === selectedYear);
 
+    // Previous month
+    const prevMonth = selectedMonth === 0 ? 11 : selectedMonth - 1;
+    const prevYear = selectedMonth === 0 ? selectedYear - 1 : selectedYear;
+    const prevMonthShifts = shifts.filter(s => {
+      const d = parseDate(s.date);
+      return d.getMonth() === prevMonth && d.getFullYear() === prevYear;
+    });
+
     const gross = (arr: Shift[]) => arr.reduce((s, sh) => s + effectiveGrossPay(sh), 0);
     const workedHours = (arr: Shift[]) => arr.filter(s => !s.is_sleepover).reduce((s, sh) => s + Number(sh.hours_worked), 0);
 
@@ -100,6 +238,7 @@ const AnalyticsPanel = ({ shifts, settings, selectedYear, selectedMonth }: Analy
     const fortnightGross = gross(thisFortnightShifts);
     const monthGross = gross(thisMonthShifts);
     const yearGross = gross(thisYearShifts);
+    const prevMonthGross = gross(prevMonthShifts);
     const monthHours = workedHours(thisMonthShifts);
     const avgHourly = monthHours > 0 ? monthGross / monthHours : 0;
 
@@ -111,12 +250,18 @@ const AnalyticsPanel = ({ shifts, settings, selectedYear, selectedMonth }: Analy
     const maxMonthGross = Math.max(...byMonth.map(b => b.gross), 0);
     const bestMonth = byMonth.reduce((a, b) => (b.gross > a.gross ? b : a), byMonth[0]);
 
+    const currentYear = today.getFullYear();
     const completedMonths = Math.max(1,
-      selectedYear < today.getFullYear() ? 12
-      : selectedYear > today.getFullYear() ? 1
+      selectedYear < currentYear ? 12
+      : selectedYear > currentYear ? 1
       : today.getMonth() + 1
     );
     const projected = (yearGross / completedMonths) * 12;
+
+    // Month-over-month growth
+    const monthGrowthPct = prevMonthGross > 0
+      ? ((monthGross - prevMonthGross) / prevMonthGross) * 100
+      : null;
 
     const sleepoversWeekday = thisYearShifts.filter(s => { if (!s.is_sleepover) return false; const d = parseDate(s.date).getDay(); return d >= 1 && d <= 5; });
     const sleepoversWeekend = thisYearShifts.filter(s => { if (!s.is_sleepover) return false; const d = parseDate(s.date).getDay(); return d === 6 || d === 0; });
@@ -124,11 +269,17 @@ const AnalyticsPanel = ({ shifts, settings, selectedYear, selectedMonth }: Analy
     const eveningShifts = thisYearShifts.filter(s => !s.is_sleepover && !s.is_public_holiday && shiftHasEveningHours(s.start_time, s.end_time));
 
     const dayTotals = [0, 0, 0, 0, 0, 0, 0];
+    const dayCounts = [0, 0, 0, 0, 0, 0, 0];
     for (const s of thisYearShifts) {
       const [y, mm, dd] = s.date.split('-').map(Number);
       const dow = new Date(y, mm - 1, dd).getDay();
       dayTotals[dow] += effectiveGrossPay(s);
+      dayCounts[dow] += 1;
     }
+
+    // Most active day
+    const mostActiveDay = dayCounts.indexOf(Math.max(...dayCounts));
+    const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
     return {
       weeklyGross, fortnightGross, monthGross, yearGross,
@@ -139,6 +290,11 @@ const AnalyticsPanel = ({ shifts, settings, selectedYear, selectedMonth }: Analy
       sleepoversIncome,
       eveningShiftCount: eveningShifts.length,
       dayTotals,
+      monthGrowthPct,
+      prevMonth,
+      prevMonthGross,
+      mostActiveDay: dayNames[mostActiveDay],
+      mostActiveDayCount: Math.max(...dayCounts),
     };
   }, [shifts, selectedMonth, selectedYear]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -152,38 +308,127 @@ const AnalyticsPanel = ({ shifts, settings, selectedYear, selectedMonth }: Analy
   const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
   const maxDay = Math.max(...stats.dayTotals, 1);
 
+  // Build smart insights
+  const insights = useMemo(() => {
+    const items: { icon: React.ElementType; text: string; color: string }[] = [];
+
+    if (stats.bestMonth.gross > 0) {
+      items.push({
+        icon: Award,
+        text: `Best month: ${MONTH_SHORT[stats.bestMonth.month]} (${formatCurrency(stats.bestMonth.gross)})`,
+        color: 'hsl(var(--money-green))',
+      });
+    }
+
+    if (stats.monthGrowthPct !== null) {
+      const up = stats.monthGrowthPct >= 0;
+      items.push({
+        icon: up ? ArrowUpRight : ArrowDownRight,
+        text: `${up ? '↑' : '↓'} ${Math.abs(stats.monthGrowthPct).toFixed(0)}% ${up ? 'higher' : 'lower'} than ${MONTH_SHORT[stats.prevMonth]}`,
+        color: up ? 'hsl(var(--stat-green))' : 'hsl(var(--stat-red))',
+      });
+    }
+
+    if (stats.avgHourly > 0) {
+      items.push({
+        icon: Zap,
+        text: `Avg ${formatCurrency(stats.avgHourly)}/hr this month`,
+        color: 'hsl(var(--primary))',
+      });
+    }
+
+    if (stats.mostActiveDayCount > 0) {
+      items.push({
+        icon: Flame,
+        text: `Most active day: ${stats.mostActiveDay}`,
+        color: 'hsl(var(--stat-amber))',
+      });
+    }
+
+    return items;
+  }, [stats]);
+
+  // Projected trend insight
+  const projectedInsight = useMemo(() => {
+    if (stats.projected <= 0) return null;
+    const monthAvg = stats.projected / 12;
+    if (stats.monthGross >= monthAvg * 0.9) return '↑ On track based on current monthly average';
+    if (stats.monthGross >= monthAvg * 0.6) return '→ Slightly below monthly target pace';
+    return '↓ Below average — consider logging more shifts';
+  }, [stats]);
+
   return (
-    <div className="space-y-4 pb-2">
+    <div className="space-y-5 pb-2">
       {/* Header */}
       <div className="flex items-baseline justify-between">
         <h2 className="text-lg font-bold text-foreground">Analytics</h2>
         <span className="text-xs font-semibold text-muted-foreground">{selectedYear}</span>
       </div>
 
-      {/* Period summary — 2×2 grid */}
-      <div className="grid grid-cols-2 gap-2.5">
-        <StatTile label="This Week" value={formatCurrency(stats.weeklyGross)} icon={BarChart3} iconColor="hsl(var(--primary))" />
-        <StatTile label="This Fortnight" value={formatCurrency(stats.fortnightGross)} icon={BarChart3} iconColor="hsl(var(--primary))" />
-        <StatTile label="This Month" value={formatCurrency(stats.monthGross)} sub={`${stats.monthHours.toFixed(1)}h worked`} icon={DollarSign} iconColor="hsl(var(--money-green))" />
-        <StatTile label={`${selectedYear} Total`} value={formatCurrency(stats.yearGross)} sub={`${stats.totalShifts} shifts`} icon={Star} iconColor="hsl(var(--stat-amber))" />
-      </div>
-
-      {/* Projected annual — hero card */}
-      <div className="card-elevated" style={{ padding: '18px' }}>
-        <div className="flex items-center gap-4">
-          <div className="w-11 h-11 rounded-2xl flex items-center justify-center shrink-0"
-            style={{ background: 'hsl(var(--money-green)/0.12)' }}>
-            <TrendingUp className="w-5 h-5 money-text" />
+      {/* ── HERO: Projected Annual ── */}
+      <div
+        className="card-elevated relative overflow-hidden"
+        style={{
+          padding: '22px 20px',
+          animation: 'heroFadeIn 0.5s ease both',
+        }}
+      >
+        {/* Subtle gradient glow behind icon */}
+        <div
+          className="absolute pointer-events-none"
+          style={{
+            top: -20, left: -20,
+            width: 120, height: 120,
+            borderRadius: '50%',
+            background: 'radial-gradient(circle, hsl(var(--money-green)/0.08), transparent 70%)',
+            filter: 'blur(20px)',
+          }}
+        />
+        <div className="relative flex items-center gap-4">
+          <div className="w-12 h-12 rounded-2xl flex items-center justify-center shrink-0"
+            style={{
+              background: 'linear-gradient(135deg, hsl(var(--money-green)/0.15), hsl(var(--money-green)/0.05))',
+              boxShadow: '0 0 24px hsl(var(--money-green)/0.08)',
+            }}>
+            <TrendingUp className="w-5.5 h-5.5 money-text" />
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest mb-0.5">Projected Annual</p>
-            <p className="text-2xl font-bold money-text leading-tight">{formatCurrency(stats.projected)}</p>
-            <p className="text-[11px] text-muted-foreground mt-0.5">
+            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest mb-1">Projected Annual</p>
+            <AnimatedCurrency
+              value={stats.projected}
+              className="text-[28px] font-bold money-text leading-none tracking-tight"
+            />
+            <p className="text-[11px] text-muted-foreground mt-1.5">
               Based on {stats.completedMonths} month{stats.completedMonths !== 1 ? 's' : ''} ·{' '}
-              <span className="font-semibold text-foreground">{formatCurrency(stats.avgHourly)}/hr avg</span>
+              <span className="font-semibold text-foreground">{formatCurrency(stats.avgHourly)}/hr</span>
             </p>
+            {projectedInsight && (
+              <p className="text-[10px] mt-1" style={{ color: 'hsl(var(--money-green)/0.8)' }}>
+                {projectedInsight}
+              </p>
+            )}
           </div>
         </div>
+      </div>
+
+      {/* ── SMART INSIGHTS ── */}
+      {insights.length > 0 && (
+        <div className="space-y-2" style={{ animation: 'heroFadeIn 0.5s ease 0.1s both' }}>
+          <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest px-1">Insights</p>
+          <div className="space-y-1.5">
+            {insights.map((insight, i) => (
+              <InsightPill key={i} icon={insight.icon} text={insight.text} color={insight.color} delay={i * 80} />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Period summary — 2×2 grid */}
+      <div className="grid grid-cols-2 gap-2.5">
+        <StatTile label="This Week" animateValue={stats.weeklyGross} value="" icon={BarChart3} iconColor="hsl(var(--primary))" />
+        <StatTile label="This Fortnight" animateValue={stats.fortnightGross} value="" icon={BarChart3} iconColor="hsl(var(--primary))" />
+        <StatTile label="This Month" animateValue={stats.monthGross} value="" sub={`${stats.monthHours.toFixed(1)}h worked`} icon={DollarSign} iconColor="hsl(var(--money-green))" />
+        <StatTile label={`${selectedYear} Total`} animateValue={stats.yearGross} value="" sub={`${stats.totalShifts} shifts`} icon={Star} iconColor="hsl(var(--stat-amber))" />
       </div>
 
       {/* Tax projection */}
@@ -238,43 +483,19 @@ const AnalyticsPanel = ({ shifts, settings, selectedYear, selectedMonth }: Analy
         </div>
       )}
 
-      {/* Monthly bar chart */}
+      {/* Monthly bar chart — animated */}
       <div className="card-elevated overflow-hidden">
-        <div className="px-4 pt-4 pb-2">
+        <div className="px-4 pt-4 pb-3">
           <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Monthly Earnings {selectedYear}</p>
         </div>
         <div className="px-4 pb-4">
-          <div className="flex items-end gap-1" style={{ height: 88 }}>
-            {stats.byMonth.map(({ month, gross }) => {
-              const pct = stats.maxMonthGross > 0 ? (gross / stats.maxMonthGross) * 100 : 0;
-              const isBest = gross === stats.maxMonthGross && gross > 0;
-              const isSelected = month === selectedMonth;
-              return (
-                <div key={month} className="flex-1 flex flex-col items-center gap-1 h-full">
-                  <div className="w-full flex items-end flex-1">
-                    <div
-                      className="w-full rounded-t-md transition-all duration-500"
-                      style={{
-                        height: `${Math.max(pct, gross > 0 ? 4 : 0)}%`,
-                        background: isBest
-                          ? 'hsl(var(--money-green))'
-                          : isSelected
-                          ? 'hsl(var(--money-green)/0.55)'
-                          : 'hsl(var(--muted-foreground)/0.18)',
-                        borderRadius: '4px 4px 0 0',
-                      }}
-                    />
-                  </div>
-                  <span className="text-[8px] font-medium leading-none"
-                    style={{ color: isSelected ? 'hsl(var(--money-green))' : 'hsl(var(--muted-foreground))' }}>
-                    {MONTH_SHORT[month]}
-                  </span>
-                </div>
-              );
-            })}
-          </div>
+          <AnimatedBarChart
+            data={stats.byMonth}
+            selectedMonth={selectedMonth}
+            maxGross={stats.maxMonthGross}
+          />
           {stats.bestMonth.gross > 0 && (
-            <p className="text-[10px] text-muted-foreground mt-2">
+            <p className="text-[10px] text-muted-foreground mt-3">
               Best: <span className="font-semibold text-foreground">{MONTH_SHORT[stats.bestMonth.month]}</span> · {formatCurrency(stats.bestMonth.gross)}
             </p>
           )}
@@ -294,8 +515,12 @@ const AnalyticsPanel = ({ shifts, settings, selectedYear, selectedMonth }: Analy
                 <span className="text-[11px] text-muted-foreground w-7 shrink-0 font-medium">{day}</span>
                 <div className="flex-1 h-2.5 rounded-full overflow-hidden" style={{ background: 'hsl(var(--muted))' }}>
                   <div
-                    className="h-full rounded-full transition-all duration-700"
-                    style={{ width: `${pct}%`, background: `hsl(var(--money-green)/${(0.3 + (pct / 100) * 0.7).toFixed(2)})` }}
+                    className="h-full rounded-full"
+                    style={{
+                      width: `${pct}%`,
+                      background: `hsl(var(--money-green)/${(0.3 + (pct / 100) * 0.7).toFixed(2)})`,
+                      transition: 'width 0.8s cubic-bezier(0.4,0,0.2,1)',
+                    }}
                   />
                 </div>
                 <span className="text-[11px] font-semibold money-text min-w-[64px] text-right">{formatCurrency(stats.dayTotals[i])}</span>
@@ -348,6 +573,17 @@ const AnalyticsPanel = ({ shifts, settings, selectedYear, selectedMonth }: Analy
           </div>
         </div>
       )}
+
+      <style>{`
+        @keyframes heroFadeIn {
+          from { opacity: 0; transform: translateY(12px); }
+          to   { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes insightFadeIn {
+          from { opacity: 0; transform: translateX(-8px); }
+          to   { opacity: 1; transform: translateX(0); }
+        }
+      `}</style>
     </div>
   );
 };
