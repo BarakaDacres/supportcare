@@ -800,16 +800,16 @@ const EarningsCalendarHeatmap = ({
                       position: 'relative',
                       transition: 'transform 0.15s cubic-bezier(0.25,0,0.1,1), background 0.15s ease, box-shadow 0.15s ease',
                       background: isSelected
-                        ? '#DCE9FF'
+                        ? 'hsl(var(--primary))'
                         : gross > 0
                         ? getHeatColor(intensity)
                         : 'hsl(var(--muted) / 0.35)',
                       border: isSelected
-                        ? '1px solid #3B82F6'
+                        ? '1px solid hsl(var(--primary))'
                         : isToday && !isSelected
                         ? '1px solid hsl(var(--primary) / 0.4)'
                         : '1px solid transparent',
-                      boxShadow: isSelected ? '0 1px 4px rgba(59,130,246,0.10)' : 'none',
+                      boxShadow: isSelected ? '0 2px 10px hsl(var(--primary)/0.35)' : 'none',
                       cursor: 'pointer',
                       WebkitTapHighlightColor: 'transparent',
                     }}
@@ -834,21 +834,34 @@ const EarningsCalendarHeatmap = ({
                     <span
                       style={{
                         fontSize: 9,
-                        fontWeight: 500,
+                        fontWeight: isSelected ? 700 : 500,
                         lineHeight: 1,
-                        color: getDayTextColor(intensity, isSelected),
+                        color: isSelected
+                          ? 'white'
+                          : getDayTextColor(intensity, false),
                         fontFamily: '-apple-system, "SF Pro Text", system-ui, sans-serif',
                       }}
                     >
                       {dayNum}
                     </span>
-                    {count > 0 && (
+                    {count > 0 && !isSelected && (
                       <span
                         style={{
                           width: 3.5,
                           height: 3.5,
                           borderRadius: '50%',
                           background: getDotColor(intensity),
+                          flexShrink: 0,
+                        }}
+                      />
+                    )}
+                    {count > 0 && isSelected && (
+                      <span
+                        style={{
+                          width: 3.5,
+                          height: 3.5,
+                          borderRadius: '50%',
+                          background: 'hsl(0 0% 100% / 0.7)',
                           flexShrink: 0,
                         }}
                       />
