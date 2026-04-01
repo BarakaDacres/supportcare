@@ -61,7 +61,7 @@ function loadLocalState(): StoreState {
 }
 
 export function useIncomeStore() {
-  const [state, setState] = useState<StoreState>(loadLocalState);
+  const [state, setState] = useState<StoreState>(() => forceCurrentMonth(loadLocalState()));
   const [cloudSynced, setCloudSynced] = useState(false);
 
   // On mount: if user is signed in, load cloud data
