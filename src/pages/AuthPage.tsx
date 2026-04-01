@@ -272,17 +272,18 @@ const AuthPage = () => {
     return <OnboardingWizard onComplete={() => setShowOnboarding(null)} />;
   }
 
+  const isDark = document.documentElement.classList.contains('dark');
+
   return (
     <div className="min-h-screen flex flex-col items-center justify-end px-5 pb-10 pt-8 relative overflow-hidden"
-      style={{ background: '#0a0a0c' }}>
+      style={{ background: isDark ? '#0a0a0c' : 'hsl(var(--background))' }}>
 
       {/* ── Subtle grid texture ── */}
       <div className="fixed inset-0 pointer-events-none" aria-hidden="true"
         style={{
-          backgroundImage: `
-            linear-gradient(hsl(220 20% 20% / 0.06) 1px, transparent 1px),
-            linear-gradient(90deg, hsl(220 20% 20% / 0.06) 1px, transparent 1px)
-          `,
+          backgroundImage: isDark
+            ? `linear-gradient(hsl(220 20% 20% / 0.06) 1px, transparent 1px), linear-gradient(90deg, hsl(220 20% 20% / 0.06) 1px, transparent 1px)`
+            : `linear-gradient(hsl(220 20% 80% / 0.08) 1px, transparent 1px), linear-gradient(90deg, hsl(220 20% 80% / 0.08) 1px, transparent 1px)`,
           backgroundSize: '48px 48px',
           maskImage: 'radial-gradient(ellipse 80% 70% at 50% 30%, black 0%, transparent 80%)',
           WebkitMaskImage: 'radial-gradient(ellipse 80% 70% at 50% 30%, black 0%, transparent 80%)',
@@ -291,10 +292,12 @@ const AuthPage = () => {
       {/* ── Ambient glow ── */}
       <div className="fixed inset-0 pointer-events-none" aria-hidden="true"
         style={{
-          background: 'radial-gradient(ellipse 60% 40% at 50% 15%, hsl(211 100% 50% / 0.06) 0%, transparent 70%)',
+          background: isDark
+            ? 'radial-gradient(ellipse 60% 40% at 50% 15%, hsl(211 100% 50% / 0.06) 0%, transparent 70%)'
+            : 'radial-gradient(ellipse 60% 40% at 50% 15%, hsl(211 100% 50% / 0.08) 0%, transparent 70%)',
         }} />
 
-      {/* ── Centered brand area (fills upper space) ── */}
+      {/* ── Centered brand area ── */}
       <div className="flex-1 flex flex-col items-center justify-center gap-4 relative z-10 mb-10">
         <div className="w-20 h-20 rounded-[24px] flex items-center justify-center text-white font-black text-3xl tracking-tight select-none"
           style={{
@@ -305,126 +308,130 @@ const AuthPage = () => {
           SC
         </div>
         <div className="text-center">
-          <h1 className="text-[28px] font-bold tracking-tight text-white">Support Care</h1>
-          <p className="text-[14px] mt-1" style={{ color: 'hsl(220 10% 50%)' }}>
+          <h1 className="text-[28px] font-bold tracking-tight" style={{ color: isDark ? 'white' : 'hsl(var(--foreground))' }}>Support Care</h1>
+          <p className="text-[14px] mt-1" style={{ color: isDark ? 'hsl(220 10% 50%)' : 'hsl(var(--muted-foreground))' }}>
             Shift tracking & invoicing for NDIS workers
           </p>
         </div>
       </div>
 
-      {/* ── Auth card — smoked glass ── */}
-      <div className="w-full max-w-[380px] relative z-10 space-y-5">
+      {/* ── Auth card ── */}
+      <div className="w-full max-w-[380px] relative z-10 space-y-4">
 
         {mode !== 'forgot' ? (
           <>
-            {/* Social sign-in buttons — premium dark pill style */}
-            <div className="space-y-3">
+            {/* Social sign-in buttons */}
+            <div className="space-y-2.5">
               <button onClick={() => handleSocial('google')} disabled={loading}
-                className="w-full flex items-center gap-4 rounded-[20px] px-5 text-[15px] font-medium text-white transition-all duration-200 active:scale-[0.98] disabled:opacity-40"
+                className="w-full flex items-center gap-4 rounded-[18px] px-5 text-[15px] font-medium transition-all duration-200 active:scale-[0.98] disabled:opacity-40"
                 style={{
-                  minHeight: 56,
-                  background: 'hsl(220 14% 12% / 0.85)',
-                  border: '0.5px solid hsl(220 10% 100% / 0.08)',
-                  boxShadow: '0 2px 12px hsl(0 0% 0% / 0.4), inset 0 0.5px 0 hsl(0 0% 100% / 0.04)',
+                  minHeight: 52,
+                  background: isDark ? 'hsl(220 14% 12% / 0.85)' : 'hsl(var(--card))',
+                  color: isDark ? 'white' : 'hsl(var(--foreground))',
+                  border: isDark ? '0.5px solid hsl(220 10% 100% / 0.08)' : '0.5px solid hsl(var(--border))',
+                  boxShadow: isDark ? '0 2px 12px hsl(0 0% 0% / 0.4), inset 0 0.5px 0 hsl(0 0% 100% / 0.04)' : '0 2px 8px hsl(0 0% 0% / 0.06)',
                   backdropFilter: 'blur(20px)',
                 }}>
                 <GoogleIcon />
                 <span className="flex-1 text-left">Sign in with Google</span>
-                {/* "Last used" badge — shown if last provider was Google */}
                 {localStorage.getItem('last_auth_provider') === 'google' && (
                   <span className="text-[10px] font-medium rounded-full px-2.5 py-1"
-                    style={{ background: 'hsl(220 10% 100% / 0.08)', color: 'hsl(220 10% 60%)' }}>
+                    style={{ background: isDark ? 'hsl(220 10% 100% / 0.08)' : 'hsl(var(--muted))', color: 'hsl(var(--muted-foreground))' }}>
                     Last used
                   </span>
                 )}
               </button>
 
               <button onClick={() => handleSocial('apple')} disabled={loading}
-                className="w-full flex items-center gap-4 rounded-[20px] px-5 text-[15px] font-medium text-white transition-all duration-200 active:scale-[0.98] disabled:opacity-40"
+                className="w-full flex items-center gap-4 rounded-[18px] px-5 text-[15px] font-medium transition-all duration-200 active:scale-[0.98] disabled:opacity-40"
                 style={{
-                  minHeight: 56,
-                  background: 'hsl(220 14% 12% / 0.85)',
-                  border: '0.5px solid hsl(220 10% 100% / 0.08)',
-                  boxShadow: '0 2px 12px hsl(0 0% 0% / 0.4), inset 0 0.5px 0 hsl(0 0% 100% / 0.04)',
+                  minHeight: 52,
+                  background: isDark ? 'hsl(220 14% 12% / 0.85)' : 'hsl(var(--card))',
+                  color: isDark ? 'white' : 'hsl(var(--foreground))',
+                  border: isDark ? '0.5px solid hsl(220 10% 100% / 0.08)' : '0.5px solid hsl(var(--border))',
+                  boxShadow: isDark ? '0 2px 12px hsl(0 0% 0% / 0.4), inset 0 0.5px 0 hsl(0 0% 100% / 0.04)' : '0 2px 8px hsl(0 0% 0% / 0.06)',
                   backdropFilter: 'blur(20px)',
                 }}>
                 <AppleIcon />
                 <span className="flex-1 text-left">Sign in with Apple</span>
                 {localStorage.getItem('last_auth_provider') === 'apple' && (
                   <span className="text-[10px] font-medium rounded-full px-2.5 py-1"
-                    style={{ background: 'hsl(220 10% 100% / 0.08)', color: 'hsl(220 10% 60%)' }}>
+                    style={{ background: isDark ? 'hsl(220 10% 100% / 0.08)' : 'hsl(var(--muted))', color: 'hsl(var(--muted-foreground))' }}>
                     Last used
                   </span>
                 )}
               </button>
             </div>
 
-            <div className="flex items-center gap-3 py-1">
-              <div className="flex-1 h-px" style={{ background: 'hsl(220 10% 100% / 0.06)' }} />
-              <span className="text-[12px] font-medium" style={{ color: 'hsl(220 10% 40%)' }}>or choose another option</span>
-              <div className="flex-1 h-px" style={{ background: 'hsl(220 10% 100% / 0.06)' }} />
+            <div className="flex items-center gap-3 py-0.5">
+              <div className="flex-1 h-px" style={{ background: isDark ? 'hsl(220 10% 100% / 0.06)' : 'hsl(var(--border))' }} />
+              <span className="text-[11px] font-medium" style={{ color: 'hsl(var(--muted-foreground))' }}>or</span>
+              <div className="flex-1 h-px" style={{ background: isDark ? 'hsl(220 10% 100% / 0.06)' : 'hsl(var(--border))' }} />
             </div>
           </>
         ) : null}
 
-        {/* Email/password form — smoked glass card */}
-        <div className="rounded-[20px] overflow-hidden"
+        {/* Email/password form — compact */}
+        <div className="rounded-[18px] overflow-hidden"
           style={{
-            background: 'hsl(220 14% 10% / 0.8)',
-            border: '0.5px solid hsl(220 10% 100% / 0.07)',
-            boxShadow: '0 4px 24px hsl(0 0% 0% / 0.4), inset 0 0.5px 0 hsl(0 0% 100% / 0.03)',
+            background: isDark ? 'hsl(220 14% 10% / 0.8)' : 'hsl(var(--card))',
+            border: isDark ? '0.5px solid hsl(220 10% 100% / 0.07)' : '0.5px solid hsl(var(--border))',
+            boxShadow: isDark ? '0 4px 24px hsl(0 0% 0% / 0.4), inset 0 0.5px 0 hsl(0 0% 100% / 0.03)' : '0 2px 12px hsl(0 0% 0% / 0.06)',
             backdropFilter: 'blur(24px)',
           }}>
-          <form onSubmit={handleSubmit} className="p-5 space-y-3.5">
+          <form onSubmit={handleSubmit} className="p-4 space-y-2.5">
             {mode === 'signup' && (
-              <div className="space-y-1.5">
-                <label className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: 'hsl(220 10% 45%)' }}>Name</label>
+              <div className="space-y-1">
+                <label className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'hsl(var(--muted-foreground))' }}>Name</label>
                 <input type="text" autoComplete="name" placeholder="Your name" value={name}
                   onChange={e => setName(e.target.value)} required
-                  className="w-full rounded-xl px-4 text-white placeholder:text-[hsl(220_10%_35%)] outline-none transition-all"
+                  className="w-full rounded-xl px-3.5 outline-none transition-all"
                   style={{
-                    minHeight: 48, fontSize: '0.875rem', fontWeight: 500,
-                    background: 'hsl(220 14% 8% / 0.8)',
-                    border: '0.5px solid hsl(220 10% 100% / 0.08)',
+                    minHeight: 42, fontSize: '0.8125rem', fontWeight: 500,
+                    background: isDark ? 'hsl(220 14% 8% / 0.8)' : 'hsl(var(--muted)/0.5)',
+                    color: isDark ? 'white' : 'hsl(var(--foreground))',
+                    border: isDark ? '0.5px solid hsl(220 10% 100% / 0.08)' : '0.5px solid hsl(var(--border))',
                   }}
                   onFocus={e => e.currentTarget.style.borderColor = 'hsl(211 100% 58% / 0.5)'}
-                  onBlur={e => e.currentTarget.style.borderColor = 'hsl(220 10% 100% / 0.08)'}
+                  onBlur={e => e.currentTarget.style.borderColor = isDark ? 'hsl(220 10% 100% / 0.08)' : 'hsl(var(--border))'}
                 />
               </div>
             )}
-            <div className="space-y-1.5">
-              <label className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: 'hsl(220 10% 45%)' }}>Email</label>
+            <div className="space-y-1">
+              <label className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'hsl(var(--muted-foreground))' }}>Email</label>
               <input type="email" autoComplete="email" placeholder="you@example.com" value={email}
                 onChange={e => setEmail(e.target.value)} required
-                className="w-full rounded-xl px-4 text-white placeholder:text-[hsl(220_10%_35%)] outline-none transition-all"
+                className="w-full rounded-xl px-3.5 outline-none transition-all"
                 style={{
-                  minHeight: 48, fontSize: '0.875rem', fontWeight: 500,
-                  background: 'hsl(220 14% 8% / 0.8)',
-                  border: '0.5px solid hsl(220 10% 100% / 0.08)',
+                  minHeight: 42, fontSize: '0.8125rem', fontWeight: 500,
+                  background: isDark ? 'hsl(220 14% 8% / 0.8)' : 'hsl(var(--muted)/0.5)',
+                  color: isDark ? 'white' : 'hsl(var(--foreground))',
+                  border: isDark ? '0.5px solid hsl(220 10% 100% / 0.08)' : '0.5px solid hsl(var(--border))',
                 }}
                 onFocus={e => e.currentTarget.style.borderColor = 'hsl(211 100% 58% / 0.5)'}
-                onBlur={e => e.currentTarget.style.borderColor = 'hsl(220 10% 100% / 0.08)'}
+                onBlur={e => e.currentTarget.style.borderColor = isDark ? 'hsl(220 10% 100% / 0.08)' : 'hsl(var(--border))'}
               />
             </div>
             {mode !== 'forgot' && (
-              <div className="space-y-1.5">
-                <label className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: 'hsl(220 10% 45%)' }}>Password</label>
+              <div className="space-y-1">
+                <label className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'hsl(var(--muted-foreground))' }}>Password</label>
                 <input type="password" autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
                   placeholder="••••••••" value={password} onChange={e => setPassword(e.target.value)} required
-                  className="w-full rounded-xl px-4 text-white placeholder:text-[hsl(220_10%_35%)] outline-none transition-all"
+                  className="w-full rounded-xl px-3.5 outline-none transition-all"
                   style={{
-                    minHeight: 48, fontSize: '0.875rem', fontWeight: 500,
-                    background: 'hsl(220 14% 8% / 0.8)',
-                    border: '0.5px solid hsl(220 10% 100% / 0.08)',
+                    minHeight: 42, fontSize: '0.8125rem', fontWeight: 500,
+                    background: isDark ? 'hsl(220 14% 8% / 0.8)' : 'hsl(var(--muted)/0.5)',
+                    color: isDark ? 'white' : 'hsl(var(--foreground))',
+                    border: isDark ? '0.5px solid hsl(220 10% 100% / 0.08)' : '0.5px solid hsl(var(--border))',
                   }}
                   onFocus={e => e.currentTarget.style.borderColor = 'hsl(211 100% 58% / 0.5)'}
-                  onBlur={e => e.currentTarget.style.borderColor = 'hsl(220 10% 100% / 0.08)'}
+                  onBlur={e => e.currentTarget.style.borderColor = isDark ? 'hsl(220 10% 100% / 0.08)' : 'hsl(var(--border))'}
                 />
               </div>
             )}
 
             {message && (
-              <div className="text-[13px] font-medium px-4 py-3 rounded-xl leading-relaxed"
+              <div className="text-[12px] font-medium px-3.5 py-2.5 rounded-xl leading-relaxed"
                 style={{
                   background: message.type === 'error' ? 'hsl(0 62% 52% / 0.15)' : 'hsl(126 38% 58% / 0.15)',
                   color: message.type === 'error' ? 'hsl(0 62% 70%)' : 'hsl(126 38% 70%)',
@@ -435,11 +442,11 @@ const AuthPage = () => {
             )}
 
             <button type="submit" disabled={loading}
-              className="w-full rounded-2xl px-4 py-3.5 text-[15px] font-bold min-h-[52px] transition-all duration-200 disabled:opacity-40 active:scale-[0.98]"
+              className="w-full rounded-2xl px-4 py-3 text-[14px] font-bold min-h-[46px] transition-all duration-200 disabled:opacity-40 active:scale-[0.98]"
               style={{
                 background: 'hsl(211 100% 50%)',
                 color: '#fff',
-                boxShadow: '0 4px 24px hsl(211 100% 50% / 0.35)',
+                boxShadow: '0 4px 20px hsl(211 100% 50% / 0.3)',
                 marginTop: 4,
               }}>
               {loading ? 'Please wait…' : mode === 'login' ? 'Sign In' : mode === 'signup' ? 'Create Account' : 'Send Reset Link'}
@@ -447,14 +454,14 @@ const AuthPage = () => {
           </form>
 
           {/* Footer links */}
-          <div className="px-5 py-4 text-center space-y-1.5" style={{ borderTop: '0.5px solid hsl(220 10% 100% / 0.06)' }}>
+          <div className="px-4 py-3 text-center space-y-1" style={{ borderTop: isDark ? '0.5px solid hsl(220 10% 100% / 0.06)' : '0.5px solid hsl(var(--border))' }}>
             {mode === 'login' && (
               <>
                 <button onClick={() => { setMode('forgot'); setMessage(null); }}
-                  className="text-xs font-medium block w-full" style={{ color: 'hsl(211 100% 58%)' }}>
+                  className="text-[11px] font-medium block w-full" style={{ color: 'hsl(211 100% 58%)' }}>
                   Forgot password?
                 </button>
-                <p className="text-xs" style={{ color: 'hsl(220 10% 40%)' }}>
+                <p className="text-[11px]" style={{ color: 'hsl(var(--muted-foreground))' }}>
                   No account?{' '}
                   <button onClick={() => { setMode('signup'); setMessage(null); }} className="font-semibold" style={{ color: 'hsl(211 100% 58%)' }}>
                     Sign up
@@ -463,7 +470,7 @@ const AuthPage = () => {
               </>
             )}
             {mode === 'signup' && (
-              <p className="text-xs" style={{ color: 'hsl(220 10% 40%)' }}>
+              <p className="text-[11px]" style={{ color: 'hsl(var(--muted-foreground))' }}>
                 Already have an account?{' '}
                 <button onClick={() => { setMode('login'); setMessage(null); }} className="font-semibold" style={{ color: 'hsl(211 100% 58%)' }}>
                   Sign in
@@ -471,7 +478,7 @@ const AuthPage = () => {
               </p>
             )}
             {mode === 'forgot' && (
-              <button onClick={() => { setMode('login'); setMessage(null); }} className="text-xs font-medium" style={{ color: 'hsl(211 100% 58%)' }}>
+              <button onClick={() => { setMode('login'); setMessage(null); }} className="text-[11px] font-medium" style={{ color: 'hsl(211 100% 58%)' }}>
                 ← Back to sign in
               </button>
             )}

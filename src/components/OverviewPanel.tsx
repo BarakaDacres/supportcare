@@ -318,7 +318,7 @@ const DayPopup = ({
   shifts: Shift[];
   onClose: () => void;
 }) => {
-  const dayShifts = useMemo(() => shifts.filter(s => s.date === dateStr), [dateStr, shifts]);
+  const dayShifts = useMemo(() => shifts.filter(s => s.date === dateStr).sort((a, b) => a.start_time.localeCompare(b.start_time)), [dateStr, shifts]);
   const total = dayShifts.reduce((s, sh) => s + effectiveGrossPay(sh), 0);
   const totalHours = dayShifts.filter(s => !s.is_sleepover).reduce((s, sh) => s + Number(sh.hours_worked), 0);
   const sleepovers = dayShifts.filter(s => s.is_sleepover).length;
@@ -931,6 +931,7 @@ const OverviewPanel = ({
       return d.getMonth() === prevMonth && d.getFullYear() === prevYear;
     });
 
+    const currentYear = today.getFullYear();
     const thisYearShifts = shifts.filter(s => parseDate(s.date).getFullYear() === selectedYear);
 
     const gross = (arr: Shift[]) => arr.reduce((s, sh) => s + effectiveGrossPay(sh), 0);
@@ -995,14 +996,12 @@ const OverviewPanel = ({
     });
     const maxMonth = Math.max(...byMonth.map(b => b.gross), 1);
 
-    const completedMonths = Math.max(1,
-      selectedYear < today.getFullYear()
-        ? 12
-        : selectedYear > today.getFullYear()
-        ? 1
-        : today.getMonth() + 1
-    );
-    const projected = (gross(thisYearShifts) / completedMonths) * 12;
+    // For projected annual, always use current year's data and completed months
+    const currentYearShifts = selectedYear === currentYear
+      ? thisYearShifts
+      : shifts.filter(s => parseDate(s.date).getFullYear() === currentYear);
+    const completedMonths = Math.max(1, today.getMonth() + 1);
+    const projected = (gross(currentYearShifts) / completedMonths) * 12;
 
     // Use the actual current wall-clock time for accurate shift state detection
     const now = new Date();

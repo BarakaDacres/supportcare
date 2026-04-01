@@ -254,29 +254,33 @@ const ClientFormSheet = ({
   );
 };
 
-/* ── Premium dark iOS-style map ── */
+/* ── Premium themed map ── */
 const AddressMap = ({ address, clientName, isActive }: { address: string; clientName?: string; isActive?: boolean }) => {
   const q = encodeURIComponent(address);
   const initial = clientName ? clientName[0].toUpperCase() : '?';
+  const isDark = document.documentElement.classList.contains('dark');
+
   return (
     <div
       className="relative overflow-hidden"
       style={{
         height: 240,
         borderRadius: 22,
-        background: 'hsl(220 14% 8%)',
+        background: isDark ? 'hsl(220 14% 8%)' : 'hsl(220 14% 96%)',
         boxShadow: 'var(--card-shadow-md)',
         border: '1px solid hsl(var(--border)/0.5)',
       }}
     >
-      {/* Dark-styled map iframe */}
+      {/* Map iframe — CSS filter for dark mode, clean for light */}
       <iframe
         title="Location"
         width="100%"
         height="100%"
         style={{
           border: 0,
-          filter: 'invert(0.93) hue-rotate(180deg) saturate(0.45) brightness(0.78) contrast(1.2)',
+          filter: isDark
+            ? 'invert(0.93) hue-rotate(180deg) saturate(0.45) brightness(0.78) contrast(1.2)'
+            : 'saturate(0.85) contrast(1.05)',
           pointerEvents: 'auto',
         }}
         loading="lazy"
@@ -284,10 +288,20 @@ const AddressMap = ({ address, clientName, isActive }: { address: string; client
         src={`https://www.google.com/maps?q=${q}&output=embed&z=15`}
       />
 
-      {/* Top edge fade for depth */}
-      <div className="absolute inset-x-0 top-0 pointer-events-none" style={{ height: 48, background: 'linear-gradient(to bottom, hsl(220 14% 8% / 0.5), transparent)' }} />
+      {/* Top edge fade */}
+      <div className="absolute inset-x-0 top-0 pointer-events-none" style={{
+        height: 48,
+        background: isDark
+          ? 'linear-gradient(to bottom, hsl(220 14% 8% / 0.5), transparent)'
+          : 'linear-gradient(to bottom, hsl(220 14% 96% / 0.6), transparent)',
+      }} />
       {/* Bottom edge fade */}
-      <div className="absolute inset-x-0 bottom-0 pointer-events-none" style={{ height: 64, background: 'linear-gradient(to top, hsl(220 14% 8% / 0.7), transparent)' }} />
+      <div className="absolute inset-x-0 bottom-0 pointer-events-none" style={{
+        height: 64,
+        background: isDark
+          ? 'linear-gradient(to top, hsl(220 14% 8% / 0.7), transparent)'
+          : 'linear-gradient(to top, hsl(220 14% 96% / 0.7), transparent)',
+      }} />
 
       {/* Custom center marker */}
       <div className="absolute inset-0 flex items-center justify-center pointer-events-none" style={{ marginTop: -20 }}>
@@ -308,17 +322,19 @@ const AddressMap = ({ address, clientName, isActive }: { address: string; client
         </div>
       </div>
 
-      {/* Floating info card — bottom-left */}
+      {/* Floating info card — bottom */}
       {clientName && (
         <div
           className="absolute bottom-3 left-3 right-3 flex items-center gap-3 px-3.5 py-2.5"
           style={{
             borderRadius: 16,
-            background: 'hsl(220 14% 10% / 0.82)',
+            background: isDark ? 'hsl(220 14% 10% / 0.82)' : 'hsl(0 0% 100% / 0.85)',
             backdropFilter: 'blur(24px) saturate(1.4)',
             WebkitBackdropFilter: 'blur(24px) saturate(1.4)',
-            border: '1px solid hsl(0 0% 100% / 0.08)',
-            boxShadow: '0 4px 20px hsl(0 0% 0% / 0.4), inset 0 0.5px 0 hsl(0 0% 100% / 0.06)',
+            border: isDark ? '1px solid hsl(0 0% 100% / 0.08)' : '1px solid hsl(var(--border))',
+            boxShadow: isDark
+              ? '0 4px 20px hsl(0 0% 0% / 0.4), inset 0 0.5px 0 hsl(0 0% 100% / 0.06)'
+              : '0 4px 20px hsl(0 0% 0% / 0.08)',
           }}
         >
           <div
@@ -328,15 +344,15 @@ const AddressMap = ({ address, clientName, isActive }: { address: string; client
             {initial}
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-xs font-semibold text-white truncate">{clientName}</p>
-            <p className="text-[10px] text-white/50 truncate">{address}</p>
+            <p className="text-xs font-semibold truncate" style={{ color: isDark ? 'white' : 'hsl(var(--foreground))' }}>{clientName}</p>
+            <p className="text-[10px] truncate" style={{ color: isDark ? 'hsl(0 0% 100% / 0.5)' : 'hsl(var(--muted-foreground))' }}>{address}</p>
           </div>
           {isActive !== undefined && (
             <span
               className="text-[9px] font-semibold px-2 py-0.5 rounded-full shrink-0"
               style={{
-                background: isActive ? 'hsl(var(--stat-green)/0.2)' : 'hsl(0 0% 100% / 0.08)',
-                color: isActive ? 'hsl(var(--stat-green))' : 'hsl(0 0% 100% / 0.4)',
+                background: isActive ? 'hsl(var(--stat-green)/0.2)' : 'hsl(var(--muted))',
+                color: isActive ? 'hsl(var(--stat-green))' : 'hsl(var(--muted-foreground))',
               }}
             >
               {isActive ? 'Active' : 'Inactive'}
@@ -345,7 +361,7 @@ const AddressMap = ({ address, clientName, isActive }: { address: string; client
         </div>
       )}
 
-      {/* Open in Maps floating pill — top-right */}
+      {/* Single Open in Maps pill — top-right */}
       <a
         href={`https://maps.google.com/?q=${q}`}
         target="_blank"
