@@ -318,7 +318,7 @@ const DayPopup = ({
   shifts: Shift[];
   onClose: () => void;
 }) => {
-  const dayShifts = useMemo(() => shifts.filter(s => s.date === dateStr), [dateStr, shifts]);
+  const dayShifts = useMemo(() => shifts.filter(s => s.date === dateStr).sort((a, b) => a.start_time.localeCompare(b.start_time)), [dateStr, shifts]);
   const total = dayShifts.reduce((s, sh) => s + effectiveGrossPay(sh), 0);
   const totalHours = dayShifts.filter(s => !s.is_sleepover).reduce((s, sh) => s + Number(sh.hours_worked), 0);
   const sleepovers = dayShifts.filter(s => s.is_sleepover).length;
