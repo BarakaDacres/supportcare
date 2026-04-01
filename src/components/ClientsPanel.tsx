@@ -254,11 +254,46 @@ const ClientFormSheet = ({
   );
 };
 
-/* ── Premium themed map ── */
+/* ── Premium themed map with MapLibre GL ── */
 const AddressMap = ({ address, clientName, isActive }: { address: string; clientName?: string; isActive?: boolean }) => {
   const q = encodeURIComponent(address);
   const initial = clientName ? clientName[0].toUpperCase() : '?';
   const isDark = document.documentElement.classList.contains('dark');
+  const mapContainerRef = useRef<HTMLDivElement>(null);
+  const mapRef = useRef<maplibregl.Map | null>(null);
+
+  useEffect(() => {
+    if (!mapContainerRef.current) return;
+
+    // Free tile styles — dark & light
+    const darkStyle = 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json';
+    const lightStyle = 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json';
+
+    const map = new maplibregl.Map({
+      container: mapContainerRef.current,
+      style: isDark ? darkStyle : lightStyle,
+      center: [151.2093, -33.8688], // Default Sydney
+      zoom: 14,
+      attributionControl: false,
+      interactive: true,
+    });
+    mapRef.current = map;
+
+    // Geocode via Nominatim
+    fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${q}&limit=1`, {
+      headers: { 'Accept': 'application/json' },
+    })
+      .then(r => r.json())
+      .then(results => {
+        if (results && results.length > 0) {
+          const { lon, lat } = results[0];
+          map.setCenter([parseFloat(lon), parseFloat(lat)]);
+        }
+      })
+      .catch(() => { /* fallback position */ });
+
+    return () => { map.remove(); mapRef.current = null; };
+  }, [address, isDark]);
 
   return (
     <div
@@ -271,22 +306,7 @@ const AddressMap = ({ address, clientName, isActive }: { address: string; client
         border: '1px solid hsl(var(--border)/0.5)',
       }}
     >
-      {/* Map iframe — CSS filter for dark mode, clean for light */}
-      <iframe
-        title="Location"
-        width="100%"
-        height="100%"
-        style={{
-          border: 0,
-          filter: isDark
-            ? 'invert(0.93) hue-rotate(180deg) saturate(0.45) brightness(0.78) contrast(1.2)'
-            : 'saturate(0.85) contrast(1.05)',
-          pointerEvents: 'auto',
-        }}
-        loading="lazy"
-        referrerPolicy="no-referrer-when-downgrade"
-        src={`https://www.google.com/maps?q=${q}&output=embed&z=15`}
-      />
+      <div ref={mapContainerRef} style={{ width: '100%', height: '100%' }} />
 
       {/* Top edge fade */}
       <div className="absolute inset-x-0 top-0 pointer-events-none" style={{
@@ -361,7 +381,7 @@ const AddressMap = ({ address, clientName, isActive }: { address: string; client
         </div>
       )}
 
-      {/* Single Open in Maps pill — top-right */}
+      {/* Open in Maps pill — top-right */}
       <a
         href={`https://maps.google.com/?q=${q}`}
         target="_blank"
