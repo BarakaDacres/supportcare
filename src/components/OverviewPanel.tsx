@@ -931,6 +931,7 @@ const OverviewPanel = ({
       return d.getMonth() === prevMonth && d.getFullYear() === prevYear;
     });
 
+    const currentYear = today.getFullYear();
     const thisYearShifts = shifts.filter(s => parseDate(s.date).getFullYear() === selectedYear);
 
     const gross = (arr: Shift[]) => arr.reduce((s, sh) => s + effectiveGrossPay(sh), 0);
