@@ -619,6 +619,93 @@ const EarningsCalendarHeatmap = ({
   );
 };
 
+// ── Month navigator ──────────────────────────────────────────────────────────
+const MonthNavigator = ({
+  year, month, onYearChange, onMonthChange,
+  monthGross, monthShifts, monthHours,
+  locked,
+}: {
+  year: number; month: number;
+  onYearChange: (y: number) => void;
+  onMonthChange: (m: number) => void;
+  monthGross: number;
+  monthShifts: number;
+  monthHours: number;
+  locked?: boolean;
+}) => {
+  const prev = () => {
+    haptic('light');
+    if (month === 0) { onYearChange(year - 1); onMonthChange(11); }
+    else onMonthChange(month - 1);
+  };
+  const next = () => {
+    haptic('light');
+    if (month === 11) { onYearChange(year + 1); onMonthChange(0); }
+    else onMonthChange(month + 1);
+  };
+
+  const touchStartX = useRef<number | null>(null);
+  const handleTouchStart = (e: React.TouchEvent) => { touchStartX.current = e.touches[0].clientX; };
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (touchStartX.current === null) return;
+    const dx = e.changedTouches[0].clientX - touchStartX.current;
+    if (Math.abs(dx) > 48) { haptic('light'); dx < 0 ? next() : prev(); }
+    touchStartX.current = null;
+  };
+
+  return (
+    <div
+      className="card-elevated overflow-hidden"
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
+    >
+      <div className="flex items-center justify-between px-3 py-3.5">
+        <button
+          onClick={prev}
+          className="w-8 h-8 flex items-center justify-center rounded-full transition-colors hover:bg-secondary"
+          aria-label="Previous month"
+        >
+          <ChevronLeft className="w-4 h-4 text-foreground" />
+        </button>
+        <div className="text-center">
+          <div className="flex items-center justify-center gap-1.5">
+            <span className="text-base font-bold text-foreground tracking-tight">
+              {MONTH_NAMES[month]} {year}
+            </span>
+            {locked !== undefined && (
+              <span
+                className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full"
+                style={{
+                  background: locked ? 'hsl(var(--destructive)/0.10)' : 'hsl(var(--stat-green)/0.12)',
+                  color: locked ? 'hsl(var(--destructive))' : 'hsl(var(--stat-green))',
+                }}
+              >
+                {locked ? 'Locked' : 'Open'}
+              </span>
+            )}
+          </div>
+          {(monthGross > 0 || monthShifts > 0) && (
+            <p className="text-[11px] text-muted-foreground mt-0.5">
+              <span className="font-bold money-text">{formatCurrency(monthGross)}</span>
+              <span className="mx-1 opacity-40">·</span>
+              <span>{monthShifts} shift{monthShifts !== 1 ? 's' : ''}</span>
+              <span className="mx-1 opacity-40">·</span>
+              <span>{monthHours.toFixed(0)}h</span>
+            </p>
+          )}
+        </div>
+        <button
+          onClick={next}
+          className="w-8 h-8 flex items-center justify-center rounded-full transition-colors hover:bg-secondary"
+          aria-label="Next month"
+        >
+          <ChevronRight className="w-4 h-4 text-foreground" />
+        </button>
+      </div>
+    </div>
+  );
+};
+
 // ── Main OverviewPanel ────────────────────────────────────────────────────────
 const OverviewPanel = ({
   shifts, clients, invoices, settings,
