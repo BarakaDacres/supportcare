@@ -1,5 +1,5 @@
-import { useState, useRef, useEffect } from 'react';
-import { Camera, LogOut, Save, Loader2, Building2, CreditCard, FileText, MapPin, ChevronRight } from 'lucide-react';
+import { useState, useRef, useEffect, useCallback } from 'react';
+import { User, Camera, LogOut, Save, Loader2, Building2, CreditCard, FileText, MapPin } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import type { AuthState } from '@/hooks/useAuth';
 import type { UserSettings } from '@/hooks/useUserSettings';
@@ -10,7 +10,12 @@ interface ProfileSettingsProps {
   onSaveSettings: (updates: Partial<Omit<UserSettings, 'id' | 'user_id'>>) => Promise<void>;
 }
 
-/* ── Module-level sub-components (prevent remount on re-render) ── */
+/* ─────────────────────────────────────────────────────────────────────────
+   CRITICAL: ALL sub-components are defined at MODULE LEVEL (outside any
+   component body). Defining them inside a component causes React to treat
+   them as new component types on every render, which unmounts → remounts
+   the input DOM node, immediately stealing focus after 1 character.
+───────────────────────────────────────────────────────────────────────── */
 
 interface FieldProps {
   label: string;
@@ -18,88 +23,59 @@ interface FieldProps {
   onChange: (v: string) => void;
   placeholder?: string;
   type?: string;
+  hint?: string;
 }
 
-const Field = ({ label, value, onChange, placeholder, type = 'text' }: FieldProps) => (
-  <div>
-    <label style={{ fontSize: 11, fontWeight: 500, color: 'hsl(var(--muted-foreground))', display: 'block', marginBottom: 6 }}>
-      {label}
-    </label>
+const Field = ({ label, value, onChange, placeholder, type = 'text', hint }: FieldProps) => (
+  <div className="space-y-1">
+    <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">{label}</label>
     <input
       type={type}
       value={value}
       onChange={e => onChange(e.target.value)}
       placeholder={placeholder}
-      className="w-full text-foreground"
-      style={{
-        height: 44,
-        padding: '0 14px',
-        borderRadius: 12,
-        background: 'hsl(var(--muted)/0.3)',
-        border: '1px solid hsl(var(--border)/0.4)',
-        fontSize: 14,
-        transition: 'border-color 0.15s ease',
-        outline: 'none',
-      }}
-      onFocus={e => e.currentTarget.style.borderColor = 'hsl(var(--primary)/0.5)'}
-      onBlur={e => e.currentTarget.style.borderColor = 'hsl(var(--border)/0.4)'}
+      className="glass-input w-full text-foreground"
+      style={{ minHeight: 44 }}
+    />
+    {hint && <p className="text-[10px] text-muted-foreground">{hint}</p>}
+  </div>
+);
+
+interface AddressFieldProps {
+  value: string;
+  onChange: (v: string) => void;
+}
+
+const AddressField = ({ value, onChange }: AddressFieldProps) => (
+  <div className="space-y-1">
+    <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
+      <MapPin className="w-3 h-3" /> Address
+    </label>
+    <input
+      type="text"
+      value={value}
+      onChange={e => onChange(e.target.value)}
+      placeholder="Suburb, State"
+      className="glass-input w-full text-foreground"
+      style={{ minHeight: 44 }}
     />
   </div>
 );
 
-interface SectionProps {
-  icon: React.ReactNode;
-  title: string;
-  children: React.ReactNode;
-  defaultOpen?: boolean;
+interface NotesTextareaProps {
+  value: string;
+  onChange: (v: string) => void;
 }
 
-const Section = ({ icon, title, children, defaultOpen = false }: SectionProps) => {
-  const [open, setOpen] = useState(defaultOpen);
-  return (
-    <div style={{
-      borderRadius: 16,
-      background: 'hsl(var(--card))',
-      border: '1px solid hsl(var(--border)/0.4)',
-      overflow: 'hidden',
-      transition: 'all 0.2s ease',
-    }}>
-      <button
-        onClick={() => setOpen(!open)}
-        className="w-full flex items-center gap-3 text-left"
-        style={{ padding: '14px 16px', WebkitTapHighlightColor: 'transparent' }}
-      >
-        <div style={{
-          width: 32, height: 32, borderRadius: 8,
-          background: 'hsl(var(--primary)/0.1)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          color: 'hsl(var(--primary))', flexShrink: 0,
-        }}>
-          {icon}
-        </div>
-        <span style={{ flex: 1, fontSize: 14, fontWeight: 600, color: 'hsl(var(--foreground))' }}>{title}</span>
-        <ChevronRight
-          className="w-4 h-4"
-          style={{
-            color: 'hsl(var(--muted-foreground))',
-            transition: 'transform 0.2s ease',
-            transform: open ? 'rotate(90deg)' : 'rotate(0deg)',
-          }}
-        />
-      </button>
-      <div style={{
-        maxHeight: open ? 600 : 0,
-        opacity: open ? 1 : 0,
-        overflow: 'hidden',
-        transition: 'max-height 0.3s cubic-bezier(0.4,0,0.2,1), opacity 0.2s ease',
-      }}>
-        <div style={{ padding: '0 16px 16px', display: 'flex', flexDirection: 'column', gap: 12 }}>
-          {children}
-        </div>
-      </div>
-    </div>
-  );
-};
+const NotesTextarea = ({ value, onChange }: NotesTextareaProps) => (
+  <textarea
+    value={value}
+    onChange={e => onChange(e.target.value)}
+    placeholder="e.g. GST-free supply – no GST charged. Payment due within 14 days."
+    rows={3}
+    className="glass-input w-full text-foreground resize-none"
+  />
+);
 
 /* ── Main component ── */
 const ProfileSettings = ({ auth, settings, onSaveSettings }: ProfileSettingsProps) => {
@@ -111,6 +87,7 @@ const ProfileSettings = ({ auth, settings, onSaveSettings }: ProfileSettingsProp
   const [signingOut, setSigningOut] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
+  // Business/invoice fields — backed by user_settings
   const [businessName, setBusinessName] = useState('');
   const [abn, setAbn] = useState('');
   const [email, setEmail] = useState('');
@@ -121,9 +98,11 @@ const ProfileSettings = ({ auth, settings, onSaveSettings }: ProfileSettingsProp
   const [accountNumber, setAccountNumber] = useState('');
   const [accountName, setAccountName] = useState('');
   const [invoiceNotes, setInvoiceNotes] = useState('');
+
   const [bizSaved, setBizSaved] = useState(false);
   const [bizSaving, setBizSaving] = useState(false);
 
+  // Sync from settings only once when loaded (prevent clobbering typed value)
   const settingsLoaded = useRef(false);
   useEffect(() => {
     if (!settings || settingsLoaded.current) return;
@@ -144,8 +123,6 @@ const ProfileSettings = ({ auth, settings, onSaveSettings }: ProfileSettingsProp
   if (!auth.user) return null;
 
   const initial = (auth.displayName ?? auth.user.email ?? '?')[0].toUpperCase();
-  const displayEmail = auth.user.email ?? '';
-  const name = auth.displayName ?? displayEmail.split('@')[0];
 
   const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -160,8 +137,11 @@ const ProfileSettings = ({ auth, settings, onSaveSettings }: ProfileSettingsProp
       const publicUrl = `${data.publicUrl}?t=${Date.now()}`;
       await supabase.from('profiles').update({ avatar_url: publicUrl }).eq('user_id', auth.user.id);
       setAvatarUrl(publicUrl);
-    } catch (err) { console.error('Avatar upload failed:', err); }
-    finally { setUploading(false); }
+    } catch (err) {
+      console.error('Avatar upload failed:', err);
+    } finally {
+      setUploading(false);
+    }
   };
 
   const handleSaveProfile = async () => {
@@ -195,158 +175,134 @@ const ProfileSettings = ({ auth, settings, onSaveSettings }: ProfileSettingsProp
     window.dispatchEvent(new CustomEvent('theme-sync'));
   };
 
-  const saveBtnStyle = (isSaved: boolean) => ({
-    height: 48,
-    borderRadius: 14,
-    fontSize: 14,
-    fontWeight: 600 as const,
-    background: isSaved ? 'hsl(var(--stat-green)/0.12)' : 'hsl(var(--primary))',
-    color: isSaved ? 'hsl(var(--stat-green))' : 'hsl(var(--primary-foreground))',
-    boxShadow: isSaved ? 'none' : '0 4px 20px hsl(var(--primary)/0.25)',
-    transition: 'all 0.2s ease',
-  });
-
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 20, paddingBottom: 32 }}>
-      {/* ── Hero Profile Card ── */}
-      <div style={{
-        borderRadius: 20,
-        background: 'hsl(var(--card))',
-        border: '1px solid hsl(var(--border)/0.4)',
-        padding: '28px 20px 24px',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        gap: 16,
-        position: 'relative',
-        overflow: 'hidden',
-      }}>
-        {/* Subtle gradient accent */}
-        <div style={{
-          position: 'absolute', top: 0, left: 0, right: 0, height: 80,
-          background: 'linear-gradient(180deg, hsl(var(--primary)/0.06) 0%, transparent 100%)',
-          pointerEvents: 'none',
-        }} />
+    <div className="space-y-6">
+      <h2 className="text-lg font-bold text-foreground">Account</h2>
 
-        {/* Avatar */}
-        <button
-          className="relative group"
-          onClick={() => fileRef.current?.click()}
-          disabled={uploading}
-          style={{ zIndex: 1 }}
-        >
-          {avatarUrl ? (
-            <img src={avatarUrl} alt="Avatar"
-              style={{
-                width: 80, height: 80, borderRadius: '50%', objectFit: 'cover',
-                border: '3px solid hsl(var(--primary)/0.2)',
-                transition: 'opacity 0.15s',
-              }}
-              className="group-hover:opacity-80"
-            />
-          ) : (
-            <div style={{
-              width: 80, height: 80, borderRadius: '50%',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: 28, fontWeight: 700,
-              background: 'hsl(var(--primary)/0.12)',
-              color: 'hsl(var(--primary))',
-              border: '3px solid hsl(var(--primary)/0.2)',
-            }}>
-              {initial}
-            </div>
-          )}
-          <div style={{
-            position: 'absolute', bottom: -2, right: -2,
-            width: 28, height: 28, borderRadius: '50%',
-            background: 'hsl(var(--primary))',
-            color: 'hsl(var(--primary-foreground))',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            boxShadow: '0 2px 8px hsl(var(--primary)/0.3)',
-          }}>
-            {uploading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Camera className="w-3.5 h-3.5" />}
-          </div>
-        </button>
-        <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarChange} />
+      {/* ── Profile card ── */}
+      <div className="glass-card p-5 space-y-4">
+        <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Profile</p>
 
-        {/* Name & email */}
-        <div style={{ textAlign: 'center', zIndex: 1 }}>
-          <p style={{ fontSize: 18, fontWeight: 700, color: 'hsl(var(--foreground))', lineHeight: 1.2 }}>{name}</p>
-          <p style={{ fontSize: 12, color: 'hsl(var(--muted-foreground))', marginTop: 4 }}>{displayEmail}</p>
-        </div>
-
-        {/* Display name field + save */}
-        <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 10, zIndex: 1 }}>
-          <Field label="Display Name" value={displayName} onChange={setDisplayName} placeholder={displayEmail.split('@')[0] || 'Your name'} />
-          <button onClick={handleSaveProfile} disabled={saving}
-            className="w-full flex items-center justify-center gap-2"
-            style={saveBtnStyle(saved)}
+        <div className="flex items-center gap-4">
+          {/* Avatar */}
+          <button
+            className="relative shrink-0 group"
+            onClick={() => fileRef.current?.click()}
+            title="Change photo"
+            disabled={uploading}
           >
-            {saved ? '✓ Saved' : saving ? <><Loader2 className="w-4 h-4 animate-spin" /> Saving…</> : <><Save className="w-4 h-4" /> Save Profile</>}
+            {avatarUrl ? (
+              <img src={avatarUrl} alt="Avatar"
+                className="w-16 h-16 rounded-full object-cover ring-2 ring-primary/30 transition-opacity group-hover:opacity-70" />
+            ) : (
+              <div className="w-16 h-16 rounded-full flex items-center justify-center text-2xl font-bold ring-2 ring-primary/30 transition-opacity group-hover:opacity-70"
+                style={{ background: 'hsl(var(--primary)/0.15)', color: 'hsl(var(--primary))' }}>
+                {initial}
+              </div>
+            )}
+            <div className="absolute inset-0 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+              style={{ background: 'hsl(var(--foreground)/0.35)' }}>
+              {uploading ? <Loader2 className="w-5 h-5 text-white animate-spin" /> : <Camera className="w-5 h-5 text-white" />}
+            </div>
+            <div className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full flex items-center justify-center shadow-md pointer-events-none"
+              style={{ background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))' }}>
+              {uploading ? <Loader2 className="w-3 h-3 animate-spin" /> : <Camera className="w-3 h-3" />}
+            </div>
           </button>
+
+          <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarChange} />
+
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-semibold text-foreground truncate">
+              {auth.displayName ?? auth.user.email?.split('@')[0]}
+            </p>
+            <p className="text-xs text-muted-foreground truncate">{auth.user.email}</p>
+            <p className="text-[10px] mt-0.5" style={{ color: 'hsl(var(--primary))' }}>Tap photo to change</p>
+          </div>
         </div>
+
+        <Field
+          label="Display Name"
+          value={displayName}
+          onChange={setDisplayName}
+          placeholder={auth.user.email?.split('@')[0] ?? 'Your name'}
+        />
+
+        <button onClick={handleSaveProfile} disabled={saving}
+          className="w-full flex items-center justify-center gap-2 min-h-[44px] rounded-xl text-sm font-semibold transition-all duration-200"
+          style={{
+            background: saved ? 'hsl(var(--stat-green)/0.15)' : 'hsl(var(--primary))',
+            color: saved ? 'hsl(var(--stat-green))' : 'hsl(var(--primary-foreground))',
+            boxShadow: saved ? '0 0 20px hsl(var(--stat-green)/0.25)' : '0 4px 16px hsl(var(--primary)/0.35)',
+          }}>
+          {saved ? <>✓ Saved!</> : saving ? <><Loader2 className="w-4 h-4 animate-spin" /> Saving…</> : <><Save className="w-4 h-4" /> Save Profile</>}
+        </button>
       </div>
 
-      {/* ── Collapsible Sections ── */}
-      <Section icon={<Building2 className="w-4 h-4" />} title="Invoice Identity">
-        <Field label="Business / Your Name" value={businessName} onChange={setBusinessName} placeholder="Your Name or Business Name" />
+      {/* ── Business / Invoice Identity ── */}
+      <div className="glass-card p-4 space-y-3">
+        <div className="flex items-center gap-1.5">
+          <Building2 className="w-3.5 h-3.5 text-muted-foreground" />
+          <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Invoice Identity</p>
+        </div>
+        <p className="text-[10px] text-muted-foreground">This information appears on your invoices.</p>
+        <Field label="Business / Your Name" value={businessName} onChange={setBusinessName} placeholder="Your Name or Business Name" hint="Shown at the top of every invoice" />
         <Field label="ABN" value={abn} onChange={setAbn} placeholder="12 345 678 901" />
-        <Field label="Email" value={email} onChange={setEmail} placeholder="invoices@business.com.au" type="email" />
+        <Field label="Email" value={email} onChange={setEmail} placeholder="invoices@yourbusiness.com.au" type="email" hint="Shown in invoice header" />
         <Field label="Phone" value={phone} onChange={setPhone} placeholder="+61 4XX XXX XXX" type="tel" />
-        <Field label="Address" value={address} onChange={setAddress} placeholder="Suburb, State" />
-      </Section>
+        <AddressField value={address} onChange={setAddress} />
+      </div>
 
-      <Section icon={<CreditCard className="w-4 h-4" />} title="Banking & Payment">
+      {/* ── Banking ── */}
+      <div className="glass-card p-4 space-y-3">
+        <div className="flex items-center gap-1.5">
+          <CreditCard className="w-3.5 h-3.5 text-muted-foreground" />
+          <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Banking & Payment</p>
+        </div>
+        <p className="text-[10px] text-muted-foreground">Appears in the payment section of your invoices.</p>
         <Field label="Bank Name" value={bankName} onChange={setBankName} placeholder="Commonwealth Bank" />
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+        <div className="grid grid-cols-2 gap-3">
           <Field label="BSB" value={bsb} onChange={setBsb} placeholder="000-000" />
           <Field label="Account Number" value={accountNumber} onChange={setAccountNumber} placeholder="12345678" />
         </div>
         <Field label="Account Name" value={accountName} onChange={setAccountName} placeholder="Your Full Name" />
-      </Section>
+      </div>
 
-      <Section icon={<FileText className="w-4 h-4" />} title="Default Invoice Notes">
-        <textarea
-          value={invoiceNotes}
-          onChange={e => setInvoiceNotes(e.target.value)}
-          placeholder="e.g. GST-free supply – no GST charged."
-          rows={3}
-          className="w-full text-foreground resize-none"
-          style={{
-            padding: '12px 14px',
-            borderRadius: 12,
-            background: 'hsl(var(--muted)/0.3)',
-            border: '1px solid hsl(var(--border)/0.4)',
-            fontSize: 14,
-            outline: 'none',
-          }}
-        />
-      </Section>
+      {/* ── Default invoice notes ── */}
+      <div className="glass-card p-4 space-y-3">
+        <div className="flex items-center gap-1.5">
+          <FileText className="w-3.5 h-3.5 text-muted-foreground" />
+          <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Default Invoice Notes</p>
+        </div>
+        <NotesTextarea value={invoiceNotes} onChange={setInvoiceNotes} />
+      </div>
 
-      {/* Save business button */}
+      {/* Save business info */}
       <button onClick={handleSaveBusiness} disabled={bizSaving}
-        className="w-full flex items-center justify-center gap-2"
-        style={saveBtnStyle(bizSaved)}
-      >
-        {bizSaved ? '✓ Saved' : bizSaving ? <><Loader2 className="w-4 h-4 animate-spin" /> Saving…</> : <><Save className="w-4 h-4" /> Save Business Details</>}
+        className="w-full flex items-center justify-center gap-2 min-h-[50px] rounded-2xl text-sm font-bold transition-all duration-200"
+        style={{
+          background: bizSaved ? 'hsl(var(--money-green)/0.15)' : 'hsl(var(--primary))',
+          color: bizSaved ? 'hsl(var(--money-green))' : 'hsl(var(--primary-foreground))',
+          boxShadow: bizSaved ? '0 0 20px hsl(var(--money-green)/0.25)' : '0 4px 16px hsl(var(--primary)/0.35)',
+        }}>
+        {bizSaved ? '✓ Saved!' : bizSaving ? <><Loader2 className="w-4 h-4 animate-spin" /> Saving…</> : <><Save className="w-4 h-4" /> Save Business Details</>}
       </button>
 
-      {/* ── Sign Out ── */}
+      {/* Signed in */}
+      <div className="glass-card p-4 space-y-3">
+        <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Session</p>
+        <div className="flex items-center gap-3">
+          <User className="w-4 h-4 text-muted-foreground shrink-0" />
+          <span className="text-sm text-foreground truncate">{auth.user.email}</span>
+        </div>
+      </div>
+
+      {/* Sign out */}
       <button onClick={handleSignOut} disabled={signingOut}
-        className="w-full flex items-center justify-center gap-2"
-        style={{
-          height: 48,
-          borderRadius: 14,
-          fontSize: 14,
-          fontWeight: 600,
-          background: 'hsl(var(--destructive)/0.08)',
-          color: 'hsl(var(--destructive))',
-          border: '1px solid hsl(var(--destructive)/0.15)',
-          transition: 'all 0.15s ease',
-        }}
-      >
-        <LogOut className="w-4 h-4" />
-        {signingOut ? 'Signing out…' : 'Sign Out'}
+        className="w-full glass-card p-4 flex items-center gap-3 min-h-[44px] hover:opacity-80 transition-opacity"
+        style={{ color: 'hsl(var(--destructive))' }}>
+        <LogOut className="w-5 h-5" />
+        <span className="text-sm font-semibold">{signingOut ? 'Signing out…' : 'Sign Out'}</span>
       </button>
     </div>
   );
