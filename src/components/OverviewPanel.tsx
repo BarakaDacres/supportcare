@@ -598,27 +598,20 @@ const EarningsCalendarHeatmap = ({
 
   return (
     <div className="card-elevated overflow-hidden" style={{ padding: 0 }}>
-      {/* ── Desktop: side-by-side ── */}
-      <div className="hidden md:grid" style={{ gridTemplateColumns: '1fr 260px', minHeight: 320 }}>
+      {/* ── All viewports: side-by-side (events left, calendar right) ── */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', minHeight: 280 }}>
         {/* Left: detail panel */}
-        <div style={{ padding: '20px 22px', borderRight: '1px solid hsl(var(--border)/0.4)' }}>
+        <div style={{
+          padding: '16px 14px',
+          borderRight: '1px solid hsl(var(--border)/0.3)',
+          overflowY: 'auto',
+          maxHeight: 420,
+        }}>
           {detailPanel}
         </div>
         {/* Right: calendar */}
-        <div style={{ padding: '16px 14px' }}>
-          <p className="section-label mb-3">Shifts Calendar</p>
+        <div style={{ padding: '14px 12px' }}>
           {calendarGrid}
-        </div>
-      </div>
-
-      {/* ── Mobile: stacked ── */}
-      <div className="md:hidden">
-        <div style={{ padding: '14px 14px 10px' }}>
-          <p className="section-label mb-3">Shifts Calendar</p>
-          {calendarGrid}
-        </div>
-        <div style={{ borderTop: '1px solid hsl(var(--border)/0.4)', padding: '14px 16px 16px' }}>
-          {detailPanel}
         </div>
       </div>
 
