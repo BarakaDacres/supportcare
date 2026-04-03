@@ -706,37 +706,39 @@ const EarningsCalendarHeatmap = ({
                 key={colIdx}
                 onClick={() => handleDayClick(dateStr)}
                 style={{
+                  width: '100%',
                   aspectRatio: '1',
-                  borderRadius: 10,
+                  borderRadius: '50%',
                   display: 'flex',
                   flexDirection: 'column',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  gap: 1.5,
+                  gap: 1,
                   position: 'relative',
                   transition: 'all 0.15s cubic-bezier(0.25,0.1,0.25,1)',
-                  transform: isSelected ? 'scale(1.06)' : 'scale(1)',
+                  transform: isSelected ? 'scale(1.08)' : 'scale(1)',
                   background: isSelected
                     ? 'hsl(var(--primary))'
                     : 'transparent',
                   boxShadow: isSelected
-                    ? '0 2px 10px hsl(var(--primary)/0.25)'
+                    ? '0 2px 8px hsl(var(--primary)/0.3)'
                     : isToday
-                    ? 'inset 0 0 0 1.5px hsl(var(--primary)/0.25)'
+                    ? 'inset 0 0 0 1.5px hsl(var(--primary)/0.3)'
                     : 'none',
                   cursor: 'pointer',
                   border: 'none',
                   WebkitTapHighlightColor: 'transparent',
                   padding: 0,
+                  overflow: 'hidden',
                 }}
                 onPointerDown={e => {
-                  if (!isSelected) (e.currentTarget as HTMLButtonElement).style.transform = 'scale(0.9)';
+                  if (!isSelected) (e.currentTarget as HTMLButtonElement).style.transform = 'scale(0.88)';
                 }}
                 onPointerUp={e => {
-                  (e.currentTarget as HTMLButtonElement).style.transform = isSelected ? 'scale(1.06)' : '';
+                  (e.currentTarget as HTMLButtonElement).style.transform = isSelected ? 'scale(1.08)' : '';
                 }}
                 onPointerLeave={e => {
-                  (e.currentTarget as HTMLButtonElement).style.transform = isSelected ? 'scale(1.06)' : '';
+                  (e.currentTarget as HTMLButtonElement).style.transform = isSelected ? 'scale(1.08)' : '';
                 }}
               >
                 <span style={{
