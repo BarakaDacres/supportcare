@@ -142,6 +142,7 @@ const Index = ({ auth }: IndexProps) => {
               onYearChange={handleYearChange}
               onMonthChange={handleMonthChange}
               locked={locked}
+              displayName={auth.displayName}
             />
           )}
 
