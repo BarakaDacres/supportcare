@@ -70,6 +70,7 @@ interface OverviewPanelProps {
   onYearChange: (y: number) => void;
   onMonthChange: (m: number) => void;
   locked?: boolean;
+  displayName?: string | null;
 }
 
 function parseDate(dateStr: string): Date {
