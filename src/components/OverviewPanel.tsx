@@ -348,27 +348,42 @@ function shiftTypeLabel(s: Shift): { label: string; bg: string; fg: string; bord
 // ── Split-layout Calendar ────────────────────────────────────────────────────
 const EarningsCalendarHeatmap = ({
   shifts, year, month,
+  onAddShift,
+  onDuplicateShift,
 }: {
   shifts: Shift[];
   year: number;
   month: number;
+  onAddShift?: (prefillDate: string) => void;
+  onDuplicateShift?: (shiftId: string) => void;
 }) => {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const todayStr = formatDateISO(today);
+  const now = new Date();
+  const todayDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const todayStr = formatDateISO(todayDate);
 
+  // Selected date state — smart defaults on month change
   const [selectedDate, setSelectedDate] = useState<string>(todayStr);
   const [animKey, setAnimKey] = useState(0);
 
+  // On month/year change, pick the best default day
   useEffect(() => {
-    if (year === today.getFullYear() && month === today.getMonth()) {
+    const isCurrentMonth = year === todayDate.getFullYear() && month === todayDate.getMonth();
+    if (isCurrentMonth) {
       setSelectedDate(todayStr);
     } else {
-      setSelectedDate(formatDateISO(new Date(year, month, 1)));
+      // Find first day with shifts, otherwise 1st of month
+      const firstShiftDay = shifts
+        .filter(s => {
+          const d = parseDate(s.date);
+          return d.getFullYear() === year && d.getMonth() === month;
+        })
+        .sort((a, b) => a.date.localeCompare(b.date))[0];
+      setSelectedDate(firstShiftDay?.date ?? formatDateISO(new Date(year, month, 1)));
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [year, month]);
 
+  // Index shifts by date for this month
   const shiftsByDate = useMemo(() => {
     const map: Record<string, Shift[]> = {};
     for (const s of shifts) {
@@ -378,14 +393,16 @@ const EarningsCalendarHeatmap = ({
         map[s.date].push(s);
       }
     }
+    // Sort each day's shifts by start_time
     for (const key in map) map[key].sort((a, b) => a.start_time.localeCompare(b.start_time));
     return map;
   }, [shifts, year, month]);
 
+  // Calendar grid math
   const firstDay = new Date(year, month, 1);
   const lastDay = new Date(year, month + 1, 0);
   const startDow = firstDay.getDay();
-  const offsetDays = startDow === 0 ? 6 : startDow - 1;
+  const offsetDays = startDow === 0 ? 6 : startDow - 1; // Monday-start
   const totalCells = offsetDays + lastDay.getDate();
   const rows = Math.ceil(totalCells / 7);
   const DAY_LABELS = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
@@ -396,110 +413,266 @@ const EarningsCalendarHeatmap = ({
     setAnimKey(k => k + 1);
   };
 
+  // Selected day data — always derived from current shifts
   const dayShifts = shiftsByDate[selectedDate] ?? [];
   const dayTotal = dayShifts.reduce((s, sh) => s + effectiveGrossPay(sh), 0);
+  const dayHours = dayShifts.filter(s => !s.is_sleepover).reduce((s, sh) => s + Number(sh.hours_worked), 0);
+  const daySleepoverCount = dayShifts.filter(s => s.is_sleepover).length;
   const selectedDateObj = parseDate(selectedDate);
-  const dayLabel = selectedDateObj.toLocaleDateString('en-AU', { weekday: 'short', day: 'numeric', month: 'short' });
 
-  // Detail panel (reused in both mobile & desktop)
+  // Active shift detection — real current time
+  const [currentTime, setCurrentTime] = useState(Date.now());
+  useEffect(() => {
+    const timer = setInterval(() => setCurrentTime(Date.now()), 30_000); // update every 30s
+    return () => clearInterval(timer);
+  }, []);
+
+  const isShiftActive = (s: Shift): boolean => {
+    if (s.date !== todayStr) return false;
+    const nowDate = new Date(currentTime);
+    const nowMin = nowDate.getHours() * 60 + nowDate.getMinutes();
+    const startMin = timeToMin(s.start_time);
+    let endMin = timeToMin(s.end_time);
+    if (endMin <= startMin) endMin += 1440; // overnight
+    const adjustedNow = nowMin < startMin && endMin > 1440 ? nowMin + 1440 : nowMin;
+    return adjustedNow >= startMin && adjustedNow < endMin;
+  };
+
+  const shiftProgress = (s: Shift): number => {
+    if (!isShiftActive(s)) return 0;
+    const nowDate = new Date(currentTime);
+    const nowMin = nowDate.getHours() * 60 + nowDate.getMinutes();
+    const startMin = timeToMin(s.start_time);
+    let endMin = timeToMin(s.end_time);
+    if (endMin <= startMin) endMin += 1440;
+    const adjustedNow = nowMin < startMin ? nowMin + 1440 : nowMin;
+    return Math.min(Math.max((adjustedNow - startMin) / (endMin - startMin), 0), 1);
+  };
+
+  // Last shift for duplicate action
+  const lastShift = dayShifts.length > 0 ? dayShifts[dayShifts.length - 1] : null;
+
+  // ── Detail Panel ──
   const detailPanel = (
     <div
-      key={animKey}
-      style={{ animation: 'calSlideIn 0.22s cubic-bezier(0.25,0.1,0.25,1)' }}
+      key={`${selectedDate}-${animKey}`}
+      style={{
+        display: 'flex', flexDirection: 'column', height: '100%',
+        animation: 'calPanelIn 0.22s cubic-bezier(0.25,0.1,0.25,1)',
+      }}
     >
-      {/* Date heading */}
-      <div className="mb-3">
-        <p style={{ fontSize: 11, fontWeight: 500, color: 'hsl(var(--muted-foreground))', letterSpacing: '0.02em', textTransform: 'uppercase' }}>
+      {/* ── Day Summary Header ── */}
+      <div style={{ marginBottom: 14, flexShrink: 0 }}>
+        <p style={{
+          fontSize: 10, fontWeight: 600, letterSpacing: '0.06em',
+          textTransform: 'uppercase', color: 'hsl(var(--muted-foreground))',
+          opacity: 0.6, marginBottom: 2,
+        }}>
           {selectedDateObj.toLocaleDateString('en-AU', { weekday: 'long' })}
         </p>
-        <p style={{ fontSize: 22, fontWeight: 700, color: 'hsl(var(--foreground))', lineHeight: 1.2, marginTop: 2 }}>
+        <p style={{
+          fontSize: 20, fontWeight: 700, color: 'hsl(var(--foreground))',
+          lineHeight: 1.15, letterSpacing: '-0.01em',
+        }}>
           {selectedDateObj.getDate()} {selectedDateObj.toLocaleDateString('en-AU', { month: 'short' })}
         </p>
         {dayShifts.length > 0 && (
-          <p className="money-text" style={{ fontSize: 13, fontWeight: 600, marginTop: 4 }}>
-            {formatCurrency(dayTotal)}
-            <span style={{ color: 'hsl(var(--muted-foreground))', fontWeight: 400, marginLeft: 6, fontSize: 11 }}>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginTop: 6, flexWrap: 'wrap' }}>
+            <span className="money-text" style={{ fontSize: 15, fontWeight: 700 }}>
+              {formatCurrency(dayTotal)}
+            </span>
+            <span style={{ fontSize: 10, color: 'hsl(var(--muted-foreground))' }}>
               {dayShifts.length} shift{dayShifts.length !== 1 ? 's' : ''}
             </span>
-          </p>
+            {dayHours > 0 && (
+              <span style={{ fontSize: 10, color: 'hsl(var(--muted-foreground))' }}>
+                {dayHours.toFixed(1)}h
+              </span>
+            )}
+            {daySleepoverCount > 0 && (
+              <span style={{ fontSize: 10, color: 'hsl(var(--sleepover-color))' }}>
+                {daySleepoverCount} sleepover{daySleepoverCount !== 1 ? 's' : ''}
+              </span>
+            )}
+          </div>
         )}
       </div>
 
-      {/* Shift list */}
-      {dayShifts.length === 0 ? (
-        <div style={{ padding: '20px 0', textAlign: 'center' }}>
-          <CalendarDays className="w-5 h-5 mx-auto mb-2" style={{ color: 'hsl(var(--muted-foreground))', opacity: 0.3 }} />
-          <p style={{ fontSize: 11, color: 'hsl(var(--muted-foreground))', opacity: 0.5 }}>No shifts</p>
-        </div>
-      ) : (
-        <div className="space-y-2">
-          {dayShifts.map((s, idx) => {
-            const type = shiftTypeLabel(s);
-            return (
-              <div
-                key={s.id}
-                className="flex items-start gap-3"
-                style={{
-                  padding: '10px 12px',
-                  borderRadius: 12,
-                  background: 'hsl(var(--muted)/0.25)',
-                  border: '1px solid hsl(var(--border)/0.35)',
-                  animation: `calItemIn 0.2s cubic-bezier(0.25,0.1,0.25,1) ${idx * 40}ms both`,
-                }}
-              >
-                {/* Color accent bar */}
-                <div
-                  style={{
-                    width: 3,
-                    minHeight: 32,
-                    borderRadius: 2,
-                    background: shiftDotColor(s),
-                    opacity: 0.85,
-                    flexShrink: 0,
-                    marginTop: 2,
-                  }}
-                />
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between gap-2">
-                    <p style={{ fontSize: 12, fontWeight: 600, color: 'hsl(var(--foreground))' }}>
-                      {formatTime(s.start_time)} – {formatTime(s.end_time)}
-                      {!s.is_sleepover && s.hours_worked > 0 && (
-                        <span style={{ color: 'hsl(var(--muted-foreground))', fontWeight: 400, marginLeft: 4, fontSize: 11 }}>
-                          {Number(s.hours_worked).toFixed(1)}h
-                        </span>
-                      )}
-                    </p>
-                    <span className="money-text" style={{ fontSize: 12, fontWeight: 700, flexShrink: 0 }}>
-                      {formatCurrency(effectiveGrossPay(s))}
-                    </span>
-                  </div>
-                  {s.client_name && (
-                    <p style={{ fontSize: 10, color: 'hsl(var(--muted-foreground))', marginTop: 2 }}>{s.client_name}</p>
+      {/* ── Shift List ── */}
+      <div style={{ flex: 1, overflowY: 'auto', minHeight: 0 }}>
+        {dayShifts.length === 0 ? (
+          <div style={{
+            display: 'flex', flexDirection: 'column', alignItems: 'center',
+            justifyContent: 'center', padding: '28px 8px', opacity: 0.5,
+          }}>
+            <CalendarDays className="w-5 h-5 mb-2" style={{ color: 'hsl(var(--muted-foreground))' }} />
+            <p style={{ fontSize: 11, color: 'hsl(var(--muted-foreground))', textAlign: 'center' }}>
+              No shifts for this day
+            </p>
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column' }}>
+            {dayShifts.map((s, idx) => {
+              const type = shiftTypeLabel(s);
+              const active = isShiftActive(s);
+              const progress = shiftProgress(s);
+
+              return (
+                <div key={s.id}>
+                  {idx > 0 && (
+                    <div style={{
+                      height: 1, margin: '0 4px',
+                      background: 'hsl(var(--border)/0.2)',
+                    }} />
                   )}
-                  <div className="mt-1.5">
-                    <span style={{
-                      fontSize: 9, fontWeight: 600, padding: '2px 6px', borderRadius: 6,
-                      background: type.bg, color: type.fg, border: `1px solid ${type.border}`,
-                    }}>
-                      {type.label}
-                    </span>
+                  <div
+                    style={{
+                      display: 'flex', alignItems: 'stretch', gap: 10,
+                      padding: '10px 6px',
+                      position: 'relative',
+                      animation: `calItemSlide 0.2s cubic-bezier(0.25,0.1,0.25,1) ${idx * 35}ms both`,
+                      borderRadius: 8,
+                      background: active ? 'hsl(var(--stat-green)/0.06)' : 'transparent',
+                      transition: 'background 0.15s ease',
+                    }}
+                  >
+                    {/* Left accent bar */}
+                    <div style={{
+                      width: 3, borderRadius: 2, flexShrink: 0,
+                      background: shiftDotColor(s), opacity: 0.8,
+                      alignSelf: 'stretch', minHeight: 28,
+                    }} />
+
+                    {/* Content */}
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 4 }}>
+                        <span style={{ fontSize: 12, fontWeight: 600, color: 'hsl(var(--foreground))' }}>
+                          {formatTime(s.start_time)} – {formatTime(s.end_time)}
+                          {!s.is_sleepover && s.hours_worked > 0 && (
+                            <span style={{
+                              color: 'hsl(var(--muted-foreground))',
+                              fontWeight: 400, marginLeft: 4, fontSize: 10,
+                            }}>
+                              {Number(s.hours_worked).toFixed(1)}h
+                            </span>
+                          )}
+                        </span>
+                        <span className="money-text" style={{ fontSize: 12, fontWeight: 700, flexShrink: 0 }}>
+                          {formatCurrency(effectiveGrossPay(s))}
+                        </span>
+                      </div>
+
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 4 }}>
+                        {s.client_name && (
+                          <span style={{ fontSize: 10, color: 'hsl(var(--muted-foreground))' }}>
+                            {s.client_name}
+                          </span>
+                        )}
+                        <span style={{
+                          fontSize: 8, fontWeight: 600, padding: '1.5px 5px', borderRadius: 5,
+                          background: type.bg, color: type.fg,
+                          border: `1px solid ${type.border}`,
+                          lineHeight: '14px',
+                        }}>
+                          {type.label}
+                        </span>
+                        {active && (
+                          <span style={{
+                            fontSize: 8, fontWeight: 700, padding: '1.5px 5px', borderRadius: 5,
+                            background: 'hsl(var(--stat-green)/0.15)',
+                            color: 'hsl(var(--stat-green))',
+                            lineHeight: '14px',
+                            display: 'flex', alignItems: 'center', gap: 3,
+                          }}>
+                            <span style={{
+                              width: 5, height: 5, borderRadius: '50%',
+                              background: 'hsl(var(--stat-green))',
+                              animation: 'calPulse 1.5s ease-in-out infinite',
+                            }} />
+                            Active
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Active shift progress bar */}
+                      {active && (
+                        <div style={{
+                          marginTop: 6, height: 3, borderRadius: 2,
+                          background: 'hsl(var(--muted)/0.3)', overflow: 'hidden',
+                        }}>
+                          <div style={{
+                            height: '100%', borderRadius: 2,
+                            background: 'hsl(var(--stat-green))',
+                            width: `${(progress * 100).toFixed(1)}%`,
+                            transition: 'width 1s ease',
+                          }} />
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
-              </div>
-            );
-          })}
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* ── Quick Actions ── */}
+      {(onAddShift || onDuplicateShift) && (
+        <div style={{
+          display: 'flex', gap: 6, marginTop: 10, flexShrink: 0, paddingTop: 8,
+          borderTop: '1px solid hsl(var(--border)/0.15)',
+        }}>
+          {onAddShift && (
+            <button
+              onClick={() => onAddShift(selectedDate)}
+              style={{
+                flex: 1, fontSize: 10, fontWeight: 600, padding: '6px 0',
+                borderRadius: 8, border: 'none', cursor: 'pointer',
+                background: 'hsl(var(--primary)/0.1)',
+                color: 'hsl(var(--primary))',
+                transition: 'background 0.15s ease',
+              }}
+              onPointerDown={e => (e.currentTarget.style.background = 'hsl(var(--primary)/0.18)')}
+              onPointerUp={e => (e.currentTarget.style.background = 'hsl(var(--primary)/0.1)')}
+              onPointerLeave={e => (e.currentTarget.style.background = 'hsl(var(--primary)/0.1)')}
+            >
+              + Add Shift
+            </button>
+          )}
+          {onDuplicateShift && lastShift && (
+            <button
+              onClick={() => onDuplicateShift(lastShift.id)}
+              style={{
+                flex: 1, fontSize: 10, fontWeight: 600, padding: '6px 0',
+                borderRadius: 8, border: 'none', cursor: 'pointer',
+                background: 'hsl(var(--muted)/0.3)',
+                color: 'hsl(var(--muted-foreground))',
+                transition: 'background 0.15s ease',
+              }}
+              onPointerDown={e => (e.currentTarget.style.background = 'hsl(var(--muted)/0.45)')}
+              onPointerUp={e => (e.currentTarget.style.background = 'hsl(var(--muted)/0.3)')}
+              onPointerLeave={e => (e.currentTarget.style.background = 'hsl(var(--muted)/0.3)')}
+            >
+              Duplicate Last
+            </button>
+          )}
         </div>
       )}
     </div>
   );
 
-  // Calendar grid
+  // ── Calendar Grid ──
   const calendarGrid = (
     <div>
       {/* Day headers */}
-      <div className="grid grid-cols-7 mb-1" style={{ gap: 4 }}>
+      <div className="grid grid-cols-7" style={{ gap: 2, marginBottom: 4 }}>
         {DAY_LABELS.map((d, i) => (
-          <div key={i} className="text-center" style={{ fontSize: 10, fontWeight: 600, color: 'hsl(var(--muted-foreground))', opacity: 0.45 }}>
+          <div key={i} style={{
+            textAlign: 'center', fontSize: 9, fontWeight: 600,
+            color: 'hsl(var(--muted-foreground))', opacity: 0.4,
+            padding: '2px 0',
+          }}>
             {d}
           </div>
         ))}
@@ -507,7 +680,7 @@ const EarningsCalendarHeatmap = ({
 
       {/* Grid rows */}
       {Array.from({ length: rows }).map((_, rowIdx) => (
-        <div key={rowIdx} className="grid grid-cols-7" style={{ gap: 4, marginBottom: 4 }}>
+        <div key={rowIdx} className="grid grid-cols-7" style={{ gap: 2, marginBottom: 2 }}>
           {Array.from({ length: 7 }).map((_, colIdx) => {
             const cellIndex = rowIdx * 7 + colIdx;
             const dayNum = cellIndex - offsetDays + 1;
@@ -522,6 +695,7 @@ const EarningsCalendarHeatmap = ({
             const isToday = dateStr === todayStr;
             const isSelected = selectedDate === dateStr;
 
+            // Unique shift type colors as dots (max 3)
             const dots = hasShifts
               ? [...new Set(dayData.map(s => shiftDotColor(s)))].slice(0, 3)
               : [];
@@ -532,59 +706,59 @@ const EarningsCalendarHeatmap = ({
                 onClick={() => handleDayClick(dateStr)}
                 style={{
                   aspectRatio: '1',
-                  borderRadius: 11,
+                  borderRadius: 10,
                   display: 'flex',
                   flexDirection: 'column',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  gap: 2,
+                  gap: 1.5,
                   position: 'relative',
-                  transition: 'all 0.18s cubic-bezier(0.25,0.1,0.25,1)',
-                  transform: isSelected ? 'scale(1.08)' : 'scale(1)',
+                  transition: 'all 0.15s cubic-bezier(0.25,0.1,0.25,1)',
+                  transform: isSelected ? 'scale(1.06)' : 'scale(1)',
                   background: isSelected
                     ? 'hsl(var(--primary))'
                     : 'transparent',
                   boxShadow: isSelected
-                    ? '0 2px 12px hsl(var(--primary)/0.3)'
+                    ? '0 2px 10px hsl(var(--primary)/0.25)'
                     : isToday
-                    ? 'inset 0 0 0 1.5px hsl(var(--primary)/0.3)'
+                    ? 'inset 0 0 0 1.5px hsl(var(--primary)/0.25)'
                     : 'none',
                   cursor: 'pointer',
+                  border: 'none',
                   WebkitTapHighlightColor: 'transparent',
+                  padding: 0,
                 }}
-                onPointerDown={e => { if (!isSelected) (e.currentTarget as HTMLButtonElement).style.transform = 'scale(0.92)'; }}
-                onPointerUp={e => { (e.currentTarget as HTMLButtonElement).style.transform = isSelected ? 'scale(1.08)' : ''; }}
-                onPointerLeave={e => { (e.currentTarget as HTMLButtonElement).style.transform = isSelected ? 'scale(1.08)' : ''; }}
+                onPointerDown={e => {
+                  if (!isSelected) (e.currentTarget as HTMLButtonElement).style.transform = 'scale(0.9)';
+                }}
+                onPointerUp={e => {
+                  (e.currentTarget as HTMLButtonElement).style.transform = isSelected ? 'scale(1.06)' : '';
+                }}
+                onPointerLeave={e => {
+                  (e.currentTarget as HTMLButtonElement).style.transform = isSelected ? 'scale(1.06)' : '';
+                }}
               >
-                <span
-                  style={{
-                    fontSize: 12,
-                    fontWeight: isSelected ? 700 : isToday ? 600 : 400,
-                    lineHeight: 1,
-                    color: isSelected
-                      ? 'white'
-                      : isToday
-                      ? 'hsl(var(--primary))'
-                      : hasShifts
-                      ? 'hsl(var(--foreground))'
-                      : 'hsl(var(--foreground)/0.4)',
-                  }}
-                >
+                <span style={{
+                  fontSize: 11, lineHeight: 1,
+                  fontWeight: isSelected ? 700 : isToday ? 600 : 400,
+                  color: isSelected
+                    ? 'white'
+                    : isToday
+                    ? 'hsl(var(--primary))'
+                    : hasShifts
+                    ? 'hsl(var(--foreground))'
+                    : 'hsl(var(--foreground)/0.35)',
+                }}>
                   {dayNum}
                 </span>
                 {dots.length > 0 && (
-                  <div style={{ display: 'flex', gap: 2, height: 4 }}>
+                  <div style={{ display: 'flex', gap: 2, height: 3.5 }}>
                     {dots.map((color, i) => (
-                      <span
-                        key={i}
-                        style={{
-                          width: 4,
-                          height: 4,
-                          borderRadius: '50%',
-                          background: isSelected ? 'rgba(255,255,255,0.7)' : color,
-                          transition: 'background 0.15s ease',
-                        }}
-                      />
+                      <span key={i} style={{
+                        width: 3.5, height: 3.5, borderRadius: '50%',
+                        background: isSelected ? 'rgba(255,255,255,0.65)' : color,
+                        transition: 'background 0.12s ease',
+                      }} />
                     ))}
                   </div>
                 )}
@@ -596,38 +770,52 @@ const EarningsCalendarHeatmap = ({
     </div>
   );
 
+  // ── Composite Layout ──
   return (
     <div className="card-elevated overflow-hidden" style={{ padding: 0 }}>
-      {/* ── All viewports: side-by-side (events left, calendar right) ── */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', minHeight: 280 }}>
-        {/* Left: detail panel */}
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: '1fr 1fr',
+        minHeight: 280,
+      }}>
+        {/* Left: Detail panel */}
         <div style={{
-          padding: '16px 14px',
-          borderRight: '1px solid hsl(var(--border)/0.3)',
-          overflowY: 'auto',
-          maxHeight: 420,
+          padding: '14px 12px',
+          borderRight: '1px solid hsl(var(--border)/0.2)',
+          display: 'flex', flexDirection: 'column',
+          maxHeight: 400, overflowY: 'auto',
         }}>
           {detailPanel}
         </div>
-        {/* Right: calendar */}
-        <div style={{ padding: '14px 12px' }}>
+        {/* Right: Calendar */}
+        <div style={{ padding: '12px 10px', display: 'flex', flexDirection: 'column', justifyContent: 'flex-start' }}>
           {calendarGrid}
         </div>
       </div>
 
       <style>{`
-        @keyframes calSlideIn {
-          from { opacity: 0; transform: translateY(6px); }
+        @keyframes calPanelIn {
+          from { opacity: 0; transform: translateY(5px); }
           to   { opacity: 1; transform: translateY(0); }
         }
-        @keyframes calItemIn {
-          from { opacity: 0; transform: translateX(-6px); }
+        @keyframes calItemSlide {
+          from { opacity: 0; transform: translateX(-4px); }
           to   { opacity: 1; transform: translateX(0); }
+        }
+        @keyframes calPulse {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.4; }
         }
       `}</style>
     </div>
   );
 };
+
+// helper used by active-shift detection
+function timeToMin(t: string): number {
+  const [h, m] = t.split(':').map(Number);
+  return h * 60 + (m || 0);
+}
 
 // ── Month navigator ──────────────────────────────────────────────────────────
 const MonthNavigator = ({
