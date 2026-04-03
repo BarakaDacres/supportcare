@@ -1198,6 +1198,27 @@ const OverviewPanel = ({
 
   return (
     <div className="space-y-4">
+      {/* ── Welcome greeting ── */}
+      {displayName && (
+        <div style={{ paddingTop: 2, paddingBottom: 4 }}>
+          <p style={{
+            fontSize: 13, fontWeight: 400,
+            color: 'hsl(var(--muted-foreground))',
+            letterSpacing: '-0.01em',
+          }}>
+            Welcome back,
+          </p>
+          <p style={{
+            fontSize: 26, fontWeight: 700,
+            color: 'hsl(var(--foreground))',
+            letterSpacing: '-0.025em',
+            lineHeight: 1.15,
+            marginTop: 1,
+          }}>
+            {displayName.split(' ')[0]}
+          </p>
+        </div>
+      )}
 
       {/* ──────────────────────────────────────────
           LAYER 3 — Dashboard context bar (Month selector)
