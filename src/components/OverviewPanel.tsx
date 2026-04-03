@@ -70,6 +70,7 @@ interface OverviewPanelProps {
   onYearChange: (y: number) => void;
   onMonthChange: (m: number) => void;
   locked?: boolean;
+  displayName?: string | null;
 }
 
 function parseDate(dateStr: string): Date {
@@ -629,13 +630,13 @@ const EarningsCalendarHeatmap = ({
               style={{
                 flex: 1, fontSize: 10, fontWeight: 600, padding: '6px 0',
                 borderRadius: 8, border: 'none', cursor: 'pointer',
-                background: 'hsl(var(--primary)/0.1)',
-                color: 'hsl(var(--primary))',
-                transition: 'background 0.15s ease',
+                background: 'hsl(var(--primary))',
+                color: 'hsl(var(--primary-foreground))',
+                transition: 'opacity 0.15s ease',
               }}
-              onPointerDown={e => (e.currentTarget.style.background = 'hsl(var(--primary)/0.18)')}
-              onPointerUp={e => (e.currentTarget.style.background = 'hsl(var(--primary)/0.1)')}
-              onPointerLeave={e => (e.currentTarget.style.background = 'hsl(var(--primary)/0.1)')}
+              onPointerDown={e => (e.currentTarget.style.opacity = '0.8')}
+              onPointerUp={e => (e.currentTarget.style.opacity = '1')}
+              onPointerLeave={e => (e.currentTarget.style.opacity = '1')}
             >
               + Add Shift
             </button>
@@ -705,37 +706,39 @@ const EarningsCalendarHeatmap = ({
                 key={colIdx}
                 onClick={() => handleDayClick(dateStr)}
                 style={{
+                  width: '100%',
                   aspectRatio: '1',
-                  borderRadius: 10,
+                  borderRadius: '50%',
                   display: 'flex',
                   flexDirection: 'column',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  gap: 1.5,
+                  gap: 1,
                   position: 'relative',
                   transition: 'all 0.15s cubic-bezier(0.25,0.1,0.25,1)',
-                  transform: isSelected ? 'scale(1.06)' : 'scale(1)',
+                  transform: isSelected ? 'scale(1.08)' : 'scale(1)',
                   background: isSelected
                     ? 'hsl(var(--primary))'
                     : 'transparent',
                   boxShadow: isSelected
-                    ? '0 2px 10px hsl(var(--primary)/0.25)'
+                    ? '0 2px 8px hsl(var(--primary)/0.3)'
                     : isToday
-                    ? 'inset 0 0 0 1.5px hsl(var(--primary)/0.25)'
+                    ? 'inset 0 0 0 1.5px hsl(var(--primary)/0.3)'
                     : 'none',
                   cursor: 'pointer',
                   border: 'none',
                   WebkitTapHighlightColor: 'transparent',
                   padding: 0,
+                  overflow: 'hidden',
                 }}
                 onPointerDown={e => {
-                  if (!isSelected) (e.currentTarget as HTMLButtonElement).style.transform = 'scale(0.9)';
+                  if (!isSelected) (e.currentTarget as HTMLButtonElement).style.transform = 'scale(0.88)';
                 }}
                 onPointerUp={e => {
-                  (e.currentTarget as HTMLButtonElement).style.transform = isSelected ? 'scale(1.06)' : '';
+                  (e.currentTarget as HTMLButtonElement).style.transform = isSelected ? 'scale(1.08)' : '';
                 }}
                 onPointerLeave={e => {
-                  (e.currentTarget as HTMLButtonElement).style.transform = isSelected ? 'scale(1.06)' : '';
+                  (e.currentTarget as HTMLButtonElement).style.transform = isSelected ? 'scale(1.08)' : '';
                 }}
               >
                 <span style={{
@@ -908,7 +911,7 @@ const MonthNavigator = ({
 const OverviewPanel = ({
   shifts, clients, invoices, settings,
   selectedYear, selectedMonth, onYearChange, onMonthChange,
-  locked,
+  locked, displayName,
 }: OverviewPanelProps) => {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -1195,6 +1198,27 @@ const OverviewPanel = ({
 
   return (
     <div className="space-y-4">
+      {/* ── Welcome greeting ── */}
+      {displayName && (
+        <div style={{ paddingTop: 2, paddingBottom: 4 }}>
+          <p style={{
+            fontSize: 13, fontWeight: 400,
+            color: 'hsl(var(--muted-foreground))',
+            letterSpacing: '-0.01em',
+          }}>
+            Welcome back,
+          </p>
+          <p style={{
+            fontSize: 26, fontWeight: 700,
+            color: 'hsl(var(--foreground))',
+            letterSpacing: '-0.025em',
+            lineHeight: 1.15,
+            marginTop: 1,
+          }}>
+            {displayName.split(' ')[0]}
+          </p>
+        </div>
+      )}
 
       {/* ──────────────────────────────────────────
           LAYER 3 — Dashboard context bar (Month selector)
