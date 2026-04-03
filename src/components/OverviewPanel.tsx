@@ -630,13 +630,13 @@ const EarningsCalendarHeatmap = ({
               style={{
                 flex: 1, fontSize: 10, fontWeight: 600, padding: '6px 0',
                 borderRadius: 8, border: 'none', cursor: 'pointer',
-                background: 'hsl(var(--primary)/0.1)',
-                color: 'hsl(var(--primary))',
-                transition: 'background 0.15s ease',
+                background: 'hsl(var(--primary))',
+                color: 'hsl(var(--primary-foreground))',
+                transition: 'opacity 0.15s ease',
               }}
-              onPointerDown={e => (e.currentTarget.style.background = 'hsl(var(--primary)/0.18)')}
-              onPointerUp={e => (e.currentTarget.style.background = 'hsl(var(--primary)/0.1)')}
-              onPointerLeave={e => (e.currentTarget.style.background = 'hsl(var(--primary)/0.1)')}
+              onPointerDown={e => (e.currentTarget.style.opacity = '0.8')}
+              onPointerUp={e => (e.currentTarget.style.opacity = '1')}
+              onPointerLeave={e => (e.currentTarget.style.opacity = '1')}
             >
               + Add Shift
             </button>
