@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Camera, LogOut, Save, Loader2, Hash, RotateCcw, AlertCircle, RefreshCw } from 'lucide-react';
+import { Camera, LogOut, Save, Loader2, Hash, RotateCcw, AlertCircle, RefreshCw, ChevronRight, Building2, CreditCard, FileText, User } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import type { AuthState } from '@/hooks/useAuth';
 import type { UserSettings } from '@/hooks/useUserSettings';
@@ -11,92 +11,63 @@ interface AccountPanelProps {
   onSaveSettings: (updates: Partial<Omit<UserSettings, 'id' | 'user_id'>>) => Promise<void>;
 }
 
-/* ── Sub-components at MODULE LEVEL ── */
-
-const SectionLabel = ({ children, dirty }: { children: string; dirty?: boolean }) => (
-  <div className="flex items-center gap-2 px-1 mb-1.5 mt-1">
-    <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-widest flex-1">{children}</p>
-    {dirty && (
-      <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: 'hsl(var(--primary))' }} />
-    )}
-  </div>
-);
-
-const SettingsGroup = ({ children }: { children: React.ReactNode }) => (
-  <div className="rounded-2xl overflow-hidden"
-    style={{ background: 'hsl(var(--card))', boxShadow: 'var(--card-shadow-sm)', border: '1px solid hsl(var(--border))' }}>
-    {children}
-  </div>
-);
-
-interface FieldRowProps {
-  label: string;
-  value: string;
-  onChange: (v: string) => void;
-  placeholder?: string;
-  type?: string;
-  hint?: string;
-  isLast?: boolean;
-}
-const FieldRow = ({ label, value, onChange, placeholder, type = 'text', hint, isLast }: FieldRowProps) => (
-  <div>
-    <div className="px-4 py-3 space-y-1.5">
-      <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-widest">{label}</label>
-      <input
-        type={type}
-        value={value}
-        onChange={e => onChange(e.target.value)}
-        placeholder={placeholder}
-        className="glass-input w-full text-foreground text-[15px]"
-        style={{ minHeight: 44 }}
-      />
-      {hint && <p className="text-[11px] text-muted-foreground">{hint}</p>}
-    </div>
-    {!isLast && <div className="ml-4 mr-0 h-px" style={{ background: 'hsl(var(--divider))' }} />}
-  </div>
-);
-
-interface GridFieldRowProps {
-  fields: { label: string; value: string; onChange: (v: string) => void; placeholder?: string }[];
-  isLast?: boolean;
-}
-const GridFieldRow = ({ fields, isLast }: GridFieldRowProps) => (
-  <div>
-    <div className="px-4 py-3">
-      <div className="grid grid-cols-2 gap-3">
-        {fields.map(f => (
-          <div key={f.label} className="space-y-1.5">
-            <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-widest">{f.label}</label>
-            <input
-              type="text"
-              value={f.value}
-              onChange={e => f.onChange(e.target.value)}
-              placeholder={f.placeholder}
-              className="glass-input w-full text-foreground text-[15px]"
-              style={{ minHeight: 44 }}
-            />
-          </div>
-        ))}
+/* ── Accordion section ── */
+const AccordionSection = ({
+  icon: Icon, title, subtitle, open, onToggle, dirty, children,
+}: {
+  icon: React.ElementType; title: string; subtitle?: string;
+  open: boolean; onToggle: () => void; dirty?: boolean; children: React.ReactNode;
+}) => (
+  <div className="rounded-2xl overflow-hidden transition-all duration-300"
+    style={{ background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', boxShadow: 'var(--card-shadow-sm)' }}>
+    <button onClick={onToggle}
+      className="w-full flex items-center gap-3.5 px-4 transition-colors active:bg-muted/40"
+      style={{ minHeight: 58 }}>
+      <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
+        style={{ background: 'hsl(var(--primary)/0.08)' }}>
+        <Icon className="w-[18px] h-[18px]" style={{ color: 'hsl(var(--primary))' }} />
+      </div>
+      <div className="flex-1 text-left">
+        <p className="text-[15px] font-semibold text-foreground leading-tight">{title}</p>
+        {subtitle && <p className="text-[12px] text-muted-foreground mt-0.5">{subtitle}</p>}
+      </div>
+      {dirty && <span className="w-2 h-2 rounded-full shrink-0" style={{ background: 'hsl(var(--primary))' }} />}
+      <ChevronRight className="w-4 h-4 text-muted-foreground/50 shrink-0 transition-transform duration-300"
+        style={{ transform: open ? 'rotate(90deg)' : 'rotate(0deg)' }} />
+    </button>
+    <div className="overflow-hidden transition-all duration-350 ease-[cubic-bezier(0.25,0.8,0.25,1)]"
+      style={{ maxHeight: open ? 1200 : 0, opacity: open ? 1 : 0 }}>
+      <div className="px-4 pb-4 pt-1 space-y-3">
+        {children}
       </div>
     </div>
-    {!isLast && <div className="ml-4 mr-0 h-px" style={{ background: 'hsl(var(--divider))' }} />}
   </div>
 );
 
-const NotesRow = ({ value, onChange, isLast }: { value: string; onChange: (v: string) => void; isLast?: boolean }) => (
-  <div>
-    <div className="px-4 py-3 space-y-1.5">
-      <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-widest">Default Invoice Notes</label>
-      <textarea
-        value={value}
-        onChange={e => onChange(e.target.value)}
-        placeholder="e.g. GST-free supply – no GST charged. Payment due within 14 days."
-        rows={3}
-        className="glass-input w-full text-foreground resize-none text-[15px]"
-        style={{ boxSizing: 'border-box' }}
-      />
-    </div>
-    {!isLast && <div className="ml-4 mr-0 h-px" style={{ background: 'hsl(var(--divider))' }} />}
+/* ── Field ── */
+const Field = ({ label, value, onChange, placeholder, type = 'text', hint }: {
+  label: string; value: string; onChange: (v: string) => void;
+  placeholder?: string; type?: string; hint?: string;
+}) => (
+  <div className="space-y-1">
+    <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-widest">{label}</label>
+    <input type={type} value={value} onChange={e => onChange(e.target.value)}
+      placeholder={placeholder}
+      className="w-full rounded-xl px-3.5 text-[15px] text-foreground transition-all duration-200 outline-none"
+      style={{
+        minHeight: 44, background: 'hsl(var(--muted)/0.35)',
+        border: '1px solid hsl(var(--border)/0.6)',
+      }}
+      onFocus={e => { e.currentTarget.style.borderColor = 'hsl(var(--primary)/0.5)'; e.currentTarget.style.boxShadow = '0 0 0 3px hsl(var(--primary)/0.08)'; }}
+      onBlur={e => { e.currentTarget.style.borderColor = 'hsl(var(--border)/0.6)'; e.currentTarget.style.boxShadow = 'none'; }}
+    />
+    {hint && <p className="text-[11px] text-muted-foreground pl-0.5">{hint}</p>}
+  </div>
+);
+
+const FieldPair = ({ fields }: { fields: { label: string; value: string; onChange: (v: string) => void; placeholder?: string }[] }) => (
+  <div className="grid grid-cols-2 gap-3">
+    {fields.map(f => <Field key={f.label} {...f} />)}
   </div>
 );
 
@@ -107,18 +78,14 @@ const AccountPanel = ({ auth, settings, settingsLoading, onSaveSettings }: Accou
   const [uploading, setUploading] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
-
   const [origDisplayName] = useState(auth.displayName ?? '');
 
-  // Business fields
   const [businessName, setBusinessName] = useState('');
   const [abn, setAbn] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [address, setAddress] = useState('');
   const [invoiceNotes, setInvoiceNotes] = useState('');
-
-  // Banking fields
   const [bankName, setBankName] = useState('');
   const [bsb, setBsb] = useState('');
   const [accountNumber, setAccountNumber] = useState('');
@@ -135,6 +102,10 @@ const AccountPanel = ({ auth, settings, settingsLoading, onSaveSettings }: Accou
   const [timedOut, setTimedOut] = useState(false);
   const [retryKey, setRetryKey] = useState(0);
 
+  // Accordion states
+  const [openSection, setOpenSection] = useState<string | null>(null);
+  const toggle = (id: string) => setOpenSection(prev => prev === id ? null : id);
+
   useEffect(() => {
     if (!settingsLoading) { setTimedOut(false); return; }
     const t = setTimeout(() => setTimedOut(true), 6000);
@@ -146,30 +117,23 @@ const AccountPanel = ({ auth, settings, settingsLoading, onSaveSettings }: Accou
     if (!settings || settingsLoaded.current) return;
     settingsLoaded.current = true;
     const biz = {
-      businessName: settings.business_name ?? '',
-      abn: settings.abn ?? '',
-      email: settings.email ?? '',
-      phone: settings.phone ?? '',
-      address: settings.address ?? '',
-      invoiceNotes: settings.invoice_notes ?? '',
+      businessName: settings.business_name ?? '', abn: settings.abn ?? '',
+      email: settings.email ?? '', phone: settings.phone ?? '',
+      address: settings.address ?? '', invoiceNotes: settings.invoice_notes ?? '',
     };
     const bank = {
-      bankName: settings.bank_name ?? '',
-      bsb: settings.bsb ?? '',
-      accountNumber: settings.account_number ?? '',
-      accountName: settings.account_name ?? '',
+      bankName: settings.bank_name ?? '', bsb: settings.bsb ?? '',
+      accountNumber: settings.account_number ?? '', accountName: settings.account_name ?? '',
     };
     setBusinessName(biz.businessName); setAbn(biz.abn); setEmail(biz.email);
     setPhone(biz.phone); setAddress(biz.address); setInvoiceNotes(biz.invoiceNotes);
     setBankName(bank.bankName); setBsb(bank.bsb); setAccountNumber(bank.accountNumber); setAccountName(bank.accountName);
-    setOrigBiz(biz);
-    setOrigBank(bank);
+    setOrigBiz(biz); setOrigBank(bank);
   }, [settings]);
 
   if (!auth.user) return null;
 
   const initial = (auth.displayName ?? auth.user.email ?? '?')[0].toUpperCase();
-
   const profileDirty = displayName !== origDisplayName;
   const bizDirty = businessName !== origBiz.businessName || abn !== origBiz.abn ||
     email !== origBiz.email || phone !== origBiz.phone ||
@@ -191,11 +155,8 @@ const AccountPanel = ({ auth, settings, settingsLoading, onSaveSettings }: Accou
       const publicUrl = `${data.publicUrl}?t=${Date.now()}`;
       await supabase.from('profiles').update({ avatar_url: publicUrl }).eq('user_id', auth.user.id);
       setAvatarUrl(publicUrl);
-    } catch (err) {
-      console.error('Avatar upload failed:', err);
-    } finally {
-      setUploading(false);
-    }
+    } catch (err) { console.error('Avatar upload failed:', err); }
+    finally { setUploading(false); }
   };
 
   const handleSaveAll = async () => {
@@ -203,47 +164,31 @@ const AccountPanel = ({ auth, settings, settingsLoading, onSaveSettings }: Accou
     setSaving(true);
     const promises: Promise<void>[] = [];
     if (profileDirty) {
-      promises.push(
-        supabase.from('profiles').update({ display_name: displayName.trim() || null }).eq('user_id', auth.user!.id).then(() => {}) as Promise<void>
-      );
+      promises.push(supabase.from('profiles').update({ display_name: displayName.trim() || null }).eq('user_id', auth.user!.id).then(() => {}) as Promise<void>);
     }
     const settingsUpdate: Partial<Omit<UserSettings, 'id' | 'user_id'>> = {};
-    if (bizDirty) {
-      Object.assign(settingsUpdate, {
-        business_name: businessName.trim() || null,
-        abn: abn.trim() || null,
-        email: email.trim() || null,
-        phone: phone.trim() || null,
-        address: address.trim() || null,
-        invoice_notes: invoiceNotes.trim() || null,
-      });
-    }
-    if (bankDirty) {
-      Object.assign(settingsUpdate, {
-        bank_name: bankName.trim() || null,
-        bsb: bsb.trim() || null,
-        account_number: accountNumber.trim() || null,
-        account_name: accountName.trim() || null,
-      });
-    }
-    if (Object.keys(settingsUpdate).length > 0) {
-      promises.push(onSaveSettings(settingsUpdate));
-    }
+    if (bizDirty) Object.assign(settingsUpdate, {
+      business_name: businessName.trim() || null, abn: abn.trim() || null,
+      email: email.trim() || null, phone: phone.trim() || null,
+      address: address.trim() || null, invoice_notes: invoiceNotes.trim() || null,
+    });
+    if (bankDirty) Object.assign(settingsUpdate, {
+      bank_name: bankName.trim() || null, bsb: bsb.trim() || null,
+      account_number: accountNumber.trim() || null, account_name: accountName.trim() || null,
+    });
+    if (Object.keys(settingsUpdate).length > 0) promises.push(onSaveSettings(settingsUpdate));
     await Promise.all(promises);
     if (bizDirty) setOrigBiz({ businessName, abn, email, phone, address, invoiceNotes });
     if (bankDirty) setOrigBank({ bankName, bsb, accountNumber, accountName });
-    setSaving(false);
-    setSaved(true);
+    setSaving(false); setSaved(true);
     setTimeout(() => setSaved(false), 2500);
   };
 
   const handleResetCounter = async () => {
     if (!confirmReset) { setConfirmReset(true); setTimeout(() => setConfirmReset(false), 4000); return; }
-    setResetting(true);
-    setConfirmReset(false);
+    setResetting(true); setConfirmReset(false);
     await onSaveSettings({ invoice_counter: 0 });
-    setResetting(false);
-    setResetDone(true);
+    setResetting(false); setResetDone(true);
     setTimeout(() => setResetDone(false), 2500);
   };
 
@@ -256,8 +201,8 @@ const AccountPanel = ({ auth, settings, settingsLoading, onSaveSettings }: Accou
   if (settingsLoading) {
     if (timedOut) {
       return (
-        <div className="flex flex-col items-center justify-center py-12 gap-4 text-center">
-          <div className="w-12 h-12 rounded-2xl flex items-center justify-center" style={{ background: 'hsl(var(--muted))' }}>
+        <div className="flex flex-col items-center justify-center py-16 gap-4 text-center">
+          <div className="w-14 h-14 rounded-2xl flex items-center justify-center" style={{ background: 'hsl(var(--muted))' }}>
             <AlertCircle className="w-6 h-6 text-muted-foreground" />
           </div>
           <div>
@@ -265,7 +210,7 @@ const AccountPanel = ({ auth, settings, settingsLoading, onSaveSettings }: Accou
             <p className="text-xs text-muted-foreground mt-1 max-w-[220px]">Could not load your settings. Check your connection and try again.</p>
           </div>
           <button onClick={() => { setTimedOut(false); setRetryKey(k => k + 1); window.location.reload(); }}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all"
+            className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all"
             style={{ background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))' }}>
             <RefreshCw className="w-4 h-4" /> Retry
           </button>
@@ -273,7 +218,7 @@ const AccountPanel = ({ auth, settings, settingsLoading, onSaveSettings }: Accou
       );
     }
     return (
-      <div className="flex flex-col items-center justify-center py-12 gap-3">
+      <div className="flex flex-col items-center justify-center py-16 gap-3">
         <div className="w-8 h-8 rounded-full border-2 border-primary/30 border-t-primary animate-spin" />
         <p className="text-xs text-muted-foreground">Loading account…</p>
       </div>
@@ -281,183 +226,146 @@ const AccountPanel = ({ auth, settings, settingsLoading, onSaveSettings }: Accou
   }
 
   return (
-    <div className="space-y-6 pb-24">
+    <div className="space-y-5 pb-28">
 
-      {/* ── Profile card — centered layout like reference ── */}
-      <SettingsGroup>
-        <div className="px-4 py-6 flex flex-col items-center gap-2 text-center">
-          {/* Avatar */}
-          <button
-            className="relative group"
-            onClick={() => fileRef.current?.click()}
-            title="Change photo"
-            disabled={uploading}
-          >
+      {/* ── Hero Profile Card ── */}
+      <div className="rounded-3xl overflow-hidden relative"
+        style={{
+          background: 'hsl(var(--card))',
+          border: '1px solid hsl(var(--border))',
+          boxShadow: 'var(--card-shadow-md)',
+        }}>
+        {/* Gradient accent bar */}
+        <div className="h-24 relative overflow-hidden"
+          style={{
+            background: 'linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--primary)/0.7) 50%, hsl(var(--accent)/0.5) 100%)',
+          }}>
+          <div className="absolute inset-0" style={{ background: 'radial-gradient(circle at 70% 20%, hsl(0 0% 100% / 0.15) 0%, transparent 60%)' }} />
+        </div>
+
+        {/* Avatar overlapping the gradient */}
+        <div className="flex flex-col items-center -mt-12 pb-5 px-4">
+          <button className="relative group" onClick={() => fileRef.current?.click()} disabled={uploading}>
             {avatarUrl ? (
-              <img
-                src={avatarUrl}
-                alt="Avatar"
-                className="w-20 h-20 rounded-full object-cover transition-opacity group-hover:opacity-80"
-                style={{ boxShadow: '0 0 0 3px hsl(var(--border))' }}
-              />
+              <img src={avatarUrl} alt="Avatar"
+                className="w-24 h-24 rounded-full object-cover transition-all duration-200 group-hover:scale-105"
+                style={{ boxShadow: '0 0 0 4px hsl(var(--card)), 0 4px 20px hsl(0 0% 0% / 0.15)' }} />
             ) : (
-              <div
-                className="w-20 h-20 rounded-full flex items-center justify-center text-2xl font-bold transition-opacity group-hover:opacity-80"
+              <div className="w-24 h-24 rounded-full flex items-center justify-center text-3xl font-bold transition-all duration-200 group-hover:scale-105"
                 style={{
-                  background: 'hsl(var(--primary)/0.12)',
+                  background: 'linear-gradient(135deg, hsl(var(--primary)/0.15), hsl(var(--primary)/0.05))',
                   color: 'hsl(var(--primary))',
-                  boxShadow: '0 0 0 3px hsl(var(--border))',
-                }}
-              >
+                  boxShadow: '0 0 0 4px hsl(var(--card)), 0 4px 20px hsl(0 0% 0% / 0.15)',
+                }}>
                 {initial}
               </div>
             )}
-            {/* Camera badge */}
-            <div
-              className="absolute bottom-0 right-0 w-6 h-6 rounded-full flex items-center justify-center"
-              style={{ background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', boxShadow: '0 1px 4px hsl(0 0% 0% / 0.2)' }}
-            >
-              {uploading
-                ? <Loader2 className="w-3 h-3 animate-spin" />
-                : <Camera className="w-3 h-3" />}
+            <div className="absolute -bottom-0.5 -right-0.5 w-7 h-7 rounded-full flex items-center justify-center"
+              style={{ background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))',
+                boxShadow: '0 2px 8px hsl(0 0% 0% / 0.2)' }}>
+              {uploading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Camera className="w-3.5 h-3.5" />}
             </div>
           </button>
           <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarChange} />
 
-          {/* Name + email */}
-          <div className="mt-1">
-            <p className="text-[18px] font-bold text-foreground leading-tight">
-              {auth.displayName ?? auth.user.email?.split('@')[0]}
-            </p>
-            <p className="text-[13px] text-muted-foreground mt-0.5">{auth.user.email}</p>
-            <p className="text-[11px] mt-1" style={{ color: 'hsl(var(--primary))' }}>Tap photo to change</p>
-          </div>
+          <h2 className="text-xl font-bold text-foreground mt-3 leading-tight">
+            {auth.displayName ?? auth.user.email?.split('@')[0]}
+          </h2>
+          <p className="text-[13px] text-muted-foreground mt-0.5">{auth.user.email}</p>
         </div>
-
-        {/* Display name editable row */}
-        <div className="h-px" style={{ background: 'hsl(var(--divider))' }} />
-        <FieldRow
-          label="Display Name"
-          value={displayName}
-          onChange={setDisplayName}
-          placeholder={auth.user.email?.split('@')[0] ?? 'Your name'}
-          isLast
-        />
-      </SettingsGroup>
-
-      {/* ── Business Identity ── */}
-      <div className="space-y-1.5">
-        <SectionLabel dirty={bizDirty}>Business Identity</SectionLabel>
-        <p className="text-[11px] text-muted-foreground px-1 -mt-1 mb-1.5">Shown at the top of every invoice.</p>
-        <SettingsGroup>
-          <FieldRow label="Business / Your Name" value={businessName} onChange={setBusinessName} placeholder="Your Name or Business Name" hint="Appears on all invoices" />
-          <FieldRow label="ABN" value={abn} onChange={setAbn} placeholder="12 345 678 901" />
-          <FieldRow label="Email" value={email} onChange={setEmail} placeholder="invoices@yourbusiness.com.au" type="email" hint="Shown in invoice header" />
-          <FieldRow label="Phone" value={phone} onChange={setPhone} placeholder="+61 4XX XXX XXX" type="tel" />
-          <FieldRow label="Address" value={address} onChange={setAddress} placeholder="Suburb, State" />
-          <NotesRow value={invoiceNotes} onChange={setInvoiceNotes} isLast />
-        </SettingsGroup>
       </div>
 
-      {/* ── Banking ── */}
-      <div className="space-y-1.5">
-        <SectionLabel dirty={bankDirty}>Banking & Payment</SectionLabel>
-        <p className="text-[11px] text-muted-foreground px-1 -mt-1 mb-1.5">Shown in the payment section of your invoices.</p>
-        <SettingsGroup>
-          <FieldRow label="Bank Name" value={bankName} onChange={setBankName} placeholder="Commonwealth Bank" />
-          <GridFieldRow
-            fields={[
-              { label: 'BSB', value: bsb, onChange: setBsb, placeholder: '000-000' },
-              { label: 'Account Number', value: accountNumber, onChange: setAccountNumber, placeholder: '12345678' },
-            ]}
+      {/* ── Display Name ── */}
+      <div className="rounded-2xl overflow-hidden"
+        style={{ background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', boxShadow: 'var(--card-shadow-sm)' }}>
+        <div className="px-4 py-3.5">
+          <Field label="Display Name" value={displayName} onChange={setDisplayName}
+            placeholder={auth.user.email?.split('@')[0] ?? 'Your name'} />
+        </div>
+      </div>
+
+      {/* ── Collapsible Sections ── */}
+      <AccordionSection icon={Building2} title="Invoice Identity" subtitle="Shown on every invoice"
+        open={openSection === 'biz'} onToggle={() => toggle('biz')} dirty={bizDirty}>
+        <Field label="Business / Your Name" value={businessName} onChange={setBusinessName} placeholder="Your Name or Business" hint="Appears on all invoices" />
+        <Field label="ABN" value={abn} onChange={setAbn} placeholder="12 345 678 901" />
+        <Field label="Email" value={email} onChange={setEmail} placeholder="invoices@you.com.au" type="email" />
+        <Field label="Phone" value={phone} onChange={setPhone} placeholder="+61 4XX XXX XXX" type="tel" />
+        <Field label="Address" value={address} onChange={setAddress} placeholder="Suburb, State" />
+        <div className="space-y-1">
+          <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-widest">Default Invoice Notes</label>
+          <textarea value={invoiceNotes} onChange={e => setInvoiceNotes(e.target.value)}
+            placeholder="e.g. GST-free supply – no GST charged."
+            rows={3}
+            className="w-full rounded-xl px-3.5 py-2.5 text-[15px] text-foreground resize-none transition-all duration-200 outline-none"
+            style={{ background: 'hsl(var(--muted)/0.35)', border: '1px solid hsl(var(--border)/0.6)' }}
+            onFocus={e => { e.currentTarget.style.borderColor = 'hsl(var(--primary)/0.5)'; }}
+            onBlur={e => { e.currentTarget.style.borderColor = 'hsl(var(--border)/0.6)'; }}
           />
-          <FieldRow label="Account Name" value={accountName} onChange={setAccountName} placeholder="Your Full Name" isLast />
-        </SettingsGroup>
-      </div>
-
-      {/* ── Invoice Numbering ── */}
-      {settings && (
-        <div className="space-y-1.5">
-          <SectionLabel>Invoice Numbering</SectionLabel>
-          <SettingsGroup>
-            <div className="px-4 py-4 flex items-center justify-between gap-3">
-              <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
-                  style={{ background: 'hsl(var(--primary)/0.1)' }}>
-                  <Hash className="w-4 h-4" style={{ color: 'hsl(var(--primary))' }} />
-                </div>
-                <div>
-                  <p className="text-[15px] font-semibold text-foreground">Invoice Counter</p>
-                  <p className="text-[13px] text-muted-foreground mt-0.5">
-                    Next: <span className="font-mono font-semibold" style={{ color: 'hsl(var(--primary))' }}>
-                      INV-{String((settings.invoice_counter ?? 0) + 1).padStart(3, '0')}
-                    </span>
-                  </p>
-                </div>
-              </div>
-              <div className="text-2xl font-bold font-mono shrink-0" style={{ color: 'hsl(var(--primary))' }}>
-                #{String(settings.invoice_counter ?? 0).padStart(3, '0')}
-              </div>
-            </div>
-          </SettingsGroup>
         </div>
+      </AccordionSection>
+
+      <AccordionSection icon={CreditCard} title="Banking & Payment" subtitle="Payment section of invoices"
+        open={openSection === 'bank'} onToggle={() => toggle('bank')} dirty={bankDirty}>
+        <Field label="Bank Name" value={bankName} onChange={setBankName} placeholder="Commonwealth Bank" />
+        <FieldPair fields={[
+          { label: 'BSB', value: bsb, onChange: setBsb, placeholder: '000-000' },
+          { label: 'Account Number', value: accountNumber, onChange: setAccountNumber, placeholder: '12345678' },
+        ]} />
+        <Field label="Account Name" value={accountName} onChange={setAccountName} placeholder="Your Full Name" />
+      </AccordionSection>
+
+      {/* ── Invoice Counter ── */}
+      {settings && (
+        <AccordionSection icon={Hash} title="Invoice Numbering"
+          subtitle={`Next: INV-${String((settings.invoice_counter ?? 0) + 1).padStart(3, '0')}`}
+          open={openSection === 'counter'} onToggle={() => toggle('counter')}>
+          <div className="flex items-center justify-between py-2">
+            <div>
+              <p className="text-[13px] text-muted-foreground">Current counter</p>
+              <p className="text-2xl font-bold font-mono" style={{ color: 'hsl(var(--primary))' }}>
+                #{String(settings.invoice_counter ?? 0).padStart(3, '0')}
+              </p>
+            </div>
+            <button onClick={handleResetCounter} disabled={resetting}
+              className="flex items-center gap-2 px-3.5 py-2 rounded-xl text-[13px] font-semibold transition-all active:scale-95"
+              style={{
+                background: resetDone ? 'hsl(var(--stat-green)/0.12)' : confirmReset ? 'hsl(var(--destructive)/0.12)' : 'hsl(var(--destructive)/0.06)',
+                color: resetDone ? 'hsl(var(--stat-green))' : 'hsl(var(--destructive))',
+                border: `1px solid ${resetDone ? 'hsl(var(--stat-green)/0.25)' : 'hsl(var(--destructive)/0.15)'}`,
+              }}>
+              {resetting ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                : resetDone ? '✓ Reset'
+                : confirmReset ? <><RotateCcw className="w-3.5 h-3.5" />Confirm</>
+                : <><RotateCcw className="w-3.5 h-3.5" />Reset</>}
+            </button>
+          </div>
+        </AccordionSection>
       )}
 
-      {/* ── Danger Zone ── */}
-      <div className="space-y-1.5">
-        <SectionLabel>Danger Zone</SectionLabel>
-        <SettingsGroup>
-          <div className="p-4">
-            <button
-              onClick={handleResetCounter}
-              disabled={resetting}
-              className="w-full flex items-center justify-center gap-2 min-h-[44px] rounded-xl text-[15px] font-semibold transition-all duration-200"
-              style={{
-                background: resetDone ? 'hsl(var(--stat-green)/0.12)' : confirmReset ? 'hsl(var(--destructive)/0.12)' : 'hsl(var(--destructive)/0.08)',
-                color: resetDone ? 'hsl(var(--stat-green))' : 'hsl(var(--destructive))',
-                border: `1px solid ${resetDone ? 'hsl(var(--stat-green)/0.3)' : 'hsl(var(--destructive)/0.2)'}`,
-              }}
-            >
-              {resetting ? <><Loader2 className="w-4 h-4 animate-spin" />Resetting…</>
-                : resetDone ? '✓ Counter reset'
-                : confirmReset ? <><RotateCcw className="w-4 h-4" />Tap again to confirm reset</>
-                : <><RotateCcw className="w-4 h-4" />Reset Invoice Counter</>}
-            </button>
-            <p className="text-[11px] text-muted-foreground mt-2 text-center">
-              Resets the counter to #000. This cannot be undone.
-            </p>
-          </div>
-        </SettingsGroup>
-      </div>
-
       {/* ── Sign Out ── */}
-      <SettingsGroup>
-        <button
-          onClick={handleSignOut}
-          disabled={signingOut}
-          className="w-full flex items-center gap-3.5 px-4 transition-colors duration-150 active:bg-destructive/10"
-          style={{ minHeight: 52 }}
-        >
-          <LogOut className="w-5 h-5 shrink-0" style={{ color: 'hsl(var(--destructive))' }} />
+      <div className="rounded-2xl overflow-hidden"
+        style={{ background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', boxShadow: 'var(--card-shadow-sm)' }}>
+        <button onClick={handleSignOut} disabled={signingOut}
+          className="w-full flex items-center justify-center gap-2.5 transition-colors active:bg-destructive/8"
+          style={{ minHeight: 50 }}>
+          <LogOut className="w-[18px] h-[18px]" style={{ color: 'hsl(var(--destructive))' }} />
           <span className="text-[15px] font-semibold" style={{ color: 'hsl(var(--destructive))' }}>
             {signingOut ? 'Signing out…' : 'Sign Out'}
           </span>
         </button>
-      </SettingsGroup>
+      </div>
 
-      {/* ── Sticky Save Changes button ── */}
+      {/* ── Sticky Save ── */}
       {anyDirty && (
-        <div className="fixed bottom-[80px] left-0 right-0 flex justify-center px-4 z-30 pointer-events-none">
-          <button
-            onClick={handleSaveAll}
-            disabled={saving}
-            className="flex items-center gap-2 px-6 py-3.5 rounded-2xl text-[15px] font-bold shadow-2xl transition-all duration-200 pointer-events-auto active:scale-95"
+        <div className="fixed bottom-[84px] left-0 right-0 flex justify-center px-4 z-30 pointer-events-none">
+          <button onClick={handleSaveAll} disabled={saving}
+            className="flex items-center gap-2 px-7 py-3.5 rounded-2xl text-[15px] font-bold shadow-2xl transition-all duration-200 pointer-events-auto active:scale-95"
             style={{
               background: saved ? 'hsl(var(--stat-green))' : 'hsl(var(--primary))',
               color: 'hsl(var(--primary-foreground))',
-              boxShadow: `0 8px 32px hsl(var(--primary)/0.4)`,
-            }}
-          >
+              boxShadow: `0 8px 32px hsl(var(--primary)/0.35)`,
+            }}>
             {saving ? <><Loader2 className="w-4 h-4 animate-spin" />Saving…</>
               : saved ? '✓ Saved'
               : <><Save className="w-4 h-4" />Save Changes</>}
