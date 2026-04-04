@@ -122,6 +122,7 @@ const Index = ({ auth }: IndexProps) => {
           year={store.year}
           month={store.month}
           theme={store.theme}
+          themeOverride={store.themeOverride}
           locked={locked}
           onToggleTheme={store.toggleTheme}
           onToggleLock={store.toggleMonthLock}
