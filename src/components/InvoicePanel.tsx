@@ -1026,9 +1026,9 @@ const InvoicePanel = ({
       {/* Header */}
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-bold text-foreground">Invoices</h2>
-        <button onClick={onRefreshInvoices} aria-label="Refresh invoices"
+        <button onClick={() => { if (existingInvoice && activeTab === 'generator') { reloadInvoice(); } else { onRefreshInvoices(); } }} aria-label="Refresh invoices"
           className="glass-chip text-xs gap-1.5" style={{ color: 'hsl(var(--primary))' }}>
-          <RefreshCw className="w-3 h-3" />
+          <RefreshCw className={`w-3 h-3 ${generating ? 'animate-spin' : ''}`} />
         </button>
       </div>
 
