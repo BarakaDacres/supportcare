@@ -1,4 +1,4 @@
-import { Sun, Moon } from 'lucide-react';
+import { Sun, Moon, SunMoon } from 'lucide-react';
 import UserMenu from '@/components/UserMenu';
 import type { AuthState } from '@/hooks/useAuth';
 

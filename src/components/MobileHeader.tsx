@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Ellipsis, Sun, Moon } from 'lucide-react';
+import { Ellipsis, Sun, Moon, SunMoon } from 'lucide-react';
 import ActionSheet from './ActionSheet';
 
 interface MobileHeaderProps {

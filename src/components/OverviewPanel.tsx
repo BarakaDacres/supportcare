@@ -1206,7 +1206,13 @@ const OverviewPanel = ({
             color: 'hsl(var(--muted-foreground))',
             letterSpacing: '-0.01em',
           }}>
-            Welcome back,
+            {(() => {
+              const h = new Date().getHours();
+              if (h < 12) return 'Good morning,';
+              if (h < 17) return 'Good afternoon,';
+              if (h < 21) return 'Good evening,';
+              return 'Good night,';
+            })()}
           </p>
           <p style={{
             fontSize: 26, fontWeight: 700,
