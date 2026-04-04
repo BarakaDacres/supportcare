@@ -4,6 +4,7 @@ import type { AuthState } from '@/hooks/useAuth';
 
 interface HeaderProps {
   theme: 'light' | 'dark';
+  themeOverride: 'light' | 'dark' | 'system';
   onToggleTheme: () => void;
   auth: AuthState;
 }
