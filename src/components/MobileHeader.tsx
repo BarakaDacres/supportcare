@@ -79,9 +79,11 @@ const MobileHeader = ({
                 style={{ background: 'hsl(var(--secondary))', border: '1px solid hsl(var(--border))' }}
                 aria-label="Toggle theme"
               >
-                {theme === 'light'
-                  ? <Moon className="w-3.5 h-3.5 text-muted-foreground" />
-                  : <Sun className="w-3.5 h-3.5 text-muted-foreground" />
+                {themeOverride === 'system'
+                  ? <SunMoon className="w-3.5 h-3.5 text-muted-foreground" />
+                  : theme === 'light'
+                    ? <Moon className="w-3.5 h-3.5 text-muted-foreground" />
+                    : <Sun className="w-3.5 h-3.5 text-muted-foreground" />
                 }
               </button>
 

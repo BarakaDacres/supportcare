@@ -38,7 +38,7 @@ const Header = ({ theme, themeOverride, onToggleTheme, auth }: HeaderProps) => {
           className="glass-chip hover:opacity-80 transition-opacity"
           title="Toggle theme"
         >
-          {theme === 'light' ? <Moon className="w-3.5 h-3.5" /> : <Sun className="w-3.5 h-3.5" />}
+          {themeOverride === 'system' ? <SunMoon className="w-3.5 h-3.5" /> : theme === 'light' ? <Moon className="w-3.5 h-3.5" /> : <Sun className="w-3.5 h-3.5" />}
         </button>
         <UserMenu auth={auth} />
       </div>
