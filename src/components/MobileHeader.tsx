@@ -6,6 +6,7 @@ interface MobileHeaderProps {
   year: number;
   month: number;
   theme: 'light' | 'dark';
+  themeOverride: 'light' | 'dark' | 'system';
   locked: boolean;
   onToggleTheme: () => void;
   onToggleLock: () => void;
