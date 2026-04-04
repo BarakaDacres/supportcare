@@ -209,7 +209,7 @@ const Index = ({ auth }: IndexProps) => {
   return (
     <div className="min-h-screen bg-background px-4 pb-12 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-5xl">
-        <Header theme={store.theme} onToggleTheme={store.toggleTheme} auth={auth} />
+        <Header theme={store.theme} themeOverride={store.themeOverride} onToggleTheme={store.toggleTheme} auth={auth} />
 
         <div className="segmented-control mb-6 no-print">
           {(
