@@ -9,7 +9,7 @@ interface HeaderProps {
   auth: AuthState;
 }
 
-const Header = ({ theme, onToggleTheme, auth }: HeaderProps) => {
+const Header = ({ theme, themeOverride, onToggleTheme, auth }: HeaderProps) => {
   return (
     <header className="no-print flex items-center justify-between py-6">
       <div className="flex items-center gap-3">
