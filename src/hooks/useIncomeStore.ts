@@ -95,7 +95,8 @@ export function useIncomeStore() {
       if (event === 'SIGNED_IN' && session) {
         const cloud = await loadCloudData();
         if (cloud && Object.keys(cloud).length > 0) {
-          setState(prev => ({ ...prev, ...(cloud as Partial<StoreState>) }));
+          const now = new Date();
+          setState(prev => ({ ...prev, ...(cloud as Partial<StoreState>), year: now.getFullYear(), month: now.getMonth() }));
         } else {
           const local = loadLocalState();
           debouncedSave(local as unknown as Record<string, unknown>);
