@@ -1,18 +1,19 @@
 import { useState, useEffect, useRef } from 'react';
-import { Ellipsis, Sun, Moon } from 'lucide-react';
+import { Ellipsis, Sun, Moon, SunMoon } from 'lucide-react';
 import ActionSheet from './ActionSheet';
 
 interface MobileHeaderProps {
   year: number;
   month: number;
   theme: 'light' | 'dark';
+  themeOverride: 'light' | 'dark' | 'system';
   locked: boolean;
   onToggleTheme: () => void;
   onToggleLock: () => void;
 }
 
 const MobileHeader = ({
-  year, month, theme, locked, onToggleTheme, onToggleLock,
+  year, month, theme, themeOverride, locked, onToggleTheme, onToggleLock,
 }: MobileHeaderProps) => {
   const [collapsed, setCollapsed] = useState(false);
   const [sheetOpen, setSheetOpen] = useState(false);
@@ -78,9 +79,11 @@ const MobileHeader = ({
                 style={{ background: 'hsl(var(--secondary))', border: '1px solid hsl(var(--border))' }}
                 aria-label="Toggle theme"
               >
-                {theme === 'light'
-                  ? <Moon className="w-3.5 h-3.5 text-muted-foreground" />
-                  : <Sun className="w-3.5 h-3.5 text-muted-foreground" />
+                {themeOverride === 'system'
+                  ? <SunMoon className="w-3.5 h-3.5 text-muted-foreground" />
+                  : theme === 'light'
+                    ? <Moon className="w-3.5 h-3.5 text-muted-foreground" />
+                    : <Sun className="w-3.5 h-3.5 text-muted-foreground" />
                 }
               </button>
 

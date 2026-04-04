@@ -1,14 +1,15 @@
-import { Sun, Moon } from 'lucide-react';
+import { Sun, Moon, SunMoon } from 'lucide-react';
 import UserMenu from '@/components/UserMenu';
 import type { AuthState } from '@/hooks/useAuth';
 
 interface HeaderProps {
   theme: 'light' | 'dark';
+  themeOverride: 'light' | 'dark' | 'system';
   onToggleTheme: () => void;
   auth: AuthState;
 }
 
-const Header = ({ theme, onToggleTheme, auth }: HeaderProps) => {
+const Header = ({ theme, themeOverride, onToggleTheme, auth }: HeaderProps) => {
   return (
     <header className="no-print flex items-center justify-between py-6">
       <div className="flex items-center gap-3">
@@ -37,7 +38,7 @@ const Header = ({ theme, onToggleTheme, auth }: HeaderProps) => {
           className="glass-chip hover:opacity-80 transition-opacity"
           title="Toggle theme"
         >
-          {theme === 'light' ? <Moon className="w-3.5 h-3.5" /> : <Sun className="w-3.5 h-3.5" />}
+          {themeOverride === 'system' ? <SunMoon className="w-3.5 h-3.5" /> : theme === 'light' ? <Moon className="w-3.5 h-3.5" /> : <Sun className="w-3.5 h-3.5" />}
         </button>
         <UserMenu auth={auth} />
       </div>
