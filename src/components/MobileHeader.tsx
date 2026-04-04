@@ -13,7 +13,7 @@ interface MobileHeaderProps {
 }
 
 const MobileHeader = ({
-  year, month, theme, locked, onToggleTheme, onToggleLock,
+  year, month, theme, themeOverride, locked, onToggleTheme, onToggleLock,
 }: MobileHeaderProps) => {
   const [collapsed, setCollapsed] = useState(false);
   const [sheetOpen, setSheetOpen] = useState(false);
