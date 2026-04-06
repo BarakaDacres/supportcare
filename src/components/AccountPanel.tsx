@@ -229,49 +229,44 @@ const AccountPanel = ({ auth, settings, settingsLoading, onSaveSettings }: Accou
     <div className="space-y-5 pb-28">
 
       {/* ── Hero Profile Card ── */}
-      <div className="rounded-3xl overflow-hidden relative"
+      <div className="rounded-2xl overflow-hidden"
         style={{
           background: 'hsl(var(--card))',
           border: '1px solid hsl(var(--border))',
-          boxShadow: 'var(--card-shadow-md)',
+          boxShadow: 'var(--card-shadow-sm)',
         }}>
-        {/* Gradient accent bar */}
-        <div className="h-24 relative overflow-hidden"
-          style={{
-            background: 'linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--primary)/0.7) 50%, hsl(var(--accent)/0.5) 100%)',
-          }}>
-          <div className="absolute inset-0" style={{ background: 'radial-gradient(circle at 70% 20%, hsl(0 0% 100% / 0.15) 0%, transparent 60%)' }} />
-        </div>
-
-        {/* Avatar overlapping the gradient */}
-        <div className="flex flex-col items-center -mt-12 pb-5 px-4">
-          <button className="relative group" onClick={() => fileRef.current?.click()} disabled={uploading}>
+        <div className="flex items-center gap-4 px-4 py-5">
+          {/* Avatar */}
+          <button className="relative group shrink-0" onClick={() => fileRef.current?.click()} disabled={uploading}>
             {avatarUrl ? (
               <img src={avatarUrl} alt="Avatar"
-                className="w-24 h-24 rounded-full object-cover transition-all duration-200 group-hover:scale-105"
-                style={{ boxShadow: '0 0 0 4px hsl(var(--card)), 0 4px 20px hsl(0 0% 0% / 0.15)' }} />
+                className="w-16 h-16 rounded-full object-cover transition-all duration-200 group-hover:scale-105"
+                style={{ boxShadow: '0 0 0 2px hsl(var(--border))' }} />
             ) : (
-              <div className="w-24 h-24 rounded-full flex items-center justify-center text-3xl font-bold transition-all duration-200 group-hover:scale-105"
+              <div className="w-16 h-16 rounded-full flex items-center justify-center text-xl font-bold transition-all duration-200 group-hover:scale-105"
                 style={{
-                  background: 'linear-gradient(135deg, hsl(var(--primary)/0.15), hsl(var(--primary)/0.05))',
-                  color: 'hsl(var(--primary))',
-                  boxShadow: '0 0 0 4px hsl(var(--card)), 0 4px 20px hsl(0 0% 0% / 0.15)',
+                  background: 'hsl(var(--muted))',
+                  color: 'hsl(var(--foreground))',
+                  boxShadow: '0 0 0 2px hsl(var(--border))',
                 }}>
                 {initial}
               </div>
             )}
-            <div className="absolute -bottom-0.5 -right-0.5 w-7 h-7 rounded-full flex items-center justify-center"
-              style={{ background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))',
-                boxShadow: '0 2px 8px hsl(0 0% 0% / 0.2)' }}>
-              {uploading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Camera className="w-3.5 h-3.5" />}
+            <div className="absolute -bottom-0.5 -right-0.5 w-6 h-6 rounded-full flex items-center justify-center"
+              style={{ background: 'hsl(var(--muted))', color: 'hsl(var(--foreground))',
+                border: '2px solid hsl(var(--card))' }}>
+              {uploading ? <Loader2 className="w-3 h-3 animate-spin" /> : <Camera className="w-3 h-3" />}
             </div>
           </button>
           <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarChange} />
 
-          <h2 className="text-xl font-bold text-foreground mt-3 leading-tight">
-            {auth.displayName ?? auth.user.email?.split('@')[0]}
-          </h2>
-          <p className="text-[13px] text-muted-foreground mt-0.5">{auth.user.email}</p>
+          {/* Info */}
+          <div className="flex-1 min-w-0">
+            <h2 className="text-[17px] font-bold text-foreground leading-tight truncate">
+              {auth.displayName ?? auth.user.email?.split('@')[0]}
+            </h2>
+            <p className="text-[13px] text-muted-foreground mt-0.5 truncate">{auth.user.email}</p>
+          </div>
         </div>
       </div>
 
