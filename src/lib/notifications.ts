@@ -42,7 +42,7 @@ export function scheduleShiftReminders(shifts: Array<{ date: string; start_time:
   shiftTimers = [];
 
   if (!isNotificationEnabled('pref_shift_reminders')) return;
-  if (Notification.permission !== 'granted') return;
+  if (!('Notification' in window) || Notification.permission !== 'granted') return;
 
   const now = Date.now();
   const FIFTEEN_MIN = 15 * 60 * 1000;
