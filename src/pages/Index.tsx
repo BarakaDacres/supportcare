@@ -5,6 +5,7 @@ import { useShifts } from '@/hooks/useShifts';
 import { useClients } from '@/hooks/useClients';
 import { useUserSettings } from '@/hooks/useUserSettings';
 import { useInvoices } from '@/hooks/useInvoices';
+import { scheduleShiftReminders, checkOverdueInvoices } from '@/lib/notifications';
 import Header from '@/components/Header';
 import MobileHeader from '@/components/MobileHeader';
 import BottomTabBar, { type TabId } from '@/components/BottomTabBar';
@@ -50,11 +51,14 @@ const Index = ({ auth }: IndexProps) => {
   const handleYearChange = (y: number) => store.update({ year: y });
   const handleMonthChange = (m: number) => store.update({ month: m });
 
+  // Schedule shift reminders & check overdue invoices
   useEffect(() => {
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/sw.js').catch(() => {});
-    }
-  }, []);
+    scheduleShiftReminders(shifts);
+  }, [shifts]);
+
+  useEffect(() => {
+    if (invoices.length > 0) checkOverdueInvoices(invoices);
+  }, [invoices]);
 
   const renderSettingsContent = () => (
     <div className="space-y-4">
