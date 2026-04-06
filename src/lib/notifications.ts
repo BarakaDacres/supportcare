@@ -69,7 +69,7 @@ export function scheduleShiftReminders(shifts: Array<{ date: string; start_time:
  */
 export function checkOverdueInvoices(invoices: Array<{ invoice_number: string; due_date?: string | null; status: string }>) {
   if (!isNotificationEnabled('pref_invoice_reminders')) return;
-  if (Notification.permission !== 'granted') return;
+  if (!('Notification' in window) || Notification.permission !== 'granted') return;
 
   const today = new Date().toISOString().slice(0, 10);
   const notifiedKey = 'notified_overdue_invoices';
