@@ -1,8 +1,8 @@
 /**
- * BottomTabBar — Modern minimal tab bar with active indicator pill.
+ * BottomTabBar — Apple-style floating tab bar with spring animations.
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import type { AuthState } from '@/hooks/useAuth';
 import { haptic } from '@/components/OverviewPanel';
 
@@ -70,25 +70,23 @@ const IconInvoice = ({ active }: { active: boolean }) => (
 
 const AvatarIcon = ({ auth, active }: { auth: AuthState; active: boolean }) => {
   const initial = ((auth.displayName ?? auth.user?.email ?? '?')[0] ?? '?').toUpperCase();
-
   if (auth.avatarUrl) {
     return (
       <img src={auth.avatarUrl} alt="Profile"
         style={{
           width: 23, height: 23, borderRadius: '50%', objectFit: 'cover', display: 'block',
           outline: active ? '2px solid hsl(var(--primary))' : '1.5px solid hsl(var(--border))',
-          outlineOffset: 1.5, transition: 'outline 0.2s ease',
+          outlineOffset: 1.5, transition: 'outline 0.25s cubic-bezier(0.34, 1.56, 0.64, 1)',
         }} />
     );
   }
-
   return (
     <span style={{
       width: 23, height: 23, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
-      fontSize: 10, fontWeight: 700, letterSpacing: '0.01em',
+      fontSize: 10, fontWeight: 700,
       background: active ? 'hsl(var(--primary))' : 'hsl(var(--muted))',
       color: active ? 'hsl(var(--primary-foreground))' : 'hsl(var(--muted-foreground))',
-      transition: 'all 0.2s ease',
+      transition: 'all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1)',
     }}>
       {initial}
     </span>
@@ -114,6 +112,8 @@ interface Props {
 
 const BottomTabBar = ({ activeTab, onTabChange, hidden = false, auth }: Props) => {
   const [scrollDepth, setScrollDepth] = useState(0);
+  const indicatorRef = useRef<HTMLSpanElement>(null);
+  const tabRefs = useRef<Map<TabId, HTMLButtonElement>>(new Map());
 
   useEffect(() => {
     let ticking = false;
@@ -130,8 +130,37 @@ const BottomTabBar = ({ activeTab, onTabChange, hidden = false, auth }: Props) =
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
+  // Animate the indicator pill to the active tab
+  const updateIndicator = useCallback(() => {
+    const btn = tabRefs.current.get(activeTab);
+    const indicator = indicatorRef.current;
+    if (!btn || !indicator) return;
+    const container = btn.parentElement;
+    if (!container) return;
+    const containerRect = container.getBoundingClientRect();
+    const btnRect = btn.getBoundingClientRect();
+    const left = btnRect.left - containerRect.left + (btnRect.width - 44) / 2;
+    indicator.style.transform = `translateX(${left}px)`;
+    indicator.style.opacity = '1';
+  }, [activeTab]);
+
+  useEffect(() => {
+    updateIndicator();
+  }, [activeTab, updateIndicator]);
+
+  // Also update on resize
+  useEffect(() => {
+    window.addEventListener('resize', updateIndicator);
+    return () => window.removeEventListener('resize', updateIndicator);
+  }, [updateIndicator]);
+
   const blur = 48 + scrollDepth * 12;
   const bgOp = 0.82 + scrollDepth * 0.13;
+
+  const setTabRef = useCallback((id: TabId) => (el: HTMLButtonElement | null) => {
+    if (el) tabRefs.current.set(id, el);
+    else tabRefs.current.delete(id);
+  }, []);
 
   return (
     <>
@@ -147,14 +176,14 @@ const BottomTabBar = ({ activeTab, onTabChange, hidden = false, auth }: Props) =
         className="fixed bottom-0 inset-x-0 z-50 md:hidden no-print"
         style={{
           paddingBottom: 'max(env(safe-area-inset-bottom, 0px), 8px)',
-          transition: 'opacity 0.2s ease, transform 0.25s cubic-bezier(0.4,0,0.2,1)',
+          transition: 'opacity 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1)',
           opacity: hidden ? 0 : 1,
           pointerEvents: hidden ? 'none' : 'auto',
           transform: hidden ? 'translateY(110%)' : 'translateY(0)',
         }}
         aria-hidden={hidden}>
         <div style={{
-          display: 'flex', alignItems: 'stretch',
+          display: 'flex', alignItems: 'stretch', position: 'relative',
           margin: '0 auto', width: '92%', maxWidth: 440,
           height: 56, borderRadius: 28,
           background: `hsl(var(--card) / ${bgOp})`,
@@ -163,34 +192,43 @@ const BottomTabBar = ({ activeTab, onTabChange, hidden = false, auth }: Props) =
           border: '0.5px solid hsl(var(--border)/0.5)',
           boxShadow: `0 2px 20px hsl(0 0% 0% / ${0.08 + scrollDepth * 0.12}), 0 0.5px 0 inset hsl(0 0% 100% / 0.08)`,
         }}>
+          {/* Sliding indicator pill */}
+          <span
+            ref={indicatorRef}
+            style={{
+              position: 'absolute', top: 6, left: 0,
+              width: 44, height: 28, borderRadius: 14,
+              background: 'hsl(var(--primary)/0.1)',
+              transition: 'transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.2s ease',
+              opacity: 0,
+              pointerEvents: 'none',
+            }}
+          />
+
           {TABS.map(tab => {
             const isActive = activeTab === tab.id;
             return (
               <button key={tab.id} role="tab" aria-selected={isActive} aria-label={tab.label}
+                ref={setTabRef(tab.id)}
                 onClick={() => { haptic('selection'); onTabChange(tab.id); }}
                 style={{
                   flex: 1, height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center',
                   position: 'relative', background: 'transparent', border: 'none', outline: 'none',
                   padding: 0, cursor: 'pointer', userSelect: 'none', WebkitTapHighlightColor: 'transparent',
-                  transition: 'transform 0.12s ease',
+                  transition: 'transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1)',
                 }}
-                onPointerDown={e => { (e.currentTarget as HTMLButtonElement).style.transform = 'scale(0.9)'; }}
-                onPointerUp={e => { (e.currentTarget as HTMLButtonElement).style.transform = ''; }}
+                onPointerDown={e => { (e.currentTarget as HTMLButtonElement).style.transform = 'scale(0.85)'; }}
+                onPointerUp={e => { (e.currentTarget as HTMLButtonElement).style.transform = 'scale(1)'; }}
                 onPointerLeave={e => { (e.currentTarget as HTMLButtonElement).style.transform = ''; }}
                 onPointerCancel={e => { (e.currentTarget as HTMLButtonElement).style.transform = ''; }}>
-                
-                {/* Active indicator pill behind icon */}
-                {isActive && (
-                  <span style={{
-                    position: 'absolute', top: 6, left: '50%', transform: 'translateX(-50%)',
-                    width: 44, height: 28, borderRadius: 14,
-                    background: 'hsl(var(--primary)/0.1)',
-                    transition: 'all 0.25s cubic-bezier(0.25,0.8,0.25,1)',
-                  }} />
-                )}
 
                 <span style={{ position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1, pointerEvents: 'none' }}>
-                  <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: isActive ? 1 : 0.6, transition: 'opacity 0.15s ease' }}>
+                  <span style={{
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    opacity: isActive ? 1 : 0.6,
+                    transform: isActive ? 'scale(1.08)' : 'scale(1)',
+                    transition: 'opacity 0.25s ease, transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1)',
+                  }}>
                     {tab.id === 'overview' && <IconHome active={isActive} />}
                     {tab.id === 'shifts' && <IconList active={isActive} />}
                     {tab.id === 'clients' && <IconPeople active={isActive} />}
@@ -201,7 +239,7 @@ const BottomTabBar = ({ activeTab, onTabChange, hidden = false, auth }: Props) =
                     fontSize: 10, fontWeight: isActive ? 600 : 400, lineHeight: 1,
                     letterSpacing: '0.01em', whiteSpace: 'nowrap',
                     color: isActive ? 'hsl(var(--primary))' : 'hsl(var(--muted-foreground))',
-                    transition: 'color 0.15s ease, font-weight 0.15s ease',
+                    transition: 'color 0.2s ease, font-weight 0.2s ease',
                     fontFamily: '-apple-system, "SF Pro Text", BlinkMacSystemFont, system-ui, sans-serif',
                   }}>
                     {tab.label}

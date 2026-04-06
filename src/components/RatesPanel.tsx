@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Save, Loader2, Target, FileText, Sliders, AlertCircle, Sunset, Code2, RefreshCw } from 'lucide-react';
+import { Save, Loader2, AlertCircle, RefreshCw, ChevronDown } from 'lucide-react';
 import type { UserSettings } from '@/hooks/useUserSettings';
 import { DEFAULT_NDIS_CODES, type NdisItemCodes } from '@/lib/invoiceGrouping';
 
@@ -10,14 +10,8 @@ interface RatesPanelProps {
 }
 
 /* ─────────────────────────────────────────────────────────────────
-   All sub-components at MODULE LEVEL to prevent focus-loss
+   Sub-components at MODULE LEVEL to prevent focus-loss
 ───────────────────────────────────────────────────────────────── */
-
-const SectionHeader = ({ label }: { label: string }) => (
-  <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-widest px-1 mb-1.5 mt-1">
-    {label}
-  </p>
-);
 
 const SettingsGroup = ({ children }: { children: React.ReactNode }) => (
   <div className="rounded-2xl overflow-hidden"
@@ -149,6 +143,63 @@ const TaxRow = ({ label, sublabel, checked, onChange, isLast }: TaxRowProps) => 
   </div>
 );
 
+/* ── Collapsible Section ── */
+interface CollapsibleSectionProps {
+  title: string;
+  subtitle?: string;
+  defaultOpen?: boolean;
+  children: React.ReactNode;
+}
+const CollapsibleSection = ({ title, subtitle, defaultOpen = false, children }: CollapsibleSectionProps) => {
+  const [open, setOpen] = useState(defaultOpen);
+  const contentRef = useRef<HTMLDivElement>(null);
+  const [height, setHeight] = useState<number | undefined>(defaultOpen ? undefined : 0);
+
+  useEffect(() => {
+    if (!contentRef.current) return;
+    if (open) {
+      setHeight(contentRef.current.scrollHeight);
+      const t = setTimeout(() => setHeight(undefined), 300);
+      return () => clearTimeout(t);
+    } else {
+      setHeight(contentRef.current.scrollHeight);
+      requestAnimationFrame(() => setHeight(0));
+    }
+  }, [open]);
+
+  return (
+    <div className="rounded-2xl overflow-hidden"
+      style={{ background: 'hsl(var(--card))', boxShadow: 'var(--card-shadow-sm)', border: '1px solid hsl(var(--border))' }}>
+      <button
+        type="button"
+        onClick={() => setOpen(o => !o)}
+        className="w-full flex items-center justify-between px-4 py-3.5 active:bg-accent/30 transition-colors duration-150"
+      >
+        <div className="text-left">
+          <p className="text-[15px] font-semibold text-foreground">{title}</p>
+          {subtitle && <p className="text-[12px] text-muted-foreground mt-0.5">{subtitle}</p>}
+        </div>
+        <ChevronDown
+          className="w-4 h-4 text-muted-foreground shrink-0 transition-transform duration-300"
+          style={{ transform: open ? 'rotate(180deg)' : 'rotate(0deg)' }}
+        />
+      </button>
+      <div
+        ref={contentRef}
+        style={{
+          height: height,
+          overflow: 'hidden',
+          transition: 'height 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+        }}
+      >
+        <div className="border-t" style={{ borderColor: 'hsl(var(--divider))' }}>
+          {children}
+        </div>
+      </div>
+    </div>
+  );
+};
+
 /* ── Main ── */
 const RatesPanel = ({ settings, loading, onSave }: RatesPanelProps) => {
   const [form, setForm] = useState<Partial<Omit<UserSettings, 'id' | 'user_id'>>>({});
@@ -159,7 +210,6 @@ const RatesPanel = ({ settings, loading, onSave }: RatesPanelProps) => {
   const ndisCodes = useRef<NdisItemCodes>({ ...DEFAULT_NDIS_CODES });
   const [ndisCodesState, setNdisCodesState] = useState<NdisItemCodes>({ ...DEFAULT_NDIS_CODES });
 
-  // Editable evening/sleepover hour windows (stored in localStorage)
   const [eveningStart, setEveningStart] = useState(() => localStorage.getItem('pref_evening_start') || '18:00');
   const [eveningEnd, setEveningEnd] = useState(() => localStorage.getItem('pref_evening_end') || '00:00');
   const [sleepoverStart, setSleepoverStart] = useState(() => localStorage.getItem('pref_sleepover_start') || '00:00');
@@ -232,163 +282,133 @@ const RatesPanel = ({ settings, loading, onSave }: RatesPanelProps) => {
   };
 
   const showTax = val('show_tax_estimate', settings.show_tax_estimate) as boolean;
+  const anyDirty = Object.keys(form).length > 0;
 
   return (
-    <div className="space-y-6 pb-4">
+    <div className="space-y-4 pb-4">
 
       {/* ── Pay Rates ── */}
-      <div className="space-y-1.5">
-        <SectionHeader label="Pay Rates" />
-        <SettingsGroup>
-          <RateRow label="Monday – Friday" value={val('rate_weekday', settings.rate_weekday) as number} onChange={v => set('rate_weekday', v)} />
-          <RateRow label="Saturday" value={val('rate_saturday', settings.rate_saturday) as number} onChange={v => set('rate_saturday', v)} />
-          <RateRow label="Sunday" value={val('rate_sunday', settings.rate_sunday) as number} onChange={v => set('rate_sunday', v)} />
-          <RateRow label="Public Holiday" value={val('rate_public_holiday', settings.rate_public_holiday) as number} onChange={v => set('rate_public_holiday', v)} isLast />
-        </SettingsGroup>
-      </div>
+      <CollapsibleSection title="Pay Rates" subtitle="Hourly rates by day type" defaultOpen>
+        <RateRow label="Monday – Friday" value={val('rate_weekday', settings.rate_weekday) as number} onChange={v => set('rate_weekday', v)} />
+        <RateRow label="Saturday" value={val('rate_saturday', settings.rate_saturday) as number} onChange={v => set('rate_saturday', v)} />
+        <RateRow label="Sunday" value={val('rate_sunday', settings.rate_sunday) as number} onChange={v => set('rate_sunday', v)} />
+        <RateRow label="Public Holiday" value={val('rate_public_holiday', settings.rate_public_holiday) as number} onChange={v => set('rate_public_holiday', v)} isLast />
+      </CollapsibleSection>
 
       {/* ── Evening Shift ── */}
-      <div className="space-y-1.5">
-        <SectionHeader label="Evening Shift" />
-        <SettingsGroup>
-          <RateRow
-            label="Evening Rate"
-            sublabel="Mon–Fri evening override"
-            value={val('rate_evening', settings.rate_evening) as number}
-            onChange={v => set('rate_evening', v)}
-          />
-          <div>
-            <div className="ml-4 mr-0 h-px" style={{ background: 'hsl(var(--divider))' }} />
-            <div className="px-4 py-3">
-              <div className="flex items-center justify-between gap-3">
-                <div className="flex-1 min-w-0">
-                  <p className="text-[15px] text-foreground leading-tight">Evening Window</p>
-                  <p className="text-[12px] text-muted-foreground mt-0.5 leading-tight">Set when evening rate applies</p>
-                </div>
-                <div className="flex items-center gap-1.5 shrink-0">
-                  <input
-                    type="time"
-                    value={eveningStart}
-                    onChange={e => { setEveningStart(e.target.value); localStorage.setItem('pref_evening_start', e.target.value); }}
-                    className="glass-input text-foreground text-[13px] font-mono text-center"
-                    style={{ minHeight: 38, width: 80 }}
-                  />
-                  <span className="text-[11px] text-muted-foreground">–</span>
-                  <input
-                    type="time"
-                    value={eveningEnd}
-                    onChange={e => { setEveningEnd(e.target.value); localStorage.setItem('pref_evening_end', e.target.value); }}
-                    className="glass-input text-foreground text-[13px] font-mono text-center"
-                    style={{ minHeight: 38, width: 80 }}
-                  />
-                </div>
+      <CollapsibleSection title="Evening Shift" subtitle="Evening rate & window settings">
+        <RateRow
+          label="Evening Rate"
+          sublabel="Mon–Fri evening override"
+          value={val('rate_evening', settings.rate_evening) as number}
+          onChange={v => set('rate_evening', v)}
+        />
+        <div>
+          <div className="ml-4 mr-0 h-px" style={{ background: 'hsl(var(--divider))' }} />
+          <div className="px-4 py-3">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex-1 min-w-0">
+                <p className="text-[15px] text-foreground leading-tight">Evening Window</p>
+                <p className="text-[12px] text-muted-foreground mt-0.5 leading-tight">Set when evening rate applies</p>
+              </div>
+              <div className="flex items-center gap-1.5 shrink-0">
+                <input type="time" value={eveningStart}
+                  onChange={e => { setEveningStart(e.target.value); localStorage.setItem('pref_evening_start', e.target.value); }}
+                  className="glass-input text-foreground text-[13px] font-mono text-center" style={{ minHeight: 38, width: 80 }} />
+                <span className="text-[11px] text-muted-foreground">–</span>
+                <input type="time" value={eveningEnd}
+                  onChange={e => { setEveningEnd(e.target.value); localStorage.setItem('pref_evening_end', e.target.value); }}
+                  className="glass-input text-foreground text-[13px] font-mono text-center" style={{ minHeight: 38, width: 80 }} />
               </div>
             </div>
           </div>
-        </SettingsGroup>
-        <p className="text-[11px] text-muted-foreground px-1">Sat/Sun use their own rates regardless of time.</p>
-      </div>
+        </div>
+        <p className="text-[11px] text-muted-foreground px-4 pb-3">Sat/Sun use their own rates regardless of time.</p>
+      </CollapsibleSection>
 
       {/* ── Sleepover Shifts ── */}
-      <div className="space-y-1.5">
-        <SectionHeader label="Sleepover Shifts" />
-        <SettingsGroup>
-          <RateRow label="Weekday Night" sublabel="Mon – Fri" value={val('rate_sleepover_weekday', settings.rate_sleepover_weekday) as number} onChange={v => set('rate_sleepover_weekday', v)} unit="flat" />
-          <RateRow label="Weekend Night" sublabel="Sat & Sun" value={val('rate_sleepover_weekend', settings.rate_sleepover_weekend) as number} onChange={v => set('rate_sleepover_weekend', v)} unit="flat" />
-          <div>
-            <div className="ml-4 mr-0 h-px" style={{ background: 'hsl(var(--divider))' }} />
-            <div className="px-4 py-3">
-              <div className="flex items-center justify-between gap-3">
-                <div className="flex-1 min-w-0">
-                  <p className="text-[15px] text-foreground leading-tight">Sleepover Window</p>
-                  <p className="text-[12px] text-muted-foreground mt-0.5 leading-tight">Set your overnight hours</p>
-                </div>
-                <div className="flex items-center gap-1.5 shrink-0">
-                  <input
-                    type="time"
-                    value={sleepoverStart}
-                    onChange={e => { setSleepoverStart(e.target.value); localStorage.setItem('pref_sleepover_start', e.target.value); }}
-                    className="glass-input text-foreground text-[13px] font-mono text-center"
-                    style={{ minHeight: 38, width: 80 }}
-                  />
-                  <span className="text-[11px] text-muted-foreground">–</span>
-                  <input
-                    type="time"
-                    value={sleepoverEnd}
-                    onChange={e => { setSleepoverEnd(e.target.value); localStorage.setItem('pref_sleepover_end', e.target.value); }}
-                    className="glass-input text-foreground text-[13px] font-mono text-center"
-                    style={{ minHeight: 38, width: 80 }}
-                  />
-                </div>
+      <CollapsibleSection title="Sleepover Shifts" subtitle="Flat fees & overnight window">
+        <RateRow label="Weekday Night" sublabel="Mon – Fri" value={val('rate_sleepover_weekday', settings.rate_sleepover_weekday) as number} onChange={v => set('rate_sleepover_weekday', v)} unit="flat" />
+        <RateRow label="Weekend Night" sublabel="Sat & Sun" value={val('rate_sleepover_weekend', settings.rate_sleepover_weekend) as number} onChange={v => set('rate_sleepover_weekend', v)} unit="flat" />
+        <div>
+          <div className="ml-4 mr-0 h-px" style={{ background: 'hsl(var(--divider))' }} />
+          <div className="px-4 py-3">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex-1 min-w-0">
+                <p className="text-[15px] text-foreground leading-tight">Sleepover Window</p>
+                <p className="text-[12px] text-muted-foreground mt-0.5 leading-tight">Set your overnight hours</p>
+              </div>
+              <div className="flex items-center gap-1.5 shrink-0">
+                <input type="time" value={sleepoverStart}
+                  onChange={e => { setSleepoverStart(e.target.value); localStorage.setItem('pref_sleepover_start', e.target.value); }}
+                  className="glass-input text-foreground text-[13px] font-mono text-center" style={{ minHeight: 38, width: 80 }} />
+                <span className="text-[11px] text-muted-foreground">–</span>
+                <input type="time" value={sleepoverEnd}
+                  onChange={e => { setSleepoverEnd(e.target.value); localStorage.setItem('pref_sleepover_end', e.target.value); }}
+                  className="glass-input text-foreground text-[13px] font-mono text-center" style={{ minHeight: 38, width: 80 }} />
               </div>
             </div>
           </div>
-        </SettingsGroup>
-        <p className="text-[11px] text-muted-foreground px-1">Sleepover is a flat fee regardless of hours.</p>
-      </div>
+        </div>
+        <p className="text-[11px] text-muted-foreground px-4 pb-3">Sleepover is a flat fee regardless of hours.</p>
+      </CollapsibleSection>
 
       {/* ── Tax ── */}
-      <div className="space-y-1.5">
-        <SectionHeader label="Tax Estimate" />
-        <SettingsGroup>
-          <TaxRow
-            label="Show Tax Estimate"
-            sublabel="Display estimated tax on Overview screen"
-            checked={showTax}
-            onChange={v => set('show_tax_estimate', v)}
-            isLast={!showTax}
+      <CollapsibleSection title="Tax Estimate" subtitle="Estimated tax deductions">
+        <TaxRow
+          label="Show Tax Estimate"
+          sublabel="Display estimated tax on Overview screen"
+          checked={showTax}
+          onChange={v => set('show_tax_estimate', v)}
+          isLast={!showTax}
+        />
+        {showTax && (
+          <RateRow
+            label="Tax Rate"
+            value={val('tax_rate', settings.tax_rate) as number}
+            onChange={v => set('tax_rate', v)}
+            unit="%"
+            isLast
           />
-          {showTax && (
-            <RateRow
-              label="Tax Rate"
-              value={val('tax_rate', settings.tax_rate) as number}
-              onChange={v => set('tax_rate', v)}
-              unit="%"
-              isLast
-            />
-          )}
-        </SettingsGroup>
-      </div>
+        )}
+      </CollapsibleSection>
 
       {/* ── Income Goals ── */}
-      <div className="space-y-1.5">
-        <SectionHeader label="Income Goals" />
-        <SettingsGroup>
-          <GoalRow label="Weekly Goal" value={String(val('weekly_goal', settings.weekly_goal) ?? '')} onChange={v => set('weekly_goal', v === '' ? null : parseFloat(v) || null)} placeholder="800" />
-          <GoalRow label="Monthly Goal" value={String(val('monthly_goal', settings.monthly_goal) ?? '')} onChange={v => set('monthly_goal', v === '' ? null : parseFloat(v) || null)} placeholder="3200" />
-          <GoalRow label="Yearly Goal" value={String(val('yearly_goal', settings.yearly_goal) ?? '')} onChange={v => set('yearly_goal', v === '' ? null : parseFloat(v) || null)} placeholder="38000" isLast />
-        </SettingsGroup>
-      </div>
+      <CollapsibleSection title="Income Goals" subtitle="Weekly, monthly & yearly targets">
+        <GoalRow label="Weekly Goal" value={String(val('weekly_goal', settings.weekly_goal) ?? '')} onChange={v => set('weekly_goal', v === '' ? null : parseFloat(v) || null)} placeholder="800" />
+        <GoalRow label="Monthly Goal" value={String(val('monthly_goal', settings.monthly_goal) ?? '')} onChange={v => set('monthly_goal', v === '' ? null : parseFloat(v) || null)} placeholder="3200" />
+        <GoalRow label="Yearly Goal" value={String(val('yearly_goal', settings.yearly_goal) ?? '')} onChange={v => set('yearly_goal', v === '' ? null : parseFloat(v) || null)} placeholder="38000" isLast />
+      </CollapsibleSection>
 
       {/* ── NDIS Item Codes ── */}
-      <div className="space-y-1.5">
-        <SectionHeader label="NDIS Item Codes" />
-        <p className="text-[11px] text-muted-foreground px-1 mb-1.5">Edit these to match your plan management requirements.</p>
-        <SettingsGroup>
-          <NdisRow label="Daily Support (Weekday)" value={ndisCodesState.daily} onChange={v => setCode('daily', v)} />
-          <NdisRow label="Evening Support" value={ndisCodesState.evening} onChange={v => setCode('evening', v)} />
-          <NdisRow label="Saturday Support" value={ndisCodesState.saturday} onChange={v => setCode('saturday', v)} />
-          <NdisRow label="Sunday Support" value={ndisCodesState.sunday} onChange={v => setCode('sunday', v)} />
-          <NdisRow label="Public Holiday" value={ndisCodesState.public_holiday} onChange={v => setCode('public_holiday', v)} />
-          <NdisRow label="Weekday Sleepover" value={ndisCodesState.weekday_sleepover} onChange={v => setCode('weekday_sleepover', v)} />
-          <NdisRow label="Weekend Sleepover (Sat)" value={ndisCodesState.saturday_sleepover} onChange={v => setCode('saturday_sleepover', v)} />
-          <NdisRow label="Weekend Sleepover (Sun)" value={ndisCodesState.sunday_sleepover} onChange={v => setCode('sunday_sleepover', v)} isLast />
-        </SettingsGroup>
-      </div>
+      <CollapsibleSection title="NDIS Item Codes" subtitle="Plan management code mappings">
+        <NdisRow label="Daily Support (Weekday)" value={ndisCodesState.daily} onChange={v => setCode('daily', v)} />
+        <NdisRow label="Evening Support" value={ndisCodesState.evening} onChange={v => setCode('evening', v)} />
+        <NdisRow label="Saturday Support" value={ndisCodesState.saturday} onChange={v => setCode('saturday', v)} />
+        <NdisRow label="Sunday Support" value={ndisCodesState.sunday} onChange={v => setCode('sunday', v)} />
+        <NdisRow label="Public Holiday" value={ndisCodesState.public_holiday} onChange={v => setCode('public_holiday', v)} />
+        <NdisRow label="Weekday Sleepover" value={ndisCodesState.weekday_sleepover} onChange={v => setCode('weekday_sleepover', v)} />
+        <NdisRow label="Weekend Sleepover (Sat)" value={ndisCodesState.saturday_sleepover} onChange={v => setCode('saturday_sleepover', v)} />
+        <NdisRow label="Weekend Sleepover (Sun)" value={ndisCodesState.sunday_sleepover} onChange={v => setCode('sunday_sleepover', v)} isLast />
+      </CollapsibleSection>
 
-      {/* ── Save ── */}
-      <button
-        onClick={handleSave}
-        disabled={saving}
-        className="w-full flex items-center justify-center gap-2 min-h-[50px] rounded-2xl text-[15px] font-semibold transition-all duration-200 disabled:opacity-50"
-        style={{
-          background: saved ? 'hsl(var(--stat-green)/0.15)' : 'hsl(var(--primary))',
-          color: saved ? 'hsl(var(--stat-green))' : 'hsl(var(--primary-foreground))',
-          boxShadow: saved ? '0 0 20px hsl(var(--stat-green)/0.2)' : '0 4px 16px hsl(var(--primary)/0.3)',
-        }}
-      >
-        {saving ? <><Loader2 className="w-4 h-4 animate-spin" /> Saving…</> : saved ? '✓ Saved' : <><Save className="w-4 h-4" /> Save Rates & Codes</>}
-      </button>
+      {/* ── Sticky Save ── */}
+      {anyDirty && (
+        <div className="sticky bottom-24 z-30">
+          <button
+            onClick={handleSave}
+            disabled={saving}
+            className="w-full flex items-center justify-center gap-2 min-h-[50px] rounded-2xl text-[15px] font-semibold transition-all duration-200 disabled:opacity-50"
+            style={{
+              background: saved ? 'hsl(var(--stat-green)/0.15)' : 'hsl(var(--primary))',
+              color: saved ? 'hsl(var(--stat-green))' : 'hsl(var(--primary-foreground))',
+              boxShadow: saved ? '0 0 20px hsl(var(--stat-green)/0.2)' : '0 4px 16px hsl(var(--primary)/0.3)',
+            }}
+          >
+            {saving ? <><Loader2 className="w-4 h-4 animate-spin" /> Saving…</> : saved ? '✓ Saved' : <><Save className="w-4 h-4" /> Save Changes</>}
+          </button>
+        </div>
+      )}
 
       <div className="h-2" />
     </div>
