@@ -51,11 +51,14 @@ const Index = ({ auth }: IndexProps) => {
   const handleYearChange = (y: number) => store.update({ year: y });
   const handleMonthChange = (m: number) => store.update({ month: m });
 
+  // Schedule shift reminders & check overdue invoices
   useEffect(() => {
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/sw.js').catch(() => {});
-    }
-  }, []);
+    scheduleShiftReminders(shifts);
+  }, [shifts]);
+
+  useEffect(() => {
+    if (invoices.length > 0) checkOverdueInvoices(invoices);
+  }, [invoices]);
 
   const renderSettingsContent = () => (
     <div className="space-y-4">
