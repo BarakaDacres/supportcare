@@ -5,6 +5,7 @@ import { useShifts } from '@/hooks/useShifts';
 import { useClients } from '@/hooks/useClients';
 import { useUserSettings } from '@/hooks/useUserSettings';
 import { useInvoices } from '@/hooks/useInvoices';
+import { scheduleShiftReminders, checkOverdueInvoices } from '@/lib/notifications';
 import Header from '@/components/Header';
 import MobileHeader from '@/components/MobileHeader';
 import BottomTabBar, { type TabId } from '@/components/BottomTabBar';
