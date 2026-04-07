@@ -140,7 +140,7 @@ const BottomTabBar = ({ activeTab, onTabChange, hidden = false, auth }: Props) =
     const containerRect = container.getBoundingClientRect();
     const btnRect = btn.getBoundingClientRect();
     const left = btnRect.left - containerRect.left + (btnRect.width - 44) / 2;
-    indicator.style.transform = `translateX(${left}px)`;
+    indicator.style.transform = `translateX(${left}px) translateY(0)`;
     indicator.style.opacity = '1';
   }, [activeTab]);
 
@@ -196,8 +196,9 @@ const BottomTabBar = ({ activeTab, onTabChange, hidden = false, auth }: Props) =
           <span
             ref={indicatorRef}
             style={{
-              position: 'absolute', top: 6, left: 0,
-              width: 44, height: 28, borderRadius: 14,
+              position: 'absolute', top: '50%', left: 0,
+              width: 44, height: 44, borderRadius: 12,
+              marginTop: -22,
               background: 'hsl(var(--primary)/0.1)',
               transition: 'transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.2s ease',
               opacity: 0,

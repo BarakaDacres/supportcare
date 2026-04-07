@@ -1,5 +1,5 @@
 import { useState, useMemo, useRef, useCallback, useEffect } from 'react';
-import { Plus, Moon, User, ChevronDown, SortAsc, Lock, Sun, AlertCircle, Star, Sunset, Pencil, Copy, Trash2 } from 'lucide-react';
+import { Plus, Moon, User, ChevronDown, SortAsc, Lock, Sun, AlertCircle, Star, Sunset, Pencil, Copy, Trash2, CalendarPlus } from 'lucide-react';
 import type { Shift, NewShift } from '@/hooks/useShifts';
 import { effectiveGrossPay } from '@/hooks/useShifts';
 import type { Client } from '@/hooks/useClients';
@@ -7,6 +7,7 @@ import type { PayRates } from '@/lib/shiftCalculator';
 import { DEFAULT_RATES, formatTime12h, getDayOfWeek, shiftHasEveningHours } from '@/lib/shiftCalculator';
 import { formatCurrency } from '@/lib/formatUtils';
 import { MONTH_NAMES } from '@/lib/dateUtils';
+import { downloadICS, googleCalendarURL, type CalendarEvent } from '@/lib/calendarExport';
 import ShiftForm from './ShiftForm';
 
 interface ShiftListProps {
@@ -62,6 +63,25 @@ function getShiftStatus(shift: Shift): ShiftStatus {
   if (now >= shiftStart && now < shiftEnd) return 'active';
   if (shiftStart > now) return 'upcoming';
   return 'completed';
+}
+
+function buildCalendarEvent(shift: Shift, clientAddress?: string | null): CalendarEvent {
+  const title = shift.client_name || 'Shift';
+  const description = [
+    shift.client_name ? `Client: ${shift.client_name}` : '',
+    shift.notes || '',
+  ].filter(Boolean).join('\n');
+
+  return {
+    uid: shift.id,
+    title,
+    startDate: shift.date,
+    startTime: shift.start_time,
+    endDate: shift.date,
+    endTime: shift.end_time,
+    location: clientAddress || undefined,
+    description: description || undefined,
+  };
 }
 
 // ── Long-press context menu ──────────────────────────────────────────────────
@@ -315,6 +335,7 @@ const ShiftList = ({
                 shiftTypeLabel={shiftTypeLabel}
                 timeDisplay={timeDisplay}
                 dateLabel={formatDateLabel(shift.date)}
+                clientAddress={clients.find(c => c.id === shift.client_id)?.address}
                 onEdit={() => { setEditingShift(shift); openSheet(true); }}
                 onDuplicate={() => onDuplicate(shift.id)}
                 onDelete={() => setConfirmDelete(shift.id)}
@@ -472,6 +493,7 @@ interface ShiftCardProps {
   shiftTypeLabel: { label: string; icon: React.ReactNode; style: React.CSSProperties };
   timeDisplay: string;
   dateLabel: string;
+  clientAddress?: string | null;
   onEdit: () => void;
   onDuplicate: () => void;
   onDelete: () => void;
@@ -485,8 +507,9 @@ const SWIPE_MAX      = 100;   // max translate
 const ShiftCard = ({
   shift, locked, shiftStatus, active, isSleepover, isEvening,
   displayPay, hasOverride, shiftTypeLabel, timeDisplay, dateLabel,
-  onEdit, onDuplicate, onDelete, onContextMenu,
+  clientAddress, onEdit, onDuplicate, onDelete, onContextMenu,
 }: ShiftCardProps) => {
+  const [calMenuOpen, setCalMenuOpen] = useState(false);
   const [translateX, setTranslateX] = useState(0);
   const [swiping, setSwiping] = useState(false);
   const touchStartX = useRef(0);
@@ -676,6 +699,66 @@ const ShiftCard = ({
         {/* Row 4: Notes */}
         {shift.notes && (
           <p className="text-[11px] text-muted-foreground/70 mt-1.5 line-clamp-2 leading-relaxed">{shift.notes}</p>
+        )}
+
+        {/* Add to Calendar — only for upcoming shifts */}
+        {shiftStatus === 'upcoming' && (
+          <div className="relative mt-2">
+            <button
+              onClick={e => { e.stopPropagation(); setCalMenuOpen(!calMenuOpen); }}
+              className="inline-flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-[11px] font-semibold transition-all duration-200 active:scale-95"
+              style={{
+                background: 'hsl(var(--primary)/0.08)',
+                color: 'hsl(var(--primary))',
+                border: '1px solid hsl(var(--primary)/0.15)',
+              }}
+            >
+              <CalendarPlus className="w-3.5 h-3.5" />
+              Add to Calendar
+            </button>
+
+            {calMenuOpen && (
+              <>
+                <div className="fixed inset-0 z-40" onClick={() => setCalMenuOpen(false)} />
+                <div
+                  className="absolute left-0 bottom-full mb-2 z-50 rounded-2xl overflow-hidden"
+                  style={{
+                    background: 'hsl(var(--card))',
+                    border: '0.5px solid hsl(var(--border))',
+                    boxShadow: '0 8px 32px hsl(var(--foreground)/0.14), 0 2px 8px hsl(var(--foreground)/0.06)',
+                    minWidth: 200,
+                    animation: 'scaleIn 0.18s cubic-bezier(0.34, 1.56, 0.64, 1)',
+                  }}
+                >
+                  <button
+                    className="w-full flex items-center gap-3 px-4 py-3 text-sm font-medium text-foreground hover:bg-accent/60 transition-colors text-left"
+                    onClick={e => {
+                      e.stopPropagation();
+                      const ev = buildCalendarEvent(shift, clientAddress);
+                      downloadICS(ev);
+                      setCalMenuOpen(false);
+                    }}
+                  >
+                    <span className="text-base">🍎</span>
+                    Apple Calendar
+                  </button>
+                  <div style={{ height: '0.5px', background: 'hsl(var(--border))' }} />
+                  <button
+                    className="w-full flex items-center gap-3 px-4 py-3 text-sm font-medium text-foreground hover:bg-accent/60 transition-colors text-left"
+                    onClick={e => {
+                      e.stopPropagation();
+                      const ev = buildCalendarEvent(shift, clientAddress);
+                      window.open(googleCalendarURL(ev), '_blank');
+                      setCalMenuOpen(false);
+                    }}
+                  >
+                    <span className="text-base">📅</span>
+                    Google Calendar
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
         )}
 
         {/* Locked indicator */}
