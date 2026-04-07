@@ -529,7 +529,6 @@ const ShiftCard = ({
   clientAddress, onEdit, onDuplicate, onDelete, onContextMenu,
 }: ShiftCardProps) => {
   const [translateX, setTranslateX] = useState(0);
-  const [translateX, setTranslateX] = useState(0);
   const [swiping, setSwiping] = useState(false);
   const touchStartX = useRef(0);
   const touchStartY = useRef(0);
