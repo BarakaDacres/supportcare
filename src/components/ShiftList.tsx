@@ -528,7 +528,7 @@ const ShiftCard = ({
   displayPay, hasOverride, shiftTypeLabel, timeDisplay, dateLabel,
   clientAddress, onEdit, onDuplicate, onDelete, onContextMenu,
 }: ShiftCardProps) => {
-  const [calMenuOpen, setCalMenuOpen] = useState(false);
+  const [translateX, setTranslateX] = useState(0);
   const [translateX, setTranslateX] = useState(0);
   const [swiping, setSwiping] = useState(false);
   const touchStartX = useRef(0);
