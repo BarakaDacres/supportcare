@@ -487,8 +487,9 @@ const SWIPE_MAX      = 100;   // max translate
 const ShiftCard = ({
   shift, locked, shiftStatus, active, isSleepover, isEvening,
   displayPay, hasOverride, shiftTypeLabel, timeDisplay, dateLabel,
-  onEdit, onDuplicate, onDelete, onContextMenu,
+  clientAddress, onEdit, onDuplicate, onDelete, onContextMenu,
 }: ShiftCardProps) => {
+  const [calMenuOpen, setCalMenuOpen] = useState(false);
   const [translateX, setTranslateX] = useState(0);
   const [swiping, setSwiping] = useState(false);
   const touchStartX = useRef(0);
