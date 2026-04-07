@@ -65,6 +65,25 @@ function getShiftStatus(shift: Shift): ShiftStatus {
   return 'completed';
 }
 
+function buildCalendarEvent(shift: Shift, clientAddress?: string | null): CalendarEvent {
+  const title = shift.client_name || 'Shift';
+  const description = [
+    shift.client_name ? `Client: ${shift.client_name}` : '',
+    shift.notes || '',
+  ].filter(Boolean).join('\n');
+
+  return {
+    uid: shift.id,
+    title,
+    startDate: shift.date,
+    startTime: shift.start_time,
+    endDate: shift.date,
+    endTime: shift.end_time,
+    location: clientAddress || undefined,
+    description: description || undefined,
+  };
+}
+
 // ── Long-press context menu ──────────────────────────────────────────────────
 interface ContextMenuState {
   shiftId: string;
