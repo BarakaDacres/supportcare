@@ -473,6 +473,7 @@ interface ShiftCardProps {
   shiftTypeLabel: { label: string; icon: React.ReactNode; style: React.CSSProperties };
   timeDisplay: string;
   dateLabel: string;
+  clientAddress?: string | null;
   onEdit: () => void;
   onDuplicate: () => void;
   onDelete: () => void;
