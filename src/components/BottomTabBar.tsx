@@ -140,7 +140,7 @@ const BottomTabBar = ({ activeTab, onTabChange, hidden = false, auth }: Props) =
     const containerRect = container.getBoundingClientRect();
     const btnRect = btn.getBoundingClientRect();
     const left = btnRect.left - containerRect.left + (btnRect.width - 44) / 2;
-    indicator.style.transform = `translateX(${left}px)`;
+    indicator.style.transform = `translateX(${left}px) translateY(0)`;
     indicator.style.opacity = '1';
   }, [activeTab]);
 
