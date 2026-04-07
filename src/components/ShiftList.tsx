@@ -7,7 +7,7 @@ import type { PayRates } from '@/lib/shiftCalculator';
 import { DEFAULT_RATES, formatTime12h, getDayOfWeek, shiftHasEveningHours } from '@/lib/shiftCalculator';
 import { formatCurrency } from '@/lib/formatUtils';
 import { MONTH_NAMES } from '@/lib/dateUtils';
-import { downloadICS, googleCalendarURL, type CalendarEvent } from '@/lib/calendarExport';
+import { downloadBulkICS, type CalendarEvent } from '@/lib/calendarExport';
 import ShiftForm from './ShiftForm';
 
 interface ShiftListProps {
@@ -272,6 +272,25 @@ const ShiftList = ({
             <span className="ml-0.5">nights</span>
           </span>
         )}
+
+        {/* Export All Upcoming */}
+        {(() => {
+          const upcomingShifts = shifts.filter(s => getShiftStatus(s) === 'upcoming');
+          if (upcomingShifts.length === 0) return null;
+          return (
+            <button
+              onClick={() => {
+                const events: CalendarEvent[] = upcomingShifts.map(s => buildCalendarEvent(s, clients.find(c => c.id === s.client_id)?.address));
+                downloadBulkICS(events);
+              }}
+              className="glass-chip py-1 px-2.5 text-[11px] font-semibold transition-all duration-200 active:scale-95"
+              style={{ color: 'hsl(var(--primary))', border: '1px solid hsl(var(--primary)/0.2)' }}
+            >
+              <CalendarPlus className="w-3 h-3" />
+              Export {upcomingShifts.length} upcoming
+            </button>
+          );
+        })()}
       </div>
 
       {/* Shift list */}
@@ -509,7 +528,6 @@ const ShiftCard = ({
   displayPay, hasOverride, shiftTypeLabel, timeDisplay, dateLabel,
   clientAddress, onEdit, onDuplicate, onDelete, onContextMenu,
 }: ShiftCardProps) => {
-  const [calMenuOpen, setCalMenuOpen] = useState(false);
   const [translateX, setTranslateX] = useState(0);
   const [swiping, setSwiping] = useState(false);
   const touchStartX = useRef(0);
@@ -701,65 +719,6 @@ const ShiftCard = ({
           <p className="text-[11px] text-muted-foreground/70 mt-1.5 line-clamp-2 leading-relaxed">{shift.notes}</p>
         )}
 
-        {/* Add to Calendar — only for upcoming shifts */}
-        {shiftStatus === 'upcoming' && (
-          <div className="relative mt-2">
-            <button
-              onClick={e => { e.stopPropagation(); setCalMenuOpen(!calMenuOpen); }}
-              className="inline-flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-[11px] font-semibold transition-all duration-200 active:scale-95"
-              style={{
-                background: 'hsl(var(--primary)/0.08)',
-                color: 'hsl(var(--primary))',
-                border: '1px solid hsl(var(--primary)/0.15)',
-              }}
-            >
-              <CalendarPlus className="w-3.5 h-3.5" />
-              Add to Calendar
-            </button>
-
-            {calMenuOpen && (
-              <>
-                <div className="fixed inset-0 z-40" onClick={() => setCalMenuOpen(false)} />
-                <div
-                  className="absolute left-0 bottom-full mb-2 z-50 rounded-2xl overflow-hidden"
-                  style={{
-                    background: 'hsl(var(--card))',
-                    border: '0.5px solid hsl(var(--border))',
-                    boxShadow: '0 8px 32px hsl(var(--foreground)/0.14), 0 2px 8px hsl(var(--foreground)/0.06)',
-                    minWidth: 200,
-                    animation: 'scaleIn 0.18s cubic-bezier(0.34, 1.56, 0.64, 1)',
-                  }}
-                >
-                  <button
-                    className="w-full flex items-center gap-3 px-4 py-3 text-sm font-medium text-foreground hover:bg-accent/60 transition-colors text-left"
-                    onClick={e => {
-                      e.stopPropagation();
-                      const ev = buildCalendarEvent(shift, clientAddress);
-                      downloadICS(ev);
-                      setCalMenuOpen(false);
-                    }}
-                  >
-                    <span className="text-base">🍎</span>
-                    Apple Calendar
-                  </button>
-                  <div style={{ height: '0.5px', background: 'hsl(var(--border))' }} />
-                  <button
-                    className="w-full flex items-center gap-3 px-4 py-3 text-sm font-medium text-foreground hover:bg-accent/60 transition-colors text-left"
-                    onClick={e => {
-                      e.stopPropagation();
-                      const ev = buildCalendarEvent(shift, clientAddress);
-                      window.open(googleCalendarURL(ev), '_blank');
-                      setCalMenuOpen(false);
-                    }}
-                  >
-                    <span className="text-base">📅</span>
-                    Google Calendar
-                  </button>
-                </div>
-              </>
-            )}
-          </div>
-        )}
 
         {/* Locked indicator */}
         {locked && (

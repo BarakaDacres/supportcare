@@ -66,6 +66,52 @@ export function generateICS(event: CalendarEvent): string {
   return lines.join('\r\n');
 }
 
+/** Generate a single .ics file with multiple events */
+export function generateBulkICS(events: CalendarEvent[]): string {
+  const lines = [
+    'BEGIN:VCALENDAR',
+    'VERSION:2.0',
+    'PRODID:-//SupportCare//Shift//EN',
+    'CALSCALE:GREGORIAN',
+    'METHOD:PUBLISH',
+  ];
+
+  for (const event of events) {
+    const endDate = resolveEndDate(event.startDate, event.startTime, event.endTime);
+    const dtStart = toICSDateTime(event.startDate, event.startTime);
+    const dtEnd = toICSDateTime(endDate, event.endTime);
+
+    lines.push(
+      'BEGIN:VEVENT',
+      `UID:shift-${event.uid}@supportcare.app`,
+      `DTSTAMP:${toICSDateTime(new Date().toISOString().slice(0, 10), new Date().toTimeString().slice(0, 5))}`,
+      `DTSTART:${dtStart}`,
+      `DTEND:${dtEnd}`,
+      `SUMMARY:${escapeICS(event.title)}`,
+    );
+    if (event.location) lines.push(`LOCATION:${escapeICS(event.location)}`);
+    if (event.description) lines.push(`DESCRIPTION:${escapeICS(event.description)}`);
+    lines.push('STATUS:CONFIRMED', 'END:VEVENT');
+  }
+
+  lines.push('END:VCALENDAR');
+  return lines.join('\r\n');
+}
+
+/** Download a bulk .ics file */
+export function downloadBulkICS(events: CalendarEvent[]) {
+  const icsContent = generateBulkICS(events);
+  const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `upcoming-shifts.ics`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
 /** Trigger download of an .ics file */
 export function downloadICS(event: CalendarEvent) {
   const icsContent = generateICS(event);
