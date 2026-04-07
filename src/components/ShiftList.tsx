@@ -335,6 +335,7 @@ const ShiftList = ({
                 shiftTypeLabel={shiftTypeLabel}
                 timeDisplay={timeDisplay}
                 dateLabel={formatDateLabel(shift.date)}
+                clientAddress={clients.find(c => c.id === shift.client_id)?.address}
                 onEdit={() => { setEditingShift(shift); openSheet(true); }}
                 onDuplicate={() => onDuplicate(shift.id)}
                 onDelete={() => setConfirmDelete(shift.id)}
