@@ -272,6 +272,25 @@ const ShiftList = ({
             <span className="ml-0.5">nights</span>
           </span>
         )}
+
+        {/* Export All Upcoming */}
+        {(() => {
+          const upcomingShifts = shifts.filter(s => getShiftStatus(s) === 'upcoming');
+          if (upcomingShifts.length === 0) return null;
+          return (
+            <button
+              onClick={() => {
+                const events: CalendarEvent[] = upcomingShifts.map(s => buildCalendarEvent(s, clients.find(c => c.id === s.client_id)?.address));
+                downloadBulkICS(events);
+              }}
+              className="glass-chip py-1 px-2.5 text-[11px] font-semibold transition-all duration-200 active:scale-95"
+              style={{ color: 'hsl(var(--primary))', border: '1px solid hsl(var(--primary)/0.2)' }}
+            >
+              <CalendarPlus className="w-3 h-3" />
+              Export {upcomingShifts.length} upcoming
+            </button>
+          );
+        })()}
       </div>
 
       {/* Shift list */}
