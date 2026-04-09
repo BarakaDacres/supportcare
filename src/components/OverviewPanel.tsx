@@ -1,4 +1,5 @@
 import { useMemo, useState, useEffect, useRef } from 'react';
+import { calculateShiftPay, type PayRates, DEFAULT_RATES } from '@/lib/shiftCalculator';
 
 // ── Haptic feedback ──────────────────────────────────────────────────────────
 // Strategy:
@@ -959,6 +960,7 @@ const OverviewPanel = ({
       arr.filter(s => !s.is_sleepover).reduce((s, sh) => s + Number(sh.hours_worked), 0);
 
     // ── Weekly earnings breakdown by category (with hours) ──
+    // Uses the actual shift calculator to properly split evening vs daytime hours
     const weekBreakdown = (() => {
       let regularDay = 0,  regularDayH = 0;
       let evening = 0,     eveningH = 0;
@@ -969,34 +971,49 @@ const OverviewPanel = ({
       let publicHoliday = 0,    publicHolidayH = 0;
       let phSleepover = 0,      phSleepoverN = 0;
 
+      const userRates: PayRates = settings ? {
+        rate_weekday: settings.rate_weekday,
+        rate_saturday: settings.rate_saturday,
+        rate_sunday: settings.rate_sunday,
+        rate_sleepover_weekday: settings.rate_sleepover_weekday,
+        rate_sleepover_weekend: settings.rate_sleepover_weekend,
+        rate_public_holiday: settings.rate_public_holiday,
+        rate_evening: settings.rate_evening,
+      } : DEFAULT_RATES;
+
       for (const s of thisWeekShifts) {
-        const pay = effectiveGrossPay(s);
-        const h = Number(s.hours_worked);
         const dow = getDayOfWeek(s.date);
 
-        if (s.is_public_holiday && s.is_sleepover) {
-          phSleepover += pay; phSleepoverN += 1; continue;
-        }
-        if (s.is_public_holiday && !s.is_sleepover) {
-          publicHoliday += pay; publicHolidayH += h; continue;
-        }
+        // Sleepover shifts are flat-rate, categorize directly
         if (s.is_sleepover) {
-          // weekend = Saturday (6) or Sunday (0)
-          if (dow === 6 || dow === 0) { weekendSleepover += pay; weekendSleepoverN += 1; }
+          const pay = effectiveGrossPay(s);
+          if (s.is_public_holiday) { phSleepover += pay; phSleepoverN += 1; }
+          else if (dow === 6 || dow === 0) { weekendSleepover += pay; weekendSleepoverN += 1; }
           else { weekdaySleepover += pay; weekdaySleepoverN += 1; }
           continue;
         }
-        if (dow === 6) { satDay += pay; satDayH += h; continue; }
-        if (dow === 0) { sunDay += pay; sunDayH += h; continue; }
-        // weekday: check if purely evening shift
-        const hasEvening = shiftHasEveningHours(s.start_time, s.end_time);
-        const [startH] = s.start_time.split(':').map(Number);
-        const [endH]   = s.end_time.split(':').map(Number);
-        const evStartH = (() => { const st = localStorage.getItem('pref_evening_start'); if (st) { const [h] = st.split(':').map(Number); return h; } return 18; })();
-        const evEndH = (() => { const st = localStorage.getItem('pref_evening_end'); if (st) { const [h] = st.split(':').map(Number); return h === 0 ? 24 : h; } return 24; })();
-        const purelyEvening = startH >= evStartH && (endH <= evEndH || endH < startH);
-        if (hasEvening && purelyEvening) { evening += pay; eveningH += h; }
-        else { regularDay += pay; regularDayH += h; }
+
+        // Public holiday hourly — all segments use PH rate
+        if (s.is_public_holiday) {
+          publicHoliday += effectiveGrossPay(s);
+          publicHolidayH += Number(s.hours_worked);
+          continue;
+        }
+
+        // Use the calculator to split this shift into segments
+        const calc = calculateShiftPay(s.date, s.start_time, s.end_time, false, userRates, false);
+        for (const seg of calc.breakdown) {
+          const segHours = seg.hours ?? 0;
+          const segAmount = seg.amount;
+          const isEveningSeg = seg.label.includes('Evening');
+          const isSat = seg.label.startsWith('Sat');
+          const isSun = seg.label.startsWith('Sun');
+
+          if (isSat) { satDay += segAmount; satDayH += segHours; }
+          else if (isSun) { sunDay += segAmount; sunDayH += segHours; }
+          else if (isEveningSeg) { evening += segAmount; eveningH += segHours; }
+          else { regularDay += segAmount; regularDayH += segHours; }
+        }
       }
       return {
         regularDay, regularDayH,
@@ -1112,7 +1129,7 @@ const OverviewPanel = ({
         return weeks;
       })(),
     };
-  }, [shifts, selectedMonth, selectedYear]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [shifts, selectedMonth, selectedYear, settings]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const unpaidStats = useMemo(() => {
     const unpaid = invoices.filter(inv => inv.status !== 'paid');

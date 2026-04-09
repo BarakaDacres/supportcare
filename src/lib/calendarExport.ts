@@ -1,6 +1,8 @@
 /**
  * Calendar export utilities — generates .ics (Apple/Outlook) or Google Calendar URLs.
  * Uses UID based on shift ID to prevent duplicate events.
+ * Includes auto-sync: tracks exported shift IDs in localStorage and triggers
+ * re-export when new upcoming shifts are detected.
  */
 
 export interface CalendarEvent {
@@ -141,4 +143,75 @@ export function googleCalendarURL(event: CalendarEvent): string {
   });
 
   return `https://www.google.com/calendar/render?${params.toString()}`;
+}
+
+// ── Auto-sync helpers ────────────────────────────────────────────────────────
+
+const SYNC_KEY = 'cal_synced_shift_ids';
+const SYNC_ENABLED_KEY = 'cal_auto_sync';
+
+/** Check if auto-sync is enabled */
+export function isAutoSyncEnabled(): boolean {
+  return localStorage.getItem(SYNC_ENABLED_KEY) === 'true';
+}
+
+/** Toggle auto-sync */
+export function setAutoSyncEnabled(enabled: boolean): void {
+  localStorage.setItem(SYNC_ENABLED_KEY, enabled ? 'true' : 'false');
+}
+
+/** Get the set of shift IDs that have already been synced */
+function getSyncedIds(): Set<string> {
+  try {
+    const raw = localStorage.getItem(SYNC_KEY);
+    if (!raw) return new Set();
+    return new Set(JSON.parse(raw) as string[]);
+  } catch {
+    return new Set();
+  }
+}
+
+/** Mark shift IDs as synced */
+function markSynced(ids: string[]): void {
+  const existing = getSyncedIds();
+  for (const id of ids) existing.add(id);
+  localStorage.setItem(SYNC_KEY, JSON.stringify([...existing]));
+}
+
+/** Clean up synced IDs that no longer exist */
+export function cleanSyncedIds(currentShiftIds: string[]): void {
+  const existing = getSyncedIds();
+  const validIds = new Set(currentShiftIds);
+  const cleaned = [...existing].filter(id => validIds.has(id));
+  localStorage.setItem(SYNC_KEY, JSON.stringify(cleaned));
+}
+
+/**
+ * Check for new upcoming shifts that haven't been synced yet.
+ * Returns the new events if auto-sync is enabled and there are unsynced shifts.
+ * Returns null if no sync needed.
+ */
+export function checkAutoSync(
+  upcomingEvents: CalendarEvent[],
+): CalendarEvent[] | null {
+  if (!isAutoSyncEnabled()) return null;
+  if (upcomingEvents.length === 0) return null;
+
+  const synced = getSyncedIds();
+  const newEvents = upcomingEvents.filter(e => !synced.has(e.uid));
+
+  if (newEvents.length === 0) return null;
+  return newEvents;
+}
+
+/** Perform auto-sync: download new events and mark them as synced */
+export function performAutoSync(events: CalendarEvent[]): void {
+  if (events.length === 0) return;
+  downloadBulkICS(events);
+  markSynced(events.map(e => e.uid));
+}
+
+/** Mark all upcoming events as synced (for initial export) */
+export function markAllSynced(events: CalendarEvent[]): void {
+  markSynced(events.map(e => e.uid));
 }
