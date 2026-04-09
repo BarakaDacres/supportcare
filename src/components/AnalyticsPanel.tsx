@@ -8,7 +8,7 @@ import type { Shift } from '@/hooks/useShifts';
 import { effectiveGrossPay } from '@/hooks/useShifts';
 import type { UserSettings } from '@/hooks/useUserSettings';
 import { MONTH_SHORT } from '@/lib/dateUtils';
-import { shiftHasEveningHours } from '@/lib/shiftCalculator';
+import { shiftHasEveningHours, calculateShiftPay, getDayOfWeek, type PayRates, DEFAULT_RATES } from '@/lib/shiftCalculator';
 
 interface AnalyticsPanelProps {
   shifts: Shift[];
@@ -268,6 +268,34 @@ const AnalyticsPanel = ({ shifts, settings, selectedYear, selectedMonth }: Analy
     const sleepoversIncome = thisYearShifts.filter(s => s.is_sleepover).reduce((s, sh) => s + effectiveGrossPay(sh), 0);
     const eveningShifts = thisYearShifts.filter(s => !s.is_sleepover && !s.is_public_holiday && shiftHasEveningHours(s.start_time, s.end_time));
 
+    // Calculate actual evening hours and income using the shift calculator
+    const userRates: PayRates = settings ? {
+      rate_weekday: settings.rate_weekday,
+      rate_saturday: settings.rate_saturday,
+      rate_sunday: settings.rate_sunday,
+      rate_sleepover_weekday: settings.rate_sleepover_weekday,
+      rate_sleepover_weekend: settings.rate_sleepover_weekend,
+      rate_public_holiday: settings.rate_public_holiday,
+      rate_evening: settings.rate_evening,
+    } : DEFAULT_RATES;
+
+    let eveningHours = 0;
+    let eveningIncome = 0;
+    for (const s of thisYearShifts) {
+      if (s.is_sleepover || s.is_public_holiday) continue;
+      const calc = calculateShiftPay(s.date, s.start_time, s.end_time, false, userRates, false);
+      for (const seg of calc.breakdown) {
+        if (seg.label.includes('Evening')) {
+          eveningHours += seg.hours ?? 0;
+          eveningIncome += seg.amount;
+        }
+      }
+    }
+
+    // Sleepover income breakdown by type
+    const sleepoversWeekdayIncome = sleepoversWeekday.reduce((s, sh) => s + effectiveGrossPay(sh), 0);
+    const sleepoversWeekendIncome = sleepoversWeekend.reduce((s, sh) => s + effectiveGrossPay(sh), 0);
+
     const dayTotals = [0, 0, 0, 0, 0, 0, 0];
     const dayCounts = [0, 0, 0, 0, 0, 0, 0];
     for (const s of thisYearShifts) {
@@ -288,7 +316,11 @@ const AnalyticsPanel = ({ shifts, settings, selectedYear, selectedMonth }: Analy
       sleepoversWeekday: sleepoversWeekday.length,
       sleepoversWeekend: sleepoversWeekend.length,
       sleepoversIncome,
+      sleepoversWeekdayIncome,
+      sleepoversWeekendIncome,
       eveningShiftCount: eveningShifts.length,
+      eveningHours,
+      eveningIncome,
       dayTotals,
       monthGrowthPct,
       prevMonth,
@@ -296,7 +328,7 @@ const AnalyticsPanel = ({ shifts, settings, selectedYear, selectedMonth }: Analy
       mostActiveDay: dayNames[mostActiveDay],
       mostActiveDayCount: Math.max(...dayCounts),
     };
-  }, [shifts, selectedMonth, selectedYear]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [shifts, selectedMonth, selectedYear, settings]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const taxRate = settings?.tax_rate ?? 30;
   const showTax = settings?.show_tax_estimate ?? false;
@@ -535,41 +567,61 @@ const AnalyticsPanel = ({ shifts, settings, selectedYear, selectedMonth }: Analy
         <div className="card-elevated overflow-hidden">
           <div className="px-4 pt-4 pb-2">
             <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest flex items-center gap-1.5">
-              <Moon className="w-3.5 h-3.5" style={{ color: 'hsl(var(--sleepover-color))' }} /> Sleepover Summary
+              <Moon className="w-3.5 h-3.5" style={{ color: 'hsl(var(--sleepover-color))' }} /> Sleepover Summary · {selectedYear}
             </p>
           </div>
-          <div className="px-4 pb-4">
-            <div className="grid grid-cols-3 gap-3 text-center">
-              <div>
-                <p className="text-xl font-bold text-foreground">{stats.sleepoversWeekday}</p>
-                <p className="text-[10px] text-muted-foreground mt-0.5">Mon–Fri</p>
+          <div className="px-4 pb-4 space-y-3">
+            <div className="grid grid-cols-2 gap-2.5">
+              <div className="rounded-xl p-3" style={{ background: 'hsl(var(--muted)/0.5)' }}>
+                <p className="text-[9px] text-muted-foreground uppercase tracking-wider mb-1">Weekday Nights</p>
+                <p className="text-lg font-bold text-foreground">{stats.sleepoversWeekday}</p>
+                <p className="text-[11px] font-semibold money-text mt-0.5">{formatCurrency(stats.sleepoversWeekdayIncome)}</p>
               </div>
-              <div>
-                <p className="text-xl font-bold text-foreground">{stats.sleepoversWeekend}</p>
-                <p className="text-[10px] text-muted-foreground mt-0.5">Sat–Sun</p>
+              <div className="rounded-xl p-3" style={{ background: 'hsl(var(--muted)/0.5)' }}>
+                <p className="text-[9px] text-muted-foreground uppercase tracking-wider mb-1">Weekend Nights</p>
+                <p className="text-lg font-bold text-foreground">{stats.sleepoversWeekend}</p>
+                <p className="text-[11px] font-semibold money-text mt-0.5">{formatCurrency(stats.sleepoversWeekendIncome)}</p>
               </div>
-              <div>
-                <p className="text-xl font-bold money-text">{formatCurrency(stats.sleepoversIncome)}</p>
-                <p className="text-[10px] text-muted-foreground mt-0.5">Total</p>
-              </div>
+            </div>
+            <div className="flex items-center justify-between rounded-xl p-3"
+              style={{ background: 'hsl(var(--sleepover-color)/0.06)', border: '1px solid hsl(var(--sleepover-color)/0.15)' }}>
+              <span className="text-[11px] font-semibold text-muted-foreground">Total Sleepover Income</span>
+              <span className="text-base font-bold money-text">{formatCurrency(stats.sleepoversIncome)}</span>
             </div>
           </div>
         </div>
       )}
 
       {/* Evening shifts */}
-      {stats.eveningShiftCount > 0 && (
+      {(stats.eveningShiftCount > 0 || stats.eveningHours > 0) && (
         <div className="card-elevated overflow-hidden">
           <div className="px-4 pt-4 pb-2">
             <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest flex items-center gap-1.5">
-              <Sunset className="w-3.5 h-3.5" style={{ color: 'hsl(var(--evening-color))' }} /> Evening Shifts
+              <Sunset className="w-3.5 h-3.5" style={{ color: 'hsl(var(--evening-color))' }} /> Evening Hours · {selectedYear}
             </p>
           </div>
-          <div className="px-4 pb-4">
-            <p className="text-sm font-semibold text-foreground">
-              {stats.eveningShiftCount} shift{stats.eveningShiftCount !== 1 ? 's' : ''} with evening hours
-            </p>
-            <p className="text-[10px] text-muted-foreground mt-0.5">18:00–22:00 Mon–Fri billed at the evening rate.</p>
+          <div className="px-4 pb-4 space-y-3">
+            <div className="grid grid-cols-3 gap-2.5">
+              <div className="rounded-xl p-3 text-center" style={{ background: 'hsl(var(--muted)/0.5)' }}>
+                <p className="text-lg font-bold text-foreground">{stats.eveningShiftCount}</p>
+                <p className="text-[9px] text-muted-foreground mt-0.5">Shifts</p>
+              </div>
+              <div className="rounded-xl p-3 text-center" style={{ background: 'hsl(var(--muted)/0.5)' }}>
+                <p className="text-lg font-bold text-foreground">{stats.eveningHours.toFixed(1)}h</p>
+                <p className="text-[9px] text-muted-foreground mt-0.5">Evening Hours</p>
+              </div>
+              <div className="rounded-xl p-3 text-center" style={{ background: 'hsl(var(--muted)/0.5)' }}>
+                <p className="text-lg font-bold money-text">{formatCurrency(stats.eveningIncome)}</p>
+                <p className="text-[9px] text-muted-foreground mt-0.5">Income</p>
+              </div>
+            </div>
+            {stats.eveningHours > 0 && (
+              <div className="flex items-center justify-between rounded-xl p-3"
+                style={{ background: 'hsl(var(--evening-color)/0.06)', border: '1px solid hsl(var(--evening-color)/0.15)' }}>
+                <span className="text-[11px] font-semibold text-muted-foreground">Avg Evening Rate</span>
+                <span className="text-sm font-bold text-foreground">{formatCurrency(stats.eveningIncome / stats.eveningHours)}/hr</span>
+              </div>
+            )}
           </div>
         </div>
       )}
