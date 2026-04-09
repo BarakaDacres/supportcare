@@ -316,7 +316,11 @@ const AnalyticsPanel = ({ shifts, settings, selectedYear, selectedMonth }: Analy
       sleepoversWeekday: sleepoversWeekday.length,
       sleepoversWeekend: sleepoversWeekend.length,
       sleepoversIncome,
+      sleepoversWeekdayIncome,
+      sleepoversWeekendIncome,
       eveningShiftCount: eveningShifts.length,
+      eveningHours,
+      eveningIncome,
       dayTotals,
       monthGrowthPct,
       prevMonth,
@@ -324,7 +328,7 @@ const AnalyticsPanel = ({ shifts, settings, selectedYear, selectedMonth }: Analy
       mostActiveDay: dayNames[mostActiveDay],
       mostActiveDayCount: Math.max(...dayCounts),
     };
-  }, [shifts, selectedMonth, selectedYear]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [shifts, selectedMonth, selectedYear, settings]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const taxRate = settings?.tax_rate ?? 30;
   const showTax = settings?.show_tax_estimate ?? false;
