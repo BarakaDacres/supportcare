@@ -8,7 +8,7 @@ import type { Shift } from '@/hooks/useShifts';
 import { effectiveGrossPay } from '@/hooks/useShifts';
 import type { UserSettings } from '@/hooks/useUserSettings';
 import { MONTH_SHORT } from '@/lib/dateUtils';
-import { shiftHasEveningHours } from '@/lib/shiftCalculator';
+import { shiftHasEveningHours, calculateShiftPay, getDayOfWeek, type PayRates, DEFAULT_RATES } from '@/lib/shiftCalculator';
 
 interface AnalyticsPanelProps {
   shifts: Shift[];
