@@ -291,22 +291,45 @@ const ShiftList = ({
           </span>
         )}
 
-        {/* Export All Upcoming */}
+        {/* Export All Upcoming + Auto-Sync toggle */}
         {(() => {
           const upcomingShifts = shifts.filter(s => getShiftStatus(s) === 'upcoming');
           if (upcomingShifts.length === 0) return null;
           return (
-            <button
-              onClick={() => {
-                const events: CalendarEvent[] = upcomingShifts.map(s => buildCalendarEvent(s, clients.find(c => c.id === s.client_id)?.address));
-                downloadBulkICS(events);
-              }}
-              className="glass-chip py-1 px-2.5 text-[11px] font-semibold transition-all duration-200 active:scale-95"
-              style={{ color: 'hsl(var(--primary))', border: '1px solid hsl(var(--primary)/0.2)' }}
-            >
-              <CalendarPlus className="w-3 h-3" />
-              Export {upcomingShifts.length} upcoming
-            </button>
+            <>
+              <button
+                onClick={() => {
+                  const events: CalendarEvent[] = upcomingShifts.map(s => buildCalendarEvent(s, clients.find(c => c.id === s.client_id)?.address));
+                  downloadBulkICS(events);
+                  markAllSynced(events);
+                }}
+                className="glass-chip py-1 px-2.5 text-[11px] font-semibold transition-all duration-200 active:scale-95"
+                style={{ color: 'hsl(var(--primary))', border: '1px solid hsl(var(--primary)/0.2)' }}
+              >
+                <CalendarPlus className="w-3 h-3" />
+                Export {upcomingShifts.length} upcoming
+              </button>
+              <button
+                onClick={() => {
+                  const next = !autoSync;
+                  setAutoSync(next);
+                  setAutoSyncEnabled(next);
+                  if (next) {
+                    const events: CalendarEvent[] = upcomingShifts.map(s => buildCalendarEvent(s, clients.find(c => c.id === s.client_id)?.address));
+                    markAllSynced(events);
+                  }
+                }}
+                className="glass-chip py-1 px-2.5 text-[11px] font-semibold transition-all duration-200 active:scale-95"
+                style={{
+                  color: autoSync ? 'hsl(var(--stat-green))' : 'hsl(var(--muted-foreground))',
+                  border: autoSync ? '1px solid hsl(var(--stat-green)/0.3)' : '1px solid hsl(var(--border))',
+                  background: autoSync ? 'hsl(var(--stat-green)/0.08)' : undefined,
+                }}
+              >
+                <RefreshCw className="w-3 h-3" />
+                {autoSync ? 'Auto-sync on' : 'Auto-sync'}
+              </button>
+            </>
           );
         })()}
       </div>
