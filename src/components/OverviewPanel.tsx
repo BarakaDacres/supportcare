@@ -1,4 +1,5 @@
 import { useMemo, useState, useEffect, useRef } from 'react';
+import { calculateShiftPay, type PayRates, DEFAULT_RATES } from '@/lib/shiftCalculator';
 
 // ── Haptic feedback ──────────────────────────────────────────────────────────
 // Strategy:
