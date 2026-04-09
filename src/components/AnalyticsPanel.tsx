@@ -268,6 +268,34 @@ const AnalyticsPanel = ({ shifts, settings, selectedYear, selectedMonth }: Analy
     const sleepoversIncome = thisYearShifts.filter(s => s.is_sleepover).reduce((s, sh) => s + effectiveGrossPay(sh), 0);
     const eveningShifts = thisYearShifts.filter(s => !s.is_sleepover && !s.is_public_holiday && shiftHasEveningHours(s.start_time, s.end_time));
 
+    // Calculate actual evening hours and income using the shift calculator
+    const userRates: PayRates = settings ? {
+      rate_weekday: settings.rate_weekday,
+      rate_saturday: settings.rate_saturday,
+      rate_sunday: settings.rate_sunday,
+      rate_sleepover_weekday: settings.rate_sleepover_weekday,
+      rate_sleepover_weekend: settings.rate_sleepover_weekend,
+      rate_public_holiday: settings.rate_public_holiday,
+      rate_evening: settings.rate_evening,
+    } : DEFAULT_RATES;
+
+    let eveningHours = 0;
+    let eveningIncome = 0;
+    for (const s of thisYearShifts) {
+      if (s.is_sleepover || s.is_public_holiday) continue;
+      const calc = calculateShiftPay(s.date, s.start_time, s.end_time, false, userRates, false);
+      for (const seg of calc.breakdown) {
+        if (seg.label.includes('Evening')) {
+          eveningHours += seg.hours ?? 0;
+          eveningIncome += seg.amount;
+        }
+      }
+    }
+
+    // Sleepover income breakdown by type
+    const sleepoversWeekdayIncome = sleepoversWeekday.reduce((s, sh) => s + effectiveGrossPay(sh), 0);
+    const sleepoversWeekendIncome = sleepoversWeekend.reduce((s, sh) => s + effectiveGrossPay(sh), 0);
+
     const dayTotals = [0, 0, 0, 0, 0, 0, 0];
     const dayCounts = [0, 0, 0, 0, 0, 0, 0];
     for (const s of thisYearShifts) {
