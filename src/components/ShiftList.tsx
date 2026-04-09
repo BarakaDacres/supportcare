@@ -105,6 +105,24 @@ const ShiftList = ({
   const [sortMode, setSortMode] = useState<SortMode>('date-desc');
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
+  const [autoSync, setAutoSync] = useState(isAutoSyncEnabled);
+
+  // Auto-sync: check for new upcoming shifts whenever shifts change
+  useEffect(() => {
+    if (!autoSync) return;
+    const upcomingShifts = shifts.filter(s => getShiftStatus(s) === 'upcoming');
+    // Clean up old synced IDs
+    cleanSyncedIds(shifts.map(s => s.id));
+    const events: CalendarEvent[] = upcomingShifts.map(s =>
+      buildCalendarEvent(s, clients.find(c => c.id === s.client_id)?.address)
+    );
+    const newEvents = checkAutoSync(events);
+    if (newEvents && newEvents.length > 0) {
+      // Small delay so it doesn't fire on initial load
+      const timer = setTimeout(() => performAutoSync(newEvents), 1500);
+      return () => clearTimeout(timer);
+    }
+  }, [shifts, clients, autoSync]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const today = new Date();
   today.setHours(0, 0, 0, 0);
