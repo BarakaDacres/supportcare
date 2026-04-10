@@ -471,7 +471,7 @@ const ClientProfile = ({
         </div>
 
         {/* Quick info chips */}
-        {(client.participant_number || client.address) && (
+        {(client.participant_number || client.service_address) && (
           <div className="flex flex-wrap gap-2">
             {client.participant_number && (
               <span className="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-xl"
@@ -479,10 +479,10 @@ const ClientProfile = ({
                 <Hash className="w-3 h-3 text-muted-foreground" /> {client.participant_number}
               </span>
             )}
-            {client.address && (
+            {client.service_address && (
               <span className="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-xl"
                 style={{ background: 'hsl(var(--muted)/0.6)', color: 'hsl(var(--foreground))' }}>
-                <MapPin className="w-3 h-3 text-muted-foreground" /> {client.address}
+                <MapPin className="w-3 h-3 text-muted-foreground" /> {client.service_address}
               </span>
             )}
           </div>
@@ -490,7 +490,7 @@ const ClientProfile = ({
       </div>
 
       {/* Map */}
-      {client.address && <AddressMap address={client.address} clientName={client.name} isActive={client.active} />}
+      {client.service_address && <AddressMap address={client.service_address} clientName={client.name} isActive={client.active} />}
 
       {/* Stats row */}
       <div className="grid grid-cols-3 gap-2.5">
@@ -620,7 +620,9 @@ const ClientsPanel = ({ clients, shifts, loading, onAdd, onUpdate, onDelete }: C
     notes: form.notes.trim() || null,
     active: form.active,
     phone: form.phone.trim() || null,
-    address: form.address.trim() || null,
+    service_address: form.service_address.trim() || null,
+    billing_address: form.billing_address.trim() || null,
+    use_plan_manager: form.use_plan_manager,
     participant_number: form.participant_number.trim() || null,
     organisation_name: form.organisation_name.trim() || null,
     billing_contact: form.billing_contact.trim() || null,
