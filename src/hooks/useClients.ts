@@ -15,15 +15,23 @@ export interface Client {
   default_start_time: string | null;
   default_end_time: string | null;
   default_is_sleepover: boolean;
+  // Addresses
+  service_address: string | null;
+  billing_address: string | null;
+  use_plan_manager: boolean;
   // Billing / participant details
   invoice_label: string | null;
   invoice_notes: string | null;
   participant_number: string | null;
   phone: string | null;
-  address: string | null;
   organisation_name: string | null;
   billing_contact: string | null;
   email: string | null;
+}
+
+/** Get the effective billing address — falls back to service_address */
+export function getEffectiveBillingAddress(client: Client): string {
+  return client.billing_address || client.service_address || '';
 }
 
 export function useClients() {

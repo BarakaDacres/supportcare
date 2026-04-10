@@ -114,7 +114,7 @@ const ShiftList = ({
     // Clean up old synced IDs
     cleanSyncedIds(shifts.map(s => s.id));
     const events: CalendarEvent[] = upcomingShifts.map(s =>
-      buildCalendarEvent(s, clients.find(c => c.id === s.client_id)?.address)
+      buildCalendarEvent(s, clients.find(c => c.id === s.client_id)?.service_address)
     );
     const newEvents = checkAutoSync(events);
     if (newEvents && newEvents.length > 0) {
@@ -299,7 +299,7 @@ const ShiftList = ({
             <>
               <button
                 onClick={() => {
-                  const events: CalendarEvent[] = upcomingShifts.map(s => buildCalendarEvent(s, clients.find(c => c.id === s.client_id)?.address));
+                  const events: CalendarEvent[] = upcomingShifts.map(s => buildCalendarEvent(s, clients.find(c => c.id === s.client_id)?.service_address));
                   downloadBulkICS(events);
                   markAllSynced(events);
                 }}
@@ -315,7 +315,7 @@ const ShiftList = ({
                   setAutoSync(next);
                   setAutoSyncEnabled(next);
                   if (next) {
-                    const events: CalendarEvent[] = upcomingShifts.map(s => buildCalendarEvent(s, clients.find(c => c.id === s.client_id)?.address));
+                    const events: CalendarEvent[] = upcomingShifts.map(s => buildCalendarEvent(s, clients.find(c => c.id === s.client_id)?.service_address));
                     markAllSynced(events);
                   }
                 }}
@@ -395,7 +395,7 @@ const ShiftList = ({
                 shiftTypeLabel={shiftTypeLabel}
                 timeDisplay={timeDisplay}
                 dateLabel={formatDateLabel(shift.date)}
-                clientAddress={clients.find(c => c.id === shift.client_id)?.address}
+                clientAddress={clients.find(c => c.id === shift.client_id)?.service_address}
                 onEdit={() => { setEditingShift(shift); openSheet(true); }}
                 onDuplicate={() => onDuplicate(shift.id)}
                 onDelete={() => setConfirmDelete(shift.id)}

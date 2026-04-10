@@ -27,7 +27,9 @@ const emptyForm = () => ({
   notes: '',
   active: true,
   phone: '',
-  address: '',
+  service_address: '',
+  billing_address: '',
+  use_plan_manager: false,
   participant_number: '',
   organisation_name: '',
   billing_contact: '',
@@ -49,7 +51,9 @@ function clientToForm(c: Client): ClientForm {
     notes: c.notes ?? '',
     active: c.active,
     phone: c.phone ?? '',
-    address: c.address ?? '',
+    service_address: c.service_address ?? '',
+    billing_address: c.billing_address ?? '',
+    use_plan_manager: c.use_plan_manager,
     participant_number: c.participant_number ?? '',
     organisation_name: c.organisation_name ?? '',
     billing_contact: c.billing_contact ?? '',
@@ -179,17 +183,31 @@ const ClientFormSheet = ({
         <div className="flex-1 overflow-y-auto overscroll-contain space-y-5"
           style={{ padding: '20px 20px', boxSizing: 'border-box' }}>
           <div className="space-y-3">
-            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Basic Details</p>
+            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Participant</p>
             <FormField label="Full Name *" value={form.name} onChange={v => set('name', v)} placeholder="e.g. Alex Johnson" />
             <FormField label="Display / Short Name" value={form.display_name} onChange={v => set('display_name', v)} placeholder="e.g. Alex" />
             <FormField label="Phone" value={form.phone} onChange={v => set('phone', v)} placeholder="+61 4XX XXX XXX" type="tel" />
-            <FormField label="Address / Location" value={form.address} onChange={v => set('address', v)} placeholder="Suburb or full address" />
+            <FormField label="Service Address *" value={form.service_address} onChange={v => set('service_address', v)} placeholder="Where support is delivered" hint="Used for shifts and calendar events" />
+            <FormField label="Participant / Reference Number" value={form.participant_number} onChange={v => set('participant_number', v)} placeholder="NDIS participant number" />
             <div className="space-y-1.5">
               <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Notes</label>
               <textarea value={form.notes} onChange={e => set('notes', e.target.value)}
                 placeholder="Any notes about this client…" rows={2}
                 className="glass-input w-full text-foreground resize-none" style={{ boxSizing: 'border-box' }} />
             </div>
+          </div>
+
+          <div className="space-y-3">
+            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Plan Manager / Billing</p>
+            <FormToggle label="This client uses a plan manager" checked={form.use_plan_manager} onChange={v => set('use_plan_manager', v)} icon={<FileText className="w-4 h-4" />} />
+            {form.use_plan_manager && (
+              <>
+                <FormField label="Organisation / Provider Name" value={form.organisation_name} onChange={v => set('organisation_name', v)} placeholder="e.g. Sunrise Support Services" />
+                <FormField label="Billing Contact" value={form.billing_contact} onChange={v => set('billing_contact', v)} placeholder="e.g. Jane Smith" />
+                <FormField label="Billing Email" value={form.email} onChange={v => set('email', v)} placeholder="billing@email.com" type="email" />
+                <FormField label="Billing Address *" value={form.billing_address} onChange={v => set('billing_address', v)} placeholder="Invoice recipient address" hint="Used on invoices only" />
+              </>
+            )}
           </div>
 
           <div className="space-y-3">
@@ -222,12 +240,8 @@ const ClientFormSheet = ({
           </div>
 
           <div className="space-y-3">
-            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Billing Details</p>
-            <FormField label="Organisation / NDIS Provider" value={form.organisation_name} onChange={v => set('organisation_name', v)} placeholder="e.g. Sunrise Support Services" />
-            <FormField label="Billing Contact" value={form.billing_contact} onChange={v => set('billing_contact', v)} placeholder="e.g. Jane Smith" />
-            <FormField label="Participant / Reference Number" value={form.participant_number} onChange={v => set('participant_number', v)} placeholder="NDIS participant number" />
+            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Invoice Settings</p>
             <FormField label="Invoice Label" value={form.invoice_label} onChange={v => set('invoice_label', v)} placeholder="Name to use on invoices" />
-            <FormField label="Email" value={form.email} onChange={v => set('email', v)} placeholder="billing@email.com" type="email" />
             <div className="space-y-1.5">
               <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Invoice Notes</label>
               <textarea value={form.invoice_notes} onChange={e => set('invoice_notes', e.target.value)}
@@ -457,7 +471,7 @@ const ClientProfile = ({
         </div>
 
         {/* Quick info chips */}
-        {(client.participant_number || client.address) && (
+        {(client.participant_number || client.service_address) && (
           <div className="flex flex-wrap gap-2">
             {client.participant_number && (
               <span className="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-xl"
@@ -465,10 +479,10 @@ const ClientProfile = ({
                 <Hash className="w-3 h-3 text-muted-foreground" /> {client.participant_number}
               </span>
             )}
-            {client.address && (
+            {client.service_address && (
               <span className="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-xl"
                 style={{ background: 'hsl(var(--muted)/0.6)', color: 'hsl(var(--foreground))' }}>
-                <MapPin className="w-3 h-3 text-muted-foreground" /> {client.address}
+                <MapPin className="w-3 h-3 text-muted-foreground" /> {client.service_address}
               </span>
             )}
           </div>
@@ -476,7 +490,7 @@ const ClientProfile = ({
       </div>
 
       {/* Map */}
-      {client.address && <AddressMap address={client.address} clientName={client.name} isActive={client.active} />}
+      {client.service_address && <AddressMap address={client.service_address} clientName={client.name} isActive={client.active} />}
 
       {/* Stats row */}
       <div className="grid grid-cols-3 gap-2.5">
@@ -606,7 +620,9 @@ const ClientsPanel = ({ clients, shifts, loading, onAdd, onUpdate, onDelete }: C
     notes: form.notes.trim() || null,
     active: form.active,
     phone: form.phone.trim() || null,
-    address: form.address.trim() || null,
+    service_address: form.service_address.trim() || null,
+    billing_address: form.billing_address.trim() || null,
+    use_plan_manager: form.use_plan_manager,
     participant_number: form.participant_number.trim() || null,
     organisation_name: form.organisation_name.trim() || null,
     billing_contact: form.billing_contact.trim() || null,
