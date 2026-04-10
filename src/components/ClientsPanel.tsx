@@ -159,16 +159,14 @@ const ClientFormSheet = ({
     >
       <form
         onSubmit={handleSubmit}
-        className="w-full flex flex-col"
+        className="w-full flex flex-col rounded-t-3xl sm:rounded-3xl sm:mx-4"
         style={{
           maxWidth: 440, width: '100%',
           maxHeight: 'min(95dvh, 720px)',
           background: 'hsl(var(--card))',
-          borderRadius: '24px 24px 0 0',
           boxShadow: '0 -2px 24px hsl(var(--foreground)/0.12), 0 20px 60px hsl(var(--foreground)/0.22)',
           overflow: 'hidden', boxSizing: 'border-box',
         }}
-        style-sm={{ borderRadius: 24 }}
         onClick={e => e.stopPropagation()}
       >
         {/* Drag indicator for mobile */}
