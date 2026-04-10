@@ -17,7 +17,7 @@ export type Database = {
       clients: {
         Row: {
           active: boolean
-          address: string | null
+          billing_address: string | null
           billing_contact: string | null
           created_at: string
           default_end_time: string | null
@@ -34,12 +34,14 @@ export type Database = {
           organisation_name: string | null
           participant_number: string | null
           phone: string | null
+          service_address: string | null
           updated_at: string
+          use_plan_manager: boolean
           user_id: string
         }
         Insert: {
           active?: boolean
-          address?: string | null
+          billing_address?: string | null
           billing_contact?: string | null
           created_at?: string
           default_end_time?: string | null
@@ -56,12 +58,14 @@ export type Database = {
           organisation_name?: string | null
           participant_number?: string | null
           phone?: string | null
+          service_address?: string | null
           updated_at?: string
+          use_plan_manager?: boolean
           user_id: string
         }
         Update: {
           active?: boolean
-          address?: string | null
+          billing_address?: string | null
           billing_contact?: string | null
           created_at?: string
           default_end_time?: string | null
@@ -78,7 +82,9 @@ export type Database = {
           organisation_name?: string | null
           participant_number?: string | null
           phone?: string | null
+          service_address?: string | null
           updated_at?: string
+          use_plan_manager?: boolean
           user_id?: string
         }
         Relationships: []
