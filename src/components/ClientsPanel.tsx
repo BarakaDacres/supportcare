@@ -153,8 +153,8 @@ const ClientFormSheet = ({
 
   return (
     <div
-      className="fixed inset-0 z-[60] flex items-center justify-center"
-      style={{ background: 'hsl(var(--foreground)/0.35)', backdropFilter: 'blur(20px) saturate(1.5)', WebkitBackdropFilter: 'blur(20px) saturate(1.5)', padding: 16 }}
+      className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center"
+      style={{ background: 'hsl(var(--foreground)/0.35)', backdropFilter: 'blur(20px) saturate(1.5)', WebkitBackdropFilter: 'blur(20px) saturate(1.5)' }}
       onClick={e => { if (e.target === e.currentTarget) onCancel(); }}
     >
       <form
@@ -162,16 +162,22 @@ const ClientFormSheet = ({
         className="w-full flex flex-col"
         style={{
           maxWidth: 440, width: '100%',
-          maxHeight: 'min(92dvh, 700px)',
+          maxHeight: 'min(95dvh, 720px)',
           background: 'hsl(var(--card))',
-          borderRadius: 24,
-          boxShadow: '0 2px 8px hsl(var(--foreground)/0.08), 0 20px 60px hsl(var(--foreground)/0.22)',
+          borderRadius: '24px 24px 0 0',
+          boxShadow: '0 -2px 24px hsl(var(--foreground)/0.12), 0 20px 60px hsl(var(--foreground)/0.22)',
           overflow: 'hidden', boxSizing: 'border-box',
         }}
+        style-sm={{ borderRadius: 24 }}
         onClick={e => e.stopPropagation()}
       >
+        {/* Drag indicator for mobile */}
+        <div className="flex justify-center pt-2 pb-0 sm:hidden">
+          <div style={{ width: 36, height: 4, borderRadius: 2, background: 'hsl(var(--muted-foreground)/0.3)' }} />
+        </div>
+
         <div className="flex items-center justify-between shrink-0"
-          style={{ borderBottom: '0.5px solid hsl(var(--border))', padding: '16px 20px' }}>
+          style={{ borderBottom: '0.5px solid hsl(var(--border))', padding: '12px 20px 12px' }}>
           <h2 className="text-base font-bold text-foreground">{title}</h2>
           <button type="button" onClick={onCancel}
             className="w-8 h-8 flex items-center justify-center rounded-full"
@@ -180,79 +186,93 @@ const ClientFormSheet = ({
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto overscroll-contain space-y-5"
-          style={{ padding: '20px 20px', boxSizing: 'border-box' }}>
-          <div className="space-y-3">
-            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Participant</p>
-            <FormField label="Full Name *" value={form.name} onChange={v => set('name', v)} placeholder="e.g. Alex Johnson" />
-            <FormField label="Display / Short Name" value={form.display_name} onChange={v => set('display_name', v)} placeholder="e.g. Alex" />
-            <FormField label="Phone" value={form.phone} onChange={v => set('phone', v)} placeholder="+61 4XX XXX XXX" type="tel" />
-            <FormField label="Service Address *" value={form.service_address} onChange={v => set('service_address', v)} placeholder="Where support is delivered" hint="Used for shifts and calendar events" />
-            <FormField label="Participant / Reference Number" value={form.participant_number} onChange={v => set('participant_number', v)} placeholder="NDIS participant number" />
-            <div className="space-y-1.5">
-              <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Notes</label>
-              <textarea value={form.notes} onChange={e => set('notes', e.target.value)}
-                placeholder="Any notes about this client…" rows={2}
-                className="glass-input w-full text-foreground resize-none" style={{ boxSizing: 'border-box' }} />
-            </div>
-          </div>
+        <div className="flex-1 overflow-y-auto overscroll-contain"
+          style={{ padding: '16px 16px', boxSizing: 'border-box' }}>
 
-          <div className="space-y-3">
-            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Plan Manager / Billing</p>
-            <FormToggle label="This client uses a plan manager" checked={form.use_plan_manager} onChange={v => set('use_plan_manager', v)} icon={<FileText className="w-4 h-4" />} />
-            {form.use_plan_manager && (
-              <>
-                <FormField label="Organisation / Provider Name" value={form.organisation_name} onChange={v => set('organisation_name', v)} placeholder="e.g. Sunrise Support Services" />
-                <FormField label="Billing Contact" value={form.billing_contact} onChange={v => set('billing_contact', v)} placeholder="e.g. Jane Smith" />
-                <FormField label="Billing Email" value={form.email} onChange={v => set('email', v)} placeholder="billing@email.com" type="email" />
-                <FormField label="Billing Address *" value={form.billing_address} onChange={v => set('billing_address', v)} placeholder="Invoice recipient address" hint="Used on invoices only" />
-              </>
-            )}
-          </div>
-
-          <div className="space-y-3">
-            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Shift Defaults</p>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5 min-w-0">
-                <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
-                  <Clock className="w-3 h-3" /> Default Start
-                </label>
-                <input type="time" value={form.default_start_time} onChange={e => set('default_start_time', e.target.value)}
-                  className="glass-input w-full text-foreground block" style={{ minHeight: 44, boxSizing: 'border-box' }} />
-              </div>
-              <div className="space-y-1.5 min-w-0">
-                <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
-                  <Clock className="w-3 h-3" /> Default End
-                </label>
-                <input type="time" value={form.default_end_time} onChange={e => set('default_end_time', e.target.value)}
-                  className="glass-input w-full text-foreground block" style={{ minHeight: 44, boxSizing: 'border-box' }} />
+          {/* ── Participant ── */}
+          <div style={{ marginBottom: 20 }}>
+            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest" style={{ marginBottom: 10 }}>Participant</p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <FormField label="Full Name *" value={form.name} onChange={v => set('name', v)} placeholder="e.g. Alex Johnson" />
+              <FormField label="Display / Short Name" value={form.display_name} onChange={v => set('display_name', v)} placeholder="e.g. Alex" />
+              <FormField label="Phone" value={form.phone} onChange={v => set('phone', v)} placeholder="+61 4XX XXX XXX" type="tel" />
+              <FormField label="Service Address *" value={form.service_address} onChange={v => set('service_address', v)} placeholder="Where support is delivered" hint="Used for shifts and calendar events" />
+              <FormField label="Participant / Reference Number" value={form.participant_number} onChange={v => set('participant_number', v)} placeholder="NDIS participant number" />
+              <div className="space-y-1">
+                <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Notes</label>
+                <textarea value={form.notes} onChange={e => set('notes', e.target.value)}
+                  placeholder="Any notes about this client…" rows={2}
+                  className="glass-input w-full text-foreground resize-none" style={{ boxSizing: 'border-box', minHeight: 44 }} />
               </div>
             </div>
-            <FormToggle label="Default Sleepover" checked={form.default_is_sleepover} onChange={v => set('default_is_sleepover', v)} icon={<Moon className="w-4 h-4" />} />
-            <div className="space-y-1.5">
-              <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
-                <FileText className="w-3 h-3" /> Default Service Note
-              </label>
-              <textarea value={form.default_service_note} onChange={e => set('default_service_note', e.target.value)}
-                placeholder="e.g. Assistance with Self-Care Activities" rows={2}
-                className="glass-input w-full text-foreground resize-none" style={{ boxSizing: 'border-box' }} />
+          </div>
+
+          {/* ── Plan Manager / Billing ── */}
+          <div style={{ marginBottom: 20 }}>
+            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest" style={{ marginBottom: 10 }}>Plan Manager / Billing</p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <FormToggle label="This client uses a plan manager" checked={form.use_plan_manager} onChange={v => set('use_plan_manager', v)} icon={<FileText className="w-4 h-4" />} />
+              {form.use_plan_manager && (
+                <>
+                  <FormField label="Organisation / Provider Name" value={form.organisation_name} onChange={v => set('organisation_name', v)} placeholder="e.g. Sunrise Support Services" />
+                  <FormField label="Billing Contact" value={form.billing_contact} onChange={v => set('billing_contact', v)} placeholder="e.g. Jane Smith" />
+                  <FormField label="Billing Email" value={form.email} onChange={v => set('email', v)} placeholder="billing@email.com" type="email" />
+                  <FormField label="Billing Address *" value={form.billing_address} onChange={v => set('billing_address', v)} placeholder="Invoice recipient address" hint="Used on invoices only" />
+                </>
+              )}
             </div>
           </div>
 
-          <div className="space-y-3">
-            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Invoice Settings</p>
-            <FormField label="Invoice Label" value={form.invoice_label} onChange={v => set('invoice_label', v)} placeholder="Name to use on invoices" />
-            <div className="space-y-1.5">
-              <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Invoice Notes</label>
-              <textarea value={form.invoice_notes} onChange={e => set('invoice_notes', e.target.value)}
-                placeholder="Any client-specific invoice notes…" rows={2}
-                className="glass-input w-full text-foreground resize-none" style={{ boxSizing: 'border-box' }} />
+          {/* ── Shift Defaults ── */}
+          <div style={{ marginBottom: 20 }}>
+            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest" style={{ marginBottom: 10 }}>Shift Defaults</p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                <div className="space-y-1 min-w-0">
+                  <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
+                    <Clock className="w-3 h-3" /> Default Start
+                  </label>
+                  <input type="time" value={form.default_start_time} onChange={e => set('default_start_time', e.target.value)}
+                    className="glass-input w-full text-foreground block"
+                    style={{ minHeight: 44, boxSizing: 'border-box', fontSize: 14, maxWidth: '100%' }} />
+                </div>
+                <div className="space-y-1 min-w-0">
+                  <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
+                    <Clock className="w-3 h-3" /> Default End
+                  </label>
+                  <input type="time" value={form.default_end_time} onChange={e => set('default_end_time', e.target.value)}
+                    className="glass-input w-full text-foreground block"
+                    style={{ minHeight: 44, boxSizing: 'border-box', fontSize: 14, maxWidth: '100%' }} />
+                </div>
+              </div>
+              <FormToggle label="Default Sleepover" checked={form.default_is_sleepover} onChange={v => set('default_is_sleepover', v)} icon={<Moon className="w-4 h-4" />} />
+              <div className="space-y-1">
+                <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
+                  <FileText className="w-3 h-3" /> Default Service Note
+                </label>
+                <textarea value={form.default_service_note} onChange={e => set('default_service_note', e.target.value)}
+                  placeholder="e.g. Assistance with Self-Care Activities" rows={2}
+                  className="glass-input w-full text-foreground resize-none" style={{ boxSizing: 'border-box', minHeight: 44 }} />
+              </div>
             </div>
           </div>
-          <div className="h-1" />
+
+          {/* ── Invoice Settings ── */}
+          <div style={{ marginBottom: 8 }}>
+            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest" style={{ marginBottom: 10 }}>Invoice Settings</p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <FormField label="Invoice Label" value={form.invoice_label} onChange={v => set('invoice_label', v)} placeholder="Name to use on invoices" />
+              <div className="space-y-1">
+                <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Invoice Notes</label>
+                <textarea value={form.invoice_notes} onChange={e => set('invoice_notes', e.target.value)}
+                  placeholder="Any client-specific invoice notes…" rows={2}
+                  className="glass-input w-full text-foreground resize-none" style={{ boxSizing: 'border-box', minHeight: 44 }} />
+              </div>
+            </div>
+          </div>
         </div>
 
-        <div className="shrink-0 space-y-2" style={{ borderTop: '0.5px solid hsl(var(--border))', padding: '12px 20px 20px', boxSizing: 'border-box' }}>
+        <div className="shrink-0 space-y-2" style={{ borderTop: '0.5px solid hsl(var(--border))', padding: '12px 16px max(16px, env(safe-area-inset-bottom))', boxSizing: 'border-box' }}>
           {saveError && <p className="text-xs text-destructive text-center px-2">{saveError}</p>}
           <div className="flex gap-2.5">
             <button type="button" onClick={onCancel}
