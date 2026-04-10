@@ -428,9 +428,9 @@ async function exportToPDF(snap: InvoiceSnapshot, lineGroups: ReturnType<typeof 
 
   // ── SERVICES RENDERED ────────────────────────────────────────────────────
   const TABLE_PAD_X = 4;
-  sf(6.5, 'bold', P.muted);
-  tx('SERVICES RENDERED', M + TABLE_PAD_X, y);
-  y += 3.5;
+   sf(6.5, 'bold', P.muted);
+   tx('SERVICES RENDERED', M, y);
+   y += 3.5;
 
   type Col = { lbl: string; w: number; al: 'left' | 'right' | 'center' };
   const cols: Col[] = [
