@@ -183,17 +183,31 @@ const ClientFormSheet = ({
         <div className="flex-1 overflow-y-auto overscroll-contain space-y-5"
           style={{ padding: '20px 20px', boxSizing: 'border-box' }}>
           <div className="space-y-3">
-            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Basic Details</p>
+            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Participant</p>
             <FormField label="Full Name *" value={form.name} onChange={v => set('name', v)} placeholder="e.g. Alex Johnson" />
             <FormField label="Display / Short Name" value={form.display_name} onChange={v => set('display_name', v)} placeholder="e.g. Alex" />
             <FormField label="Phone" value={form.phone} onChange={v => set('phone', v)} placeholder="+61 4XX XXX XXX" type="tel" />
-            <FormField label="Address / Location" value={form.address} onChange={v => set('address', v)} placeholder="Suburb or full address" />
+            <FormField label="Service Address *" value={form.service_address} onChange={v => set('service_address', v)} placeholder="Where support is delivered" hint="Used for shifts and calendar events" />
+            <FormField label="Participant / Reference Number" value={form.participant_number} onChange={v => set('participant_number', v)} placeholder="NDIS participant number" />
             <div className="space-y-1.5">
               <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Notes</label>
               <textarea value={form.notes} onChange={e => set('notes', e.target.value)}
                 placeholder="Any notes about this client…" rows={2}
                 className="glass-input w-full text-foreground resize-none" style={{ boxSizing: 'border-box' }} />
             </div>
+          </div>
+
+          <div className="space-y-3">
+            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Plan Manager / Billing</p>
+            <FormToggle label="This client uses a plan manager" checked={form.use_plan_manager} onChange={v => set('use_plan_manager', v)} icon={<FileText className="w-4 h-4" />} />
+            {form.use_plan_manager && (
+              <>
+                <FormField label="Organisation / Provider Name" value={form.organisation_name} onChange={v => set('organisation_name', v)} placeholder="e.g. Sunrise Support Services" />
+                <FormField label="Billing Contact" value={form.billing_contact} onChange={v => set('billing_contact', v)} placeholder="e.g. Jane Smith" />
+                <FormField label="Billing Email" value={form.email} onChange={v => set('email', v)} placeholder="billing@email.com" type="email" />
+                <FormField label="Billing Address *" value={form.billing_address} onChange={v => set('billing_address', v)} placeholder="Invoice recipient address" hint="Used on invoices only" />
+              </>
+            )}
           </div>
 
           <div className="space-y-3">
@@ -226,12 +240,8 @@ const ClientFormSheet = ({
           </div>
 
           <div className="space-y-3">
-            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Billing Details</p>
-            <FormField label="Organisation / NDIS Provider" value={form.organisation_name} onChange={v => set('organisation_name', v)} placeholder="e.g. Sunrise Support Services" />
-            <FormField label="Billing Contact" value={form.billing_contact} onChange={v => set('billing_contact', v)} placeholder="e.g. Jane Smith" />
-            <FormField label="Participant / Reference Number" value={form.participant_number} onChange={v => set('participant_number', v)} placeholder="NDIS participant number" />
+            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Invoice Settings</p>
             <FormField label="Invoice Label" value={form.invoice_label} onChange={v => set('invoice_label', v)} placeholder="Name to use on invoices" />
-            <FormField label="Email" value={form.email} onChange={v => set('email', v)} placeholder="billing@email.com" type="email" />
             <div className="space-y-1.5">
               <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Invoice Notes</label>
               <textarea value={form.invoice_notes} onChange={e => set('invoice_notes', e.target.value)}
