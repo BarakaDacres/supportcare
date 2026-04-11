@@ -153,44 +153,55 @@ const ClientFormSheet = ({
 
   return (
     <div
-      className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center"
-      style={{ background: 'hsl(var(--foreground)/0.35)', backdropFilter: 'blur(20px) saturate(1.5)', WebkitBackdropFilter: 'blur(20px) saturate(1.5)' }}
+      className="fixed inset-0 z-[60] flex items-center justify-center"
+      style={{
+        paddingLeft: 16,
+        paddingRight: 16,
+        paddingTop: 'max(16px, env(safe-area-inset-top, 16px))',
+        paddingBottom: 'max(16px, env(safe-area-inset-bottom, 16px))',
+        background: 'hsl(var(--foreground)/0.4)',
+        backdropFilter: 'blur(24px) saturate(1.6)',
+        WebkitBackdropFilter: 'blur(24px) saturate(1.6)',
+      }}
       onClick={e => { if (e.target === e.currentTarget) onCancel(); }}
     >
       <form
         onSubmit={handleSubmit}
-        className="w-full flex flex-col rounded-t-3xl sm:rounded-3xl sm:mx-4"
+        className="flex flex-col"
         style={{
-          maxWidth: 440, width: '100%',
-          maxHeight: 'min(95dvh, 720px)',
+          width: 'calc(100vw - 32px)',
+          maxWidth: 420,
+          maxHeight: 'min(90dvh, 720px)',
           background: 'hsl(var(--card))',
-          boxShadow: '0 -2px 24px hsl(var(--foreground)/0.12), 0 20px 60px hsl(var(--foreground)/0.22)',
-          overflow: 'hidden', boxSizing: 'border-box',
+          borderRadius: 24,
+          boxShadow:
+            '0 2px 8px hsl(var(--foreground)/0.08), ' +
+            '0 20px 60px hsl(var(--foreground)/0.22), ' +
+            '0 0 0 0.5px hsl(var(--border))',
+          overflow: 'hidden',
+          boxSizing: 'border-box',
         }}
         onClick={e => e.stopPropagation()}
       >
-        {/* Drag indicator for mobile */}
-        <div className="flex justify-center pt-2 pb-0 sm:hidden">
-          <div style={{ width: 36, height: 4, borderRadius: 2, background: 'hsl(var(--muted-foreground)/0.3)' }} />
-        </div>
-
+        {/* ── Header ── */}
         <div className="flex items-center justify-between shrink-0"
-          style={{ borderBottom: '0.5px solid hsl(var(--border))', padding: '12px 20px 12px' }}>
+          style={{ borderBottom: '0.5px solid hsl(var(--border))', padding: '14px 20px' }}>
           <h2 className="text-base font-bold text-foreground">{title}</h2>
           <button type="button" onClick={onCancel}
-            className="w-8 h-8 flex items-center justify-center rounded-full"
+            className="w-8 h-8 flex items-center justify-center rounded-full transition-colors"
             style={{ background: 'hsl(var(--muted))', color: 'hsl(var(--muted-foreground))' }}>
             <X className="w-3.5 h-3.5" />
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto overscroll-contain"
-          style={{ padding: '16px 16px', boxSizing: 'border-box' }}>
+        {/* ── Scrollable body ── */}
+        <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain"
+          style={{ padding: '16px 20px 4px', boxSizing: 'border-box' }}>
 
           {/* ── Participant ── */}
           <div style={{ marginBottom: 20 }}>
             <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest" style={{ marginBottom: 10 }}>Participant</p>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <div className="space-y-3" style={{ width: '100%', boxSizing: 'border-box' }}>
               <FormField label="Full Name *" value={form.name} onChange={v => set('name', v)} placeholder="e.g. Alex Johnson" />
               <FormField label="Display / Short Name" value={form.display_name} onChange={v => set('display_name', v)} placeholder="e.g. Alex" />
               <FormField label="Phone" value={form.phone} onChange={v => set('phone', v)} placeholder="+61 4XX XXX XXX" type="tel" />
@@ -208,7 +219,7 @@ const ClientFormSheet = ({
           {/* ── Plan Manager / Billing ── */}
           <div style={{ marginBottom: 20 }}>
             <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest" style={{ marginBottom: 10 }}>Plan Manager / Billing</p>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <div className="space-y-3" style={{ width: '100%', boxSizing: 'border-box' }}>
               <FormToggle label="This client uses a plan manager" checked={form.use_plan_manager} onChange={v => set('use_plan_manager', v)} icon={<FileText className="w-4 h-4" />} />
               {form.use_plan_manager && (
                 <>
@@ -224,8 +235,8 @@ const ClientFormSheet = ({
           {/* ── Shift Defaults ── */}
           <div style={{ marginBottom: 20 }}>
             <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest" style={{ marginBottom: 10 }}>Shift Defaults</p>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+            <div className="space-y-3" style={{ width: '100%', boxSizing: 'border-box' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, width: '100%', boxSizing: 'border-box' }}>
                 <div className="space-y-1 min-w-0">
                   <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
                     <Clock className="w-3 h-3" /> Default Start
@@ -258,7 +269,7 @@ const ClientFormSheet = ({
           {/* ── Invoice Settings ── */}
           <div style={{ marginBottom: 8 }}>
             <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest" style={{ marginBottom: 10 }}>Invoice Settings</p>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <div className="space-y-3" style={{ width: '100%', boxSizing: 'border-box' }}>
               <FormField label="Invoice Label" value={form.invoice_label} onChange={v => set('invoice_label', v)} placeholder="Name to use on invoices" />
               <div className="space-y-1">
                 <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Invoice Notes</label>
@@ -270,7 +281,8 @@ const ClientFormSheet = ({
           </div>
         </div>
 
-        <div className="shrink-0 space-y-2" style={{ borderTop: '0.5px solid hsl(var(--border))', padding: '12px 16px max(16px, env(safe-area-inset-bottom))', boxSizing: 'border-box' }}>
+        {/* ── Footer ── */}
+        <div className="shrink-0 space-y-2" style={{ borderTop: '0.5px solid hsl(var(--border))', padding: '12px 20px', boxSizing: 'border-box' }}>
           {saveError && <p className="text-xs text-destructive text-center px-2">{saveError}</p>}
           <div className="flex gap-2.5">
             <button type="button" onClick={onCancel}
