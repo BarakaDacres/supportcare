@@ -72,6 +72,9 @@ interface OverviewPanelProps {
   onMonthChange: (m: number) => void;
   locked?: boolean;
   displayName?: string | null;
+  onAddShiftForDate?: (prefillDate: string) => void;
+  onDuplicateShift?: (shiftId: string) => void;
+  onAddFromTemplate?: (prefillDate: string) => void;
 }
 
 function parseDate(dateStr: string): Date {
@@ -913,6 +916,7 @@ const OverviewPanel = ({
   shifts, clients, invoices, settings,
   selectedYear, selectedMonth, onYearChange, onMonthChange,
   locked, displayName,
+  onAddShiftForDate, onDuplicateShift: onDuplicateShiftProp, onAddFromTemplate,
 }: OverviewPanelProps) => {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -1775,6 +1779,9 @@ const OverviewPanel = ({
         shifts={shifts}
         year={selectedYear}
         month={selectedMonth}
+        onAddShift={onAddShiftForDate}
+        onDuplicateShift={onDuplicateShiftProp}
+        onAddFromTemplate={onAddFromTemplate}
       />
 
 
