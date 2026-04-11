@@ -1,6 +1,10 @@
 import { useState } from 'react';
 import { Sun, Moon, Monitor, Bell, FileText, Smartphone, Check, ChevronRight, Clock } from 'lucide-react';
 import type { UserSettings } from '@/hooks/useUserSettings';
+import type { ShiftTemplate, NewShiftTemplate } from '@/hooks/useShiftTemplates';
+import type { Client } from '@/hooks/useClients';
+import ShiftTemplatesManager from '@/components/ShiftTemplatesManager';
+import type { UserSettings } from '@/hooks/useUserSettings';
 
 /* ─────────────────────────────────────────────────────────────────
    All sub-components at MODULE LEVEL to prevent focus/re-mount loss
@@ -192,9 +196,17 @@ interface PreferencesPanelProps {
   onSave: (updates: Partial<Omit<UserSettings, 'id' | 'user_id'>>) => Promise<void>;
   themeOverride: 'system' | 'light' | 'dark';
   onThemeChange: (v: 'system' | 'light' | 'dark') => void;
+  templates?: ShiftTemplate[];
+  clients?: Client[];
+  onAddTemplate?: (t: NewShiftTemplate) => Promise<unknown>;
+  onUpdateTemplate?: (id: string, t: Partial<NewShiftTemplate>) => Promise<void>;
+  onDeleteTemplate?: (id: string) => Promise<void>;
 }
 
-const PreferencesPanel = ({ settings, onSave, themeOverride, onThemeChange }: PreferencesPanelProps) => {
+const PreferencesPanel = ({
+  settings, onSave, themeOverride, onThemeChange,
+  templates, clients, onAddTemplate, onUpdateTemplate, onDeleteTemplate,
+}: PreferencesPanelProps) => {
   const [showDueDateModal, setShowDueDateModal] = useState(false);
 
   const [shiftReminders, setShiftReminders]     = useState(() => localStorage.getItem('pref_shift_reminders')   !== 'false');
