@@ -184,7 +184,7 @@ const BottomTabBar = ({ activeTab, onTabChange, hidden = false, auth }: Props) =
         aria-hidden={hidden}>
         <div style={{
           display: 'flex', alignItems: 'stretch', position: 'relative',
-          margin: '0 auto', width: '92%', maxWidth: 440,
+          margin: '0 auto', width: '96%', maxWidth: 480,
           height: 56, borderRadius: 28,
           background: `hsl(var(--card) / ${bgOp})`,
           backdropFilter: `blur(${blur}px) saturate(${170 + scrollDepth * 15}%)`,
