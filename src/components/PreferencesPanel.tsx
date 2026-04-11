@@ -326,6 +326,17 @@ const PreferencesPanel = ({
         </SettingsGroup>
       </div>
 
+      {/* ── Shift Templates ── */}
+      {templates && onAddTemplate && onUpdateTemplate && onDeleteTemplate && (
+        <ShiftTemplatesManager
+          templates={templates}
+          clients={clients ?? []}
+          onAdd={onAddTemplate}
+          onUpdate={onUpdateTemplate}
+          onDelete={onDeleteTemplate}
+        />
+      )}
+
       {/* Due date modal — centered, always visible */}
       {showDueDateModal && (
         <DueDateModal
