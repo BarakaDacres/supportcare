@@ -355,12 +355,14 @@ const EarningsCalendarHeatmap = ({
   shifts, year, month,
   onAddShift,
   onDuplicateShift,
+  onAddFromTemplate,
 }: {
   shifts: Shift[];
   year: number;
   month: number;
   onAddShift?: (prefillDate: string) => void;
   onDuplicateShift?: (shiftId: string) => void;
+  onAddFromTemplate?: (prefillDate: string) => void;
 }) => {
   const now = new Date();
   const todayDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
