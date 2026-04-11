@@ -253,6 +253,56 @@ export type Database = {
         }
         Relationships: []
       }
+      shift_templates: {
+        Row: {
+          client_id: string | null
+          created_at: string
+          end_time: string
+          id: string
+          is_sleepover: boolean
+          name: string
+          notes: string | null
+          shift_type: string
+          start_time: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          client_id?: string | null
+          created_at?: string
+          end_time?: string
+          id?: string
+          is_sleepover?: boolean
+          name: string
+          notes?: string | null
+          shift_type?: string
+          start_time?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          client_id?: string | null
+          created_at?: string
+          end_time?: string
+          id?: string
+          is_sleepover?: boolean
+          name?: string
+          notes?: string | null
+          shift_type?: string
+          start_time?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shift_templates_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       shifts: {
         Row: {
           client_id: string | null

@@ -72,6 +72,9 @@ interface OverviewPanelProps {
   onMonthChange: (m: number) => void;
   locked?: boolean;
   displayName?: string | null;
+  onAddShiftForDate?: (prefillDate: string) => void;
+  onDuplicateShift?: (shiftId: string) => void;
+  onAddFromTemplate?: (prefillDate: string) => void;
 }
 
 function parseDate(dateStr: string): Date {
@@ -352,12 +355,14 @@ const EarningsCalendarHeatmap = ({
   shifts, year, month,
   onAddShift,
   onDuplicateShift,
+  onAddFromTemplate,
 }: {
   shifts: Shift[];
   year: number;
   month: number;
   onAddShift?: (prefillDate: string) => void;
   onDuplicateShift?: (shiftId: string) => void;
+  onAddFromTemplate?: (prefillDate: string) => void;
 }) => {
   const now = new Date();
   const todayDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -620,10 +625,11 @@ const EarningsCalendarHeatmap = ({
       </div>
 
       {/* ── Quick Actions ── */}
-      {(onAddShift || onDuplicateShift) && (
+      {(onAddShift || onDuplicateShift || onAddFromTemplate) && (
         <div style={{
           display: 'flex', gap: 6, marginTop: 10, flexShrink: 0, paddingTop: 8,
           borderTop: '1px solid hsl(var(--border)/0.15)',
+          flexWrap: 'wrap',
         }}>
           {onAddShift && (
             <button
@@ -634,12 +640,28 @@ const EarningsCalendarHeatmap = ({
                 background: 'hsl(var(--primary))',
                 color: 'hsl(var(--primary-foreground))',
                 transition: 'opacity 0.15s ease',
+                minWidth: 70,
               }}
               onPointerDown={e => (e.currentTarget.style.opacity = '0.8')}
               onPointerUp={e => (e.currentTarget.style.opacity = '1')}
               onPointerLeave={e => (e.currentTarget.style.opacity = '1')}
             >
-              + Add Shift
+              + New Shift
+            </button>
+          )}
+          {onAddFromTemplate && (
+            <button
+              onClick={() => onAddFromTemplate(selectedDate)}
+              style={{
+                flex: 1, fontSize: 10, fontWeight: 600, padding: '6px 0',
+                borderRadius: 8, border: 'none', cursor: 'pointer',
+                background: 'hsl(var(--primary)/0.12)',
+                color: 'hsl(var(--primary))',
+                transition: 'background 0.15s ease',
+                minWidth: 70,
+              }}
+            >
+              From Template
             </button>
           )}
           {onDuplicateShift && lastShift && (
@@ -651,6 +673,7 @@ const EarningsCalendarHeatmap = ({
                 background: 'hsl(var(--muted)/0.3)',
                 color: 'hsl(var(--muted-foreground))',
                 transition: 'background 0.15s ease',
+                minWidth: 70,
               }}
               onPointerDown={e => (e.currentTarget.style.background = 'hsl(var(--muted)/0.45)')}
               onPointerUp={e => (e.currentTarget.style.background = 'hsl(var(--muted)/0.3)')}
@@ -913,6 +936,7 @@ const OverviewPanel = ({
   shifts, clients, invoices, settings,
   selectedYear, selectedMonth, onYearChange, onMonthChange,
   locked, displayName,
+  onAddShiftForDate, onDuplicateShift: onDuplicateShiftProp, onAddFromTemplate,
 }: OverviewPanelProps) => {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -1775,6 +1799,9 @@ const OverviewPanel = ({
         shifts={shifts}
         year={selectedYear}
         month={selectedMonth}
+        onAddShift={onAddShiftForDate}
+        onDuplicateShift={onDuplicateShiftProp}
+        onAddFromTemplate={onAddFromTemplate}
       />
 
 

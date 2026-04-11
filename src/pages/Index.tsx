@@ -1,11 +1,13 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useIncomeStore } from '@/hooks/useIncomeStore';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useShifts } from '@/hooks/useShifts';
 import { useClients } from '@/hooks/useClients';
 import { useUserSettings } from '@/hooks/useUserSettings';
 import { useInvoices } from '@/hooks/useInvoices';
+import { useShiftTemplates } from '@/hooks/useShiftTemplates';
 import { scheduleShiftReminders, checkOverdueInvoices } from '@/lib/notifications';
+import { getSmartNote } from '@/lib/smartNotes';
 import Header from '@/components/Header';
 import MobileHeader from '@/components/MobileHeader';
 import BottomTabBar, { type TabId } from '@/components/BottomTabBar';
@@ -17,7 +19,10 @@ import OverviewPanel from '@/components/OverviewPanel';
 import PreferencesPanel from '@/components/PreferencesPanel';
 import RatesPanel from '@/components/RatesPanel';
 import AccountPanel from '@/components/AccountPanel';
+import ShiftForm from '@/components/ShiftForm';
+import TemplatePicker from '@/components/TemplatePicker';
 import type { AuthState } from '@/hooks/useAuth';
+import type { ShiftTemplate } from '@/hooks/useShiftTemplates';
 
 interface IndexProps {
   auth: AuthState;
@@ -29,6 +34,10 @@ const Index = ({ auth }: IndexProps) => {
   const [activeTab, setActiveTab] = useState<TabId>('overview');
   const [settingsSubTab, setSettingsSubTab] = useState<'preferences' | 'rates' | 'analytics' | 'account'>('preferences');
   const [sheetOpen, setSheetOpen] = useState(false);
+
+  // Shift form from calendar
+  const [calendarShiftDate, setCalendarShiftDate] = useState<string | null>(null);
+  const [showTemplatePicker, setShowTemplatePicker] = useState<string | null>(null); // date string
 
   const { settings, loading: settingsLoading, updateSettings, incrementInvoiceCounter } = useUserSettings();
   const rates = settings
@@ -45,6 +54,7 @@ const Index = ({ auth }: IndexProps) => {
   const { shifts, loading: shiftsLoading, addShift, updateShift, deleteShift, duplicateShift } = useShifts(rates);
   const { invoices, loading: invoicesLoading, fetchInvoices, updateInvoiceStatus, deleteInvoice } = useInvoices();
   const { clients, loading: clientsLoading, addClient, updateClient, deleteClient } = useClients();
+  const { templates, addTemplate, updateTemplate, deleteTemplate } = useShiftTemplates();
 
   const locked = store.isMonthLocked(store.year, store.month);
 
@@ -59,6 +69,26 @@ const Index = ({ auth }: IndexProps) => {
   useEffect(() => {
     if (invoices.length > 0) checkOverdueInvoices(invoices);
   }, [invoices]);
+
+  // Handle adding shift from template
+  const handleApplyTemplate = useCallback(async (template: ShiftTemplate) => {
+    const date = showTemplatePicker!;
+    const notes = template.notes || getSmartNote(template.shift_type, date);
+
+    try {
+      await addShift({
+        date,
+        start_time: template.start_time.slice(0, 5),
+        end_time: template.end_time.slice(0, 5),
+        is_sleepover: template.is_sleepover,
+        client_id: template.client_id,
+        notes,
+      });
+      setShowTemplatePicker(null);
+    } catch (e) {
+      console.error('Failed to apply template:', e);
+    }
+  }, [showTemplatePicker, addShift]);
 
   const renderSettingsContent = () => (
     <div className="space-y-4">
@@ -86,6 +116,11 @@ const Index = ({ auth }: IndexProps) => {
           onSave={updateSettings}
           themeOverride={store.themeOverride}
           onThemeChange={(v) => store.update({ themeOverride: v })}
+          templates={templates}
+          clients={clients}
+          onAddTemplate={addTemplate}
+          onUpdateTemplate={updateTemplate}
+          onDeleteTemplate={deleteTemplate}
         />
       )}
       {settingsSubTab === 'rates' && (
@@ -110,11 +145,29 @@ const Index = ({ auth }: IndexProps) => {
     </div>
   );
 
+  const overviewPanel = (
+    <OverviewPanel
+      shifts={shifts}
+      clients={clients}
+      invoices={invoices}
+      settings={settings}
+      selectedYear={store.year}
+      selectedMonth={store.month}
+      onYearChange={handleYearChange}
+      onMonthChange={handleMonthChange}
+      locked={locked}
+      displayName={auth.displayName}
+      onAddShiftForDate={(date) => setCalendarShiftDate(date)}
+      onDuplicateShift={(id) => duplicateShift(id)}
+      onAddFromTemplate={(date) => setShowTemplatePicker(date)}
+    />
+  );
+
   /* ─── Mobile layout ─── */
   if (isMobile) {
     return (
       <div className="min-h-dvh bg-background overflow-x-hidden relative">
-        {/* Status bar + header fade overlay — covers status bar AND title area */}
+        {/* Status bar + header fade overlay */}
         <div
           className="fixed top-0 left-0 right-0 z-[35] pointer-events-none md:hidden"
           style={{
@@ -136,20 +189,7 @@ const Index = ({ auth }: IndexProps) => {
           className="px-4 space-y-5 pt-3"
           style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 80px)' }}
         >
-          {activeTab === 'overview' && (
-            <OverviewPanel
-              shifts={shifts}
-              clients={clients}
-              invoices={invoices}
-              settings={settings}
-              selectedYear={store.year}
-              selectedMonth={store.month}
-              onYearChange={handleYearChange}
-              onMonthChange={handleMonthChange}
-              locked={locked}
-              displayName={auth.displayName}
-            />
-          )}
+          {activeTab === 'overview' && overviewPanel}
 
           {activeTab === 'shifts' && (
             <ShiftList
@@ -205,6 +245,36 @@ const Index = ({ auth }: IndexProps) => {
         </main>
 
         <BottomTabBar activeTab={activeTab} onTabChange={setActiveTab} hidden={sheetOpen} auth={auth} />
+
+        {/* Calendar Shift Form */}
+        {calendarShiftDate && (
+          <ShiftForm
+            clients={clients}
+            rates={rates}
+            initialValues={{ date: calendarShiftDate }}
+            onSubmit={async (shift) => {
+              await addShift(shift);
+              setCalendarShiftDate(null);
+            }}
+            onCancel={() => setCalendarShiftDate(null)}
+            title="Add Shift"
+          />
+        )}
+
+        {/* Template Picker */}
+        {showTemplatePicker && (
+          <TemplatePicker
+            templates={templates}
+            clients={clients}
+            onSelect={handleApplyTemplate}
+            onClose={() => setShowTemplatePicker(null)}
+            onCreateNew={() => {
+              setShowTemplatePicker(null);
+              setActiveTab('settings');
+              setSettingsSubTab('preferences');
+            }}
+          />
+        )}
       </div>
     );
   }
@@ -236,20 +306,7 @@ const Index = ({ auth }: IndexProps) => {
         </div>
 
         <div className="space-y-6">
-          {activeTab === 'overview' && (
-            <OverviewPanel
-              shifts={shifts}
-              clients={clients}
-              invoices={invoices}
-              settings={settings}
-              selectedYear={store.year}
-              selectedMonth={store.month}
-              onYearChange={handleYearChange}
-              onMonthChange={handleMonthChange}
-              locked={locked}
-              displayName={auth.displayName}
-            />
-          )}
+          {activeTab === 'overview' && overviewPanel}
 
           {activeTab === 'shifts' && (
             <ShiftList
@@ -303,6 +360,36 @@ const Index = ({ auth }: IndexProps) => {
           {activeTab === 'settings' && renderSettingsContent()}
         </div>
       </div>
+
+      {/* Calendar Shift Form (Desktop) */}
+      {calendarShiftDate && (
+        <ShiftForm
+          clients={clients}
+          rates={rates}
+          initialValues={{ date: calendarShiftDate }}
+          onSubmit={async (shift) => {
+            await addShift(shift);
+            setCalendarShiftDate(null);
+          }}
+          onCancel={() => setCalendarShiftDate(null)}
+          title="Add Shift"
+        />
+      )}
+
+      {/* Template Picker (Desktop) */}
+      {showTemplatePicker && (
+        <TemplatePicker
+          templates={templates}
+          clients={clients}
+          onSelect={handleApplyTemplate}
+          onClose={() => setShowTemplatePicker(null)}
+          onCreateNew={() => {
+            setShowTemplatePicker(null);
+            setActiveTab('settings');
+            setSettingsSubTab('preferences');
+          }}
+        />
+      )}
     </div>
   );
 };
