@@ -4,7 +4,6 @@ import type { UserSettings } from '@/hooks/useUserSettings';
 import type { ShiftTemplate, NewShiftTemplate } from '@/hooks/useShiftTemplates';
 import type { Client } from '@/hooks/useClients';
 import ShiftTemplatesManager from '@/components/ShiftTemplatesManager';
-import type { UserSettings } from '@/hooks/useUserSettings';
 
 /* ─────────────────────────────────────────────────────────────────
    All sub-components at MODULE LEVEL to prevent focus/re-mount loss
