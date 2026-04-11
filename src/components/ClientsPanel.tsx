@@ -236,22 +236,22 @@ const ClientFormSheet = ({
           <div style={{ marginBottom: 20 }}>
             <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest" style={{ marginBottom: 10 }}>Shift Defaults</p>
             <div className="space-y-3" style={{ width: '100%', boxSizing: 'border-box' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, width: '100%', boxSizing: 'border-box' }}>
-                <div className="space-y-1 min-w-0">
+              <div className="grid grid-cols-2 gap-3" style={{ width: '100%' }}>
+                <div className="space-y-1.5 min-w-0">
                   <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
-                    <Clock className="w-3 h-3" /> Default Start
+                    <Clock className="w-3 h-3" /> Start Time
                   </label>
                   <input type="time" value={form.default_start_time} onChange={e => set('default_start_time', e.target.value)}
-                    className="glass-input w-full text-foreground block"
-                    style={{ minHeight: 44, boxSizing: 'border-box', fontSize: 14, maxWidth: '100%' }} />
+                    className="glass-input w-full text-foreground"
+                    style={{ minHeight: 44, fontSize: 16, WebkitAppearance: 'none', padding: '8px 10px' }} />
                 </div>
-                <div className="space-y-1 min-w-0">
+                <div className="space-y-1.5 min-w-0">
                   <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
-                    <Clock className="w-3 h-3" /> Default End
+                    <Clock className="w-3 h-3" /> End Time
                   </label>
                   <input type="time" value={form.default_end_time} onChange={e => set('default_end_time', e.target.value)}
-                    className="glass-input w-full text-foreground block"
-                    style={{ minHeight: 44, boxSizing: 'border-box', fontSize: 14, maxWidth: '100%' }} />
+                    className="glass-input w-full text-foreground"
+                    style={{ minHeight: 44, fontSize: 16, WebkitAppearance: 'none', padding: '8px 10px' }} />
                 </div>
               </div>
               <FormToggle label="Default Sleepover" checked={form.default_is_sleepover} onChange={v => set('default_is_sleepover', v)} icon={<Moon className="w-4 h-4" />} />

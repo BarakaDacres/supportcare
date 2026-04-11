@@ -184,6 +184,7 @@
     border: 1px solid hsl(var(--border));
     border-radius: 20px;
     box-shadow: var(--card-shadow-sm);
+    transition: box-shadow 0.3s ease, transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
   }
 
   /* Prominent card — hero-level elements */
@@ -218,18 +219,29 @@
     border: 1px solid hsl(var(--border));
     border-radius: 12px;
     padding: 8px 14px;
-    font-size: 0.875rem;
+    font-size: 1rem;
     font-weight: 500;
     outline: none;
-    transition: all 0.15s ease;
+    transition: border-color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
     box-sizing: border-box;
     display: block;
+    width: 100%;
+    max-width: 100%;
     color: hsl(var(--foreground));
   }
   .glass-input:focus {
     border-color: hsl(var(--primary));
     background: hsl(var(--card));
     box-shadow: 0 0 0 3px hsl(var(--primary) / 0.12);
+  }
+  /* Prevent iOS zoom on focus for inputs < 16px */
+  @media (max-width: 767px) {
+    .glass-input { font-size: 1rem; }
+    .glass-input[type="time"] {
+      -webkit-appearance: none;
+      appearance: none;
+      min-height: 44px;
+    }
   }
   .dark .glass-input {
     background: hsl(var(--muted) / 0.5);
@@ -268,10 +280,13 @@
     padding: 7px 18px;
     font-size: 0.8125rem;
     font-weight: 600;
-    transition: all 0.18s ease;
+    transition: color 0.25s ease, background 0.25s ease, transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
     cursor: pointer;
     user-select: none;
     color: hsl(var(--muted-foreground));
+  }
+  .segmented-button:active {
+    transform: scale(0.95);
   }
   .segmented-button-active {
     border-radius: 10px;
@@ -283,6 +298,10 @@
     background: hsl(var(--primary));
     color: hsl(var(--primary-foreground));
     box-shadow: 0 2px 8px hsl(var(--primary) / 0.28);
+    transition: background 0.25s ease, box-shadow 0.3s ease, transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  .segmented-button-active:active {
+    transform: scale(0.95);
   }
 
   /* ────────────────────────────────────────────────────
