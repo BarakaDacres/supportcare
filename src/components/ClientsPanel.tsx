@@ -624,7 +624,36 @@ const ClientProfile = ({
         );
       })()}
 
-      {/* Shift defaults */}
+      {/* Custom Rates */}
+      {client.use_custom_rates && (
+        <div className="card-elevated overflow-hidden">
+          <div className="px-4 pt-4 pb-2">
+            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Custom Rates</p>
+          </div>
+          <div className="px-4 pb-4">
+            <div className="flex flex-wrap gap-1.5">
+              {[
+                { label: 'Weekday', val: client.rate_weekday, def: DEFAULT_RATES.rate_weekday },
+                { label: 'Sat', val: client.rate_saturday, def: DEFAULT_RATES.rate_saturday },
+                { label: 'Sun', val: client.rate_sunday, def: DEFAULT_RATES.rate_sunday },
+                { label: 'Eve', val: client.rate_evening, def: DEFAULT_RATES.rate_evening },
+                { label: 'Sleep Wk', val: client.rate_sleepover_weekday, def: DEFAULT_RATES.rate_sleepover_weekday },
+                { label: 'Sleep We', val: client.rate_sleepover_weekend, def: DEFAULT_RATES.rate_sleepover_weekend },
+                { label: 'PH', val: client.rate_public_holiday, def: DEFAULT_RATES.rate_public_holiday },
+              ].map(r => (
+                <span key={r.label} className="text-[10px] font-medium px-2.5 py-1 rounded-lg"
+                  style={{
+                    background: r.val != null ? 'hsl(var(--primary)/0.08)' : 'hsl(var(--muted)/0.5)',
+                    color: r.val != null ? 'hsl(var(--primary))' : 'hsl(var(--muted-foreground))',
+                  }}>
+                  {r.label} ${r.val ?? r.def}
+                </span>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
       {(client.default_start_time || client.default_end_time || client.default_service_note) && (
         <div className="card-elevated overflow-hidden">
           <div className="px-4 pt-4 pb-2">
