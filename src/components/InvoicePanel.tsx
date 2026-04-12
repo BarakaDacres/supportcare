@@ -25,6 +25,7 @@ import { MONTH_NAMES } from '@/lib/dateUtils';
 import { groupShiftsForInvoice, DEFAULT_NDIS_CODES, type NdisItemCodes } from '@/lib/invoiceGrouping';
 import type { PayRates } from '@/lib/shiftCalculator';
 import { DEFAULT_RATES } from '@/lib/shiftCalculator';
+import { getEffectiveRates } from '@/lib/rateResolver';
 import { supabase } from '@/integrations/supabase/client';
 import type { InvoiceSummary, InvoiceStatus } from '@/hooks/useInvoices';
 
@@ -746,7 +747,7 @@ const InvoicePanel = ({
   const selectedPeriod = periods[selectedFnIdx] ?? periods[0];
   const selectedClient = clients.find(c => c.id === selectedClientId) ?? null;
 
-  const rates: PayRates = {
+  const globalRates: PayRates = {
     rate_weekday:           settings?.rate_weekday           ?? DEFAULT_RATES.rate_weekday,
     rate_saturday:          settings?.rate_saturday          ?? DEFAULT_RATES.rate_saturday,
     rate_sunday:            settings?.rate_sunday            ?? DEFAULT_RATES.rate_sunday,
@@ -755,6 +756,9 @@ const InvoicePanel = ({
     rate_public_holiday:    settings?.rate_public_holiday    ?? DEFAULT_RATES.rate_public_holiday,
     rate_evening:           settings?.rate_evening           ?? DEFAULT_RATES.rate_evening,
   };
+
+  // Use per-client rates if a client is selected, otherwise global
+  const rates: PayRates = getEffectiveRates(selectedClient, globalRates);
 
   const ndisCodesStr = (settings as unknown as { ndis_codes?: string })?.ndis_codes;
   const ndisCodes: Partial<NdisItemCodes> = ndisCodesStr ? JSON.parse(ndisCodesStr) : {};
