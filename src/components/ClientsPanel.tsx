@@ -10,9 +10,6 @@ import type { Shift } from '@/hooks/useShifts';
 import { effectiveGrossPay } from '@/hooks/useShifts';
 import { formatCurrency } from '@/lib/formatUtils';
 import { formatTime12h, DEFAULT_RATES } from '@/lib/shiftCalculator';
-import { effectiveGrossPay } from '@/hooks/useShifts';
-import { formatCurrency } from '@/lib/formatUtils';
-import { formatTime12h } from '@/lib/shiftCalculator';
 import { MONTH_NAMES } from '@/lib/dateUtils';
 
 interface ClientsPanelProps {
