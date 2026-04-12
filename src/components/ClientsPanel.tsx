@@ -686,6 +686,12 @@ const ClientsPanel = ({ clients, shifts, loading, onAdd, onUpdate, onDelete }: C
 
   const selectedClient = clients.find(c => c.id === selectedClientId) ?? null;
 
+  const parseRate = (v: string): number | null => {
+    if (!v.trim()) return null;
+    const n = parseFloat(v);
+    return isFinite(n) && n >= 0 ? n : null;
+  };
+
   const buildClientPayload = (form: ClientForm) => ({
     name: form.name.trim(),
     display_name: form.display_name.trim() || null,
@@ -705,6 +711,14 @@ const ClientsPanel = ({ clients, shifts, loading, onAdd, onUpdate, onDelete }: C
     default_is_sleepover: form.default_is_sleepover,
     invoice_label: form.invoice_label.trim() || null,
     invoice_notes: form.invoice_notes.trim() || null,
+    use_custom_rates: form.use_custom_rates,
+    rate_weekday: parseRate(form.rate_weekday),
+    rate_saturday: parseRate(form.rate_saturday),
+    rate_sunday: parseRate(form.rate_sunday),
+    rate_evening: parseRate(form.rate_evening),
+    rate_sleepover_weekday: parseRate(form.rate_sleepover_weekday),
+    rate_sleepover_weekend: parseRate(form.rate_sleepover_weekend),
+    rate_public_holiday: parseRate(form.rate_public_holiday),
   });
 
   const handleAdd = async (form: ClientForm) => {
