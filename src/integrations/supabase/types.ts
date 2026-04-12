@@ -34,8 +34,16 @@ export type Database = {
           organisation_name: string | null
           participant_number: string | null
           phone: string | null
+          rate_evening: number | null
+          rate_public_holiday: number | null
+          rate_saturday: number | null
+          rate_sleepover_weekday: number | null
+          rate_sleepover_weekend: number | null
+          rate_sunday: number | null
+          rate_weekday: number | null
           service_address: string | null
           updated_at: string
+          use_custom_rates: boolean
           use_plan_manager: boolean
           user_id: string
         }
@@ -58,8 +66,16 @@ export type Database = {
           organisation_name?: string | null
           participant_number?: string | null
           phone?: string | null
+          rate_evening?: number | null
+          rate_public_holiday?: number | null
+          rate_saturday?: number | null
+          rate_sleepover_weekday?: number | null
+          rate_sleepover_weekend?: number | null
+          rate_sunday?: number | null
+          rate_weekday?: number | null
           service_address?: string | null
           updated_at?: string
+          use_custom_rates?: boolean
           use_plan_manager?: boolean
           user_id: string
         }
@@ -82,8 +98,16 @@ export type Database = {
           organisation_name?: string | null
           participant_number?: string | null
           phone?: string | null
+          rate_evening?: number | null
+          rate_public_holiday?: number | null
+          rate_saturday?: number | null
+          rate_sleepover_weekday?: number | null
+          rate_sleepover_weekend?: number | null
+          rate_sunday?: number | null
+          rate_weekday?: number | null
           service_address?: string | null
           updated_at?: string
+          use_custom_rates?: boolean
           use_plan_manager?: boolean
           user_id?: string
         }
