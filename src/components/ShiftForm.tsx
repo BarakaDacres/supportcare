@@ -61,7 +61,7 @@ function formatTimeDisplay(time: string): string {
 
 const ShiftForm = ({
   clients,
-  rates = DEFAULT_RATES,
+  rates: globalRates = DEFAULT_RATES,
   initialValues,
   onSubmit,
   onCancel,
