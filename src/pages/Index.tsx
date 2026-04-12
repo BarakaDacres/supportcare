@@ -89,8 +89,6 @@ const Index = ({ auth }: IndexProps) => {
   const handleApplyTemplate = useCallback(async (template: ShiftTemplate) => {
     const date = showTemplatePicker!;
     const notes = template.notes || getSmartNote(template.shift_type, date);
-    const client = template.client_id ? clients.find(c => c.id === template.client_id) ?? null : null;
-    const clientRates = getEffectiveRates(client, rates);
 
     try {
       await addShift({
@@ -100,12 +98,12 @@ const Index = ({ auth }: IndexProps) => {
         is_sleepover: template.is_sleepover,
         client_id: template.client_id,
         notes,
-      }, clientRates);
+      });
       setShowTemplatePicker(null);
     } catch (e) {
       console.error('Failed to apply template:', e);
     }
-  }, [showTemplatePicker, addShift, clients, rates]);
+  }, [showTemplatePicker, addShift]);
 
   const renderSettingsContent = () => (
     <div className="space-y-4">
