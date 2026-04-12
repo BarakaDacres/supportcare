@@ -27,6 +27,15 @@ export interface Client {
   organisation_name: string | null;
   billing_contact: string | null;
   email: string | null;
+  // Custom rates
+  use_custom_rates: boolean;
+  rate_weekday: number | null;
+  rate_saturday: number | null;
+  rate_sunday: number | null;
+  rate_evening: number | null;
+  rate_sleepover_weekday: number | null;
+  rate_sleepover_weekend: number | null;
+  rate_public_holiday: number | null;
 }
 
 /** Get the effective billing address — falls back to service_address */
