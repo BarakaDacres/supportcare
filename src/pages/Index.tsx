@@ -8,6 +8,7 @@ import { useInvoices } from '@/hooks/useInvoices';
 import { useShiftTemplates } from '@/hooks/useShiftTemplates';
 import { scheduleShiftReminders, checkOverdueInvoices } from '@/lib/notifications';
 import { getSmartNote } from '@/lib/smartNotes';
+import { getEffectiveRates } from '@/lib/rateResolver';
 import Header from '@/components/Header';
 import MobileHeader from '@/components/MobileHeader';
 import BottomTabBar, { type TabId } from '@/components/BottomTabBar';
