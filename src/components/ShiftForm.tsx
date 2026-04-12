@@ -82,6 +82,10 @@ const ShiftForm = ({
       : ''
   );
 
+  // Resolve effective rates based on selected client (field-by-field fallback)
+  const selectedClient = clientId ? clients.find(c => c.id === clientId) ?? null : null;
+  const rates = useMemo(() => getEffectiveRates(selectedClient, globalRates), [selectedClient, globalRates]);
+
   const isNew = !initialValues?.date;
   const initStart = initialValues?.start_time ?? '09:00';
   const initEnd   = initialValues?.end_time   ?? '17:00';
