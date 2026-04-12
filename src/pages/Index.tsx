@@ -53,6 +53,9 @@ const Index = ({ auth }: IndexProps) => {
     : undefined;
 
   const { shifts, loading: shiftsLoading, addShift: rawAddShift, updateShift: rawUpdateShift, deleteShift, duplicateShift } = useShifts(rates);
+  const { invoices, loading: invoicesLoading, fetchInvoices, updateInvoiceStatus, deleteInvoice } = useInvoices();
+  const { clients, loading: clientsLoading, addClient, updateClient, deleteClient } = useClients();
+  const { templates, addTemplate, updateTemplate, deleteTemplate } = useShiftTemplates();
 
   // Wrap addShift/updateShift to auto-resolve per-client rates
   const addShift = useCallback(async (shift: Parameters<typeof rawAddShift>[0]) => {
@@ -67,9 +70,6 @@ const Index = ({ auth }: IndexProps) => {
     const clientRates = getEffectiveRates(client, rates);
     return rawUpdateShift(id, shift, clientRates);
   }, [rawUpdateShift, clients, rates, shifts]);
-  const { invoices, loading: invoicesLoading, fetchInvoices, updateInvoiceStatus, deleteInvoice } = useInvoices();
-  const { clients, loading: clientsLoading, addClient, updateClient, deleteClient } = useClients();
-  const { templates, addTemplate, updateTemplate, deleteTemplate } = useShiftTemplates();
 
   const locked = store.isMonthLocked(store.year, store.month);
 
