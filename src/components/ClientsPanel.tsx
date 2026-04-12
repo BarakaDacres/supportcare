@@ -9,6 +9,9 @@ import type { Client } from '@/hooks/useClients';
 import type { Shift } from '@/hooks/useShifts';
 import { effectiveGrossPay } from '@/hooks/useShifts';
 import { formatCurrency } from '@/lib/formatUtils';
+import { formatTime12h, DEFAULT_RATES } from '@/lib/shiftCalculator';
+import { effectiveGrossPay } from '@/hooks/useShifts';
+import { formatCurrency } from '@/lib/formatUtils';
 import { formatTime12h } from '@/lib/shiftCalculator';
 import { MONTH_NAMES } from '@/lib/dateUtils';
 
@@ -40,6 +43,15 @@ const emptyForm = () => ({
   default_is_sleepover: false,
   invoice_label: '',
   invoice_notes: '',
+  // Custom rates
+  use_custom_rates: false,
+  rate_weekday: '',
+  rate_saturday: '',
+  rate_sunday: '',
+  rate_evening: '',
+  rate_sleepover_weekday: '',
+  rate_sleepover_weekend: '',
+  rate_public_holiday: '',
 });
 
 type ClientForm = ReturnType<typeof emptyForm>;
@@ -64,6 +76,14 @@ function clientToForm(c: Client): ClientForm {
     default_is_sleepover: c.default_is_sleepover,
     invoice_label: c.invoice_label ?? '',
     invoice_notes: c.invoice_notes ?? '',
+    use_custom_rates: c.use_custom_rates,
+    rate_weekday: c.rate_weekday != null ? String(c.rate_weekday) : '',
+    rate_saturday: c.rate_saturday != null ? String(c.rate_saturday) : '',
+    rate_sunday: c.rate_sunday != null ? String(c.rate_sunday) : '',
+    rate_evening: c.rate_evening != null ? String(c.rate_evening) : '',
+    rate_sleepover_weekday: c.rate_sleepover_weekday != null ? String(c.rate_sleepover_weekday) : '',
+    rate_sleepover_weekend: c.rate_sleepover_weekend != null ? String(c.rate_sleepover_weekend) : '',
+    rate_public_holiday: c.rate_public_holiday != null ? String(c.rate_public_holiday) : '',
   };
 }
 
