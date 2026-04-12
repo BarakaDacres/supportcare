@@ -283,6 +283,31 @@ const ClientFormSheet = ({
             </div>
           </div>
 
+          {/* ── Custom Rates ── */}
+          <div style={{ marginBottom: 20 }}>
+            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest" style={{ marginBottom: 10 }}>Rates</p>
+            <div className="space-y-3" style={{ width: '100%', boxSizing: 'border-box' }}>
+              <FormToggle label="Use custom rates" checked={form.use_custom_rates} onChange={v => set('use_custom_rates', v)} icon={<DollarSign className="w-4 h-4" />} />
+              {!form.use_custom_rates && (
+                <p className="text-[10px] text-muted-foreground pl-1">Using default rates from Settings</p>
+              )}
+              {form.use_custom_rates && (
+                <>
+                  <p className="text-[10px] text-muted-foreground pl-1">Leave blank to use the default rate for that field</p>
+                  <div className="grid grid-cols-2 gap-3" style={{ width: '100%' }}>
+                    <FormField label="Weekday $/hr" value={form.rate_weekday} onChange={v => set('rate_weekday', v)} placeholder={String(DEFAULT_RATES.rate_weekday)} type="number" />
+                    <FormField label="Saturday $/hr" value={form.rate_saturday} onChange={v => set('rate_saturday', v)} placeholder={String(DEFAULT_RATES.rate_saturday)} type="number" />
+                    <FormField label="Sunday $/hr" value={form.rate_sunday} onChange={v => set('rate_sunday', v)} placeholder={String(DEFAULT_RATES.rate_sunday)} type="number" />
+                    <FormField label="Evening $/hr" value={form.rate_evening} onChange={v => set('rate_evening', v)} placeholder={String(DEFAULT_RATES.rate_evening)} type="number" />
+                    <FormField label="Sleepover Wkday $" value={form.rate_sleepover_weekday} onChange={v => set('rate_sleepover_weekday', v)} placeholder={String(DEFAULT_RATES.rate_sleepover_weekday)} type="number" />
+                    <FormField label="Sleepover Wkend $" value={form.rate_sleepover_weekend} onChange={v => set('rate_sleepover_weekend', v)} placeholder={String(DEFAULT_RATES.rate_sleepover_weekend)} type="number" />
+                  </div>
+                  <FormField label="Public Holiday $/hr" value={form.rate_public_holiday} onChange={v => set('rate_public_holiday', v)} placeholder={String(DEFAULT_RATES.rate_public_holiday)} type="number" />
+                </>
+              )}
+            </div>
+          </div>
+
           {/* ── Invoice Settings ── */}
           <div style={{ marginBottom: 8 }}>
             <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest" style={{ marginBottom: 10 }}>Invoice Settings</p>
