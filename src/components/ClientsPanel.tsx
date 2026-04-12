@@ -9,7 +9,7 @@ import type { Client } from '@/hooks/useClients';
 import type { Shift } from '@/hooks/useShifts';
 import { effectiveGrossPay } from '@/hooks/useShifts';
 import { formatCurrency } from '@/lib/formatUtils';
-import { formatTime12h } from '@/lib/shiftCalculator';
+import { formatTime12h, DEFAULT_RATES } from '@/lib/shiftCalculator';
 import { MONTH_NAMES } from '@/lib/dateUtils';
 
 interface ClientsPanelProps {
@@ -40,6 +40,15 @@ const emptyForm = () => ({
   default_is_sleepover: false,
   invoice_label: '',
   invoice_notes: '',
+  // Custom rates
+  use_custom_rates: false,
+  rate_weekday: '',
+  rate_saturday: '',
+  rate_sunday: '',
+  rate_evening: '',
+  rate_sleepover_weekday: '',
+  rate_sleepover_weekend: '',
+  rate_public_holiday: '',
 });
 
 type ClientForm = ReturnType<typeof emptyForm>;
@@ -64,6 +73,14 @@ function clientToForm(c: Client): ClientForm {
     default_is_sleepover: c.default_is_sleepover,
     invoice_label: c.invoice_label ?? '',
     invoice_notes: c.invoice_notes ?? '',
+    use_custom_rates: c.use_custom_rates,
+    rate_weekday: c.rate_weekday != null ? String(c.rate_weekday) : '',
+    rate_saturday: c.rate_saturday != null ? String(c.rate_saturday) : '',
+    rate_sunday: c.rate_sunday != null ? String(c.rate_sunday) : '',
+    rate_evening: c.rate_evening != null ? String(c.rate_evening) : '',
+    rate_sleepover_weekday: c.rate_sleepover_weekday != null ? String(c.rate_sleepover_weekday) : '',
+    rate_sleepover_weekend: c.rate_sleepover_weekend != null ? String(c.rate_sleepover_weekend) : '',
+    rate_public_holiday: c.rate_public_holiday != null ? String(c.rate_public_holiday) : '',
   };
 }
 
@@ -263,6 +280,31 @@ const ClientFormSheet = ({
                   placeholder="e.g. Assistance with Self-Care Activities" rows={2}
                   className="glass-input w-full text-foreground resize-none" style={{ boxSizing: 'border-box', minHeight: 44 }} />
               </div>
+            </div>
+          </div>
+
+          {/* ── Custom Rates ── */}
+          <div style={{ marginBottom: 20 }}>
+            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest" style={{ marginBottom: 10 }}>Rates</p>
+            <div className="space-y-3" style={{ width: '100%', boxSizing: 'border-box' }}>
+              <FormToggle label="Use custom rates" checked={form.use_custom_rates} onChange={v => set('use_custom_rates', v)} icon={<DollarSign className="w-4 h-4" />} />
+              {!form.use_custom_rates && (
+                <p className="text-[10px] text-muted-foreground pl-1">Using default rates from Settings</p>
+              )}
+              {form.use_custom_rates && (
+                <>
+                  <p className="text-[10px] text-muted-foreground pl-1">Leave blank to use the default rate for that field</p>
+                  <div className="grid grid-cols-2 gap-3" style={{ width: '100%' }}>
+                    <FormField label="Weekday $/hr" value={form.rate_weekday} onChange={v => set('rate_weekday', v)} placeholder={String(DEFAULT_RATES.rate_weekday)} type="number" />
+                    <FormField label="Saturday $/hr" value={form.rate_saturday} onChange={v => set('rate_saturday', v)} placeholder={String(DEFAULT_RATES.rate_saturday)} type="number" />
+                    <FormField label="Sunday $/hr" value={form.rate_sunday} onChange={v => set('rate_sunday', v)} placeholder={String(DEFAULT_RATES.rate_sunday)} type="number" />
+                    <FormField label="Evening $/hr" value={form.rate_evening} onChange={v => set('rate_evening', v)} placeholder={String(DEFAULT_RATES.rate_evening)} type="number" />
+                    <FormField label="Sleepover Wkday $" value={form.rate_sleepover_weekday} onChange={v => set('rate_sleepover_weekday', v)} placeholder={String(DEFAULT_RATES.rate_sleepover_weekday)} type="number" />
+                    <FormField label="Sleepover Wkend $" value={form.rate_sleepover_weekend} onChange={v => set('rate_sleepover_weekend', v)} placeholder={String(DEFAULT_RATES.rate_sleepover_weekend)} type="number" />
+                  </div>
+                  <FormField label="Public Holiday $/hr" value={form.rate_public_holiday} onChange={v => set('rate_public_holiday', v)} placeholder={String(DEFAULT_RATES.rate_public_holiday)} type="number" />
+                </>
+              )}
             </div>
           </div>
 
@@ -582,7 +624,36 @@ const ClientProfile = ({
         );
       })()}
 
-      {/* Shift defaults */}
+      {/* Custom Rates */}
+      {client.use_custom_rates && (
+        <div className="card-elevated overflow-hidden">
+          <div className="px-4 pt-4 pb-2">
+            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Custom Rates</p>
+          </div>
+          <div className="px-4 pb-4">
+            <div className="flex flex-wrap gap-1.5">
+              {[
+                { label: 'Weekday', val: client.rate_weekday, def: DEFAULT_RATES.rate_weekday },
+                { label: 'Sat', val: client.rate_saturday, def: DEFAULT_RATES.rate_saturday },
+                { label: 'Sun', val: client.rate_sunday, def: DEFAULT_RATES.rate_sunday },
+                { label: 'Eve', val: client.rate_evening, def: DEFAULT_RATES.rate_evening },
+                { label: 'Sleep Wk', val: client.rate_sleepover_weekday, def: DEFAULT_RATES.rate_sleepover_weekday },
+                { label: 'Sleep We', val: client.rate_sleepover_weekend, def: DEFAULT_RATES.rate_sleepover_weekend },
+                { label: 'PH', val: client.rate_public_holiday, def: DEFAULT_RATES.rate_public_holiday },
+              ].map(r => (
+                <span key={r.label} className="text-[10px] font-medium px-2.5 py-1 rounded-lg"
+                  style={{
+                    background: r.val != null ? 'hsl(var(--primary)/0.08)' : 'hsl(var(--muted)/0.5)',
+                    color: r.val != null ? 'hsl(var(--primary))' : 'hsl(var(--muted-foreground))',
+                  }}>
+                  {r.label} ${r.val ?? r.def}
+                </span>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
       {(client.default_start_time || client.default_end_time || client.default_service_note) && (
         <div className="card-elevated overflow-hidden">
           <div className="px-4 pt-4 pb-2">
@@ -644,6 +715,12 @@ const ClientsPanel = ({ clients, shifts, loading, onAdd, onUpdate, onDelete }: C
 
   const selectedClient = clients.find(c => c.id === selectedClientId) ?? null;
 
+  const parseRate = (v: string): number | null => {
+    if (!v.trim()) return null;
+    const n = parseFloat(v);
+    return isFinite(n) && n >= 0 ? n : null;
+  };
+
   const buildClientPayload = (form: ClientForm) => ({
     name: form.name.trim(),
     display_name: form.display_name.trim() || null,
@@ -663,6 +740,14 @@ const ClientsPanel = ({ clients, shifts, loading, onAdd, onUpdate, onDelete }: C
     default_is_sleepover: form.default_is_sleepover,
     invoice_label: form.invoice_label.trim() || null,
     invoice_notes: form.invoice_notes.trim() || null,
+    use_custom_rates: form.use_custom_rates,
+    rate_weekday: parseRate(form.rate_weekday),
+    rate_saturday: parseRate(form.rate_saturday),
+    rate_sunday: parseRate(form.rate_sunday),
+    rate_evening: parseRate(form.rate_evening),
+    rate_sleepover_weekday: parseRate(form.rate_sleepover_weekday),
+    rate_sleepover_weekend: parseRate(form.rate_sleepover_weekend),
+    rate_public_holiday: parseRate(form.rate_public_holiday),
   });
 
   const handleAdd = async (form: ClientForm) => {

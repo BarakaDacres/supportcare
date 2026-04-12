@@ -1,9 +1,10 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { X, Clock, Moon, User, FileText, ChevronDown, DollarSign, Star, Sunset, Calendar } from 'lucide-react';
 import { calculateShiftPay, formatTime12h, type PayRates, DEFAULT_RATES, getDayOfWeek, isWeekendSleeperNight, shiftHasEveningHours, dayLabel } from '@/lib/shiftCalculator';
 import { formatCurrency } from '@/lib/formatUtils';
 import type { NewShift } from '@/hooks/useShifts';
 import type { Client } from '@/hooks/useClients';
+import { getEffectiveRates } from '@/lib/rateResolver';
 
 interface ShiftFormProps {
   clients: Client[];
@@ -60,7 +61,7 @@ function formatTimeDisplay(time: string): string {
 
 const ShiftForm = ({
   clients,
-  rates = DEFAULT_RATES,
+  rates: globalRates = DEFAULT_RATES,
   initialValues,
   onSubmit,
   onCancel,
@@ -80,6 +81,10 @@ const ShiftForm = ({
       ? String(initialValues.fee_override)
       : ''
   );
+
+  // Resolve effective rates based on selected client (field-by-field fallback)
+  const selectedClient = clientId ? clients.find(c => c.id === clientId) ?? null : null;
+  const rates = useMemo(() => getEffectiveRates(selectedClient, globalRates), [selectedClient, globalRates]);
 
   const isNew = !initialValues?.date;
   const initStart = initialValues?.start_time ?? '09:00';

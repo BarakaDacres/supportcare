@@ -161,12 +161,13 @@ export function useShifts(rates: PayRates = DEFAULT_RATES) {
     };
   }, [fetchShifts]);
 
-  const addShift = useCallback(async (shift: NewShift): Promise<Shift> => {
+  const addShift = useCallback(async (shift: NewShift, ratesOverride?: PayRates): Promise<Shift> => {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) throw new Error('Not logged in. Please sign in and try again.');
 
+    const effectiveRates = ratesOverride ?? rates;
     const isPublicHoliday = shift.is_public_holiday ?? false;
-    const calc = calculateShiftPay(shift.date, shift.start_time, shift.end_time, shift.is_sleepover, rates, isPublicHoliday);
+    const calc = calculateShiftPay(shift.date, shift.start_time, shift.end_time, shift.is_sleepover, effectiveRates, isPublicHoliday);
     const feeOverride = shift.fee_override != null && shift.fee_override > 0 ? shift.fee_override : null;
     const grossPay = feeOverride ?? calc.grossPay;
 
@@ -200,10 +201,11 @@ export function useShifts(rates: PayRates = DEFAULT_RATES) {
     return newShift;
   }, [rates]);
 
-  const updateShift = useCallback(async (id: string, shift: Partial<NewShift>): Promise<void> => {
+  const updateShift = useCallback(async (id: string, shift: Partial<NewShift>, ratesOverride?: PayRates): Promise<void> => {
     const existing = shifts.find(s => s.id === id);
     if (!existing) return;
 
+    const effectiveRates = ratesOverride ?? rates;
     const merged = {
       date: shift.date ?? existing.date,
       start_time: shift.start_time ?? existing.start_time,
@@ -211,7 +213,7 @@ export function useShifts(rates: PayRates = DEFAULT_RATES) {
       is_sleepover: shift.is_sleepover !== undefined ? shift.is_sleepover : existing.is_sleepover,
       is_public_holiday: shift.is_public_holiday !== undefined ? shift.is_public_holiday : existing.is_public_holiday,
     };
-    const calc = calculateShiftPay(merged.date, merged.start_time, merged.end_time, merged.is_sleepover, rates, merged.is_public_holiday);
+    const calc = calculateShiftPay(merged.date, merged.start_time, merged.end_time, merged.is_sleepover, effectiveRates, merged.is_public_holiday);
 
     const feeOverride = shift.fee_override !== undefined
       ? (shift.fee_override != null && shift.fee_override > 0 ? shift.fee_override : null)

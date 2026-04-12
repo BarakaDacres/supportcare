@@ -8,6 +8,7 @@ import { useInvoices } from '@/hooks/useInvoices';
 import { useShiftTemplates } from '@/hooks/useShiftTemplates';
 import { scheduleShiftReminders, checkOverdueInvoices } from '@/lib/notifications';
 import { getSmartNote } from '@/lib/smartNotes';
+import { getEffectiveRates } from '@/lib/rateResolver';
 import Header from '@/components/Header';
 import MobileHeader from '@/components/MobileHeader';
 import BottomTabBar, { type TabId } from '@/components/BottomTabBar';
@@ -51,10 +52,24 @@ const Index = ({ auth }: IndexProps) => {
       }
     : undefined;
 
-  const { shifts, loading: shiftsLoading, addShift, updateShift, deleteShift, duplicateShift } = useShifts(rates);
+  const { shifts, loading: shiftsLoading, addShift: rawAddShift, updateShift: rawUpdateShift, deleteShift, duplicateShift } = useShifts(rates);
   const { invoices, loading: invoicesLoading, fetchInvoices, updateInvoiceStatus, deleteInvoice } = useInvoices();
   const { clients, loading: clientsLoading, addClient, updateClient, deleteClient } = useClients();
   const { templates, addTemplate, updateTemplate, deleteTemplate } = useShiftTemplates();
+
+  // Wrap addShift/updateShift to auto-resolve per-client rates
+  const addShift = useCallback(async (shift: Parameters<typeof rawAddShift>[0]) => {
+    const client = shift.client_id ? clients.find(c => c.id === shift.client_id) ?? null : null;
+    const clientRates = getEffectiveRates(client, rates);
+    return rawAddShift(shift, clientRates);
+  }, [rawAddShift, clients, rates]);
+
+  const updateShift = useCallback(async (id: string, shift: Parameters<typeof rawUpdateShift>[1]) => {
+    const clientId = shift.client_id !== undefined ? shift.client_id : shifts.find(s => s.id === id)?.client_id;
+    const client = clientId ? clients.find(c => c.id === clientId) ?? null : null;
+    const clientRates = getEffectiveRates(client, rates);
+    return rawUpdateShift(id, shift, clientRates);
+  }, [rawUpdateShift, clients, rates, shifts]);
 
   const locked = store.isMonthLocked(store.year, store.month);
 
