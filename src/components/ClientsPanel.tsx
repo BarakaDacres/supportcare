@@ -870,7 +870,9 @@ const ClientsPanel = ({ clients, shifts, loading, onAdd, onUpdate, onDelete, onA
           <div className="flex items-center justify-between">
             <div>
               <h2 className="text-lg font-bold text-foreground">Clients</h2>
-              <p className="text-xs text-muted-foreground mt-0.5">{clients.length} client{clients.length !== 1 ? 's' : ''}</p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                {activeClients.length} active{archivedClients.length > 0 ? ` · ${archivedClients.length} archived` : ''}
+              </p>
             </div>
             <button
               onClick={() => setView('add')}
@@ -881,7 +883,29 @@ const ClientsPanel = ({ clients, shifts, loading, onAdd, onUpdate, onDelete, onA
             </button>
           </div>
 
-          {clients.length === 0 ? (
+          {/* Active / Archived toggle */}
+          {archivedClients.length > 0 && (
+            <div className="flex gap-1.5">
+              <button onClick={() => setShowArchived(false)}
+                className="text-xs font-semibold px-3 py-1.5 rounded-lg transition-all active:scale-95"
+                style={{
+                  background: !showArchived ? 'hsl(var(--primary)/0.12)' : 'transparent',
+                  color: !showArchived ? 'hsl(var(--primary))' : 'hsl(var(--muted-foreground))',
+                }}>
+                Active ({activeClients.length})
+              </button>
+              <button onClick={() => setShowArchived(true)}
+                className="text-xs font-semibold px-3 py-1.5 rounded-lg transition-all active:scale-95 flex items-center gap-1"
+                style={{
+                  background: showArchived ? 'hsl(var(--primary)/0.12)' : 'transparent',
+                  color: showArchived ? 'hsl(var(--primary))' : 'hsl(var(--muted-foreground))',
+                }}>
+                <Archive className="w-3 h-3" /> Archived ({archivedClients.length})
+              </button>
+            </div>
+          )}
+
+          {displayClients.length === 0 && !showArchived ? (
             <div className="card-elevated p-10 text-center space-y-3">
               <div className="w-16 h-16 rounded-2xl mx-auto flex items-center justify-center" style={{ background: 'hsl(var(--primary)/0.08)' }}>
                 <User className="w-8 h-8" style={{ color: 'hsl(var(--primary)/0.4)' }} />
@@ -894,20 +918,27 @@ const ClientsPanel = ({ clients, shifts, loading, onAdd, onUpdate, onDelete, onA
                 Add your first client
               </button>
             </div>
+          ) : displayClients.length === 0 && showArchived ? (
+            <div className="card-elevated p-8 text-center">
+              <Archive className="w-6 h-6 mx-auto mb-2" style={{ color: 'hsl(var(--muted-foreground)/0.4)' }} />
+              <p className="text-sm text-muted-foreground">No archived clients</p>
+            </div>
           ) : (
             <div className="space-y-2">
-              {clients.map(client => {
+              {displayClients.map(client => {
+                const archived = isClientArchived(client);
                 const clientShifts = shifts.filter(s => s.client_id === client.id);
                 const earned = clientShifts.reduce((s, sh) => s + effectiveGrossPay(sh), 0);
                 return (
                   <div
                     key={client.id}
                     className="card-elevated cursor-pointer active:scale-[0.99] transition-transform duration-100"
+                    style={{ opacity: archived ? 0.7 : 1 }}
                     onClick={() => { setSelectedClientId(client.id); setView('profile'); }}
                   >
                     <div className="p-4 flex items-center gap-3.5">
                       <div className="w-11 h-11 rounded-xl flex items-center justify-center text-sm font-bold shrink-0"
-                        style={{ background: 'hsl(var(--primary)/0.1)', color: 'hsl(var(--primary))' }}>
+                        style={{ background: archived ? 'hsl(var(--muted)/0.6)' : 'hsl(var(--primary)/0.1)', color: archived ? 'hsl(var(--muted-foreground))' : 'hsl(var(--primary))' }}>
                         {client.name[0].toUpperCase()}
                       </div>
                       <div className="flex-1 min-w-0">
@@ -918,9 +949,24 @@ const ClientsPanel = ({ clients, shifts, loading, onAdd, onUpdate, onDelete, onA
                         </div>
                       </div>
                       <div className="flex items-center gap-2 shrink-0">
-                        {!client.active && (
-                          <span className="text-[9px] font-semibold px-2 py-0.5 rounded-full"
-                            style={{ background: 'hsl(var(--muted))', color: 'hsl(var(--muted-foreground))' }}>Inactive</span>
+                        {archived ? (
+                          <>
+                            <span className="text-[9px] font-semibold px-2 py-0.5 rounded-full"
+                              style={{ background: 'hsl(var(--muted))', color: 'hsl(var(--muted-foreground))' }}>Archived</span>
+                            {onRestore && (
+                              <button
+                                onClick={e => { e.stopPropagation(); handleRestore(client.id); }}
+                                className="w-7 h-7 flex items-center justify-center rounded-lg transition-colors active:scale-90"
+                                style={{ color: 'hsl(var(--primary))' }}>
+                                <RotateCcw className="w-3.5 h-3.5" />
+                              </button>
+                            )}
+                          </>
+                        ) : (
+                          !client.active && (
+                            <span className="text-[9px] font-semibold px-2 py-0.5 rounded-full"
+                              style={{ background: 'hsl(var(--muted))', color: 'hsl(var(--muted-foreground))' }}>Inactive</span>
+                          )
                         )}
                         <button
                           onClick={e => { e.stopPropagation(); setDeleteConfirm(client.id); }}
