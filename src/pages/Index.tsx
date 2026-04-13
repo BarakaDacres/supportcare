@@ -232,6 +232,8 @@ const Index = ({ auth }: IndexProps) => {
               onAdd={addClient}
               onUpdate={updateClient}
               onDelete={deleteClient}
+              onArchive={archiveClient}
+              onRestore={restoreClient}
             />
           )}
 
@@ -348,6 +350,8 @@ const Index = ({ auth }: IndexProps) => {
               onAdd={addClient}
               onUpdate={updateClient}
               onDelete={deleteClient}
+              onArchive={archiveClient}
+              onRestore={restoreClient}
             />
           )}
 
