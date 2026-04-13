@@ -54,7 +54,7 @@ const Index = ({ auth }: IndexProps) => {
 
   const { shifts, loading: shiftsLoading, addShift: rawAddShift, updateShift: rawUpdateShift, deleteShift, duplicateShift } = useShifts(rates);
   const { invoices, loading: invoicesLoading, fetchInvoices, updateInvoiceStatus, deleteInvoice } = useInvoices();
-  const { clients, loading: clientsLoading, addClient, updateClient, deleteClient } = useClients();
+  const { clients, loading: clientsLoading, addClient, updateClient, deleteClient, archiveClient, restoreClient } = useClients();
   const { templates, addTemplate, updateTemplate, deleteTemplate } = useShiftTemplates();
 
   // Wrap addShift/updateShift to auto-resolve per-client rates
@@ -87,7 +87,8 @@ const Index = ({ auth }: IndexProps) => {
 
   // Handle adding shift from template
   const handleApplyTemplate = useCallback(async (template: ShiftTemplate) => {
-    const date = showTemplatePicker!;
+    const date = showTemplatePicker;
+    if (!date) return;
     const notes = template.notes || getSmartNote(template.shift_type, date);
 
     try {
@@ -99,9 +100,11 @@ const Index = ({ auth }: IndexProps) => {
         client_id: template.client_id,
         notes,
       });
-      setShowTemplatePicker(null);
     } catch (e) {
       console.error('Failed to apply template:', e);
+    } finally {
+      // Always close the picker, even on error — prevents stuck state
+      setShowTemplatePicker(null);
     }
   }, [showTemplatePicker, addShift]);
 
