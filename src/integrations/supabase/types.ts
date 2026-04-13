@@ -17,6 +17,7 @@ export type Database = {
       clients: {
         Row: {
           active: boolean
+          archived_at: string | null
           billing_address: string | null
           billing_contact: string | null
           created_at: string
@@ -49,6 +50,7 @@ export type Database = {
         }
         Insert: {
           active?: boolean
+          archived_at?: string | null
           billing_address?: string | null
           billing_contact?: string | null
           created_at?: string
@@ -81,6 +83,7 @@ export type Database = {
         }
         Update: {
           active?: boolean
+          archived_at?: string | null
           billing_address?: string | null
           billing_contact?: string | null
           created_at?: string

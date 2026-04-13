@@ -624,62 +624,63 @@ const EarningsCalendarHeatmap = ({
         )}
       </div>
 
-      {/* ── Quick Actions ── */}
+      {/* ── Quick Actions — Apple-style pill buttons ── */}
       {(onAddShift || onDuplicateShift || onAddFromTemplate) && (
         <div style={{
-          display: 'flex', gap: 6, marginTop: 10, flexShrink: 0, paddingTop: 8,
-          borderTop: '1px solid hsl(var(--border)/0.15)',
-          flexWrap: 'wrap',
+          display: 'flex', gap: 6, marginTop: 12, flexShrink: 0, paddingTop: 10,
+          borderTop: '1px solid hsl(var(--border)/0.12)',
         }}>
           {onAddShift && (
             <button
-              onClick={() => onAddShift(selectedDate)}
+              onClick={() => { haptic('light'); onAddShift(selectedDate); }}
+              className="active:scale-[0.95]"
               style={{
-                flex: 1, fontSize: 10, fontWeight: 600, padding: '6px 0',
-                borderRadius: 8, border: 'none', cursor: 'pointer',
+                flex: 1, fontSize: 11, fontWeight: 600, padding: '8px 0',
+                borderRadius: 10, border: 'none', cursor: 'pointer',
                 background: 'hsl(var(--primary))',
                 color: 'hsl(var(--primary-foreground))',
-                transition: 'opacity 0.15s ease',
-                minWidth: 70,
+                boxShadow: '0 1px 4px hsl(var(--primary)/0.25)',
+                transition: 'transform 0.12s cubic-bezier(0.25,0.1,0.25,1), opacity 0.12s',
+                minWidth: 0,
+                letterSpacing: '-0.01em',
               }}
-              onPointerDown={e => (e.currentTarget.style.opacity = '0.8')}
-              onPointerUp={e => (e.currentTarget.style.opacity = '1')}
-              onPointerLeave={e => (e.currentTarget.style.opacity = '1')}
             >
               + New Shift
             </button>
           )}
           {onAddFromTemplate && (
             <button
-              onClick={() => onAddFromTemplate(selectedDate)}
+              onClick={() => { haptic('light'); onAddFromTemplate(selectedDate); }}
+              className="active:scale-[0.95]"
               style={{
-                flex: 1, fontSize: 10, fontWeight: 600, padding: '6px 0',
-                borderRadius: 8, border: 'none', cursor: 'pointer',
-                background: 'hsl(var(--primary)/0.12)',
+                flex: 1, fontSize: 11, fontWeight: 600, padding: '8px 0',
+                borderRadius: 10, border: '1px solid hsl(var(--primary)/0.18)',
+                cursor: 'pointer',
+                background: 'hsl(var(--primary)/0.08)',
                 color: 'hsl(var(--primary))',
-                transition: 'background 0.15s ease',
-                minWidth: 70,
+                transition: 'transform 0.12s cubic-bezier(0.25,0.1,0.25,1), background 0.12s',
+                minWidth: 0,
+                letterSpacing: '-0.01em',
               }}
             >
-              From Template
+              Template
             </button>
           )}
           {onDuplicateShift && lastShift && (
             <button
-              onClick={() => onDuplicateShift(lastShift.id)}
+              onClick={() => { haptic('selection'); onDuplicateShift(lastShift.id); }}
+              className="active:scale-[0.95]"
               style={{
-                flex: 1, fontSize: 10, fontWeight: 600, padding: '6px 0',
-                borderRadius: 8, border: 'none', cursor: 'pointer',
-                background: 'hsl(var(--muted)/0.3)',
+                flex: 0.8, fontSize: 11, fontWeight: 500, padding: '8px 0',
+                borderRadius: 10, border: 'none', cursor: 'pointer',
+                background: 'hsl(var(--muted)/0.35)',
                 color: 'hsl(var(--muted-foreground))',
-                transition: 'background 0.15s ease',
-                minWidth: 70,
+                transition: 'transform 0.12s cubic-bezier(0.25,0.1,0.25,1), background 0.12s',
+                minWidth: 0,
+                letterSpacing: '-0.01em',
               }}
-              onPointerDown={e => (e.currentTarget.style.background = 'hsl(var(--muted)/0.45)')}
-              onPointerUp={e => (e.currentTarget.style.background = 'hsl(var(--muted)/0.3)')}
-              onPointerLeave={e => (e.currentTarget.style.background = 'hsl(var(--muted)/0.3)')}
             >
-              Duplicate Last
+              Duplicate
             </button>
           )}
         </div>

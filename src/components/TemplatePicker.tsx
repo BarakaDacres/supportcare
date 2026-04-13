@@ -1,6 +1,8 @@
-import { Moon, Sun, Sunset, Clock, User } from 'lucide-react';
+import { useState, useCallback } from 'react';
+import { Moon, Sun, Sunset, Clock } from 'lucide-react';
 import type { ShiftTemplate } from '@/hooks/useShiftTemplates';
 import type { Client } from '@/hooks/useClients';
+import { isClientArchived } from '@/hooks/useClients';
 
 interface Props {
   templates: ShiftTemplate[];
@@ -30,6 +32,27 @@ const TYPE_COLORS: Record<string, { bg: string; fg: string }> = {
 };
 
 const TemplatePicker = ({ templates, clients, onSelect, onClose, onCreateNew }: Props) => {
+  const [selecting, setSelecting] = useState<string | null>(null);
+
+  // Filter out templates linked to archived/deleted clients
+  const availableTemplates = templates.filter(t => {
+    if (!t.client_id) return true;
+    const client = clients.find(c => c.id === t.client_id);
+    if (!client) return false; // client deleted
+    return !isClientArchived(client);
+  });
+
+  const handleSelect = useCallback((t: ShiftTemplate) => {
+    if (selecting) return; // prevent double-tap
+    setSelecting(t.id);
+    // Use microtask to avoid blocking the UI thread
+    Promise.resolve().then(() => {
+      onSelect(t);
+      // Reset after a tick so the picker can reopen cleanly
+      setTimeout(() => setSelecting(null), 100);
+    });
+  }, [selecting, onSelect]);
+
   return (
     <div
       className="fixed inset-0 z-[100] flex items-end justify-center"
@@ -68,7 +91,7 @@ const TemplatePicker = ({ templates, clients, onSelect, onClose, onCreateNew }: 
 
         {/* List */}
         <div className="flex-1 overflow-y-auto overscroll-contain" style={{ padding: '0 12px' }}>
-          {templates.length === 0 ? (
+          {availableTemplates.length === 0 ? (
             <div className="flex flex-col items-center py-10 text-center">
               <Clock className="w-8 h-8 text-muted-foreground mb-3 opacity-40" />
               <p className="text-sm font-semibold text-foreground mb-1">No templates yet</p>
@@ -84,22 +107,26 @@ const TemplatePicker = ({ templates, clients, onSelect, onClose, onCreateNew }: 
             </div>
           ) : (
             <div className="space-y-2 pb-2">
-              {templates.map(t => {
+              {availableTemplates.map(t => {
                 const client = clients.find(c => c.id === t.client_id);
                 const colors = TYPE_COLORS[t.shift_type] ?? TYPE_COLORS.day;
                 const icon = TYPE_ICONS[t.shift_type] ?? TYPE_ICONS.day;
+                const isSelecting = selecting === t.id;
 
                 return (
                   <button
                     key={t.id}
                     type="button"
-                    onClick={() => onSelect(t)}
-                    className="w-full flex items-center gap-3 rounded-2xl border transition-all duration-150 active:scale-[0.97]"
+                    disabled={!!selecting}
+                    onClick={() => handleSelect(t)}
+                    className="w-full flex items-center gap-3 rounded-2xl border active:scale-[0.97]"
                     style={{
                       padding: '12px 14px',
                       borderColor: 'hsl(var(--border))',
-                      background: 'hsl(var(--muted)/0.25)',
+                      background: isSelecting ? 'hsl(var(--primary)/0.08)' : 'hsl(var(--muted)/0.25)',
                       textAlign: 'left',
+                      opacity: selecting && !isSelecting ? 0.5 : 1,
+                      transition: 'transform 0.12s cubic-bezier(0.25,0.1,0.25,1), opacity 0.15s, background 0.15s',
                     }}
                   >
                     <div

@@ -8,6 +8,7 @@ export interface Client {
   display_name: string | null;
   notes: string | null;
   active: boolean;
+  archived_at: string | null;
   created_at: string;
   updated_at: string;
   // Shift defaults
@@ -36,6 +37,16 @@ export interface Client {
   rate_sleepover_weekday: number | null;
   rate_sleepover_weekend: number | null;
   rate_public_holiday: number | null;
+}
+
+/** Whether the client is archived */
+export function isClientArchived(client: Client): boolean {
+  return client.archived_at != null;
+}
+
+/** Get only active (non-archived) clients */
+export function getActiveClients(clients: Client[]): Client[] {
+  return clients.filter(c => !isClientArchived(c));
 }
 
 /** Get the effective billing address — falls back to service_address */
@@ -144,11 +155,30 @@ export function useClients() {
     setClients(prev => prev.map(c => c.id === id ? updated : c));
   }, []);
 
+  const archiveClient = useCallback(async (id: string): Promise<void> => {
+    const archivedAt = new Date().toISOString();
+    const { error } = await supabase
+      .from('clients')
+      .update({ archived_at: archivedAt, active: false })
+      .eq('id', id);
+    if (error) { console.error(error); throw new Error(error.message); }
+    setClients(prev => prev.map(c => c.id === id ? { ...c, archived_at: archivedAt, active: false } : c));
+  }, []);
+
+  const restoreClient = useCallback(async (id: string): Promise<void> => {
+    const { error } = await supabase
+      .from('clients')
+      .update({ archived_at: null, active: true })
+      .eq('id', id);
+    if (error) { console.error(error); throw new Error(error.message); }
+    setClients(prev => prev.map(c => c.id === id ? { ...c, archived_at: null, active: true } : c));
+  }, []);
+
   const deleteClient = useCallback(async (id: string): Promise<void> => {
     const { error } = await supabase.from('clients').delete().eq('id', id);
     if (error) { console.error(error); return; }
     setClients(prev => prev.filter(c => c.id !== id));
   }, []);
 
-  return { clients, loading, fetchClients, addClient, updateClient, deleteClient };
+  return { clients, loading, fetchClients, addClient, updateClient, deleteClient, archiveClient, restoreClient };
 }
