@@ -2,10 +2,12 @@ import { useState, useMemo, useEffect, useRef } from 'react';
 import {
   Plus, Pencil, Trash2, User, Check, X, ChevronRight, ChevronLeft,
   Clock, FileText, Hash, Phone, MapPin, Moon, DollarSign, BarChart2, Mail,
+  Archive, RotateCcw,
 } from 'lucide-react';
 import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import type { Client } from '@/hooks/useClients';
+import { isClientArchived } from '@/hooks/useClients';
 import type { Shift } from '@/hooks/useShifts';
 import { effectiveGrossPay } from '@/hooks/useShifts';
 import { formatCurrency } from '@/lib/formatUtils';
@@ -19,6 +21,8 @@ interface ClientsPanelProps {
   onAdd: (fields: Partial<Omit<Client, 'id' | 'user_id' | 'created_at' | 'updated_at'>> & { name: string }) => Promise<Client | null>;
   onUpdate: (id: string, updates: Partial<Omit<Client, 'id' | 'user_id' | 'created_at' | 'updated_at'>>) => Promise<void>;
   onDelete: (id: string) => Promise<void>;
+  onArchive?: (id: string) => Promise<void>;
+  onRestore?: (id: string) => Promise<void>;
 }
 
 const emptyForm = () => ({
