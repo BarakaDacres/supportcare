@@ -712,10 +712,11 @@ const ClientProfile = ({
 };
 
 /* ── Main ClientsPanel ── */
-const ClientsPanel = ({ clients, shifts, loading, onAdd, onUpdate, onDelete }: ClientsPanelProps) => {
+const ClientsPanel = ({ clients, shifts, loading, onAdd, onUpdate, onDelete, onArchive, onRestore }: ClientsPanelProps) => {
   const [view, setView] = useState<'list' | 'profile' | 'add' | 'edit'>('list');
   const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+  const [showArchived, setShowArchived] = useState(false);
 
   const selectedClient = clients.find(c => c.id === selectedClientId) ?? null;
 
