@@ -773,6 +773,22 @@ const ClientsPanel = ({ clients, shifts, loading, onAdd, onUpdate, onDelete, onA
     setSelectedClientId(null);
   };
 
+  const handleArchive = async (id: string) => {
+    if (onArchive) await onArchive(id);
+    setDeleteConfirm(null);
+    setView('list');
+    setSelectedClientId(null);
+  };
+
+  const handleRestore = async (id: string) => {
+    if (onRestore) await onRestore(id);
+  };
+
+  // Separate active vs archived
+  const activeClients = clients.filter(c => !isClientArchived(c));
+  const archivedClients = clients.filter(c => isClientArchived(c));
+  const displayClients = showArchived ? archivedClients : activeClients;
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-16">
@@ -791,25 +807,55 @@ const ClientsPanel = ({ clients, shifts, loading, onAdd, onUpdate, onDelete, onA
       )}
 
       {/* Delete confirmation */}
-      {deleteConfirm && (
-        <div
-          className="fixed inset-0 z-[70] flex items-center justify-center p-4"
-          style={{ background: 'hsl(var(--foreground)/0.35)', backdropFilter: 'blur(20px) saturate(1.5)', WebkitBackdropFilter: 'blur(20px) saturate(1.5)' }}
-        >
-          <div className="w-full max-w-sm p-6 space-y-4" style={{ background: 'hsl(var(--card))', borderRadius: 24, boxShadow: '0 20px 60px hsl(var(--foreground)/0.2)' }}>
-            <p className="text-base font-bold text-foreground">Delete client?</p>
-            <p className="text-sm text-muted-foreground">This removes the client record. Their assigned shifts won't be deleted.</p>
-            <div className="flex gap-2.5">
-              <button onClick={() => setDeleteConfirm(null)}
-                className="flex-1 rounded-2xl text-sm font-semibold"
-                style={{ minHeight: 48, background: 'hsl(var(--muted))', color: 'hsl(var(--muted-foreground))' }}>Cancel</button>
-              <button onClick={() => handleDeleteConfirm(deleteConfirm)}
-                className="flex-1 rounded-2xl text-sm font-bold text-white"
-                style={{ minHeight: 48, background: 'hsl(var(--destructive))' }}>Delete</button>
+      {deleteConfirm && (() => {
+        const dcClient = clients.find(c => c.id === deleteConfirm);
+        const linkedShifts = shifts.filter(s => s.client_id === deleteConfirm);
+        return (
+          <div
+            className="fixed inset-0 z-[70] flex items-center justify-center p-4"
+            style={{ background: 'hsl(var(--foreground)/0.35)', backdropFilter: 'blur(20px) saturate(1.5)', WebkitBackdropFilter: 'blur(20px) saturate(1.5)' }}
+          >
+            <div className="w-full max-w-sm p-6 space-y-4" style={{ background: 'hsl(var(--card))', borderRadius: 24, boxShadow: '0 20px 60px hsl(var(--foreground)/0.2)' }}>
+              <p className="text-base font-bold text-foreground">
+                {dcClient && isClientArchived(dcClient) ? 'Permanently delete?' : 'Archive or delete?'}
+              </p>
+              {linkedShifts.length > 0 ? (
+                <p className="text-sm text-muted-foreground">
+                  This client has <strong>{linkedShifts.length}</strong> linked shift{linkedShifts.length !== 1 ? 's' : ''}.
+                  {dcClient && !isClientArchived(dcClient)
+                    ? ' Archiving will hide the client and their shifts from active views. Deleting is permanent.'
+                    : ' Deleting is permanent and cannot be undone.'}
+                </p>
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  {dcClient && !isClientArchived(dcClient)
+                    ? 'Archive to hide from active views, or delete permanently.'
+                    : 'This will permanently remove the client.'}
+                </p>
+              )}
+              <div className="flex flex-col gap-2">
+                {dcClient && !isClientArchived(dcClient) && onArchive && (
+                  <button onClick={() => handleArchive(deleteConfirm)}
+                    className="w-full rounded-2xl text-sm font-semibold flex items-center justify-center gap-2"
+                    style={{ minHeight: 48, background: 'hsl(var(--primary)/0.1)', color: 'hsl(var(--primary))' }}>
+                    <Archive className="w-4 h-4" /> Archive Client
+                  </button>
+                )}
+                <button onClick={() => handleDeleteConfirm(deleteConfirm)}
+                  className="w-full rounded-2xl text-sm font-bold text-white"
+                  style={{ minHeight: 48, background: 'hsl(var(--destructive))' }}>
+                  <Trash2 className="w-3.5 h-3.5 inline mr-1.5" /> Delete Permanently
+                </button>
+                <button onClick={() => setDeleteConfirm(null)}
+                  className="w-full rounded-2xl text-sm font-semibold"
+                  style={{ minHeight: 48, background: 'hsl(var(--muted))', color: 'hsl(var(--muted-foreground))' }}>
+                  Cancel
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* Profile view */}
       {view === 'profile' && selectedClient ? (
