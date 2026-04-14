@@ -371,6 +371,8 @@ const EarningsCalendarHeatmap = ({
   // Selected date state — smart defaults on month change
   const [selectedDate, setSelectedDate] = useState<string>(todayStr);
   const [animKey, setAnimKey] = useState(0);
+  const [fabOpen, setFabOpen] = useState(false);
+  const fabRef = useRef<HTMLDivElement>(null);
 
   // On month/year change, pick the best default day
   useEffect(() => {
@@ -433,6 +435,26 @@ const EarningsCalendarHeatmap = ({
     const timer = setInterval(() => setCurrentTime(Date.now()), 30_000); // update every 30s
     return () => clearInterval(timer);
   }, []);
+
+  useEffect(() => {
+    if (!fabOpen) return;
+
+    const handler = (e: MouseEvent | TouchEvent) => {
+      if (fabRef.current && !fabRef.current.contains(e.target as Node)) setFabOpen(false);
+    };
+
+    document.addEventListener('mousedown', handler);
+    document.addEventListener('touchstart', handler, { passive: true });
+
+    return () => {
+      document.removeEventListener('mousedown', handler);
+      document.removeEventListener('touchstart', handler);
+    };
+  }, [fabOpen]);
+
+  useEffect(() => {
+    setFabOpen(false);
+  }, [selectedDate]);
 
   const isShiftActive = (s: Shift): boolean => {
     if (s.date !== todayStr) return false;
@@ -626,19 +648,6 @@ const EarningsCalendarHeatmap = ({
 
       {/* ── Quick Actions — Animated FAB ── */}
       {(onAddShift || onDuplicateShift || onAddFromTemplate) && (() => {
-        const [fabOpen, setFabOpen] = useState(false);
-        const fabRef = useRef<HTMLDivElement>(null);
-
-        // Close on outside click
-        useEffect(() => {
-          if (!fabOpen) return;
-          const handler = (e: MouseEvent) => {
-            if (fabRef.current && !fabRef.current.contains(e.target as Node)) setFabOpen(false);
-          };
-          document.addEventListener('mousedown', handler);
-          return () => document.removeEventListener('mousedown', handler);
-        }, [fabOpen]);
-
         const actions = [
           onAddShift && {
             label: 'New Shift',
@@ -667,83 +676,84 @@ const EarningsCalendarHeatmap = ({
         ].filter(Boolean) as { label: string; icon: React.ReactNode; primary: boolean; action: () => void }[];
 
         return (
-          <div ref={fabRef} style={{ position: 'relative', display: 'flex', justifyContent: 'flex-end', marginTop: 14, flexShrink: 0, paddingTop: 12, borderTop: '1px solid hsl(var(--border)/0.08)' }}>
-            {/* FAB button */}
-            <button
-              onClick={() => { haptic('light'); setFabOpen(p => !p); }}
-              className="active:scale-[0.92]"
-              style={{
-                width: 40, height: 40, borderRadius: '50%', border: 'none', cursor: 'pointer',
-                background: 'hsl(var(--primary))',
-                color: 'hsl(var(--primary-foreground))',
-                boxShadow: '0 3px 12px hsl(var(--primary)/0.35), 0 1px 3px hsl(var(--foreground)/0.08)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                transition: 'transform 0.25s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.2s',
-                transform: fabOpen ? 'rotate(45deg)' : 'rotate(0deg)',
-              }}
-            >
-              <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
-                <rect x="8" y="3" width="2" height="12" rx="1" fill="currentColor"/>
-                <rect x="3" y="8" width="12" height="2" rx="1" fill="currentColor"/>
-              </svg>
-            </button>
-
-            {/* Popup menu */}
-            {fabOpen && (
-              <div
+          <div style={{ display: 'flex', justifyContent: 'center', marginTop: 14, flexShrink: 0, paddingTop: 12, borderTop: '1px solid hsl(var(--border)/0.08)' }}>
+            <div ref={fabRef} style={{ position: 'relative', display: 'flex', justifyContent: 'center' }}>
+              <button
+                onClick={() => { haptic('light'); setFabOpen(p => !p); }}
+                className="active:scale-[0.92]"
                 style={{
-                  position: 'absolute',
-                  bottom: 'calc(100% + 8px)',
-                  right: 0,
-                  minWidth: 170,
-                  background: 'hsl(var(--card)/0.95)',
-                  backdropFilter: 'blur(24px) saturate(1.6)',
-                  WebkitBackdropFilter: 'blur(24px) saturate(1.6)',
-                  borderRadius: 16,
-                  boxShadow: '0 0 0 0.5px hsl(var(--border)/0.3), 0 12px 40px hsl(var(--foreground)/0.15), 0 4px 12px hsl(var(--foreground)/0.06)',
-                  overflow: 'hidden',
-                  animation: 'fab-menu-in 0.22s cubic-bezier(0.34,1.56,0.64,1)',
+                  width: 44, height: 44, borderRadius: '50%', border: 'none', cursor: 'pointer',
+                  background: 'hsl(var(--primary))',
+                  color: 'hsl(var(--primary-foreground))',
+                  boxShadow: '0 4px 16px hsl(var(--primary)/0.35), 0 1px 3px hsl(var(--foreground)/0.08)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  transition: 'transform 0.25s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.2s',
+                  transform: fabOpen ? 'rotate(45deg)' : 'rotate(0deg)',
                 }}
               >
-                <style>{`
-                  @keyframes fab-menu-in {
-                    from { opacity: 0; transform: scale(0.8) translateY(8px); }
-                    to { opacity: 1; transform: scale(1) translateY(0); }
-                  }
-                `}</style>
-                {actions.map((a, i) => (
-                  <button
-                    key={a.label}
-                    onClick={a.action}
-                    className="active:scale-[0.97]"
-                    style={{
-                      width: '100%', display: 'flex', alignItems: 'center', gap: 10,
-                      padding: '12px 16px', border: 'none', cursor: 'pointer',
-                      background: 'transparent',
-                      color: a.primary ? 'hsl(var(--primary))' : 'hsl(var(--foreground))',
-                      fontSize: 13, fontWeight: a.primary ? 600 : 500,
-                      letterSpacing: '-0.01em',
-                      borderBottom: i < actions.length - 1 ? '1px solid hsl(var(--border)/0.08)' : 'none',
-                      transition: 'background 0.12s',
-                      animation: `fab-menu-in 0.22s cubic-bezier(0.34,1.56,0.64,1) ${i * 0.04}s both`,
-                    }}
-                    onMouseEnter={e => (e.currentTarget.style.background = 'hsl(var(--muted)/0.5)')}
-                    onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
-                  >
-                    <div style={{
-                      width: 30, height: 30, borderRadius: 10,
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      background: a.primary ? 'hsl(var(--primary)/0.1)' : 'hsl(var(--muted)/0.5)',
-                      color: a.primary ? 'hsl(var(--primary))' : 'hsl(var(--muted-foreground))',
-                      flexShrink: 0,
-                    }}>
-                      {a.icon}
-                    </div>
-                    {a.label}
-                  </button>
-                ))}
-              </div>
-            )}
+                <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+                  <rect x="8" y="3" width="2" height="12" rx="1" fill="currentColor"/>
+                  <rect x="3" y="8" width="12" height="2" rx="1" fill="currentColor"/>
+                </svg>
+              </button>
+
+              {fabOpen && (
+                <div
+                  style={{
+                    position: 'absolute',
+                    bottom: 'calc(100% + 8px)',
+                    left: '50%',
+                    marginLeft: -93,
+                    width: 186,
+                    background: 'hsl(var(--card)/0.95)',
+                    backdropFilter: 'blur(24px) saturate(1.6)',
+                    WebkitBackdropFilter: 'blur(24px) saturate(1.6)',
+                    borderRadius: 16,
+                    boxShadow: '0 0 0 0.5px hsl(var(--border)/0.3), 0 12px 40px hsl(var(--foreground)/0.15), 0 4px 12px hsl(var(--foreground)/0.06)',
+                    overflow: 'hidden',
+                    animation: 'fab-menu-in 0.22s cubic-bezier(0.34,1.56,0.64,1)',
+                  }}
+                >
+                  <style>{`
+                    @keyframes fab-menu-in {
+                      from { opacity: 0; transform: scale(0.8) translateY(8px); }
+                      to { opacity: 1; transform: scale(1) translateY(0); }
+                    }
+                  `}</style>
+                  {actions.map((a, i) => (
+                    <button
+                      key={a.label}
+                      onClick={a.action}
+                      className="active:scale-[0.97]"
+                      style={{
+                        width: '100%', display: 'flex', alignItems: 'center', gap: 10,
+                        padding: '12px 16px', border: 'none', cursor: 'pointer',
+                        background: 'transparent',
+                        color: a.primary ? 'hsl(var(--primary))' : 'hsl(var(--foreground))',
+                        fontSize: 13, fontWeight: a.primary ? 600 : 500,
+                        letterSpacing: '-0.01em',
+                        borderBottom: i < actions.length - 1 ? '1px solid hsl(var(--border)/0.08)' : 'none',
+                        transition: 'background 0.12s',
+                        animation: `fab-menu-in 0.22s cubic-bezier(0.34,1.56,0.64,1) ${i * 0.04}s both`,
+                      }}
+                      onMouseEnter={e => (e.currentTarget.style.background = 'hsl(var(--muted)/0.5)')}
+                      onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                    >
+                      <div style={{
+                        width: 30, height: 30, borderRadius: 10,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        background: a.primary ? 'hsl(var(--primary)/0.1)' : 'hsl(var(--muted)/0.5)',
+                        color: a.primary ? 'hsl(var(--primary))' : 'hsl(var(--muted-foreground))',
+                        flexShrink: 0,
+                      }}>
+                        {a.icon}
+                      </div>
+                      {a.label}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         );
       })()}

@@ -823,8 +823,8 @@ const ClientsPanel = ({ clients, shifts, loading, onAdd, onUpdate, onDelete, onA
                 <p className="text-sm text-muted-foreground">
                   This client has <strong>{linkedShifts.length}</strong> linked shift{linkedShifts.length !== 1 ? 's' : ''}.
                   {dcClient && !isClientArchived(dcClient)
-                    ? ' Archiving will hide the client and their shifts from active views. Deleting is permanent.'
-                    : ' Deleting is permanent and cannot be undone.'}
+                    ? ' Archiving will hide the client and their shifts from active views. Deleting will permanently remove the client and all linked shifts from the database.'
+                    : ' Deleting will permanently remove the client and all linked shifts from the database.'}
                 </p>
               ) : (
                 <p className="text-sm text-muted-foreground">
@@ -844,7 +844,7 @@ const ClientsPanel = ({ clients, shifts, loading, onAdd, onUpdate, onDelete, onA
                 <button onClick={() => handleDeleteConfirm(deleteConfirm)}
                   className="w-full rounded-2xl text-sm font-bold text-white"
                   style={{ minHeight: 48, background: 'hsl(var(--destructive))' }}>
-                  <Trash2 className="w-3.5 h-3.5 inline mr-1.5" /> Delete Permanently
+                  <Trash2 className="w-3.5 h-3.5 inline mr-1.5" /> Delete Client + Shifts
                 </button>
                 <button onClick={() => setDeleteConfirm(null)}
                   className="w-full rounded-2xl text-sm font-semibold"

@@ -58,10 +58,12 @@ export function useClients() {
   const [clients, setClients] = useState<Client[]>([]);
   const [loading, setLoading] = useState(true);
   const userIdRef = useRef<string | null>(null);
+  const requestVersionRef = useRef(0);
 
   const fetchClients = useCallback(async (userId?: string, showLoading = false) => {
     const uid = userId ?? userIdRef.current;
     if (!uid) { setLoading(false); return; }
+    const requestVersion = ++requestVersionRef.current;
 
     if (showLoading) setLoading(true);
     try {
@@ -70,12 +72,14 @@ export function useClients() {
         new Promise<never>((_, reject) => setTimeout(() => reject(new Error('Clients request timed out')), 12000)),
       ]);
 
+      if (requestVersion !== requestVersionRef.current) return;
       if (error) { console.error('fetchClients error:', error); }
       setClients((data ?? []) as Client[]);
     } catch (e) {
+      if (requestVersion !== requestVersionRef.current) return;
       console.error('fetchClients timeout:', e);
     } finally {
-      setLoading(false);
+      if (requestVersion === requestVersionRef.current) setLoading(false);
     }
   }, []);
 
@@ -132,6 +136,7 @@ export function useClients() {
   const addClient = useCallback(async (fields: Partial<Omit<Client, 'id' | 'user_id' | 'created_at' | 'updated_at'>> & { name: string }): Promise<Client | null> => {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) throw new Error('Not authenticated. Please sign in and try again.');
+    requestVersionRef.current += 1;
     const { data, error } = await supabase
       .from('clients')
       .insert({ user_id: session.user.id, ...fields })
@@ -144,6 +149,7 @@ export function useClients() {
   }, []);
 
   const updateClient = useCallback(async (id: string, updates: Partial<Omit<Client, 'id' | 'user_id' | 'created_at' | 'updated_at'>>): Promise<void> => {
+    requestVersionRef.current += 1;
     const { data, error } = await supabase
       .from('clients')
       .update(updates)
@@ -157,6 +163,7 @@ export function useClients() {
 
   const archiveClient = useCallback(async (id: string): Promise<void> => {
     const archivedAt = new Date().toISOString();
+    requestVersionRef.current += 1;
     const { error } = await supabase
       .from('clients')
       .update({ archived_at: archivedAt, active: false })
@@ -166,6 +173,7 @@ export function useClients() {
   }, []);
 
   const restoreClient = useCallback(async (id: string): Promise<void> => {
+    requestVersionRef.current += 1;
     const { error } = await supabase
       .from('clients')
       .update({ archived_at: null, active: true })
@@ -175,6 +183,7 @@ export function useClients() {
   }, []);
 
   const deleteClient = useCallback(async (id: string): Promise<void> => {
+    requestVersionRef.current += 1;
     const { error } = await supabase.from('clients').delete().eq('id', id);
     if (error) { console.error(error); return; }
     setClients(prev => prev.filter(c => c.id !== id));
