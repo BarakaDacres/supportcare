@@ -624,71 +624,129 @@ const EarningsCalendarHeatmap = ({
         )}
       </div>
 
-      {/* ── Quick Actions — Modern inline row ── */}
-      {(onAddShift || onDuplicateShift || onAddFromTemplate) && (
-        <div style={{
-          display: 'flex', alignItems: 'center', gap: 8, marginTop: 14, flexShrink: 0, paddingTop: 12,
-          borderTop: '1px solid hsl(var(--border)/0.08)',
-        }}>
-          {onAddShift && (
+      {/* ── Quick Actions — Animated FAB ── */}
+      {(onAddShift || onDuplicateShift || onAddFromTemplate) && (() => {
+        const [fabOpen, setFabOpen] = useState(false);
+        const fabRef = useRef<HTMLDivElement>(null);
+
+        // Close on outside click
+        useEffect(() => {
+          if (!fabOpen) return;
+          const handler = (e: MouseEvent) => {
+            if (fabRef.current && !fabRef.current.contains(e.target as Node)) setFabOpen(false);
+          };
+          document.addEventListener('mousedown', handler);
+          return () => document.removeEventListener('mousedown', handler);
+        }, [fabOpen]);
+
+        const actions = [
+          onAddShift && {
+            label: 'New Shift',
+            icon: (
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="7" y="3" width="2" height="10" rx="1" fill="currentColor"/><rect x="3" y="7" width="10" height="2" rx="1" fill="currentColor"/></svg>
+            ),
+            primary: true,
+            action: () => { haptic('light'); onAddShift(selectedDate); setFabOpen(false); },
+          },
+          onAddFromTemplate && {
+            label: 'Template',
+            icon: (
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="2" y="2" width="5" height="5" rx="1.5" fill="currentColor" opacity="0.7"/><rect x="9" y="2" width="5" height="5" rx="1.5" fill="currentColor" opacity="0.5"/><rect x="2" y="9" width="5" height="5" rx="1.5" fill="currentColor" opacity="0.5"/><rect x="9" y="9" width="5" height="5" rx="1.5" fill="currentColor" opacity="0.3"/></svg>
+            ),
+            primary: false,
+            action: () => { haptic('light'); onAddFromTemplate(selectedDate); setFabOpen(false); },
+          },
+          onDuplicateShift && lastShift && {
+            label: 'Duplicate',
+            icon: (
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="1" y="3" width="9" height="10" rx="2" stroke="currentColor" strokeWidth="1.5" fill="none"/><path d="M6 3V2.5A1.5 1.5 0 0 1 7.5 1H13a1.5 1.5 0 0 1 1.5 1.5V10A1.5 1.5 0 0 1 13 11.5H12" stroke="currentColor" strokeWidth="1.5" fill="none"/></svg>
+            ),
+            primary: false,
+            action: () => { haptic('selection'); onDuplicateShift(lastShift.id); setFabOpen(false); },
+          },
+        ].filter(Boolean) as { label: string; icon: React.ReactNode; primary: boolean; action: () => void }[];
+
+        return (
+          <div ref={fabRef} style={{ position: 'relative', display: 'flex', justifyContent: 'flex-end', marginTop: 14, flexShrink: 0, paddingTop: 12, borderTop: '1px solid hsl(var(--border)/0.08)' }}>
+            {/* FAB button */}
             <button
-              onClick={() => { haptic('light'); onAddShift(selectedDate); }}
-              className="active:scale-[0.96]"
+              onClick={() => { haptic('light'); setFabOpen(p => !p); }}
+              className="active:scale-[0.92]"
               style={{
-                display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 5,
-                fontSize: 12, fontWeight: 600, padding: '9px 16px',
-                borderRadius: 22, border: 'none', cursor: 'pointer',
+                width: 40, height: 40, borderRadius: '50%', border: 'none', cursor: 'pointer',
                 background: 'hsl(var(--primary))',
                 color: 'hsl(var(--primary-foreground))',
-                boxShadow: '0 2px 8px hsl(var(--primary)/0.3)',
-                transition: 'transform 0.15s cubic-bezier(0.22,1,0.36,1), box-shadow 0.15s',
-                letterSpacing: '-0.01em',
-                whiteSpace: 'nowrap',
+                boxShadow: '0 3px 12px hsl(var(--primary)/0.35), 0 1px 3px hsl(var(--foreground)/0.08)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                transition: 'transform 0.25s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.2s',
+                transform: fabOpen ? 'rotate(45deg)' : 'rotate(0deg)',
               }}
             >
-              <span style={{ fontSize: 14, fontWeight: 700, lineHeight: 1 }}>+</span>
-              New Shift
+              <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+                <rect x="8" y="3" width="2" height="12" rx="1" fill="currentColor"/>
+                <rect x="3" y="8" width="12" height="2" rx="1" fill="currentColor"/>
+              </svg>
             </button>
-          )}
-          {onAddFromTemplate && (
-            <button
-              onClick={() => { haptic('light'); onAddFromTemplate(selectedDate); }}
-              className="active:scale-[0.96]"
-              style={{
-                display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 4,
-                fontSize: 12, fontWeight: 600, padding: '9px 14px',
-                borderRadius: 22, border: '1px solid hsl(var(--primary)/0.2)',
-                cursor: 'pointer',
-                background: 'hsl(var(--primary)/0.06)',
-                color: 'hsl(var(--primary))',
-                transition: 'transform 0.15s cubic-bezier(0.22,1,0.36,1), background 0.15s',
-                letterSpacing: '-0.01em',
-                whiteSpace: 'nowrap',
-              }}
-            >
-              Template
-            </button>
-          )}
-          {onDuplicateShift && lastShift && (
-            <button
-              onClick={() => { haptic('selection'); onDuplicateShift(lastShift.id); }}
-              className="active:scale-[0.96]"
-              style={{
-                display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: 12, fontWeight: 500, padding: '9px 14px',
-                borderRadius: 22, border: 'none', cursor: 'pointer',
-                background: 'hsl(var(--muted)/0.3)',
-                color: 'hsl(var(--muted-foreground)/0.8)',
-                transition: 'transform 0.15s cubic-bezier(0.22,1,0.36,1), background 0.15s',
-                letterSpacing: '-0.01em',
-                whiteSpace: 'nowrap',
-              }}
-            >
-              Duplicate
-            </button>
-          )}
-        </div>
-      )}
+
+            {/* Popup menu */}
+            {fabOpen && (
+              <div
+                style={{
+                  position: 'absolute',
+                  bottom: 'calc(100% + 8px)',
+                  right: 0,
+                  minWidth: 170,
+                  background: 'hsl(var(--card)/0.95)',
+                  backdropFilter: 'blur(24px) saturate(1.6)',
+                  WebkitBackdropFilter: 'blur(24px) saturate(1.6)',
+                  borderRadius: 16,
+                  boxShadow: '0 0 0 0.5px hsl(var(--border)/0.3), 0 12px 40px hsl(var(--foreground)/0.15), 0 4px 12px hsl(var(--foreground)/0.06)',
+                  overflow: 'hidden',
+                  animation: 'fab-menu-in 0.22s cubic-bezier(0.34,1.56,0.64,1)',
+                }}
+              >
+                <style>{`
+                  @keyframes fab-menu-in {
+                    from { opacity: 0; transform: scale(0.8) translateY(8px); }
+                    to { opacity: 1; transform: scale(1) translateY(0); }
+                  }
+                `}</style>
+                {actions.map((a, i) => (
+                  <button
+                    key={a.label}
+                    onClick={a.action}
+                    className="active:scale-[0.97]"
+                    style={{
+                      width: '100%', display: 'flex', alignItems: 'center', gap: 10,
+                      padding: '12px 16px', border: 'none', cursor: 'pointer',
+                      background: 'transparent',
+                      color: a.primary ? 'hsl(var(--primary))' : 'hsl(var(--foreground))',
+                      fontSize: 13, fontWeight: a.primary ? 600 : 500,
+                      letterSpacing: '-0.01em',
+                      borderBottom: i < actions.length - 1 ? '1px solid hsl(var(--border)/0.08)' : 'none',
+                      transition: 'background 0.12s',
+                      animation: `fab-menu-in 0.22s cubic-bezier(0.34,1.56,0.64,1) ${i * 0.04}s both`,
+                    }}
+                    onMouseEnter={e => (e.currentTarget.style.background = 'hsl(var(--muted)/0.5)')}
+                    onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                  >
+                    <div style={{
+                      width: 30, height: 30, borderRadius: 10,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      background: a.primary ? 'hsl(var(--primary)/0.1)' : 'hsl(var(--muted)/0.5)',
+                      color: a.primary ? 'hsl(var(--primary))' : 'hsl(var(--muted-foreground))',
+                      flexShrink: 0,
+                    }}>
+                      {a.icon}
+                    </div>
+                    {a.label}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        );
+      })()}
     </div>
   );
 
