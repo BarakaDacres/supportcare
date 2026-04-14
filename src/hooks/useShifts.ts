@@ -61,6 +61,7 @@ export function useShifts(rates: PayRates = DEFAULT_RATES) {
   const [error, setError] = useState<string | null>(null);
   const userIdRef = useRef<string | null>(null);
   const initializedRef = useRef(false);
+  const requestVersionRef = useRef(0);
 
   const fetchShifts = useCallback(async (userId?: string, showLoading = false) => {
     const uid = userId ?? userIdRef.current;
@@ -68,6 +69,7 @@ export function useShifts(rates: PayRates = DEFAULT_RATES) {
       setLoading(false);
       return;
     }
+    const requestVersion = ++requestVersionRef.current;
     if (showLoading) setLoading(true);
     setError(null);
 
@@ -82,17 +84,20 @@ export function useShifts(rates: PayRates = DEFAULT_RATES) {
       );
 
       if (err) {
+        if (requestVersion !== requestVersionRef.current) return;
         setError(err.message);
         return;
       }
 
+      if (requestVersion !== requestVersionRef.current) return;
       setShifts((data ?? []).map(row => mapShiftRow(row as Record<string, unknown>)));
     } catch (e: unknown) {
+      if (requestVersion !== requestVersionRef.current) return;
       const msg = e instanceof Error ? e.message : 'Failed to load shifts.';
       setError(msg);
       console.error('[useShifts] fetchShifts:', msg);
     } finally {
-      setLoading(false);
+      if (requestVersion === requestVersionRef.current) setLoading(false);
     }
   }, []);
 
@@ -164,6 +169,7 @@ export function useShifts(rates: PayRates = DEFAULT_RATES) {
   const addShift = useCallback(async (shift: NewShift, ratesOverride?: PayRates): Promise<Shift> => {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) throw new Error('Not logged in. Please sign in and try again.');
+    requestVersionRef.current += 1;
 
     const effectiveRates = ratesOverride ?? rates;
     const isPublicHoliday = shift.is_public_holiday ?? false;
@@ -204,6 +210,7 @@ export function useShifts(rates: PayRates = DEFAULT_RATES) {
   const updateShift = useCallback(async (id: string, shift: Partial<NewShift>, ratesOverride?: PayRates): Promise<void> => {
     const existing = shifts.find(s => s.id === id);
     if (!existing) return;
+    requestVersionRef.current += 1;
 
     const effectiveRates = ratesOverride ?? rates;
     const merged = {
@@ -242,8 +249,24 @@ export function useShifts(rates: PayRates = DEFAULT_RATES) {
   }, [shifts, rates]);
 
   const deleteShift = useCallback(async (id: string): Promise<void> => {
+    requestVersionRef.current += 1;
     // Optimistic update
     setShifts(prev => prev.filter(s => s.id !== id));
+
+    const { error: detachError } = await withTimeout(
+      supabase
+        .from('invoice_items')
+        .update({ shift_id: null })
+        .eq('shift_id', id)
+        .then(r => r)
+    );
+
+    if (detachError) {
+      console.error('[useShifts] detachInvoiceItemsForShift:', detachError);
+      fetchShifts(userIdRef.current ?? undefined, false);
+      return;
+    }
+
     const { error: err } = await withTimeout(supabase.from('shifts').delete().eq('id', id).then(r => r));
     if (err) {
       console.error('[useShifts] deleteShift:', err);
@@ -251,6 +274,42 @@ export function useShifts(rates: PayRates = DEFAULT_RATES) {
       fetchShifts(userIdRef.current ?? undefined, false);
     }
   }, [fetchShifts]);
+
+  const deleteShiftsByClient = useCallback(async (clientId: string): Promise<void> => {
+    const linkedShiftIds = shifts.filter(shift => shift.client_id === clientId).map(shift => shift.id);
+
+    requestVersionRef.current += 1;
+    setShifts(prev => prev.filter(shift => shift.client_id !== clientId));
+
+    if (linkedShiftIds.length > 0) {
+      const { error: detachError } = await withTimeout(
+        supabase
+          .from('invoice_items')
+          .update({ shift_id: null })
+          .in('shift_id', linkedShiftIds)
+          .then(r => r)
+      );
+
+      if (detachError) {
+        console.error('[useShifts] detachInvoiceItemsForClient:', detachError);
+        fetchShifts(userIdRef.current ?? undefined, false);
+        return;
+      }
+    }
+
+    const { error: err } = await withTimeout(
+      supabase
+        .from('shifts')
+        .delete()
+        .eq('client_id', clientId)
+        .then(r => r)
+    );
+
+    if (err) {
+      console.error('[useShifts] deleteShiftsByClient:', err);
+      fetchShifts(userIdRef.current ?? undefined, false);
+    }
+  }, [fetchShifts, shifts]);
 
   const duplicateShift = useCallback(async (id: string): Promise<void> => {
     const shift = shifts.find(s => s.id === id);
@@ -266,5 +325,5 @@ export function useShifts(rates: PayRates = DEFAULT_RATES) {
     });
   }, [shifts, addShift]);
 
-  return { shifts, loading, error, fetchShifts, addShift, updateShift, deleteShift, duplicateShift };
+  return { shifts, loading, error, fetchShifts, addShift, updateShift, deleteShift, deleteShiftsByClient, duplicateShift };
 }

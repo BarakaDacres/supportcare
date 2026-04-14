@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 import { useIncomeStore } from '@/hooks/useIncomeStore';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useShifts } from '@/hooks/useShifts';
@@ -52,7 +53,7 @@ const Index = ({ auth }: IndexProps) => {
       }
     : undefined;
 
-  const { shifts, loading: shiftsLoading, addShift: rawAddShift, updateShift: rawUpdateShift, deleteShift, duplicateShift } = useShifts(rates);
+  const { shifts, loading: shiftsLoading, addShift: rawAddShift, updateShift: rawUpdateShift, deleteShift, deleteShiftsByClient, duplicateShift } = useShifts(rates);
   const { invoices, loading: invoicesLoading, fetchInvoices, updateInvoiceStatus, deleteInvoice } = useInvoices();
   const { clients, loading: clientsLoading, addClient, updateClient, deleteClient, archiveClient, restoreClient } = useClients();
   const { templates, addTemplate, updateTemplate, deleteTemplate } = useShiftTemplates();
@@ -70,6 +71,20 @@ const Index = ({ auth }: IndexProps) => {
     const clientRates = getEffectiveRates(client, rates);
     return rawUpdateShift(id, shift, clientRates);
   }, [rawUpdateShift, clients, rates, shifts]);
+
+  const handleDeleteClient = useCallback(async (id: string) => {
+    await deleteShiftsByClient(id);
+
+    const [templateResult, invoiceResult] = await Promise.all([
+      supabase.from('shift_templates').update({ client_id: null }).eq('client_id', id),
+      supabase.from('invoices').update({ client_id: null }).eq('client_id', id),
+    ]);
+
+    if (templateResult.error) console.error('Failed to detach templates from deleted client:', templateResult.error);
+    if (invoiceResult.error) console.error('Failed to detach invoices from deleted client:', invoiceResult.error);
+
+    await deleteClient(id);
+  }, [deleteClient, deleteShiftsByClient]);
 
   const locked = store.isMonthLocked(store.year, store.month);
 
@@ -231,7 +246,7 @@ const Index = ({ auth }: IndexProps) => {
               loading={clientsLoading}
               onAdd={addClient}
               onUpdate={updateClient}
-              onDelete={deleteClient}
+              onDelete={handleDeleteClient}
               onArchive={archiveClient}
               onRestore={restoreClient}
             />
@@ -349,7 +364,7 @@ const Index = ({ auth }: IndexProps) => {
               loading={clientsLoading}
               onAdd={addClient}
               onUpdate={updateClient}
-              onDelete={deleteClient}
+            onDelete={handleDeleteClient}
               onArchive={archiveClient}
               onRestore={restoreClient}
             />
