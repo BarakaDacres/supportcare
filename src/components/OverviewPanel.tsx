@@ -624,43 +624,46 @@ const EarningsCalendarHeatmap = ({
         )}
       </div>
 
-      {/* ── Quick Actions — Apple-style pill buttons ── */}
+      {/* ── Quick Actions — Modern inline row ── */}
       {(onAddShift || onDuplicateShift || onAddFromTemplate) && (
         <div style={{
-          display: 'flex', gap: 6, marginTop: 12, flexShrink: 0, paddingTop: 10,
-          borderTop: '1px solid hsl(var(--border)/0.12)',
+          display: 'flex', alignItems: 'center', gap: 8, marginTop: 14, flexShrink: 0, paddingTop: 12,
+          borderTop: '1px solid hsl(var(--border)/0.08)',
         }}>
           {onAddShift && (
             <button
               onClick={() => { haptic('light'); onAddShift(selectedDate); }}
-              className="active:scale-[0.95]"
+              className="active:scale-[0.96]"
               style={{
-                flex: 1, fontSize: 11, fontWeight: 600, padding: '8px 0',
-                borderRadius: 10, border: 'none', cursor: 'pointer',
+                display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 5,
+                fontSize: 12, fontWeight: 600, padding: '9px 16px',
+                borderRadius: 22, border: 'none', cursor: 'pointer',
                 background: 'hsl(var(--primary))',
                 color: 'hsl(var(--primary-foreground))',
-                boxShadow: '0 1px 4px hsl(var(--primary)/0.25)',
-                transition: 'transform 0.12s cubic-bezier(0.25,0.1,0.25,1), opacity 0.12s',
-                minWidth: 0,
+                boxShadow: '0 2px 8px hsl(var(--primary)/0.3)',
+                transition: 'transform 0.15s cubic-bezier(0.22,1,0.36,1), box-shadow 0.15s',
                 letterSpacing: '-0.01em',
+                whiteSpace: 'nowrap',
               }}
             >
-              + New Shift
+              <span style={{ fontSize: 14, fontWeight: 700, lineHeight: 1 }}>+</span>
+              New Shift
             </button>
           )}
           {onAddFromTemplate && (
             <button
               onClick={() => { haptic('light'); onAddFromTemplate(selectedDate); }}
-              className="active:scale-[0.95]"
+              className="active:scale-[0.96]"
               style={{
-                flex: 1, fontSize: 11, fontWeight: 600, padding: '8px 0',
-                borderRadius: 10, border: '1px solid hsl(var(--primary)/0.18)',
+                display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 4,
+                fontSize: 12, fontWeight: 600, padding: '9px 14px',
+                borderRadius: 22, border: '1px solid hsl(var(--primary)/0.2)',
                 cursor: 'pointer',
-                background: 'hsl(var(--primary)/0.08)',
+                background: 'hsl(var(--primary)/0.06)',
                 color: 'hsl(var(--primary))',
-                transition: 'transform 0.12s cubic-bezier(0.25,0.1,0.25,1), background 0.12s',
-                minWidth: 0,
+                transition: 'transform 0.15s cubic-bezier(0.22,1,0.36,1), background 0.15s',
                 letterSpacing: '-0.01em',
+                whiteSpace: 'nowrap',
               }}
             >
               Template
@@ -669,15 +672,16 @@ const EarningsCalendarHeatmap = ({
           {onDuplicateShift && lastShift && (
             <button
               onClick={() => { haptic('selection'); onDuplicateShift(lastShift.id); }}
-              className="active:scale-[0.95]"
+              className="active:scale-[0.96]"
               style={{
-                flex: 0.8, fontSize: 11, fontWeight: 500, padding: '8px 0',
-                borderRadius: 10, border: 'none', cursor: 'pointer',
-                background: 'hsl(var(--muted)/0.35)',
-                color: 'hsl(var(--muted-foreground))',
-                transition: 'transform 0.12s cubic-bezier(0.25,0.1,0.25,1), background 0.12s',
-                minWidth: 0,
+                display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: 12, fontWeight: 500, padding: '9px 14px',
+                borderRadius: 22, border: 'none', cursor: 'pointer',
+                background: 'hsl(var(--muted)/0.3)',
+                color: 'hsl(var(--muted-foreground)/0.8)',
+                transition: 'transform 0.15s cubic-bezier(0.22,1,0.36,1), background 0.15s',
                 letterSpacing: '-0.01em',
+                whiteSpace: 'nowrap',
               }}
             >
               Duplicate
