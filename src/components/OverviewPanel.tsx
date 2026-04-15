@@ -550,7 +550,7 @@ const EarningsCalendarHeatmap = ({
         return (
           <div key={rowIdx} className="grid grid-cols-7" style={{
             gap: 2, marginBottom: 2,
-            background: isSelectedRow ? 'hsl(var(--muted)/0.25)' : 'transparent',
+            background: isSelectedRow ? 'hsl(var(--foreground)/0.08)' : 'transparent',
             borderRadius: 8,
             transition: 'background 0.2s ease',
           }}>
@@ -857,12 +857,12 @@ const EarningsCalendarHeatmap = ({
               onClick={() => { haptic('light'); setFabOpen(p => !p); }}
               className="active:scale-[0.92]"
               style={{
-                width: 36, height: 36, borderRadius: '50%', border: 'none', cursor: 'pointer',
-                background: 'hsl(var(--muted)/0.6)',
-                color: 'hsl(var(--foreground))',
-                backdropFilter: 'blur(12px)',
-                WebkitBackdropFilter: 'blur(12px)',
-                boxShadow: '0 2px 8px hsl(var(--foreground)/0.08)',
+                width: 40, height: 40, borderRadius: '50%', border: '1px solid hsl(var(--border)/0.3)', cursor: 'pointer',
+                background: 'hsl(var(--primary))',
+                color: 'hsl(var(--primary-foreground))',
+                backdropFilter: 'blur(16px)',
+                WebkitBackdropFilter: 'blur(16px)',
+                boxShadow: '0 4px 14px hsl(var(--primary)/0.4), 0 1px 3px hsl(var(--foreground)/0.1)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 transition: 'transform 0.25s cubic-bezier(0.34,1.56,0.64,1)',
                 transform: fabOpen ? 'rotate(45deg)' : 'rotate(0deg)',
