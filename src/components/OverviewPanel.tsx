@@ -481,9 +481,6 @@ const EarningsCalendarHeatmap = ({
   // Last shift for duplicate action
   const lastShift = dayShifts.length > 0 ? dayShifts[dayShifts.length - 1] : null;
 
-  // Last shift for duplicate action
-  const lastShift = dayShifts.length > 0 ? dayShifts[dayShifts.length - 1] : null;
-
   // Day label helpers
   const dayOfWeekFull = selectedDateObj.toLocaleDateString('en-AU', { weekday: 'long' });
   const isToday2 = selectedDate === todayStr;
