@@ -481,62 +481,273 @@ const EarningsCalendarHeatmap = ({
   // Last shift for duplicate action
   const lastShift = dayShifts.length > 0 ? dayShifts[dayShifts.length - 1] : null;
 
-  // ── Detail Panel ──
-  const detailPanel = (
-    <div
-      key={`${selectedDate}-${animKey}`}
-      style={{
-        display: 'flex', flexDirection: 'column', height: '100%',
-        animation: 'calPanelIn 0.22s cubic-bezier(0.25,0.1,0.25,1)',
-      }}
-    >
-      {/* ── Day Summary Header ── */}
-      <div style={{ marginBottom: 14, flexShrink: 0 }}>
-        <p style={{
-          fontSize: 10, fontWeight: 600, letterSpacing: '0.06em',
-          textTransform: 'uppercase', color: 'hsl(var(--muted-foreground))',
-          opacity: 0.6, marginBottom: 2,
-        }}>
-          {selectedDateObj.toLocaleDateString('en-AU', { weekday: 'long' })}
-        </p>
-        <p style={{
-          fontSize: 20, fontWeight: 700, color: 'hsl(var(--foreground))',
-          lineHeight: 1.15, letterSpacing: '-0.01em',
-        }}>
-          {selectedDateObj.getDate()} {selectedDateObj.toLocaleDateString('en-AU', { month: 'short' })}
-        </p>
-        {dayShifts.length > 0 && (
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginTop: 6, flexWrap: 'wrap' }}>
-            <span className="money-text" style={{ fontSize: 15, fontWeight: 700 }}>
-              {formatCurrency(dayTotal)}
-            </span>
-            <span style={{ fontSize: 10, color: 'hsl(var(--muted-foreground))' }}>
-              {dayShifts.length} shift{dayShifts.length !== 1 ? 's' : ''}
-            </span>
-            {dayHours > 0 && (
-              <span style={{ fontSize: 10, color: 'hsl(var(--muted-foreground))' }}>
-                {dayHours.toFixed(1)}h
-              </span>
-            )}
-            {daySleepoverCount > 0 && (
-              <span style={{ fontSize: 10, color: 'hsl(var(--sleepover-color))' }}>
-                {daySleepoverCount} sleepover{daySleepoverCount !== 1 ? 's' : ''}
-              </span>
-            )}
-          </div>
-        )}
+  // Last shift for duplicate action
+  const lastShift = dayShifts.length > 0 ? dayShifts[dayShifts.length - 1] : null;
+
+  // Day label helpers
+  const dayOfWeekFull = selectedDateObj.toLocaleDateString('en-AU', { weekday: 'long' });
+  const isToday2 = selectedDate === todayStr;
+  const isTomorrow = (() => {
+    const tmr = new Date(todayDate);
+    tmr.setDate(tmr.getDate() + 1);
+    return selectedDate === formatDateISO(tmr);
+  })();
+  const dayLabel = isToday2 ? 'TODAY' : isTomorrow ? 'TOMORROW' : dayOfWeekFull.toUpperCase();
+  const dayLabelDate = `${selectedDateObj.getDate()}/${selectedDateObj.getMonth() + 1}/${selectedDateObj.getFullYear()}`;
+
+  // FAB actions
+  const fabActions = [
+    onAddShift && {
+      label: 'New Shift',
+      icon: (<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="7" y="3" width="2" height="10" rx="1" fill="currentColor"/><rect x="3" y="7" width="10" height="2" rx="1" fill="currentColor"/></svg>),
+      primary: true,
+      action: () => { haptic('light'); onAddShift(selectedDate); setFabOpen(false); },
+    },
+    onAddFromTemplate && {
+      label: 'Template',
+      icon: (<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="2" y="2" width="5" height="5" rx="1.5" fill="currentColor" opacity="0.7"/><rect x="9" y="2" width="5" height="5" rx="1.5" fill="currentColor" opacity="0.5"/><rect x="2" y="9" width="5" height="5" rx="1.5" fill="currentColor" opacity="0.5"/><rect x="9" y="9" width="5" height="5" rx="1.5" fill="currentColor" opacity="0.3"/></svg>),
+      primary: false,
+      action: () => { haptic('light'); onAddFromTemplate(selectedDate); setFabOpen(false); },
+    },
+    onDuplicateShift && lastShift && {
+      label: 'Duplicate',
+      icon: (<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="1" y="3" width="9" height="10" rx="2" stroke="currentColor" strokeWidth="1.5" fill="none"/><path d="M6 3V2.5A1.5 1.5 0 0 1 7.5 1H13a1.5 1.5 0 0 1 1.5 1.5V10A1.5 1.5 0 0 1 13 11.5H12" stroke="currentColor" strokeWidth="1.5" fill="none"/></svg>),
+      primary: false,
+      action: () => { haptic('selection'); onDuplicateShift(lastShift.id); setFabOpen(false); },
+    },
+  ].filter(Boolean) as { label: string; icon: React.ReactNode; primary: boolean; action: () => void }[];
+
+  // ── Calendar Grid ──
+  const calendarGrid = (
+    <div>
+      {/* Day headers */}
+      <div className="grid grid-cols-7" style={{ gap: 2, marginBottom: 4 }}>
+        {DAY_LABELS.map((d, i) => {
+          const currentDow = selectedDateObj.getDay();
+          const mondayIdx = currentDow === 0 ? 6 : currentDow - 1;
+          const isActiveDay = i === mondayIdx;
+          return (
+            <div key={i} style={{
+              textAlign: 'center', fontSize: 10, fontWeight: 600,
+              color: isActiveDay ? 'hsl(var(--primary))' : 'hsl(var(--muted-foreground))',
+              opacity: isActiveDay ? 1 : 0.4,
+              padding: '2px 0',
+              letterSpacing: '0.02em',
+            }}>
+              {d}
+            </div>
+          );
+        })}
       </div>
 
-      {/* ── Shift List ── */}
-      <div style={{ flex: 1, overflowY: 'auto', minHeight: 0 }}>
+      {/* Grid rows */}
+      {Array.from({ length: rows }).map((_, rowIdx) => {
+        // Highlight the row containing selected date
+        const rowDays = Array.from({ length: 7 }).map((_, colIdx) => {
+          const cellIndex = rowIdx * 7 + colIdx;
+          return cellIndex - offsetDays + 1;
+        });
+        const selectedDayNum = selectedDateObj.getDate();
+        const isSelectedRow = rowDays.includes(selectedDayNum) && selectedDateObj.getMonth() === month && selectedDateObj.getFullYear() === year;
+
+        return (
+          <div key={rowIdx} className="grid grid-cols-7" style={{
+            gap: 2, marginBottom: 2,
+            background: isSelectedRow ? 'hsl(var(--muted)/0.25)' : 'transparent',
+            borderRadius: 8,
+            transition: 'background 0.2s ease',
+          }}>
+            {Array.from({ length: 7 }).map((_, colIdx) => {
+              const cellIndex = rowIdx * 7 + colIdx;
+              const dayNum = cellIndex - offsetDays + 1;
+
+              if (dayNum < 1 || dayNum > lastDay.getDate()) {
+                // Show outside-month days faintly
+                const prevMonth = new Date(year, month, 0);
+                const nextFirst = new Date(year, month + 1, 1);
+                let outsideNum: number | null = null;
+                if (dayNum < 1) outsideNum = prevMonth.getDate() + dayNum;
+                else outsideNum = dayNum - lastDay.getDate();
+
+                return (
+                  <div key={colIdx} style={{
+                    aspectRatio: '1', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  }}>
+                    {outsideNum && (
+                      <span style={{ fontSize: 11, color: 'hsl(var(--foreground)/0.15)', fontWeight: 400 }}>
+                        {outsideNum}
+                      </span>
+                    )}
+                  </div>
+                );
+              }
+
+              const dateStr = formatDateISO(new Date(year, month, dayNum));
+              const dayData = shiftsByDate[dateStr];
+              const hasShifts = !!dayData && dayData.length > 0;
+              const isToday = dateStr === todayStr;
+              const isSelected = selectedDate === dateStr;
+
+              return (
+                <button
+                  key={colIdx}
+                  onClick={() => handleDayClick(dateStr)}
+                  style={{
+                    width: '100%', aspectRatio: '1', borderRadius: '50%',
+                    display: 'flex', flexDirection: 'column',
+                    alignItems: 'center', justifyContent: 'center', gap: 1,
+                    position: 'relative',
+                    transition: 'all 0.15s cubic-bezier(0.25,0.1,0.25,1)',
+                    transform: isSelected ? 'scale(1.08)' : 'scale(1)',
+                    background: isSelected ? 'hsl(var(--primary))' : 'transparent',
+                    boxShadow: isSelected
+                      ? '0 2px 10px hsl(var(--primary)/0.4)'
+                      : isToday
+                      ? 'inset 0 0 0 1.5px hsl(var(--primary)/0.3)'
+                      : 'none',
+                    cursor: 'pointer', border: 'none',
+                    WebkitTapHighlightColor: 'transparent', padding: 0,
+                  }}
+                  onPointerDown={e => { if (!isSelected) (e.currentTarget as HTMLButtonElement).style.transform = 'scale(0.88)'; }}
+                  onPointerUp={e => { (e.currentTarget as HTMLButtonElement).style.transform = isSelected ? 'scale(1.08)' : ''; }}
+                  onPointerLeave={e => { (e.currentTarget as HTMLButtonElement).style.transform = isSelected ? 'scale(1.08)' : ''; }}
+                >
+                  <span style={{
+                    fontSize: 12, lineHeight: 1,
+                    fontWeight: isSelected ? 700 : isToday ? 600 : hasShifts ? 500 : 400,
+                    color: isSelected ? 'white'
+                      : isToday ? 'hsl(var(--primary))'
+                      : hasShifts ? 'hsl(var(--foreground))' : 'hsl(var(--foreground)/0.35)',
+                  }}>
+                    {dayNum}
+                  </span>
+                  {hasShifts && !isSelected && (
+                    <div style={{ display: 'flex', gap: 2, height: 3.5 }}>
+                      {[...new Set(dayData.map(s => shiftDotColor(s)))].slice(0, 3).map((color, i) => (
+                        <span key={i} style={{
+                          width: 3.5, height: 3.5, borderRadius: '50%', background: color,
+                        }} />
+                      ))}
+                    </div>
+                  )}
+                  {isSelected && hasShifts && (
+                    <div style={{
+                      width: 4, height: 4, borderRadius: '50%',
+                      background: 'rgba(255,255,255,0.8)',
+                      position: 'absolute', bottom: 4,
+                    }} />
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        );
+      })}
+    </div>
+  );
+
+  // ── Composite Layout — Apple Calendar Style ──
+  return (
+    <div className="card-elevated overflow-hidden" style={{ padding: 0 }}>
+      {/* ─── Top: Date Info Left + Calendar Grid Right ─── */}
+      <div style={{
+        display: 'grid', gridTemplateColumns: '110px 1fr',
+        borderBottom: '1px solid hsl(var(--border)/0.12)',
+      }}>
+        {/* Left — Month + Day display */}
+        <div style={{
+          padding: '16px 14px',
+          display: 'flex', flexDirection: 'column', justifyContent: 'center',
+          borderRight: '1px solid hsl(var(--border)/0.1)',
+        }}>
+          <span style={{
+            fontSize: 11, fontWeight: 700, letterSpacing: '0.04em',
+            textTransform: 'uppercase',
+            color: 'hsl(var(--muted-foreground))', opacity: 0.5,
+          }}>
+            {MONTH_NAMES[month].toUpperCase()}
+          </span>
+          <span style={{
+            fontSize: 14, fontWeight: 600, letterSpacing: '-0.01em',
+            color: 'hsl(var(--primary))',
+            marginTop: 2,
+          }}>
+            {dayOfWeekFull}
+          </span>
+          <span style={{
+            fontSize: 48, fontWeight: 200, letterSpacing: '-0.04em',
+            lineHeight: 1,
+            color: 'hsl(var(--foreground))',
+            marginTop: 4,
+          }}>
+            {selectedDateObj.getDate()}
+          </span>
+          {/* Earnings badge */}
+          {dayShifts.length > 0 && (
+            <div style={{
+              marginTop: 8, display: 'flex', flexDirection: 'column', gap: 2,
+            }}>
+              <span className="money-text" style={{ fontSize: 14, fontWeight: 700 }}>
+                {formatCurrency(dayTotal)}
+              </span>
+              <span style={{ fontSize: 9, color: 'hsl(var(--muted-foreground))' }}>
+                {dayShifts.length} shift{dayShifts.length !== 1 ? 's' : ''}
+                {dayHours > 0 ? ` · ${dayHours.toFixed(1)}h` : ''}
+              </span>
+            </div>
+          )}
+        </div>
+
+        {/* Right — Calendar Grid */}
+        <div style={{ padding: '12px 10px', display: 'flex', flexDirection: 'column', justifyContent: 'flex-start' }}>
+          {calendarGrid}
+        </div>
+      </div>
+
+      {/* ─── Bottom: Events List ─── */}
+      <div
+        key={`${selectedDate}-${animKey}`}
+        style={{
+          padding: '12px 16px',
+          minHeight: 80,
+          animation: 'calPanelIn 0.22s cubic-bezier(0.25,0.1,0.25,1)',
+          position: 'relative',
+        }}
+      >
+        {/* Day label header */}
+        <div style={{
+          display: 'flex', alignItems: 'baseline', justifyContent: 'space-between',
+          marginBottom: 10,
+        }}>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
+            <span style={{
+              fontSize: 11, fontWeight: 800, letterSpacing: '0.05em',
+              color: isToday2 ? 'hsl(var(--primary))' : 'hsl(var(--muted-foreground))',
+            }}>
+              {dayLabel}
+            </span>
+            <span style={{
+              fontSize: 11, fontWeight: 400, color: 'hsl(var(--muted-foreground))', opacity: 0.6,
+            }}>
+              {dayLabelDate}
+            </span>
+          </div>
+          {daySleepoverCount > 0 && (
+            <span style={{ fontSize: 9, color: 'hsl(var(--sleepover-color))', fontWeight: 600 }}>
+              {daySleepoverCount} sleepover{daySleepoverCount !== 1 ? 's' : ''}
+            </span>
+          )}
+        </div>
+
+        {/* Shift events */}
         {dayShifts.length === 0 ? (
           <div style={{
             display: 'flex', flexDirection: 'column', alignItems: 'center',
-            justifyContent: 'center', padding: '28px 8px', opacity: 0.5,
+            justifyContent: 'center', padding: '20px 8px', opacity: 0.4,
           }}>
             <CalendarDays className="w-5 h-5 mb-2" style={{ color: 'hsl(var(--muted-foreground))' }} />
             <p style={{ fontSize: 11, color: 'hsl(var(--muted-foreground))', textAlign: 'center' }}>
-              No shifts for this day
+              No shifts scheduled
             </p>
           </div>
         ) : (
@@ -550,53 +761,45 @@ const EarningsCalendarHeatmap = ({
                 <div key={s.id}>
                   {idx > 0 && (
                     <div style={{
-                      height: 1, margin: '0 4px',
-                      background: 'hsl(var(--border)/0.2)',
+                      height: 1, margin: '0 0',
+                      background: 'hsl(var(--border)/0.1)',
                     }} />
                   )}
                   <div
                     style={{
-                      display: 'flex', alignItems: 'stretch', gap: 10,
-                      padding: '10px 6px',
-                      position: 'relative',
+                      display: 'flex', alignItems: 'stretch', gap: 12,
+                      padding: '10px 4px',
                       animation: `calItemSlide 0.2s cubic-bezier(0.25,0.1,0.25,1) ${idx * 35}ms both`,
-                      borderRadius: 8,
+                      borderRadius: 10,
                       background: active ? 'hsl(var(--stat-green)/0.06)' : 'transparent',
                       transition: 'background 0.15s ease',
                     }}
                   >
-                    {/* Left accent bar */}
+                    {/* Dot indicator */}
                     <div style={{
-                      width: 3, borderRadius: 2, flexShrink: 0,
-                      background: shiftDotColor(s), opacity: 0.8,
-                      alignSelf: 'stretch', minHeight: 28,
+                      width: 8, height: 8, borderRadius: '50%', flexShrink: 0,
+                      background: shiftDotColor(s),
+                      marginTop: 4,
                     }} />
 
                     {/* Content */}
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 4 }}>
-                        <span style={{ fontSize: 12, fontWeight: 600, color: 'hsl(var(--foreground))' }}>
+                      <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
+                        <span style={{ fontSize: 13, fontWeight: 600, color: 'hsl(var(--foreground))' }}>
                           {formatTime(s.start_time)} – {formatTime(s.end_time)}
-                          {!s.is_sleepover && s.hours_worked > 0 && (
-                            <span style={{
-                              color: 'hsl(var(--muted-foreground))',
-                              fontWeight: 400, marginLeft: 4, fontSize: 10,
-                            }}>
-                              {Number(s.hours_worked).toFixed(1)}h
-                            </span>
-                          )}
                         </span>
-                        <span className="money-text" style={{ fontSize: 12, fontWeight: 700, flexShrink: 0 }}>
-                          {formatCurrency(effectiveGrossPay(s))}
-                        </span>
-                      </div>
-
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 4 }}>
-                        {s.client_name && (
-                          <span style={{ fontSize: 10, color: 'hsl(var(--muted-foreground))' }}>
-                            {s.client_name}
+                        {!s.is_sleepover && s.hours_worked > 0 && (
+                          <span style={{ fontSize: 10, color: 'hsl(var(--muted-foreground))', fontWeight: 400 }}>
+                            {Number(s.hours_worked).toFixed(1)}h
                           </span>
                         )}
+                      </div>
+                      {s.client_name && (
+                        <p style={{ fontSize: 12, fontWeight: 600, color: 'hsl(var(--foreground))', marginTop: 2, letterSpacing: '-0.01em' }}>
+                          {s.client_name}
+                        </p>
+                      )}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 4 }}>
                         <span style={{
                           fontSize: 8, fontWeight: 600, padding: '1.5px 5px', borderRadius: 5,
                           background: type.bg, color: type.fg,
@@ -622,8 +825,6 @@ const EarningsCalendarHeatmap = ({
                           </span>
                         )}
                       </div>
-
-                      {/* Active shift progress bar */}
                       {active && (
                         <div style={{
                           marginTop: 6, height: 3, borderRadius: 2,
@@ -638,259 +839,90 @@ const EarningsCalendarHeatmap = ({
                         </div>
                       )}
                     </div>
+
+                    {/* Earnings right-aligned */}
+                    <span className="money-text" style={{
+                      fontSize: 13, fontWeight: 700, flexShrink: 0, alignSelf: 'flex-start', marginTop: 2,
+                    }}>
+                      {formatCurrency(effectiveGrossPay(s))}
+                    </span>
                   </div>
                 </div>
               );
             })}
           </div>
         )}
-      </div>
 
-      {/* ── Quick Actions — Animated FAB ── */}
-      {(onAddShift || onDuplicateShift || onAddFromTemplate) && (() => {
-        const actions = [
-          onAddShift && {
-            label: 'New Shift',
-            icon: (
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="7" y="3" width="2" height="10" rx="1" fill="currentColor"/><rect x="3" y="7" width="10" height="2" rx="1" fill="currentColor"/></svg>
-            ),
-            primary: true,
-            action: () => { haptic('light'); onAddShift(selectedDate); setFabOpen(false); },
-          },
-          onAddFromTemplate && {
-            label: 'Template',
-            icon: (
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="2" y="2" width="5" height="5" rx="1.5" fill="currentColor" opacity="0.7"/><rect x="9" y="2" width="5" height="5" rx="1.5" fill="currentColor" opacity="0.5"/><rect x="2" y="9" width="5" height="5" rx="1.5" fill="currentColor" opacity="0.5"/><rect x="9" y="9" width="5" height="5" rx="1.5" fill="currentColor" opacity="0.3"/></svg>
-            ),
-            primary: false,
-            action: () => { haptic('light'); onAddFromTemplate(selectedDate); setFabOpen(false); },
-          },
-          onDuplicateShift && lastShift && {
-            label: 'Duplicate',
-            icon: (
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="1" y="3" width="9" height="10" rx="2" stroke="currentColor" strokeWidth="1.5" fill="none"/><path d="M6 3V2.5A1.5 1.5 0 0 1 7.5 1H13a1.5 1.5 0 0 1 1.5 1.5V10A1.5 1.5 0 0 1 13 11.5H12" stroke="currentColor" strokeWidth="1.5" fill="none"/></svg>
-            ),
-            primary: false,
-            action: () => { haptic('selection'); onDuplicateShift(lastShift.id); setFabOpen(false); },
-          },
-        ].filter(Boolean) as { label: string; icon: React.ReactNode; primary: boolean; action: () => void }[];
+        {/* FAB */}
+        {(onAddShift || onDuplicateShift || onAddFromTemplate) && (
+          <div ref={fabRef} style={{ position: 'absolute', bottom: 12, right: 16 }}>
+            <button
+              onClick={() => { haptic('light'); setFabOpen(p => !p); }}
+              className="active:scale-[0.92]"
+              style={{
+                width: 36, height: 36, borderRadius: '50%', border: 'none', cursor: 'pointer',
+                background: 'hsl(var(--muted)/0.6)',
+                color: 'hsl(var(--foreground))',
+                backdropFilter: 'blur(12px)',
+                WebkitBackdropFilter: 'blur(12px)',
+                boxShadow: '0 2px 8px hsl(var(--foreground)/0.08)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                transition: 'transform 0.25s cubic-bezier(0.34,1.56,0.64,1)',
+                transform: fabOpen ? 'rotate(45deg)' : 'rotate(0deg)',
+              }}
+            >
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                <rect x="7" y="2.5" width="2" height="11" rx="1" fill="currentColor"/>
+                <rect x="2.5" y="7" width="11" height="2" rx="1" fill="currentColor"/>
+              </svg>
+            </button>
 
-        return (
-          <div style={{ display: 'flex', justifyContent: 'center', marginTop: 14, flexShrink: 0, paddingTop: 12, borderTop: '1px solid hsl(var(--border)/0.08)' }}>
-            <div ref={fabRef} style={{ position: 'relative', display: 'flex', justifyContent: 'center' }}>
-              <button
-                onClick={() => { haptic('light'); setFabOpen(p => !p); }}
-                className="active:scale-[0.92]"
-                style={{
-                  width: 44, height: 44, borderRadius: '50%', border: 'none', cursor: 'pointer',
-                  background: 'hsl(var(--primary))',
-                  color: 'hsl(var(--primary-foreground))',
-                  boxShadow: '0 4px 16px hsl(var(--primary)/0.35), 0 1px 3px hsl(var(--foreground)/0.08)',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  transition: 'transform 0.25s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.2s',
-                  transform: fabOpen ? 'rotate(45deg)' : 'rotate(0deg)',
-                }}
-              >
-                <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
-                  <rect x="8" y="3" width="2" height="12" rx="1" fill="currentColor"/>
-                  <rect x="3" y="8" width="12" height="2" rx="1" fill="currentColor"/>
-                </svg>
-              </button>
-
-              {fabOpen && (
-                <div
-                  style={{
-                    position: 'absolute',
-                    bottom: 'calc(100% + 8px)',
-                    left: '50%',
-                    marginLeft: -93,
-                    width: 186,
-                    background: 'hsl(var(--card)/0.95)',
-                    backdropFilter: 'blur(24px) saturate(1.6)',
-                    WebkitBackdropFilter: 'blur(24px) saturate(1.6)',
-                    borderRadius: 16,
-                    boxShadow: '0 0 0 0.5px hsl(var(--border)/0.3), 0 12px 40px hsl(var(--foreground)/0.15), 0 4px 12px hsl(var(--foreground)/0.06)',
-                    overflow: 'hidden',
-                    animation: 'fab-menu-in 0.22s cubic-bezier(0.34,1.56,0.64,1)',
-                  }}
-                >
-                  <style>{`
-                    @keyframes fab-menu-in {
-                      from { opacity: 0; transform: scale(0.8) translateY(8px); }
-                      to { opacity: 1; transform: scale(1) translateY(0); }
-                    }
-                  `}</style>
-                  {actions.map((a, i) => (
-                    <button
-                      key={a.label}
-                      onClick={a.action}
-                      className="active:scale-[0.97]"
-                      style={{
-                        width: '100%', display: 'flex', alignItems: 'center', gap: 10,
-                        padding: '12px 16px', border: 'none', cursor: 'pointer',
-                        background: 'transparent',
-                        color: a.primary ? 'hsl(var(--primary))' : 'hsl(var(--foreground))',
-                        fontSize: 13, fontWeight: a.primary ? 600 : 500,
-                        letterSpacing: '-0.01em',
-                        borderBottom: i < actions.length - 1 ? '1px solid hsl(var(--border)/0.08)' : 'none',
-                        transition: 'background 0.12s',
-                        animation: `fab-menu-in 0.22s cubic-bezier(0.34,1.56,0.64,1) ${i * 0.04}s both`,
-                      }}
-                      onMouseEnter={e => (e.currentTarget.style.background = 'hsl(var(--muted)/0.5)')}
-                      onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
-                    >
-                      <div style={{
-                        width: 30, height: 30, borderRadius: 10,
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        background: a.primary ? 'hsl(var(--primary)/0.1)' : 'hsl(var(--muted)/0.5)',
-                        color: a.primary ? 'hsl(var(--primary))' : 'hsl(var(--muted-foreground))',
-                        flexShrink: 0,
-                      }}>
-                        {a.icon}
-                      </div>
-                      {a.label}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
+            {fabOpen && (
+              <div style={{
+                position: 'absolute', bottom: 'calc(100% + 8px)', right: 0,
+                width: 186,
+                background: 'hsl(var(--card)/0.95)',
+                backdropFilter: 'blur(24px) saturate(1.6)',
+                WebkitBackdropFilter: 'blur(24px) saturate(1.6)',
+                borderRadius: 14,
+                boxShadow: '0 0 0 0.5px hsl(var(--border)/0.3), 0 12px 40px hsl(var(--foreground)/0.15)',
+                overflow: 'hidden',
+                animation: 'fab-menu-in 0.22s cubic-bezier(0.34,1.56,0.64,1)',
+              }}>
+                {fabActions.map((a, i) => (
+                  <button
+                    key={a.label}
+                    onClick={a.action}
+                    className="active:scale-[0.97]"
+                    style={{
+                      width: '100%', display: 'flex', alignItems: 'center', gap: 10,
+                      padding: '11px 14px', border: 'none', cursor: 'pointer',
+                      background: 'transparent',
+                      color: a.primary ? 'hsl(var(--primary))' : 'hsl(var(--foreground))',
+                      fontSize: 13, fontWeight: a.primary ? 600 : 500,
+                      borderBottom: i < fabActions.length - 1 ? '1px solid hsl(var(--border)/0.08)' : 'none',
+                      transition: 'background 0.12s',
+                      animation: `fab-menu-in 0.22s cubic-bezier(0.34,1.56,0.64,1) ${i * 0.04}s both`,
+                    }}
+                    onMouseEnter={e => (e.currentTarget.style.background = 'hsl(var(--muted)/0.5)')}
+                    onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                  >
+                    <div style={{
+                      width: 28, height: 28, borderRadius: 8,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      background: a.primary ? 'hsl(var(--primary)/0.1)' : 'hsl(var(--muted)/0.5)',
+                      color: a.primary ? 'hsl(var(--primary))' : 'hsl(var(--muted-foreground))',
+                      flexShrink: 0,
+                    }}>
+                      {a.icon}
+                    </div>
+                    {a.label}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
-        );
-      })()}
-    </div>
-  );
-
-  // ── Calendar Grid ──
-  const calendarGrid = (
-    <div>
-      {/* Day headers */}
-      <div className="grid grid-cols-7" style={{ gap: 2, marginBottom: 4 }}>
-        {DAY_LABELS.map((d, i) => (
-          <div key={i} style={{
-            textAlign: 'center', fontSize: 9, fontWeight: 600,
-            color: 'hsl(var(--muted-foreground))', opacity: 0.4,
-            padding: '2px 0',
-          }}>
-            {d}
-          </div>
-        ))}
-      </div>
-
-      {/* Grid rows */}
-      {Array.from({ length: rows }).map((_, rowIdx) => (
-        <div key={rowIdx} className="grid grid-cols-7" style={{ gap: 2, marginBottom: 2 }}>
-          {Array.from({ length: 7 }).map((_, colIdx) => {
-            const cellIndex = rowIdx * 7 + colIdx;
-            const dayNum = cellIndex - offsetDays + 1;
-
-            if (dayNum < 1 || dayNum > lastDay.getDate()) {
-              return <div key={colIdx} style={{ aspectRatio: '1' }} />;
-            }
-
-            const dateStr = formatDateISO(new Date(year, month, dayNum));
-            const dayData = shiftsByDate[dateStr];
-            const hasShifts = !!dayData && dayData.length > 0;
-            const isToday = dateStr === todayStr;
-            const isSelected = selectedDate === dateStr;
-
-            // Unique shift type colors as dots (max 3)
-            const dots = hasShifts
-              ? [...new Set(dayData.map(s => shiftDotColor(s)))].slice(0, 3)
-              : [];
-
-            return (
-              <button
-                key={colIdx}
-                onClick={() => handleDayClick(dateStr)}
-                style={{
-                  width: '100%',
-                  aspectRatio: '1',
-                  borderRadius: '50%',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: 1,
-                  position: 'relative',
-                  transition: 'all 0.15s cubic-bezier(0.25,0.1,0.25,1)',
-                  transform: isSelected ? 'scale(1.08)' : 'scale(1)',
-                  background: isSelected
-                    ? 'hsl(var(--primary))'
-                    : 'transparent',
-                  boxShadow: isSelected
-                    ? '0 2px 8px hsl(var(--primary)/0.3)'
-                    : isToday
-                    ? 'inset 0 0 0 1.5px hsl(var(--primary)/0.3)'
-                    : 'none',
-                  cursor: 'pointer',
-                  border: 'none',
-                  WebkitTapHighlightColor: 'transparent',
-                  padding: 0,
-                  overflow: 'hidden',
-                }}
-                onPointerDown={e => {
-                  if (!isSelected) (e.currentTarget as HTMLButtonElement).style.transform = 'scale(0.88)';
-                }}
-                onPointerUp={e => {
-                  (e.currentTarget as HTMLButtonElement).style.transform = isSelected ? 'scale(1.08)' : '';
-                }}
-                onPointerLeave={e => {
-                  (e.currentTarget as HTMLButtonElement).style.transform = isSelected ? 'scale(1.08)' : '';
-                }}
-              >
-                <span style={{
-                  fontSize: 11, lineHeight: 1,
-                  fontWeight: isSelected ? 700 : isToday ? 600 : 400,
-                  color: isSelected
-                    ? 'white'
-                    : isToday
-                    ? 'hsl(var(--primary))'
-                    : hasShifts
-                    ? 'hsl(var(--foreground))'
-                    : 'hsl(var(--foreground)/0.35)',
-                }}>
-                  {dayNum}
-                </span>
-                {dots.length > 0 && (
-                  <div style={{ display: 'flex', gap: 2, height: 3.5 }}>
-                    {dots.map((color, i) => (
-                      <span key={i} style={{
-                        width: 3.5, height: 3.5, borderRadius: '50%',
-                        background: isSelected ? 'rgba(255,255,255,0.65)' : color,
-                        transition: 'background 0.12s ease',
-                      }} />
-                    ))}
-                  </div>
-                )}
-              </button>
-            );
-          })}
-        </div>
-      ))}
-    </div>
-  );
-
-  // ── Composite Layout ──
-  return (
-    <div className="card-elevated overflow-hidden" style={{ padding: 0 }}>
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: '1fr 1fr',
-        minHeight: 280,
-      }}>
-        {/* Left: Detail panel */}
-        <div style={{
-          padding: '14px 12px',
-          borderRight: '1px solid hsl(var(--border)/0.2)',
-          display: 'flex', flexDirection: 'column',
-          maxHeight: 400, overflowY: 'auto',
-        }}>
-          {detailPanel}
-        </div>
-        {/* Right: Calendar */}
-        <div style={{ padding: '12px 10px', display: 'flex', flexDirection: 'column', justifyContent: 'flex-start' }}>
-          {calendarGrid}
-        </div>
+        )}
       </div>
 
       <style>{`
@@ -905,6 +937,10 @@ const EarningsCalendarHeatmap = ({
         @keyframes calPulse {
           0%, 100% { opacity: 1; }
           50% { opacity: 0.4; }
+        }
+        @keyframes fab-menu-in {
+          from { opacity: 0; transform: scale(0.8) translateY(8px); }
+          to { opacity: 1; transform: scale(1) translateY(0); }
         }
       `}</style>
     </div>
