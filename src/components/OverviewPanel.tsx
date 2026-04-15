@@ -590,7 +590,7 @@ const EarningsCalendarHeatmap = ({
                   key={colIdx}
                   onClick={() => handleDayClick(dateStr)}
                   style={{
-                    width: '100%', aspectRatio: '1', borderRadius: '50%',
+                    width: '100%', aspectRatio: '1', borderRadius: 8,
                     display: 'flex', flexDirection: 'column',
                     alignItems: 'center', justifyContent: 'center', gap: 1,
                     position: 'relative',
@@ -672,7 +672,7 @@ const EarningsCalendarHeatmap = ({
             {dayOfWeekFull}
           </span>
           <span style={{
-            fontSize: 48, fontWeight: 200, letterSpacing: '-0.04em',
+            fontSize: 48, fontWeight: 700, letterSpacing: '-0.04em',
             lineHeight: 1,
             color: 'hsl(var(--foreground))',
             marginTop: 4,
