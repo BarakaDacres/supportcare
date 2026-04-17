@@ -181,6 +181,19 @@
     --lg-specular: 0 0% 100% / 0.04;
 
     --divider: 220 10% 14%;
+
+    /* ── Liquid Glass layered surfaces (dark) ── */
+    --glass-1: 220 16% 8% / 0.6;
+    --glass-2: 220 16% 9% / 0.78;
+    --glass-3: 220 16% 11% / 0.92;
+    --glass-stroke: 220 10% 100% / 0.07;
+    --glass-stroke-strong: 220 10% 100% / 0.14;
+    --glass-highlight: 220 10% 100% / 0.05;
+    --glass-tint: 211 100% 58% / 0.05;
+
+    /* ── Ambient gradients (dark) ── */
+    --ambient-1: radial-gradient(1200px 600px at 10% -10%, hsl(211 100% 58% / 0.10), transparent 60%);
+    --ambient-2: radial-gradient(900px 500px at 110% 10%, hsl(262 75% 72% / 0.08), transparent 60%);
   }
 }
 
