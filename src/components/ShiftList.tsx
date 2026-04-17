@@ -719,143 +719,194 @@ const ShiftCard = ({
 
   return (
     <div className="relative overflow-hidden rounded-2xl" style={{ touchAction: swiping ? 'none' : 'pan-y' }}>
-      {/* Edit reveal (left background) */}
+      {/* Edit reveal (left) */}
       <div
-        className="absolute inset-y-0 left-0 flex items-center justify-start pl-5 pointer-events-none"
+        className="absolute inset-y-0 left-0 flex items-center justify-start pl-6 pointer-events-none"
         style={{
-          background: 'hsl(142 71% 45%)',
+          background: 'linear-gradient(90deg, hsl(142 71% 45%), hsl(142 71% 50%))',
           width: '100%',
           borderRadius: 'inherit',
-          opacity: Math.min(1, Math.max(0, translateX - 16) / (SWIPE_THRESHOLD - 16)),
-          transition: swiping ? 'none' : 'opacity 0.25s',
+          opacity: Math.min(1, Math.max(0, translateX - 12) / (SWIPE_THRESHOLD - 12)),
+          transition: swiping ? 'none' : 'opacity 0.2s',
         }}
       >
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2"
+          style={{ transform: `scale(${Math.min(1, Math.max(0.8, translateX / SWIPE_SNAP))})`, transition: swiping ? 'none' : 'transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1)' }}>
           <Pencil className="w-4 h-4 text-white" strokeWidth={2.5} />
-          <span className="text-white text-sm font-bold">Edit</span>
+          <span className="text-white text-sm font-bold tracking-tight">Edit</span>
         </div>
       </div>
 
-      {/* Delete reveal (right background) */}
+      {/* Delete reveal (right) */}
       <div
-        className="absolute inset-y-0 right-0 flex items-center justify-end pr-5 pointer-events-none"
+        className="absolute inset-y-0 right-0 flex items-center justify-end pr-6 pointer-events-none"
         style={{
-          background: 'hsl(var(--destructive))',
+          background: 'linear-gradient(270deg, hsl(var(--destructive)), hsl(var(--destructive) / 0.85))',
           width: '100%',
           borderRadius: 'inherit',
-          opacity: Math.min(1, Math.max(0, -translateX - 16) / (SWIPE_THRESHOLD - 16)),
-          transition: swiping ? 'none' : 'opacity 0.25s',
+          opacity: Math.min(1, Math.max(0, -translateX - 12) / (SWIPE_THRESHOLD - 12)),
+          transition: swiping ? 'none' : 'opacity 0.2s',
         }}
       >
-        <div className="flex items-center gap-2">
-          <span className="text-white text-sm font-bold">Delete</span>
+        <div className="flex items-center gap-2"
+          style={{ transform: `scale(${Math.min(1, Math.max(0.8, -translateX / SWIPE_SNAP))})`, transition: swiping ? 'none' : 'transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1)' }}>
+          <span className="text-white text-sm font-bold tracking-tight">Delete</span>
           <Trash2 className="w-4 h-4 text-white" strokeWidth={2.5} />
         </div>
       </div>
 
-      {/* Card content — slides */}
+      {/* Card body — slides */}
       <div
-        className="card-elevated select-none relative z-10"
+        className="lg-surface-2 select-none relative z-10"
         style={{
           padding: '12px 14px',
           cursor: locked ? 'default' : 'pointer',
           transform: `translateX(${translateX}px)`,
-          transition: swiping ? 'none' : 'transform 0.26s cubic-bezier(0.25, 1, 0.5, 1)',
+          transition: swiping
+            ? 'none'
+            : 'transform 0.42s cubic-bezier(0.34, 1.56, 0.64, 1)',
           willChange: 'transform',
-          borderRadius: 'inherit',
+          borderRadius: '18px',
           ...(active ? {
-            borderColor: 'hsl(var(--stat-green) / 0.4)',
-            boxShadow: 'var(--card-shadow-sm), 0 0 0 1.5px hsl(var(--stat-green) / 0.2)',
-            background: 'hsl(var(--stat-green) / 0.04)',
+            borderColor: 'hsl(var(--stat-green) / 0.45)',
+            boxShadow: 'var(--card-shadow-md), 0 0 0 1.5px hsl(var(--stat-green) / 0.22)',
           } : {}),
           ...(isEvening && !active ? {
-            borderColor: 'hsl(var(--evening-color) / 0.25)',
+            borderColor: 'hsl(var(--evening-color) / 0.28)',
           } : {}),
         }}
+        onClick={handleCardClick}
         onTouchStart={onTouchStart}
         onTouchMove={onTouchMove}
         onTouchEnd={onTouchEnd}
         onContextMenu={e => { if (!locked) onContextMenu(e); }}
       >
-        {/* Row 1: Date + Amount */}
-        <div className="flex items-start justify-between gap-2 mb-1">
-          <div className="flex items-center gap-1.5 flex-wrap min-w-0">
-            <span className="text-sm font-bold text-foreground">{dateLabel}</span>
-            {shiftStatus === 'active' && (
-              <span
-                className="inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-bold animate-pulse"
-                style={{
-                  background: 'hsl(var(--stat-green)/0.18)',
-                  color: 'hsl(var(--stat-green))',
-                  border: '1px solid hsl(var(--stat-green)/0.35)',
-                }}
-              >
-                ● Active
-              </span>
-            )}
-            {shiftStatus === 'upcoming' && (
-              <span
-                className="inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-semibold"
-                style={{
-                  background: 'hsl(var(--primary)/0.10)',
-                  color: 'hsl(var(--primary))',
-                  border: '1px solid hsl(var(--primary)/0.22)',
-                }}
-              >
-                Upcoming
-              </span>
-            )}
-          </div>
-          <div className="text-right shrink-0">
-            <span className="text-sm font-bold money-text">{formatCurrency(displayPay)}</span>
-            {hasOverride && (
-              <p className="text-[10px] text-muted-foreground line-through leading-tight">{formatCurrency(Number(shift.gross_pay))}</p>
-            )}
-          </div>
-        </div>
-
-        {/* Row 2: Time + duration */}
-        <p className="text-[11px] text-muted-foreground mb-1.5">{timeDisplay}</p>
-
-        {/* Row 3: Client + type tag */}
-        <div className="flex items-center gap-1.5 flex-wrap">
-          {shift.client_name && (
-            <span className="text-[11px] text-muted-foreground flex items-center gap-1">
-              <User className="w-2.5 h-2.5" />
-              {shift.client_name}
-            </span>
-          )}
-          {shift.client_name && <span className="text-[10px] text-muted-foreground/40">·</span>}
-          <span
-            className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium"
-            style={shiftTypeLabel.style}
+        <div className="flex items-stretch gap-3">
+          {/* Left: date stamp */}
+          <div
+            className="shrink-0 flex flex-col items-center justify-center rounded-xl"
+            style={{
+              width: 48,
+              padding: '6px 4px',
+              background: dateStamp.isToday
+                ? 'hsl(var(--primary) / 0.12)'
+                : 'hsl(var(--muted) / 0.55)',
+              border: dateStamp.isToday
+                ? '0.5px solid hsl(var(--primary) / 0.28)'
+                : '0.5px solid hsl(var(--border) / 0.6)',
+            }}
+            aria-hidden
           >
-            {shiftTypeLabel.icon}
-            {isSleepover ? `Sleepover · ${formatCurrency(displayPay)}` : shiftTypeLabel.label}
-          </span>
-          {hasOverride && !isSleepover && (
             <span
-              className="inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-medium"
-              style={{ background: 'hsl(var(--stat-amber)/0.12)', color: 'hsl(var(--stat-amber))' }}
+              className="text-[9.5px] font-bold uppercase tracking-[0.06em] leading-none"
+              style={{ color: dateStamp.isToday ? 'hsl(var(--primary))' : 'hsl(var(--muted-foreground))' }}
             >
-              <AlertCircle className="w-2.5 h-2.5" /> Override
+              {dateStamp.weekday}
             </span>
-          )}
-        </div>
-
-        {/* Row 4: Notes */}
-        {shift.notes && (
-          <p className="text-[11px] text-muted-foreground/70 mt-1.5 line-clamp-2 leading-relaxed">{shift.notes}</p>
-        )}
-
-
-        {/* Locked indicator */}
-        {locked && (
-          <div className="flex items-center gap-1.5 mt-1.5">
-            <Lock className="w-2.5 h-2.5 text-muted-foreground/50" />
-            <span className="text-[10px] text-muted-foreground/50">Locked</span>
+            <span
+              className="font-bold leading-none mt-1 tabular-nums"
+              style={{
+                fontSize: '1.25rem',
+                letterSpacing: '-0.02em',
+                color: dateStamp.isToday ? 'hsl(var(--primary))' : 'hsl(var(--foreground))',
+              }}
+            >
+              {dateStamp.day}
+            </span>
+            <span
+              className="text-[9px] font-semibold uppercase tracking-[0.06em] leading-none mt-0.5"
+              style={{ color: 'hsl(var(--muted-foreground))' }}
+            >
+              {dateStamp.month}
+            </span>
           </div>
-        )}
+
+          {/* Right: content */}
+          <div className="flex-1 min-w-0">
+            {/* Row 1: time + amount */}
+            <div className="flex items-start justify-between gap-2">
+              <div className="min-w-0 flex items-center gap-1.5 flex-wrap">
+                <span className="text-[12.5px] font-semibold text-foreground leading-tight truncate">
+                  {timeDisplay}
+                </span>
+                {shiftStatus === 'active' && (
+                  <span
+                    className="inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[9.5px] font-bold animate-pulse"
+                    style={{
+                      background: 'hsl(var(--stat-green)/0.18)',
+                      color: 'hsl(var(--stat-green))',
+                      border: '0.5px solid hsl(var(--stat-green)/0.35)',
+                    }}
+                  >
+                    ● Live
+                  </span>
+                )}
+                {shiftStatus === 'upcoming' && (
+                  <span
+                    className="inline-flex items-center rounded-full px-1.5 py-0.5 text-[9.5px] font-semibold"
+                    style={{
+                      background: 'hsl(var(--primary)/0.10)',
+                      color: 'hsl(var(--primary))',
+                      border: '0.5px solid hsl(var(--primary)/0.22)',
+                    }}
+                  >
+                    Upcoming
+                  </span>
+                )}
+              </div>
+              <div className="text-right shrink-0">
+                <span className="text-[14px] font-bold money-text tabular-nums leading-tight">
+                  {formatCurrency(displayPay)}
+                </span>
+                {hasOverride && (
+                  <p className="text-[9.5px] text-muted-foreground line-through leading-tight tabular-nums">
+                    {formatCurrency(Number(shift.gross_pay))}
+                  </p>
+                )}
+              </div>
+            </div>
+
+            {/* Row 2: client + type chip */}
+            <div className="flex items-center gap-1.5 flex-wrap mt-1.5">
+              {shift.client_name && (
+                <span className="text-[11px] text-muted-foreground flex items-center gap-1 min-w-0 truncate">
+                  <User className="w-2.5 h-2.5 shrink-0" />
+                  <span className="truncate">{shift.client_name}</span>
+                </span>
+              )}
+              <span
+                className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium"
+                style={shiftTypeLabel.style}
+              >
+                {shiftTypeLabel.icon}
+                {isSleepover ? 'Sleepover' : shiftTypeLabel.label}
+              </span>
+              {hasOverride && !isSleepover && (
+                <span
+                  className="inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-medium"
+                  style={{ background: 'hsl(var(--stat-amber)/0.12)', color: 'hsl(var(--stat-amber))' }}
+                >
+                  <AlertCircle className="w-2.5 h-2.5" /> Override
+                </span>
+              )}
+            </div>
+
+            {/* Row 3: notes */}
+            {shift.notes && (
+              <p className="text-[11px] text-muted-foreground/75 mt-1.5 line-clamp-2 leading-relaxed">
+                {shift.notes}
+              </p>
+            )}
+
+            {/* Locked indicator */}
+            {locked && (
+              <div className="flex items-center gap-1.5 mt-1.5">
+                <Lock className="w-2.5 h-2.5 text-muted-foreground/60" />
+                <span className="text-[10px] text-muted-foreground/60">Locked</span>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );
