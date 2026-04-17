@@ -632,9 +632,10 @@ const SWIPE_MAX       = 160;
 
 const ShiftCard = ({
   shift, locked, shiftStatus, active, isSleepover, isEvening,
-  displayPay, hasOverride, shiftTypeLabel, timeDisplay, dateLabel,
+  displayPay, hasOverride, shiftTypeLabel, timeDisplay, dateStamp,
   clientAddress, onEdit, onDuplicate, onDelete, onContextMenu,
 }: ShiftCardProps) => {
+  void clientAddress; void onDuplicate;
   const [translateX, setTranslateX] = useState(0);
   const [swiping, setSwiping] = useState(false);
   const touchStartX = useRef(0);
@@ -642,33 +643,37 @@ const ShiftCard = ({
   const trackingRef = useRef(false);
   const animatingRef = useRef(false);
 
-  // Which action is revealed
-  const revealEdit   = translateX > SWIPE_THRESHOLD;
-  const revealDelete = translateX < -SWIPE_THRESHOLD;
-
-  const snapBack = useCallback(() => {
+  const snapTo = useCallback((x: number) => {
     animatingRef.current = true;
-    setTranslateX(0);
+    setTranslateX(x);
     setSwiping(false);
-    setTimeout(() => { animatingRef.current = false; }, 280);
+    setTimeout(() => { animatingRef.current = false; }, 320);
   }, []);
 
+  const snapBack = useCallback(() => snapTo(0), [snapTo]);
+
   const onTouchStart = useCallback((e: React.TouchEvent) => {
-    if (locked || animatingRef.current) return;
+    if (locked) return;
+    // Tap on revealed action area? Close first.
+    if (translateX !== 0) {
+      touchStartX.current = e.touches[0].clientX;
+      touchStartY.current = e.touches[0].clientY;
+      trackingRef.current = false;
+      return;
+    }
     touchStartX.current = e.touches[0].clientX;
     touchStartY.current = e.touches[0].clientY;
     trackingRef.current = false;
-  }, [locked]);
+  }, [locked, translateX]);
 
   const onTouchMove = useCallback((e: React.TouchEvent) => {
     if (locked) return;
-    const dx = e.touches[0].clientX - touchStartX.current;
+    const dx = e.touches[0].clientX - touchStartX.current + translateX;
     const dy = e.touches[0].clientY - touchStartY.current;
 
-    // Lock axis: if vertical scroll is dominant, ignore
     if (!trackingRef.current) {
       if (Math.abs(dy) > Math.abs(dx) + 4) return;
-      if (Math.abs(dx) > 8) {
+      if (Math.abs(e.touches[0].clientX - touchStartX.current) > 8) {
         trackingRef.current = true;
         setSwiping(true);
       } else {
@@ -677,23 +682,40 @@ const ShiftCard = ({
     }
 
     e.preventDefault();
-    const clamped = Math.max(-SWIPE_MAX, Math.min(SWIPE_MAX, dx));
-    setTranslateX(clamped);
-  }, [locked]);
+    // Rubber-band past max
+    let next = dx;
+    if (next > SWIPE_MAX) next = SWIPE_MAX + (next - SWIPE_MAX) * 0.25;
+    if (next < -SWIPE_MAX) next = -SWIPE_MAX + (next + SWIPE_MAX) * 0.25;
+    setTranslateX(next);
+  }, [locked, translateX]);
 
   const onTouchEnd = useCallback(() => {
     if (!trackingRef.current) { setSwiping(false); return; }
     if (translateX > SWIPE_CONFIRM) {
       snapBack();
-      setTimeout(onEdit, 50);
+      setTimeout(onEdit, 60);
     } else if (translateX < -SWIPE_CONFIRM) {
       snapBack();
-      setTimeout(onDelete, 50);
+      setTimeout(onDelete, 60);
+    } else if (translateX > SWIPE_THRESHOLD) {
+      snapTo(SWIPE_SNAP);            // hold open: edit revealed
+    } else if (translateX < -SWIPE_THRESHOLD) {
+      snapTo(-SWIPE_SNAP);           // hold open: delete revealed
     } else {
       snapBack();
     }
     trackingRef.current = false;
-  }, [translateX, snapBack, onEdit, onDelete]);
+  }, [translateX, snapBack, snapTo, onEdit, onDelete]);
+
+  const handleCardClick = (e: React.MouseEvent) => {
+    if (locked) return;
+    // If actions are revealed, just close
+    if (translateX !== 0) {
+      e.stopPropagation();
+      snapBack();
+      return;
+    }
+  };
 
   return (
     <div className="relative overflow-hidden rounded-2xl" style={{ touchAction: swiping ? 'none' : 'pan-y' }}>
