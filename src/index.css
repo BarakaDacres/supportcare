@@ -199,6 +199,7 @@
 
 @layer base {
   * { @apply border-border; }
+  html { background: hsl(var(--background)); }
   body {
     @apply bg-background text-foreground antialiased;
     font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', system-ui, sans-serif;
@@ -207,7 +208,16 @@
     -webkit-text-size-adjust: 100%;
     font-synthesis: none;
     text-rendering: optimizeLegibility;
+    letter-spacing: -0.01em;
+    background-image: var(--ambient-1), var(--ambient-2);
+    background-attachment: fixed;
+    background-repeat: no-repeat;
   }
+  h1 { letter-spacing: -0.022em; font-weight: 700; }
+  h2 { letter-spacing: -0.019em; font-weight: 700; }
+  h3 { letter-spacing: -0.017em; font-weight: 600; }
+  h4, h5, h6 { letter-spacing: -0.014em; font-weight: 600; }
+  ::selection { background: hsl(var(--primary) / 0.22); color: hsl(var(--foreground)); }
 }
 
 @layer components {
