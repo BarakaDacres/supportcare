@@ -383,54 +383,89 @@ const ShiftList = ({
           )}
         </div>
       ) : (
-        <div className="space-y-2">
-          {filtered.map(shift => {
-            const { isSleepover, isWeekend, isWeekday, isPublicHoliday, isEvening } = getShiftBadges(shift);
-            const hasOverride = shift.fee_override != null && shift.fee_override > 0;
-            const displayPay = effectiveGrossPay(shift);
-            const shiftStatus = getShiftStatus(shift);
-            const active = shiftStatus === 'active';
-
-            // Per-shift lock: check if the shift's month is locked
-            const shiftDate = parseLocalDate(shift.date);
-            const shiftLocked = isMonthLocked
-              ? isMonthLocked(shiftDate.getFullYear(), shiftDate.getMonth())
-              : locked;
-
-            // Determine single primary shift-type label
-            const shiftTypeLabel = (() => {
-              if (isPublicHoliday) return { label: 'Public Holiday', icon: <Star className="w-2.5 h-2.5" />, style: { background: 'hsl(34 97% 52% / 0.13)', color: 'hsl(34 97% 44%)', border: '1px solid hsl(34 97% 52% / 0.25)' } };
-              if (isSleepover) return { label: 'Sleepover', icon: <Moon className="w-2.5 h-2.5" />, style: { background: 'hsl(var(--sleepover-color)/0.13)', color: 'hsl(var(--sleepover-color))', border: '1px solid hsl(var(--sleepover-color)/0.25)' } };
-              if (isEvening) return { label: 'Evening', icon: <Sunset className="w-2.5 h-2.5" />, style: { background: 'hsl(var(--evening-color)/0.12)', color: 'hsl(var(--evening-color))', border: '1px solid hsl(var(--evening-color)/0.25)' } };
-              if (isWeekend) return { label: 'Weekend', icon: <Sun className="w-2.5 h-2.5" />, style: { background: 'hsl(var(--weekend-color)/0.12)', color: 'hsl(var(--weekend-color))', border: '1px solid hsl(var(--weekend-color)/0.25)' } };
-              return { label: 'Weekday', icon: null, style: { background: 'hsl(var(--muted))', color: 'hsl(var(--muted-foreground))', border: '1px solid hsl(var(--border))' } };
-            })();
-
-            // Duration / time line — simplified for sleepovers
-            const timeDisplay = isSleepover
-              ? `${formatTime12h(shift.start_time)} – ${formatTime12h(shift.end_time)}`
-              : `${formatTime12h(shift.start_time)} – ${formatTime12h(shift.end_time)} · ${Number(shift.hours_worked).toFixed(1)}h`;
-
+        <div className="space-y-5">
+          {grouped.map(([dateStr, dayShifts]) => {
+            const header = formatGroupHeader(dateStr);
+            const dayTotal = dayShifts.reduce((s, sh) => s + effectiveGrossPay(sh), 0);
             return (
-              <ShiftCard
-                key={shift.id}
-                shift={shift}
-                locked={shiftLocked}
-                shiftStatus={shiftStatus}
-                active={active}
-                isSleepover={isSleepover}
-                isEvening={isEvening}
-                displayPay={displayPay}
-                hasOverride={hasOverride}
-                shiftTypeLabel={shiftTypeLabel}
-                timeDisplay={timeDisplay}
-                dateLabel={formatDateLabel(shift.date)}
-                clientAddress={clients.find(c => c.id === shift.client_id)?.service_address}
-                onEdit={() => { setEditingShift(shift); openSheet(true); }}
-                onDuplicate={() => onDuplicate(shift.id)}
-                onDelete={() => setConfirmDelete(shift.id)}
-                onContextMenu={e => openContextMenu(shift.id, e)}
-              />
+              <section key={dateStr} className="space-y-2">
+                {/* Sticky day header */}
+                <div
+                  className="sticky z-20 -mx-1 px-1"
+                  style={{ top: 'calc(env(safe-area-inset-top, 0px) + 56px)' }}
+                >
+                  <div
+                    className="flex items-center justify-between gap-3 px-3 py-1.5 rounded-xl"
+                    style={{
+                      background: 'hsl(var(--glass-1))',
+                      backdropFilter: 'blur(20px) saturate(180%)',
+                      WebkitBackdropFilter: 'blur(20px) saturate(180%)',
+                      border: '0.5px solid hsl(var(--glass-stroke))',
+                    }}
+                  >
+                    <div className="flex items-baseline gap-2 min-w-0">
+                      <span
+                        className="text-[13px] font-bold tracking-tight truncate"
+                        style={{ color: header.isToday ? 'hsl(var(--primary))' : 'hsl(var(--foreground))' }}
+                      >
+                        {header.main}
+                      </span>
+                      <span className="text-[11px] text-muted-foreground truncate">{header.sub}</span>
+                    </div>
+                    <span className="text-[11px] font-semibold money-text shrink-0">
+                      {formatCurrency(dayTotal)}
+                    </span>
+                  </div>
+                </div>
+
+                {dayShifts.map(shift => {
+                  const { isSleepover, isWeekend, isWeekday, isPublicHoliday, isEvening } = getShiftBadges(shift);
+                  void isWeekday;
+                  const hasOverride = shift.fee_override != null && shift.fee_override > 0;
+                  const displayPay = effectiveGrossPay(shift);
+                  const shiftStatus = getShiftStatus(shift);
+                  const active = shiftStatus === 'active';
+
+                  const shiftDate = parseLocalDate(shift.date);
+                  const shiftLocked = isMonthLocked
+                    ? isMonthLocked(shiftDate.getFullYear(), shiftDate.getMonth())
+                    : locked;
+
+                  const shiftTypeLabel = (() => {
+                    if (isPublicHoliday) return { label: 'Public Holiday', icon: <Star className="w-2.5 h-2.5" />, style: { background: 'hsl(34 97% 52% / 0.13)', color: 'hsl(34 97% 44%)', border: '1px solid hsl(34 97% 52% / 0.25)' } };
+                    if (isSleepover) return { label: 'Sleepover', icon: <Moon className="w-2.5 h-2.5" />, style: { background: 'hsl(var(--sleepover-color)/0.13)', color: 'hsl(var(--sleepover-color))', border: '1px solid hsl(var(--sleepover-color)/0.25)' } };
+                    if (isEvening) return { label: 'Evening', icon: <Sunset className="w-2.5 h-2.5" />, style: { background: 'hsl(var(--evening-color)/0.12)', color: 'hsl(var(--evening-color))', border: '1px solid hsl(var(--evening-color)/0.25)' } };
+                    if (isWeekend) return { label: 'Weekend', icon: <Sun className="w-2.5 h-2.5" />, style: { background: 'hsl(var(--weekend-color)/0.12)', color: 'hsl(var(--weekend-color))', border: '1px solid hsl(var(--weekend-color)/0.25)' } };
+                    return { label: 'Weekday', icon: null, style: { background: 'hsl(var(--muted))', color: 'hsl(var(--muted-foreground))', border: '1px solid hsl(var(--border))' } };
+                  })();
+
+                  const timeDisplay = isSleepover
+                    ? `${formatTime12h(shift.start_time)} – ${formatTime12h(shift.end_time)}`
+                    : `${formatTime12h(shift.start_time)} – ${formatTime12h(shift.end_time)} · ${Number(shift.hours_worked).toFixed(1)}h`;
+
+                  return (
+                    <ShiftCard
+                      key={shift.id}
+                      shift={shift}
+                      locked={shiftLocked}
+                      shiftStatus={shiftStatus}
+                      active={active}
+                      isSleepover={isSleepover}
+                      isEvening={isEvening}
+                      displayPay={displayPay}
+                      hasOverride={hasOverride}
+                      shiftTypeLabel={shiftTypeLabel}
+                      timeDisplay={timeDisplay}
+                      dateStamp={{ day: header.day, weekday: header.weekdayShort, month: header.monthShort, isToday: header.isToday }}
+                      clientAddress={clients.find(c => c.id === shift.client_id)?.service_address}
+                      onEdit={() => { setEditingShift(shift); openSheet(true); }}
+                      onDuplicate={() => onDuplicate(shift.id)}
+                      onDelete={() => setConfirmDelete(shift.id)}
+                      onContextMenu={e => openContextMenu(shift.id, e)}
+                    />
+                  );
+                })}
+              </section>
             );
           })}
         </div>
