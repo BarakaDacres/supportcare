@@ -617,7 +617,7 @@ interface ShiftCardProps {
   hasOverride: boolean;
   shiftTypeLabel: { label: string; icon: React.ReactNode; style: React.CSSProperties };
   timeDisplay: string;
-  dateLabel: string;
+  dateStamp: { day: number; weekday: string; month: string; isToday: boolean };
   clientAddress?: string | null;
   onEdit: () => void;
   onDuplicate: () => void;
@@ -625,9 +625,10 @@ interface ShiftCardProps {
   onContextMenu: (e: React.MouseEvent | React.TouchEvent) => void;
 }
 
-const SWIPE_THRESHOLD = 50;   // px needed to reveal action
-const SWIPE_CONFIRM  = 80;    // px to auto-trigger action (must be < SWIPE_MAX)
-const SWIPE_MAX      = 100;   // max translate
+const SWIPE_THRESHOLD = 48;
+const SWIPE_SNAP      = 88;     // resting position when revealing actions
+const SWIPE_CONFIRM   = 140;    // px to auto-trigger
+const SWIPE_MAX       = 160;
 
 const ShiftCard = ({
   shift, locked, shiftStatus, active, isSleepover, isEvening,
