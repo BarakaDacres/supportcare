@@ -516,6 +516,98 @@
   }
 
   /* ────────────────────────────────────────────────────
+     LIQUID GLASS — Phase 1 foundation surfaces
+  ──────────────────────────────────────────────────── */
+  .lg-surface-1 {
+    background: hsl(var(--glass-1));
+    backdrop-filter: blur(28px) saturate(180%);
+    -webkit-backdrop-filter: blur(28px) saturate(180%);
+    border: 0.5px solid hsl(var(--glass-stroke));
+    box-shadow:
+      0 1px 0 hsl(var(--glass-highlight)) inset,
+      0 8px 24px hsl(var(--glass-shadow));
+  }
+  .lg-surface-2 {
+    position: relative;
+    background: hsl(var(--glass-2));
+    backdrop-filter: blur(40px) saturate(190%);
+    -webkit-backdrop-filter: blur(40px) saturate(190%);
+    border: 0.5px solid hsl(var(--glass-stroke));
+    border-radius: 22px;
+    box-shadow:
+      0 1px 0 hsl(var(--glass-highlight)) inset,
+      0 0 0 0.5px hsl(var(--glass-stroke-strong)) inset,
+      var(--card-shadow-md);
+    transition: transform var(--dur-base) var(--ease-spring),
+                box-shadow var(--dur-base) var(--ease-out-quint);
+  }
+  .lg-surface-3 {
+    position: relative;
+    background: hsl(var(--glass-3));
+    backdrop-filter: blur(48px) saturate(200%);
+    -webkit-backdrop-filter: blur(48px) saturate(200%);
+    border: 0.5px solid hsl(var(--glass-stroke));
+    border-radius: 26px;
+    box-shadow:
+      0 1px 0 hsl(var(--glass-highlight)) inset,
+      0 0 0 0.5px hsl(var(--glass-stroke-strong)) inset,
+      var(--card-shadow-lg);
+  }
+  .lg-sheen { position: relative; }
+  .lg-sheen::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    pointer-events: none;
+    background: linear-gradient(180deg,
+      hsl(var(--glass-highlight)) 0%,
+      transparent 22%,
+      transparent 78%,
+      hsl(var(--glass-shadow)) 100%);
+    opacity: 0.55;
+    mix-blend-mode: overlay;
+  }
+  .lg-list {
+    background: hsl(var(--card));
+    border: 0.5px solid hsl(var(--border));
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: var(--card-shadow-sm);
+  }
+  .lg-list > * + * { border-top: 0.5px solid hsl(var(--divider)); }
+  .lg-list-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    min-height: 44px;
+    transition: background var(--dur-fast) var(--ease-out-quint);
+  }
+  .lg-list-row:active { background: hsl(var(--muted) / 0.6); }
+  .lg-tap {
+    transition: transform var(--dur-fast) var(--ease-spring),
+                opacity var(--dur-fast) var(--ease-out-quint);
+  }
+  .lg-tap:active { transform: scale(0.96); opacity: 0.9; }
+  .lg-fab {
+    background: hsl(var(--primary));
+    color: hsl(var(--primary-foreground));
+    border-radius: 999px;
+    box-shadow:
+      0 1px 0 hsl(var(--glass-highlight)) inset,
+      0 8px 24px hsl(var(--primary) / 0.45),
+      0 2px 8px hsl(var(--primary) / 0.3);
+    transition: transform var(--dur-base) var(--ease-spring),
+                box-shadow var(--dur-base) var(--ease-out-quint);
+  }
+  .lg-fab:active { transform: scale(0.92); }
+  .lg-large-title { font-size: var(--text-largeTitle); font-weight: 700; letter-spacing: -0.022em; line-height: 1.12; }
+  .lg-title2 { font-size: var(--text-title2); font-weight: 700; letter-spacing: -0.019em; }
+  .lg-headline { font-size: var(--text-headline); font-weight: 600; letter-spacing: -0.014em; }
+  .lg-footnote { font-size: var(--text-footnote); color: hsl(var(--muted-foreground)); letter-spacing: -0.006em; }
+
+  /* ────────────────────────────────────────────────────
      ENTRY CARD (mobile)
   ──────────────────────────────────────────────────── */
   .entry-card {
