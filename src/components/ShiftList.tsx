@@ -192,6 +192,36 @@ const ShiftList = ({
     return `${dayNames[d.getDay()]} ${d.getDate()} ${MONTH_NAMES[d.getMonth()]}`;
   };
 
+  // Group filtered shifts by date for sticky day headers
+  const grouped = useMemo(() => {
+    const map = new Map<string, Shift[]>();
+    for (const s of filtered) {
+      const arr = map.get(s.date) ?? [];
+      arr.push(s);
+      map.set(s.date, arr);
+    }
+    return Array.from(map.entries()); // preserves the sort order of `filtered`
+  }, [filtered]);
+
+  const todayStr = (() => {
+    const t = new Date();
+    return `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}-${String(t.getDate()).padStart(2, '0')}`;
+  })();
+  const tomorrowStr = (() => {
+    const t = new Date(); t.setDate(t.getDate() + 1);
+    return `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}-${String(t.getDate()).padStart(2, '0')}`;
+  })();
+
+  const formatGroupHeader = (dateStr: string) => {
+    const d = parseLocalDate(dateStr);
+    const dayNamesLong = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    const isToday = dateStr === todayStr;
+    const isTomorrow = dateStr === tomorrowStr;
+    const main = isToday ? 'Today' : isTomorrow ? 'Tomorrow' : dayNamesLong[d.getDay()];
+    const sub = `${d.getDate()} ${MONTH_NAMES[d.getMonth()]} ${d.getFullYear()}`;
+    return { main, sub, isToday, day: d.getDate(), monthShort: MONTH_NAMES[d.getMonth()].slice(0, 3), weekdayShort: ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][d.getDay()] };
+  };
+
   const openContextMenu = (shiftId: string, e: React.MouseEvent | React.TouchEvent) => {
     e.preventDefault();
     e.stopPropagation();
