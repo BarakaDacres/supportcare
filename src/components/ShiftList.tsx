@@ -192,6 +192,36 @@ const ShiftList = ({
     return `${dayNames[d.getDay()]} ${d.getDate()} ${MONTH_NAMES[d.getMonth()]}`;
   };
 
+  // Group filtered shifts by date for sticky day headers
+  const grouped = useMemo(() => {
+    const map = new Map<string, Shift[]>();
+    for (const s of filtered) {
+      const arr = map.get(s.date) ?? [];
+      arr.push(s);
+      map.set(s.date, arr);
+    }
+    return Array.from(map.entries()); // preserves the sort order of `filtered`
+  }, [filtered]);
+
+  const todayStr = (() => {
+    const t = new Date();
+    return `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}-${String(t.getDate()).padStart(2, '0')}`;
+  })();
+  const tomorrowStr = (() => {
+    const t = new Date(); t.setDate(t.getDate() + 1);
+    return `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}-${String(t.getDate()).padStart(2, '0')}`;
+  })();
+
+  const formatGroupHeader = (dateStr: string) => {
+    const d = parseLocalDate(dateStr);
+    const dayNamesLong = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    const isToday = dateStr === todayStr;
+    const isTomorrow = dateStr === tomorrowStr;
+    const main = isToday ? 'Today' : isTomorrow ? 'Tomorrow' : dayNamesLong[d.getDay()];
+    const sub = `${d.getDate()} ${MONTH_NAMES[d.getMonth()]} ${d.getFullYear()}`;
+    return { main, sub, isToday, day: d.getDate(), monthShort: MONTH_NAMES[d.getMonth()].slice(0, 3), weekdayShort: ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][d.getDay()] };
+  };
+
   const openContextMenu = (shiftId: string, e: React.MouseEvent | React.TouchEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -353,54 +383,89 @@ const ShiftList = ({
           )}
         </div>
       ) : (
-        <div className="space-y-2">
-          {filtered.map(shift => {
-            const { isSleepover, isWeekend, isWeekday, isPublicHoliday, isEvening } = getShiftBadges(shift);
-            const hasOverride = shift.fee_override != null && shift.fee_override > 0;
-            const displayPay = effectiveGrossPay(shift);
-            const shiftStatus = getShiftStatus(shift);
-            const active = shiftStatus === 'active';
-
-            // Per-shift lock: check if the shift's month is locked
-            const shiftDate = parseLocalDate(shift.date);
-            const shiftLocked = isMonthLocked
-              ? isMonthLocked(shiftDate.getFullYear(), shiftDate.getMonth())
-              : locked;
-
-            // Determine single primary shift-type label
-            const shiftTypeLabel = (() => {
-              if (isPublicHoliday) return { label: 'Public Holiday', icon: <Star className="w-2.5 h-2.5" />, style: { background: 'hsl(34 97% 52% / 0.13)', color: 'hsl(34 97% 44%)', border: '1px solid hsl(34 97% 52% / 0.25)' } };
-              if (isSleepover) return { label: 'Sleepover', icon: <Moon className="w-2.5 h-2.5" />, style: { background: 'hsl(var(--sleepover-color)/0.13)', color: 'hsl(var(--sleepover-color))', border: '1px solid hsl(var(--sleepover-color)/0.25)' } };
-              if (isEvening) return { label: 'Evening', icon: <Sunset className="w-2.5 h-2.5" />, style: { background: 'hsl(var(--evening-color)/0.12)', color: 'hsl(var(--evening-color))', border: '1px solid hsl(var(--evening-color)/0.25)' } };
-              if (isWeekend) return { label: 'Weekend', icon: <Sun className="w-2.5 h-2.5" />, style: { background: 'hsl(var(--weekend-color)/0.12)', color: 'hsl(var(--weekend-color))', border: '1px solid hsl(var(--weekend-color)/0.25)' } };
-              return { label: 'Weekday', icon: null, style: { background: 'hsl(var(--muted))', color: 'hsl(var(--muted-foreground))', border: '1px solid hsl(var(--border))' } };
-            })();
-
-            // Duration / time line — simplified for sleepovers
-            const timeDisplay = isSleepover
-              ? `${formatTime12h(shift.start_time)} – ${formatTime12h(shift.end_time)}`
-              : `${formatTime12h(shift.start_time)} – ${formatTime12h(shift.end_time)} · ${Number(shift.hours_worked).toFixed(1)}h`;
-
+        <div className="space-y-5">
+          {grouped.map(([dateStr, dayShifts]) => {
+            const header = formatGroupHeader(dateStr);
+            const dayTotal = dayShifts.reduce((s, sh) => s + effectiveGrossPay(sh), 0);
             return (
-              <ShiftCard
-                key={shift.id}
-                shift={shift}
-                locked={shiftLocked}
-                shiftStatus={shiftStatus}
-                active={active}
-                isSleepover={isSleepover}
-                isEvening={isEvening}
-                displayPay={displayPay}
-                hasOverride={hasOverride}
-                shiftTypeLabel={shiftTypeLabel}
-                timeDisplay={timeDisplay}
-                dateLabel={formatDateLabel(shift.date)}
-                clientAddress={clients.find(c => c.id === shift.client_id)?.service_address}
-                onEdit={() => { setEditingShift(shift); openSheet(true); }}
-                onDuplicate={() => onDuplicate(shift.id)}
-                onDelete={() => setConfirmDelete(shift.id)}
-                onContextMenu={e => openContextMenu(shift.id, e)}
-              />
+              <section key={dateStr} className="space-y-2">
+                {/* Sticky day header */}
+                <div
+                  className="sticky z-20 -mx-1 px-1"
+                  style={{ top: 'calc(env(safe-area-inset-top, 0px) + 56px)' }}
+                >
+                  <div
+                    className="flex items-center justify-between gap-3 px-3 py-1.5 rounded-xl"
+                    style={{
+                      background: 'hsl(var(--glass-1))',
+                      backdropFilter: 'blur(20px) saturate(180%)',
+                      WebkitBackdropFilter: 'blur(20px) saturate(180%)',
+                      border: '0.5px solid hsl(var(--glass-stroke))',
+                    }}
+                  >
+                    <div className="flex items-baseline gap-2 min-w-0">
+                      <span
+                        className="text-[13px] font-bold tracking-tight truncate"
+                        style={{ color: header.isToday ? 'hsl(var(--primary))' : 'hsl(var(--foreground))' }}
+                      >
+                        {header.main}
+                      </span>
+                      <span className="text-[11px] text-muted-foreground truncate">{header.sub}</span>
+                    </div>
+                    <span className="text-[11px] font-semibold money-text shrink-0">
+                      {formatCurrency(dayTotal)}
+                    </span>
+                  </div>
+                </div>
+
+                {dayShifts.map(shift => {
+                  const { isSleepover, isWeekend, isWeekday, isPublicHoliday, isEvening } = getShiftBadges(shift);
+                  void isWeekday;
+                  const hasOverride = shift.fee_override != null && shift.fee_override > 0;
+                  const displayPay = effectiveGrossPay(shift);
+                  const shiftStatus = getShiftStatus(shift);
+                  const active = shiftStatus === 'active';
+
+                  const shiftDate = parseLocalDate(shift.date);
+                  const shiftLocked = isMonthLocked
+                    ? isMonthLocked(shiftDate.getFullYear(), shiftDate.getMonth())
+                    : locked;
+
+                  const shiftTypeLabel = (() => {
+                    if (isPublicHoliday) return { label: 'Public Holiday', icon: <Star className="w-2.5 h-2.5" />, style: { background: 'hsl(34 97% 52% / 0.13)', color: 'hsl(34 97% 44%)', border: '1px solid hsl(34 97% 52% / 0.25)' } };
+                    if (isSleepover) return { label: 'Sleepover', icon: <Moon className="w-2.5 h-2.5" />, style: { background: 'hsl(var(--sleepover-color)/0.13)', color: 'hsl(var(--sleepover-color))', border: '1px solid hsl(var(--sleepover-color)/0.25)' } };
+                    if (isEvening) return { label: 'Evening', icon: <Sunset className="w-2.5 h-2.5" />, style: { background: 'hsl(var(--evening-color)/0.12)', color: 'hsl(var(--evening-color))', border: '1px solid hsl(var(--evening-color)/0.25)' } };
+                    if (isWeekend) return { label: 'Weekend', icon: <Sun className="w-2.5 h-2.5" />, style: { background: 'hsl(var(--weekend-color)/0.12)', color: 'hsl(var(--weekend-color))', border: '1px solid hsl(var(--weekend-color)/0.25)' } };
+                    return { label: 'Weekday', icon: null, style: { background: 'hsl(var(--muted))', color: 'hsl(var(--muted-foreground))', border: '1px solid hsl(var(--border))' } };
+                  })();
+
+                  const timeDisplay = isSleepover
+                    ? `${formatTime12h(shift.start_time)} – ${formatTime12h(shift.end_time)}`
+                    : `${formatTime12h(shift.start_time)} – ${formatTime12h(shift.end_time)} · ${Number(shift.hours_worked).toFixed(1)}h`;
+
+                  return (
+                    <ShiftCard
+                      key={shift.id}
+                      shift={shift}
+                      locked={shiftLocked}
+                      shiftStatus={shiftStatus}
+                      active={active}
+                      isSleepover={isSleepover}
+                      isEvening={isEvening}
+                      displayPay={displayPay}
+                      hasOverride={hasOverride}
+                      shiftTypeLabel={shiftTypeLabel}
+                      timeDisplay={timeDisplay}
+                      dateStamp={{ day: header.day, weekday: header.weekdayShort, month: header.monthShort, isToday: header.isToday }}
+                      clientAddress={clients.find(c => c.id === shift.client_id)?.service_address}
+                      onEdit={() => { setEditingShift(shift); openSheet(true); }}
+                      onDuplicate={() => onDuplicate(shift.id)}
+                      onDelete={() => setConfirmDelete(shift.id)}
+                      onContextMenu={e => openContextMenu(shift.id, e)}
+                    />
+                  );
+                })}
+              </section>
             );
           })}
         </div>
@@ -552,7 +617,7 @@ interface ShiftCardProps {
   hasOverride: boolean;
   shiftTypeLabel: { label: string; icon: React.ReactNode; style: React.CSSProperties };
   timeDisplay: string;
-  dateLabel: string;
+  dateStamp: { day: number; weekday: string; month: string; isToday: boolean };
   clientAddress?: string | null;
   onEdit: () => void;
   onDuplicate: () => void;
@@ -560,15 +625,17 @@ interface ShiftCardProps {
   onContextMenu: (e: React.MouseEvent | React.TouchEvent) => void;
 }
 
-const SWIPE_THRESHOLD = 50;   // px needed to reveal action
-const SWIPE_CONFIRM  = 80;    // px to auto-trigger action (must be < SWIPE_MAX)
-const SWIPE_MAX      = 100;   // max translate
+const SWIPE_THRESHOLD = 48;
+const SWIPE_SNAP      = 88;     // resting position when revealing actions
+const SWIPE_CONFIRM   = 140;    // px to auto-trigger
+const SWIPE_MAX       = 160;
 
 const ShiftCard = ({
   shift, locked, shiftStatus, active, isSleepover, isEvening,
-  displayPay, hasOverride, shiftTypeLabel, timeDisplay, dateLabel,
+  displayPay, hasOverride, shiftTypeLabel, timeDisplay, dateStamp,
   clientAddress, onEdit, onDuplicate, onDelete, onContextMenu,
 }: ShiftCardProps) => {
+  void clientAddress; void onDuplicate;
   const [translateX, setTranslateX] = useState(0);
   const [swiping, setSwiping] = useState(false);
   const touchStartX = useRef(0);
@@ -576,33 +643,37 @@ const ShiftCard = ({
   const trackingRef = useRef(false);
   const animatingRef = useRef(false);
 
-  // Which action is revealed
-  const revealEdit   = translateX > SWIPE_THRESHOLD;
-  const revealDelete = translateX < -SWIPE_THRESHOLD;
-
-  const snapBack = useCallback(() => {
+  const snapTo = useCallback((x: number) => {
     animatingRef.current = true;
-    setTranslateX(0);
+    setTranslateX(x);
     setSwiping(false);
-    setTimeout(() => { animatingRef.current = false; }, 280);
+    setTimeout(() => { animatingRef.current = false; }, 320);
   }, []);
 
+  const snapBack = useCallback(() => snapTo(0), [snapTo]);
+
   const onTouchStart = useCallback((e: React.TouchEvent) => {
-    if (locked || animatingRef.current) return;
+    if (locked) return;
+    // Tap on revealed action area? Close first.
+    if (translateX !== 0) {
+      touchStartX.current = e.touches[0].clientX;
+      touchStartY.current = e.touches[0].clientY;
+      trackingRef.current = false;
+      return;
+    }
     touchStartX.current = e.touches[0].clientX;
     touchStartY.current = e.touches[0].clientY;
     trackingRef.current = false;
-  }, [locked]);
+  }, [locked, translateX]);
 
   const onTouchMove = useCallback((e: React.TouchEvent) => {
     if (locked) return;
-    const dx = e.touches[0].clientX - touchStartX.current;
+    const dx = e.touches[0].clientX - touchStartX.current + translateX;
     const dy = e.touches[0].clientY - touchStartY.current;
 
-    // Lock axis: if vertical scroll is dominant, ignore
     if (!trackingRef.current) {
       if (Math.abs(dy) > Math.abs(dx) + 4) return;
-      if (Math.abs(dx) > 8) {
+      if (Math.abs(e.touches[0].clientX - touchStartX.current) > 8) {
         trackingRef.current = true;
         setSwiping(true);
       } else {
@@ -611,163 +682,231 @@ const ShiftCard = ({
     }
 
     e.preventDefault();
-    const clamped = Math.max(-SWIPE_MAX, Math.min(SWIPE_MAX, dx));
-    setTranslateX(clamped);
-  }, [locked]);
+    // Rubber-band past max
+    let next = dx;
+    if (next > SWIPE_MAX) next = SWIPE_MAX + (next - SWIPE_MAX) * 0.25;
+    if (next < -SWIPE_MAX) next = -SWIPE_MAX + (next + SWIPE_MAX) * 0.25;
+    setTranslateX(next);
+  }, [locked, translateX]);
 
   const onTouchEnd = useCallback(() => {
     if (!trackingRef.current) { setSwiping(false); return; }
     if (translateX > SWIPE_CONFIRM) {
       snapBack();
-      setTimeout(onEdit, 50);
+      setTimeout(onEdit, 60);
     } else if (translateX < -SWIPE_CONFIRM) {
       snapBack();
-      setTimeout(onDelete, 50);
+      setTimeout(onDelete, 60);
+    } else if (translateX > SWIPE_THRESHOLD) {
+      snapTo(SWIPE_SNAP);            // hold open: edit revealed
+    } else if (translateX < -SWIPE_THRESHOLD) {
+      snapTo(-SWIPE_SNAP);           // hold open: delete revealed
     } else {
       snapBack();
     }
     trackingRef.current = false;
-  }, [translateX, snapBack, onEdit, onDelete]);
+  }, [translateX, snapBack, snapTo, onEdit, onDelete]);
+
+  const handleCardClick = (e: React.MouseEvent) => {
+    if (locked) return;
+    // If actions are revealed, just close
+    if (translateX !== 0) {
+      e.stopPropagation();
+      snapBack();
+      return;
+    }
+  };
 
   return (
     <div className="relative overflow-hidden rounded-2xl" style={{ touchAction: swiping ? 'none' : 'pan-y' }}>
-      {/* Edit reveal (left background) */}
+      {/* Edit reveal (left) */}
       <div
-        className="absolute inset-y-0 left-0 flex items-center justify-start pl-5 pointer-events-none"
+        className="absolute inset-y-0 left-0 flex items-center justify-start pl-6 pointer-events-none"
         style={{
-          background: 'hsl(142 71% 45%)',
+          background: 'linear-gradient(90deg, hsl(142 71% 45%), hsl(142 71% 50%))',
           width: '100%',
           borderRadius: 'inherit',
-          opacity: Math.min(1, Math.max(0, translateX - 16) / (SWIPE_THRESHOLD - 16)),
-          transition: swiping ? 'none' : 'opacity 0.25s',
+          opacity: Math.min(1, Math.max(0, translateX - 12) / (SWIPE_THRESHOLD - 12)),
+          transition: swiping ? 'none' : 'opacity 0.2s',
         }}
       >
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2"
+          style={{ transform: `scale(${Math.min(1, Math.max(0.8, translateX / SWIPE_SNAP))})`, transition: swiping ? 'none' : 'transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1)' }}>
           <Pencil className="w-4 h-4 text-white" strokeWidth={2.5} />
-          <span className="text-white text-sm font-bold">Edit</span>
+          <span className="text-white text-sm font-bold tracking-tight">Edit</span>
         </div>
       </div>
 
-      {/* Delete reveal (right background) */}
+      {/* Delete reveal (right) */}
       <div
-        className="absolute inset-y-0 right-0 flex items-center justify-end pr-5 pointer-events-none"
+        className="absolute inset-y-0 right-0 flex items-center justify-end pr-6 pointer-events-none"
         style={{
-          background: 'hsl(var(--destructive))',
+          background: 'linear-gradient(270deg, hsl(var(--destructive)), hsl(var(--destructive) / 0.85))',
           width: '100%',
           borderRadius: 'inherit',
-          opacity: Math.min(1, Math.max(0, -translateX - 16) / (SWIPE_THRESHOLD - 16)),
-          transition: swiping ? 'none' : 'opacity 0.25s',
+          opacity: Math.min(1, Math.max(0, -translateX - 12) / (SWIPE_THRESHOLD - 12)),
+          transition: swiping ? 'none' : 'opacity 0.2s',
         }}
       >
-        <div className="flex items-center gap-2">
-          <span className="text-white text-sm font-bold">Delete</span>
+        <div className="flex items-center gap-2"
+          style={{ transform: `scale(${Math.min(1, Math.max(0.8, -translateX / SWIPE_SNAP))})`, transition: swiping ? 'none' : 'transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1)' }}>
+          <span className="text-white text-sm font-bold tracking-tight">Delete</span>
           <Trash2 className="w-4 h-4 text-white" strokeWidth={2.5} />
         </div>
       </div>
 
-      {/* Card content — slides */}
+      {/* Card body — slides */}
       <div
-        className="card-elevated select-none relative z-10"
+        className="lg-surface-2 select-none relative z-10"
         style={{
           padding: '12px 14px',
           cursor: locked ? 'default' : 'pointer',
           transform: `translateX(${translateX}px)`,
-          transition: swiping ? 'none' : 'transform 0.26s cubic-bezier(0.25, 1, 0.5, 1)',
+          transition: swiping
+            ? 'none'
+            : 'transform 0.42s cubic-bezier(0.34, 1.56, 0.64, 1)',
           willChange: 'transform',
-          borderRadius: 'inherit',
+          borderRadius: '18px',
           ...(active ? {
-            borderColor: 'hsl(var(--stat-green) / 0.4)',
-            boxShadow: 'var(--card-shadow-sm), 0 0 0 1.5px hsl(var(--stat-green) / 0.2)',
-            background: 'hsl(var(--stat-green) / 0.04)',
+            borderColor: 'hsl(var(--stat-green) / 0.45)',
+            boxShadow: 'var(--card-shadow-md), 0 0 0 1.5px hsl(var(--stat-green) / 0.22)',
           } : {}),
           ...(isEvening && !active ? {
-            borderColor: 'hsl(var(--evening-color) / 0.25)',
+            borderColor: 'hsl(var(--evening-color) / 0.28)',
           } : {}),
         }}
+        onClick={handleCardClick}
         onTouchStart={onTouchStart}
         onTouchMove={onTouchMove}
         onTouchEnd={onTouchEnd}
         onContextMenu={e => { if (!locked) onContextMenu(e); }}
       >
-        {/* Row 1: Date + Amount */}
-        <div className="flex items-start justify-between gap-2 mb-1">
-          <div className="flex items-center gap-1.5 flex-wrap min-w-0">
-            <span className="text-sm font-bold text-foreground">{dateLabel}</span>
-            {shiftStatus === 'active' && (
-              <span
-                className="inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-bold animate-pulse"
-                style={{
-                  background: 'hsl(var(--stat-green)/0.18)',
-                  color: 'hsl(var(--stat-green))',
-                  border: '1px solid hsl(var(--stat-green)/0.35)',
-                }}
-              >
-                ● Active
-              </span>
-            )}
-            {shiftStatus === 'upcoming' && (
-              <span
-                className="inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-semibold"
-                style={{
-                  background: 'hsl(var(--primary)/0.10)',
-                  color: 'hsl(var(--primary))',
-                  border: '1px solid hsl(var(--primary)/0.22)',
-                }}
-              >
-                Upcoming
-              </span>
-            )}
-          </div>
-          <div className="text-right shrink-0">
-            <span className="text-sm font-bold money-text">{formatCurrency(displayPay)}</span>
-            {hasOverride && (
-              <p className="text-[10px] text-muted-foreground line-through leading-tight">{formatCurrency(Number(shift.gross_pay))}</p>
-            )}
-          </div>
-        </div>
-
-        {/* Row 2: Time + duration */}
-        <p className="text-[11px] text-muted-foreground mb-1.5">{timeDisplay}</p>
-
-        {/* Row 3: Client + type tag */}
-        <div className="flex items-center gap-1.5 flex-wrap">
-          {shift.client_name && (
-            <span className="text-[11px] text-muted-foreground flex items-center gap-1">
-              <User className="w-2.5 h-2.5" />
-              {shift.client_name}
-            </span>
-          )}
-          {shift.client_name && <span className="text-[10px] text-muted-foreground/40">·</span>}
-          <span
-            className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium"
-            style={shiftTypeLabel.style}
+        <div className="flex items-stretch gap-3">
+          {/* Left: date stamp */}
+          <div
+            className="shrink-0 flex flex-col items-center justify-center rounded-xl"
+            style={{
+              width: 48,
+              padding: '6px 4px',
+              background: dateStamp.isToday
+                ? 'hsl(var(--primary) / 0.12)'
+                : 'hsl(var(--muted) / 0.55)',
+              border: dateStamp.isToday
+                ? '0.5px solid hsl(var(--primary) / 0.28)'
+                : '0.5px solid hsl(var(--border) / 0.6)',
+            }}
+            aria-hidden
           >
-            {shiftTypeLabel.icon}
-            {isSleepover ? `Sleepover · ${formatCurrency(displayPay)}` : shiftTypeLabel.label}
-          </span>
-          {hasOverride && !isSleepover && (
             <span
-              className="inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-medium"
-              style={{ background: 'hsl(var(--stat-amber)/0.12)', color: 'hsl(var(--stat-amber))' }}
+              className="text-[9.5px] font-bold uppercase tracking-[0.06em] leading-none"
+              style={{ color: dateStamp.isToday ? 'hsl(var(--primary))' : 'hsl(var(--muted-foreground))' }}
             >
-              <AlertCircle className="w-2.5 h-2.5" /> Override
+              {dateStamp.weekday}
             </span>
-          )}
-        </div>
-
-        {/* Row 4: Notes */}
-        {shift.notes && (
-          <p className="text-[11px] text-muted-foreground/70 mt-1.5 line-clamp-2 leading-relaxed">{shift.notes}</p>
-        )}
-
-
-        {/* Locked indicator */}
-        {locked && (
-          <div className="flex items-center gap-1.5 mt-1.5">
-            <Lock className="w-2.5 h-2.5 text-muted-foreground/50" />
-            <span className="text-[10px] text-muted-foreground/50">Locked</span>
+            <span
+              className="font-bold leading-none mt-1 tabular-nums"
+              style={{
+                fontSize: '1.25rem',
+                letterSpacing: '-0.02em',
+                color: dateStamp.isToday ? 'hsl(var(--primary))' : 'hsl(var(--foreground))',
+              }}
+            >
+              {dateStamp.day}
+            </span>
+            <span
+              className="text-[9px] font-semibold uppercase tracking-[0.06em] leading-none mt-0.5"
+              style={{ color: 'hsl(var(--muted-foreground))' }}
+            >
+              {dateStamp.month}
+            </span>
           </div>
-        )}
+
+          {/* Right: content */}
+          <div className="flex-1 min-w-0">
+            {/* Row 1: time + amount */}
+            <div className="flex items-start justify-between gap-2">
+              <div className="min-w-0 flex items-center gap-1.5 flex-wrap">
+                <span className="text-[12.5px] font-semibold text-foreground leading-tight truncate">
+                  {timeDisplay}
+                </span>
+                {shiftStatus === 'active' && (
+                  <span
+                    className="inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[9.5px] font-bold animate-pulse"
+                    style={{
+                      background: 'hsl(var(--stat-green)/0.18)',
+                      color: 'hsl(var(--stat-green))',
+                      border: '0.5px solid hsl(var(--stat-green)/0.35)',
+                    }}
+                  >
+                    ● Live
+                  </span>
+                )}
+                {shiftStatus === 'upcoming' && (
+                  <span
+                    className="inline-flex items-center rounded-full px-1.5 py-0.5 text-[9.5px] font-semibold"
+                    style={{
+                      background: 'hsl(var(--primary)/0.10)',
+                      color: 'hsl(var(--primary))',
+                      border: '0.5px solid hsl(var(--primary)/0.22)',
+                    }}
+                  >
+                    Upcoming
+                  </span>
+                )}
+              </div>
+              <div className="text-right shrink-0">
+                <span className="text-[14px] font-bold money-text tabular-nums leading-tight">
+                  {formatCurrency(displayPay)}
+                </span>
+                {hasOverride && (
+                  <p className="text-[9.5px] text-muted-foreground line-through leading-tight tabular-nums">
+                    {formatCurrency(Number(shift.gross_pay))}
+                  </p>
+                )}
+              </div>
+            </div>
+
+            {/* Row 2: client + type chip */}
+            <div className="flex items-center gap-1.5 flex-wrap mt-1.5">
+              {shift.client_name && (
+                <span className="text-[11px] text-muted-foreground flex items-center gap-1 min-w-0 truncate">
+                  <User className="w-2.5 h-2.5 shrink-0" />
+                  <span className="truncate">{shift.client_name}</span>
+                </span>
+              )}
+              <span
+                className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium"
+                style={shiftTypeLabel.style}
+              >
+                {shiftTypeLabel.icon}
+                {isSleepover ? 'Sleepover' : shiftTypeLabel.label}
+              </span>
+              {hasOverride && !isSleepover && (
+                <span
+                  className="inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-medium"
+                  style={{ background: 'hsl(var(--stat-amber)/0.12)', color: 'hsl(var(--stat-amber))' }}
+                >
+                  <AlertCircle className="w-2.5 h-2.5" /> Override
+                </span>
+              )}
+            </div>
+
+            {/* Row 3: notes */}
+            {shift.notes && (
+              <p className="text-[11px] text-muted-foreground/75 mt-1.5 line-clamp-2 leading-relaxed">
+                {shift.notes}
+              </p>
+            )}
+
+            {/* Locked indicator */}
+            {locked && (
+              <div className="flex items-center gap-1.5 mt-1.5">
+                <Lock className="w-2.5 h-2.5 text-muted-foreground/60" />
+                <span className="text-[10px] text-muted-foreground/60">Locked</span>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );
