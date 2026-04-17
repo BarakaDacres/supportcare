@@ -602,6 +602,63 @@
                 box-shadow var(--dur-base) var(--ease-out-quint);
   }
   .lg-fab:active { transform: scale(0.92); }
+  /* Liquid Glass — Navigation surfaces */
+  .lg-nav-pill {
+    position: relative;
+    background: hsl(var(--glass-2));
+    backdrop-filter: blur(36px) saturate(190%);
+    -webkit-backdrop-filter: blur(36px) saturate(190%);
+    border: 0.5px solid hsl(var(--glass-stroke));
+    border-radius: 999px;
+    box-shadow:
+      0 1px 0 hsl(var(--glass-highlight)) inset,
+      0 0 0 0.5px hsl(var(--glass-stroke-strong)) inset,
+      0 12px 32px hsl(var(--glass-shadow)),
+      0 2px 6px hsl(0 0% 0% / 0.06);
+  }
+  .lg-nav-pill::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    pointer-events: none;
+    background: linear-gradient(180deg,
+      hsl(var(--glass-highlight)) 0%,
+      transparent 30%,
+      transparent 70%,
+      hsl(0 0% 0% / 0.04) 100%);
+    mix-blend-mode: overlay;
+    opacity: 0.7;
+  }
+  .lg-nav-indicator {
+    background: hsl(var(--primary) / 0.14);
+    border: 0.5px solid hsl(var(--primary) / 0.28);
+    box-shadow:
+      0 1px 0 hsl(var(--glass-highlight)) inset,
+      0 4px 12px hsl(var(--primary) / 0.18);
+  }
+  .lg-header {
+    background: hsl(var(--glass-2));
+    backdrop-filter: blur(32px) saturate(180%);
+    -webkit-backdrop-filter: blur(32px) saturate(180%);
+    border-bottom: 0.5px solid hsl(var(--glass-stroke));
+    box-shadow: 0 1px 0 hsl(var(--glass-highlight)) inset;
+  }
+  .lg-icon-btn {
+    width: 36px;
+    height: 36px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 999px;
+    background: hsl(var(--glass-1));
+    border: 0.5px solid hsl(var(--glass-stroke));
+    color: hsl(var(--foreground));
+    transition: transform var(--dur-fast) var(--ease-spring),
+                background var(--dur-fast) var(--ease-out-quint);
+  }
+  .lg-icon-btn:active { transform: scale(0.9); background: hsl(var(--muted)); }
+
   .lg-large-title { font-size: var(--text-largeTitle); font-weight: 700; letter-spacing: -0.022em; line-height: 1.12; }
   .lg-title2 { font-size: var(--text-title2); font-weight: 700; letter-spacing: -0.019em; }
   .lg-headline { font-size: var(--text-headline); font-weight: 600; letter-spacing: -0.014em; }
