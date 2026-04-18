@@ -654,10 +654,7 @@ const ShiftForm = ({
         </div>
 
         {/* ── Footer ── */}
-        <div
-          className="shrink-0 space-y-2"
-          style={{ borderTop: '0.5px solid hsl(var(--border))', padding: '12px 20px 20px', boxSizing: 'border-box' }}
-        >
+        <div className="lg-sheet-footer space-y-2">
           {submitError && (
             <p className="text-xs text-destructive text-center px-2">{submitError}</p>
           )}
@@ -665,7 +662,7 @@ const ShiftForm = ({
             <button
               type="button"
               onClick={onCancel}
-              className="flex-1 rounded-2xl text-sm font-semibold transition-colors"
+              className="lg-tap flex-1 rounded-2xl text-sm font-semibold transition-colors"
               style={{
                 minHeight: 48,
                 background: 'hsl(var(--muted))',
@@ -677,7 +674,7 @@ const ShiftForm = ({
             <button
               type="submit"
               disabled={submitting}
-              className="flex-1 rounded-2xl text-sm font-bold transition-all duration-200 disabled:opacity-50"
+              className="lg-tap flex-1 rounded-2xl text-sm font-bold transition-all duration-200 disabled:opacity-50"
               style={{
                 minHeight: 48,
                 background: 'hsl(var(--primary))',
@@ -690,7 +687,7 @@ const ShiftForm = ({
           </div>
         </div>
       </form>
-    </div>
+    </BottomSheet>
   );
 };
 
