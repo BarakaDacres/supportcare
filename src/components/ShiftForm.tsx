@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { X, Clock, Moon, User, FileText, ChevronDown, DollarSign, Star, Sunset, Calendar } from 'lucide-react';
+import { BottomSheet } from '@/components/ui/bottom-sheet';
 import { calculateShiftPay, formatTime12h, type PayRates, DEFAULT_RATES, getDayOfWeek, isWeekendSleeperNight, shiftHasEveningHours, dayLabel } from '@/lib/shiftCalculator';
 import { formatCurrency } from '@/lib/formatUtils';
 import type { NewShift } from '@/hooks/useShifts';
@@ -299,59 +300,27 @@ const ShiftForm = ({
   );
 
   return (
-    <div
-      className="fixed inset-0 z-[60] flex items-center justify-center"
-      style={{
-        paddingLeft: 16,
-        paddingRight: 16,
-        paddingTop: 'max(16px, env(safe-area-inset-top, 16px))',
-        paddingBottom: 'max(16px, env(safe-area-inset-bottom, 16px))',
-        background: 'hsl(var(--foreground)/0.4)',
-        backdropFilter: 'blur(24px) saturate(1.6)',
-        WebkitBackdropFilter: 'blur(24px) saturate(1.6)',
-      }}
-      onClick={(e) => { if (e.target === e.currentTarget) onCancel(); }}
-    >
+    <BottomSheet open onClose={onCancel} dismissDisabled={submitting} labelledBy="shift-form-title">
       <form
         onSubmit={handleSubmit}
-        className="flex flex-col"
-        style={{
-          width: 'calc(100vw - 32px)',
-          maxWidth: 420,
-          maxHeight: 'min(90dvh, 700px)',
-          background: 'hsl(var(--card))',
-          borderRadius: 24,
-          boxShadow:
-            '0 2px 8px hsl(var(--foreground)/0.08), ' +
-            '0 20px 60px hsl(var(--foreground)/0.22), ' +
-            '0 0 0 0.5px hsl(var(--border))',
-          overflow: 'hidden',
-          boxSizing: 'border-box',
-        }}
-        onClick={(e) => e.stopPropagation()}
+        className="flex flex-col flex-1 min-h-0"
       >
         {/* ── Header ── */}
-        <div
-          className="flex items-center justify-between shrink-0"
-          style={{ borderBottom: '0.5px solid hsl(var(--border))', padding: '14px 20px' }}
-        >
-          <h2 className="text-base font-bold text-foreground">{title}</h2>
+        <div className="lg-sheet-header">
+          <h2 id="shift-form-title" className="lg-headline text-foreground">{title}</h2>
           <button
             type="button"
             onClick={onCancel}
-            className="w-8 h-8 flex items-center justify-center rounded-full transition-colors"
-            style={{ background: 'hsl(var(--muted))', color: 'hsl(var(--muted-foreground))' }}
+            className="lg-icon-btn lg-tap"
+            aria-label="Close"
           >
             <X className="w-3.5 h-3.5" />
           </button>
         </div>
 
         {/* ── Scrollable body ── */}
-        <div
-          className="flex-1 min-h-0 overflow-y-auto overscroll-contain"
-          style={{ padding: '16px 20px 4px', boxSizing: 'border-box' }}
-        >
-          <div className="space-y-3" style={{ width: '100%', boxSizing: 'border-box' }}>
+        <div className="lg-sheet-body">
+          <div className="space-y-4" style={{ width: '100%', boxSizing: 'border-box' }}>
 
             {/* ── Date & Time Section ── */}
             <div className="space-y-2">
