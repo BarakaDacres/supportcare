@@ -251,21 +251,69 @@
     box-shadow: var(--card-shadow-md);
   }
 
-  /* ── Elevated card (for key metrics) ── */
+  /* ── Elevated card — Liquid Glass treatment (for key metrics) ── */
   .card-elevated {
-    background: hsl(var(--card));
-    border: 1px solid hsl(var(--border));
-    border-radius: 20px;
-    box-shadow: var(--card-shadow-md);
+    position: relative;
+    background: hsl(var(--glass-2));
+    backdrop-filter: blur(40px) saturate(190%);
+    -webkit-backdrop-filter: blur(40px) saturate(190%);
+    border: 0.5px solid hsl(var(--glass-stroke));
+    border-radius: 22px;
+    box-shadow:
+      0 1px 0 hsl(var(--glass-highlight)) inset,
+      0 0 0 0.5px hsl(var(--glass-stroke-strong)) inset,
+      var(--card-shadow-md);
+    transition: transform var(--dur-base, 280ms) var(--ease-spring, cubic-bezier(0.34, 1.56, 0.64, 1)),
+                box-shadow var(--dur-base, 280ms) var(--ease-out-quint, cubic-bezier(0.22, 1, 0.36, 1));
   }
+  .card-elevated::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    pointer-events: none;
+    background: linear-gradient(180deg,
+      hsl(var(--glass-highlight)) 0%,
+      transparent 22%,
+      transparent 78%,
+      hsl(var(--glass-shadow)) 100%);
+    opacity: 0.45;
+    mix-blend-mode: overlay;
+  }
+  .card-elevated > * { position: relative; z-index: 1; }
 
-  /* ── Hero card (primary weekly card) ── */
+  /* ── Hero card — primary surface, deeper glass ── */
   .card-hero {
-    background: hsl(var(--card));
-    border: 1px solid hsl(var(--border));
-    border-radius: 24px;
-    box-shadow: var(--card-shadow-lg);
+    position: relative;
+    background: hsl(var(--glass-3));
+    backdrop-filter: blur(48px) saturate(200%);
+    -webkit-backdrop-filter: blur(48px) saturate(200%);
+    border: 0.5px solid hsl(var(--glass-stroke));
+    border-radius: 26px;
+    box-shadow:
+      0 1px 0 hsl(var(--glass-highlight)) inset,
+      0 0 0 0.5px hsl(var(--glass-stroke-strong)) inset,
+      var(--card-shadow-lg);
+    transition: transform var(--dur-base, 280ms) var(--ease-spring, cubic-bezier(0.34, 1.56, 0.64, 1)),
+                box-shadow var(--dur-base, 280ms) var(--ease-out-quint, cubic-bezier(0.22, 1, 0.36, 1));
   }
+  .card-hero::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    pointer-events: none;
+    background:
+      radial-gradient(120% 60% at 50% -10%, hsl(var(--primary) / 0.10), transparent 60%),
+      linear-gradient(180deg,
+        hsl(var(--glass-highlight)) 0%,
+        transparent 24%,
+        transparent 76%,
+        hsl(var(--glass-shadow)) 100%);
+    opacity: 0.7;
+    mix-blend-mode: overlay;
+  }
+  .card-hero > * { position: relative; z-index: 1; }
 
   /* ────────────────────────────────────────────────────
      INPUTS
