@@ -14,8 +14,7 @@ interface RatesPanelProps {
 ───────────────────────────────────────────────────────────────── */
 
 const SettingsGroup = ({ children }: { children: React.ReactNode }) => (
-  <div className="rounded-2xl overflow-hidden"
-    style={{ background: 'hsl(var(--card))', boxShadow: 'var(--card-shadow-sm)', border: '1px solid hsl(var(--border))' }}>
+  <div className="lg-settings-card">
     {children}
   </div>
 );
@@ -168,8 +167,7 @@ const CollapsibleSection = ({ title, subtitle, defaultOpen = false, children }: 
   }, [open]);
 
   return (
-    <div className="rounded-2xl overflow-hidden"
-      style={{ background: 'hsl(var(--card))', boxShadow: 'var(--card-shadow-sm)', border: '1px solid hsl(var(--border))' }}>
+    <div className="lg-settings-card">
       <button
         type="button"
         onClick={() => setOpen(o => !o)}

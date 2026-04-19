@@ -18,8 +18,7 @@ const AccordionSection = ({
   icon: React.ElementType; title: string; subtitle?: string;
   open: boolean; onToggle: () => void; dirty?: boolean; children: React.ReactNode;
 }) => (
-  <div className="rounded-2xl overflow-hidden transition-all duration-300"
-    style={{ background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', boxShadow: 'var(--card-shadow-sm)' }}>
+  <div className="lg-settings-card transition-all duration-300">
     <button onClick={onToggle}
       className="w-full flex items-center gap-3.5 px-4 transition-colors active:bg-muted/40"
       style={{ minHeight: 58 }}>
@@ -229,12 +228,7 @@ const AccountPanel = ({ auth, settings, settingsLoading, onSaveSettings }: Accou
     <div className="space-y-5 pb-28">
 
       {/* ── Hero Profile Card ── */}
-      <div className="rounded-2xl overflow-hidden"
-        style={{
-          background: 'hsl(var(--card))',
-          border: '1px solid hsl(var(--border))',
-          boxShadow: 'var(--card-shadow-sm)',
-        }}>
+      <div className="lg-settings-card">
         <div className="flex items-center gap-4 px-4 py-5">
           {/* Avatar */}
           <button className="relative group shrink-0" onClick={() => fileRef.current?.click()} disabled={uploading}>
@@ -271,8 +265,7 @@ const AccountPanel = ({ auth, settings, settingsLoading, onSaveSettings }: Accou
       </div>
 
       {/* ── Display Name ── */}
-      <div className="rounded-2xl overflow-hidden"
-        style={{ background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', boxShadow: 'var(--card-shadow-sm)' }}>
+      <div className="lg-settings-card">
         <div className="px-4 py-3.5">
           <Field label="Display Name" value={displayName} onChange={setDisplayName}
             placeholder={auth.user.email?.split('@')[0] ?? 'Your name'} />
@@ -339,8 +332,7 @@ const AccountPanel = ({ auth, settings, settingsLoading, onSaveSettings }: Accou
       )}
 
       {/* ── Sign Out ── */}
-      <div className="rounded-2xl overflow-hidden"
-        style={{ background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', boxShadow: 'var(--card-shadow-sm)' }}>
+      <div className="lg-settings-card">
         <button onClick={handleSignOut} disabled={signingOut}
           className="w-full flex items-center justify-center gap-2.5 transition-colors active:bg-destructive/8"
           style={{ minHeight: 50 }}>

@@ -74,8 +74,7 @@ const SettingsRow = ({ icon, label, sublabel, right, onClick, isLast }: Settings
 );
 
 const SettingsGroup = ({ children }: { children: React.ReactNode }) => (
-  <div className="rounded-2xl overflow-hidden"
-    style={{ background: 'hsl(var(--card))', boxShadow: 'var(--card-shadow-sm)', border: '1px solid hsl(var(--border))' }}>
+  <div className="lg-settings-card">
     {children}
   </div>
 );
@@ -147,8 +146,8 @@ const DueDateModal = ({
     onClick={onClose}
   >
     <div
-      className="w-full max-w-sm rounded-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200"
-      style={{ background: 'hsl(var(--card))', boxShadow: 'var(--card-shadow-lg)', border: '1px solid hsl(var(--border))' }}
+      className="lg-settings-card w-full max-w-sm animate-in fade-in zoom-in-95 duration-200"
+      style={{ boxShadow: 'var(--card-shadow-lg)' }}
       onClick={e => e.stopPropagation()}
     >
       <div className="px-4 pt-5 pb-3 text-center border-b" style={{ borderColor: 'hsl(var(--divider))' }}>
