@@ -38,18 +38,8 @@ const ActionSheet = ({ open, onClose, theme, locked, onToggleTheme, onToggleLock
       onClick={onClose}
     >
       <div
-        className="w-full max-w-[320px] animate-in zoom-in-95 fade-in duration-200"
-        style={{
-          background: 'hsl(var(--card)/0.88)',
-          backdropFilter: 'blur(40px)',
-          WebkitBackdropFilter: 'blur(40px)',
-          borderRadius: 24,
-          boxShadow:
-            '0 0 0 0.5px hsl(var(--border)/0.5), ' +
-            '0 20px 60px hsl(var(--foreground)/0.18), ' +
-            '0 4px 16px hsl(var(--foreground)/0.06)',
-          overflow: 'hidden',
-        }}
+        className="glass-card-glow w-full max-w-[320px] animate-in zoom-in-95 fade-in duration-200"
+        style={{ borderRadius: 24 }}
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}
