@@ -123,14 +123,11 @@ const ShiftTemplatesManager = ({ templates, clients, onAdd, onUpdate, onDelete }
         onClick={() => { setCreating(false); setEditing(null); }}
       >
         <div
-          className="flex flex-col"
+          className="glass-card-glow flex flex-col"
           style={{
             width: 'calc(100vw - 32px)', maxWidth: 420,
             maxHeight: 'min(90dvh, 680px)',
-            background: 'hsl(var(--card))',
             borderRadius: 24,
-            boxShadow: '0 2px 8px hsl(var(--foreground)/0.08), 0 20px 60px hsl(var(--foreground)/0.22), 0 0 0 0.5px hsl(var(--border))',
-            overflow: 'hidden',
           }}
           onClick={e => e.stopPropagation()}
         >
@@ -281,8 +278,7 @@ const ShiftTemplatesManager = ({ templates, clients, onAdd, onUpdate, onDelete }
       </div>
 
       {templates.length === 0 ? (
-        <div className="rounded-2xl overflow-hidden"
-          style={{ background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', boxShadow: 'var(--card-shadow-sm)' }}>
+        <div className="lg-settings-card">
           <div className="flex flex-col items-center py-8 px-4 text-center">
             <div className="w-10 h-10 rounded-2xl flex items-center justify-center mb-3"
               style={{ background: 'hsl(var(--muted))' }}>
@@ -298,8 +294,7 @@ const ShiftTemplatesManager = ({ templates, clients, onAdd, onUpdate, onDelete }
           </div>
         </div>
       ) : (
-        <div className="rounded-2xl overflow-hidden"
-          style={{ background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', boxShadow: 'var(--card-shadow-sm)' }}>
+        <div className="lg-settings-card">
           {templates.map((t, i) => {
             const client = clients.find(c => c.id === t.client_id);
             const typeInfo = SHIFT_TYPES.find(s => s.value === t.shift_type) ?? SHIFT_TYPES[0];

@@ -188,18 +188,12 @@ const ClientFormSheet = ({
     >
       <form
         onSubmit={handleSubmit}
-        className="flex flex-col"
+        className="glass-card-glow flex flex-col"
         style={{
           width: 'calc(100vw - 32px)',
           maxWidth: 420,
           maxHeight: 'min(90dvh, 720px)',
-          background: 'hsl(var(--card))',
           borderRadius: 24,
-          boxShadow:
-            '0 2px 8px hsl(var(--foreground)/0.08), ' +
-            '0 20px 60px hsl(var(--foreground)/0.22), ' +
-            '0 0 0 0.5px hsl(var(--border))',
-          overflow: 'hidden',
           boxSizing: 'border-box',
         }}
         onClick={e => e.stopPropagation()}
@@ -815,7 +809,7 @@ const ClientsPanel = ({ clients, shifts, loading, onAdd, onUpdate, onDelete, onA
             className="fixed inset-0 z-[70] flex items-center justify-center p-4"
             style={{ background: 'hsl(var(--foreground)/0.35)', backdropFilter: 'blur(20px) saturate(1.5)', WebkitBackdropFilter: 'blur(20px) saturate(1.5)' }}
           >
-            <div className="w-full max-w-sm p-6 space-y-4" style={{ background: 'hsl(var(--card))', borderRadius: 24, boxShadow: '0 20px 60px hsl(var(--foreground)/0.2)' }}>
+            <div className="glass-card-glow w-full max-w-sm p-6 space-y-4" style={{ borderRadius: 24 }}>
               <p className="text-base font-bold text-foreground">
                 {dcClient && isClientArchived(dcClient) ? 'Permanently delete?' : 'Archive or delete?'}
               </p>

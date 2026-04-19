@@ -67,12 +67,9 @@ const UserMenu = ({ auth }: UserMenuProps) => {
 
           {/* Dropdown */}
           <div
-            className="absolute right-0 top-full mt-2 w-56 z-50 overflow-hidden"
+            className="lg-settings-card absolute right-0 top-full mt-2 w-56 z-50"
             style={{
-              background: 'hsl(var(--card))',
-              border: '1px solid hsl(var(--border))',
               borderRadius: 16,
-              boxShadow: '0 4px 6px hsl(var(--foreground)/0.04), 0 20px 48px hsl(var(--foreground)/0.14), 0 0 0 0.5px hsl(var(--border))',
               animation: 'dropdown-in 0.15s cubic-bezier(0.16, 1, 0.3, 1)',
             }}
           >

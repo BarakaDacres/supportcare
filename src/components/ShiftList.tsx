@@ -490,13 +490,8 @@ const ShiftList = ({
             onTouchStart={e => e.stopPropagation()}
           >
             <div
-              className="rounded-2xl overflow-hidden"
-              style={{
-                background: 'hsl(var(--card))',
-                border: '0.5px solid hsl(var(--border))',
-                boxShadow: '0 8px 32px hsl(var(--foreground)/0.14), 0 2px 8px hsl(var(--foreground)/0.06)',
-                minWidth: menuW,
-              }}
+              className="lg-settings-card"
+              style={{ minWidth: menuW }}
             >
               <button
                 className="w-full flex items-center gap-3 px-4 py-3 text-sm font-medium text-foreground hover:bg-accent/60 transition-colors text-left"
