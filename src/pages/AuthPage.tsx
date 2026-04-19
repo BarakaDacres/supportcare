@@ -78,11 +78,7 @@ const OnboardingWizard = ({ onComplete }: OnboardingWizardProps) => {
         </div>
 
         {/* Card */}
-        <div className="rounded-[28px] overflow-hidden"
-          style={{
-            background: 'hsl(var(--card))',
-            boxShadow: '0 2px 8px hsl(var(--foreground)/0.06), 0 20px 56px hsl(var(--foreground)/0.12), 0 0 0 0.5px hsl(var(--border))',
-          }}>
+        <div className="glass-card-glow">
 
           {/* Welcome step */}
           {step === 'welcome' && (
@@ -323,14 +319,11 @@ const AuthPage = () => {
             {/* Social sign-in buttons */}
             <div className="space-y-2.5">
               <button onClick={() => handleSocial('google')} disabled={loading}
-                className="w-full flex items-center gap-4 rounded-[18px] px-5 text-[15px] font-medium transition-all duration-200 active:scale-[0.98] disabled:opacity-40"
+                className="lg-settings-card w-full flex items-center gap-4 px-5 text-[15px] font-medium transition-all duration-200 active:scale-[0.98] disabled:opacity-40"
                 style={{
                   minHeight: 52,
-                  background: isDark ? 'hsl(220 14% 12% / 0.85)' : 'hsl(var(--card))',
                   color: isDark ? 'white' : 'hsl(var(--foreground))',
-                  border: isDark ? '0.5px solid hsl(220 10% 100% / 0.08)' : '0.5px solid hsl(var(--border))',
-                  boxShadow: isDark ? '0 2px 12px hsl(0 0% 0% / 0.4), inset 0 0.5px 0 hsl(0 0% 100% / 0.04)' : '0 2px 8px hsl(0 0% 0% / 0.06)',
-                  backdropFilter: 'blur(20px)',
+                  borderRadius: 18,
                 }}>
                 <GoogleIcon />
                 <span className="flex-1 text-left">Sign in with Google</span>
@@ -343,14 +336,11 @@ const AuthPage = () => {
               </button>
 
               <button onClick={() => handleSocial('apple')} disabled={loading}
-                className="w-full flex items-center gap-4 rounded-[18px] px-5 text-[15px] font-medium transition-all duration-200 active:scale-[0.98] disabled:opacity-40"
+                className="lg-settings-card w-full flex items-center gap-4 px-5 text-[15px] font-medium transition-all duration-200 active:scale-[0.98] disabled:opacity-40"
                 style={{
                   minHeight: 52,
-                  background: isDark ? 'hsl(220 14% 12% / 0.85)' : 'hsl(var(--card))',
                   color: isDark ? 'white' : 'hsl(var(--foreground))',
-                  border: isDark ? '0.5px solid hsl(220 10% 100% / 0.08)' : '0.5px solid hsl(var(--border))',
-                  boxShadow: isDark ? '0 2px 12px hsl(0 0% 0% / 0.4), inset 0 0.5px 0 hsl(0 0% 100% / 0.04)' : '0 2px 8px hsl(0 0% 0% / 0.06)',
-                  backdropFilter: 'blur(20px)',
+                  borderRadius: 18,
                 }}>
                 <AppleIcon />
                 <span className="flex-1 text-left">Sign in with Apple</span>
@@ -371,14 +361,8 @@ const AuthPage = () => {
           </>
         ) : null}
 
-        {/* Email/password form — compact */}
-        <div className="rounded-[18px] overflow-hidden"
-          style={{
-            background: isDark ? 'hsl(220 14% 10% / 0.8)' : 'hsl(var(--card))',
-            border: isDark ? '0.5px solid hsl(220 10% 100% / 0.07)' : '0.5px solid hsl(var(--border))',
-            boxShadow: isDark ? '0 4px 24px hsl(0 0% 0% / 0.4), inset 0 0.5px 0 hsl(0 0% 100% / 0.03)' : '0 2px 12px hsl(0 0% 0% / 0.06)',
-            backdropFilter: 'blur(24px)',
-          }}>
+        {/* Email/password form — Liquid Glass */}
+        <div className="lg-settings-card" style={{ borderRadius: 18 }}>
           <form onSubmit={handleSubmit} className="p-4 space-y-2.5">
             {mode === 'signup' && (
               <div className="space-y-1">
