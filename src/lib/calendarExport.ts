@@ -75,7 +75,7 @@ export function generateICS(event: CalendarEvent, sequence = 0): string {
 }
 
 /** Generate a single .ics file with multiple events */
-export function generateBulkICS(events: CalendarEvent[]): string {
+export function generateBulkICS(events: CalendarEvent[], sequences?: Map<string, number>): string {
   const lines = [
     'BEGIN:VCALENDAR',
     'VERSION:2.0',
@@ -88,10 +88,12 @@ export function generateBulkICS(events: CalendarEvent[]): string {
     const endDate = resolveEndDate(event.startDate, event.startTime, event.endTime);
     const dtStart = toICSDateTime(event.startDate, event.startTime);
     const dtEnd = toICSDateTime(endDate, event.endTime);
+    const seq = sequences?.get(event.uid) ?? 0;
 
     lines.push(
       'BEGIN:VEVENT',
       `UID:shift-${event.uid}@supportcare.app`,
+      `SEQUENCE:${seq}`,
       `DTSTAMP:${toICSDateTime(new Date().toISOString().slice(0, 10), new Date().toTimeString().slice(0, 5))}`,
       `DTSTART:${dtStart}`,
       `DTEND:${dtEnd}`,
@@ -107,8 +109,8 @@ export function generateBulkICS(events: CalendarEvent[]): string {
 }
 
 /** Download a bulk .ics file */
-export function downloadBulkICS(events: CalendarEvent[]) {
-  const icsContent = generateBulkICS(events);
+export function downloadBulkICS(events: CalendarEvent[], sequences?: Map<string, number>) {
+  const icsContent = generateBulkICS(events, sequences);
   const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
