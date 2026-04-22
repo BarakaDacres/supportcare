@@ -41,8 +41,13 @@ function escapeICS(text: string): string {
   return text.replace(/[\\;,]/g, c => '\\' + c).replace(/\n/g, '\\n');
 }
 
+/** Compute a stable fingerprint for change detection */
+function eventFingerprint(e: CalendarEvent): string {
+  return [e.startDate, e.startTime, e.endTime, e.title, e.location ?? '', e.description ?? ''].join('|');
+}
+
 /** Generate a downloadable .ics file content */
-export function generateICS(event: CalendarEvent): string {
+export function generateICS(event: CalendarEvent, sequence = 0): string {
   const endDate = resolveEndDate(event.startDate, event.startTime, event.endTime);
   const dtStart = toICSDateTime(event.startDate, event.startTime);
   const dtEnd = toICSDateTime(endDate, event.endTime);
@@ -55,6 +60,7 @@ export function generateICS(event: CalendarEvent): string {
     'METHOD:PUBLISH',
     'BEGIN:VEVENT',
     `UID:shift-${event.uid}@supportcare.app`,
+    `SEQUENCE:${sequence}`,
     `DTSTAMP:${toICSDateTime(new Date().toISOString().slice(0, 10), new Date().toTimeString().slice(0, 5))}`,
     `DTSTART:${dtStart}`,
     `DTEND:${dtEnd}`,
