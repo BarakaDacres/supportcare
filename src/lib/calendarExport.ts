@@ -154,9 +154,16 @@ export function googleCalendarURL(event: CalendarEvent): string {
 }
 
 // ── Auto-sync helpers ────────────────────────────────────────────────────────
+// State is keyed per-shift: { fingerprint, sequence }. When a shift's
+// fingerprint changes we bump SEQUENCE so calendar apps treat the re-imported
+// event as an UPDATE to the existing event (matched by UID), not a duplicate.
 
-const SYNC_KEY = 'cal_synced_shift_ids';
+const SYNC_STATE_KEY = 'cal_sync_state_v2';
+const LEGACY_SYNC_KEY = 'cal_synced_shift_ids';
 const SYNC_ENABLED_KEY = 'cal_auto_sync';
+
+interface SyncEntry { fp: string; seq: number }
+type SyncState = Record<string, SyncEntry>;
 
 /** Check if auto-sync is enabled */
 export function isAutoSyncEnabled(): boolean {
@@ -168,58 +175,99 @@ export function setAutoSyncEnabled(enabled: boolean): void {
   localStorage.setItem(SYNC_ENABLED_KEY, enabled ? 'true' : 'false');
 }
 
-/** Get the set of shift IDs that have already been synced */
-function getSyncedIds(): Set<string> {
+function readState(): SyncState {
   try {
-    const raw = localStorage.getItem(SYNC_KEY);
-    if (!raw) return new Set();
-    return new Set(JSON.parse(raw) as string[]);
-  } catch {
-    return new Set();
-  }
+    const raw = localStorage.getItem(SYNC_STATE_KEY);
+    if (raw) return JSON.parse(raw) as SyncState;
+    const legacy = localStorage.getItem(LEGACY_SYNC_KEY);
+    if (legacy) {
+      const ids = JSON.parse(legacy) as string[];
+      const migrated: SyncState = {};
+      for (const id of ids) migrated[id] = { fp: '', seq: 0 };
+      localStorage.setItem(SYNC_STATE_KEY, JSON.stringify(migrated));
+      return migrated;
+    }
+  } catch { /* ignore */ }
+  return {};
 }
 
-/** Mark shift IDs as synced */
-function markSynced(ids: string[]): void {
-  const existing = getSyncedIds();
-  for (const id of ids) existing.add(id);
-  localStorage.setItem(SYNC_KEY, JSON.stringify([...existing]));
+function writeState(state: SyncState): void {
+  localStorage.setItem(SYNC_STATE_KEY, JSON.stringify(state));
 }
 
-/** Clean up synced IDs that no longer exist */
+/** Clean up synced entries for shifts that no longer exist */
 export function cleanSyncedIds(currentShiftIds: string[]): void {
-  const existing = getSyncedIds();
-  const validIds = new Set(currentShiftIds);
-  const cleaned = [...existing].filter(id => validIds.has(id));
-  localStorage.setItem(SYNC_KEY, JSON.stringify(cleaned));
+  const valid = new Set(currentShiftIds);
+  const state = readState();
+  let changed = false;
+  for (const id of Object.keys(state)) {
+    if (!valid.has(id)) { delete state[id]; changed = true; }
+  }
+  if (changed) writeState(state);
 }
 
 /**
- * Check for new upcoming shifts that haven't been synced yet.
- * Returns the new events if auto-sync is enabled and there are unsynced shifts.
- * Returns null if no sync needed.
+ * Decide which events need to be (re-)exported.
+ * Returns the events plus a sequence map so the writer bumps SEQUENCE for
+ * updates. Returns null if auto-sync is off or nothing has changed.
  */
 export function checkAutoSync(
   upcomingEvents: CalendarEvent[],
-): CalendarEvent[] | null {
+): { events: CalendarEvent[]; sequences: Map<string, number> } | null {
   if (!isAutoSyncEnabled()) return null;
   if (upcomingEvents.length === 0) return null;
 
-  const synced = getSyncedIds();
-  const newEvents = upcomingEvents.filter(e => !synced.has(e.uid));
+  const state = readState();
+  const changed: CalendarEvent[] = [];
+  const sequences = new Map<string, number>();
 
-  if (newEvents.length === 0) return null;
-  return newEvents;
+  for (const e of upcomingEvents) {
+    const fp = eventFingerprint(e);
+    const prev = state[e.uid];
+    if (!prev) {
+      changed.push(e);
+      sequences.set(e.uid, 0);
+    } else if (prev.fp !== fp) {
+      changed.push(e);
+      sequences.set(e.uid, prev.seq + 1);
+    }
+  }
+
+  if (changed.length === 0) return null;
+  return { events: changed, sequences };
 }
 
-/** Perform auto-sync: download new events and mark them as synced */
-export function performAutoSync(events: CalendarEvent[]): void {
+/** Perform auto-sync: download changed events and update sync state */
+export function performAutoSync(payload: { events: CalendarEvent[]; sequences: Map<string, number> }): void {
+  const { events, sequences } = payload;
   if (events.length === 0) return;
-  downloadBulkICS(events);
-  markSynced(events.map(e => e.uid));
+  downloadBulkICS(events, sequences);
+  const state = readState();
+  for (const e of events) {
+    state[e.uid] = { fp: eventFingerprint(e), seq: sequences.get(e.uid) ?? 0 };
+  }
+  writeState(state);
 }
 
-/** Mark all upcoming events as synced (for initial export) */
+/** Mark all upcoming events as synced at their current state (initial export) */
 export function markAllSynced(events: CalendarEvent[]): void {
-  markSynced(events.map(e => e.uid));
+  const state = readState();
+  for (const e of events) {
+    const prev = state[e.uid];
+    state[e.uid] = { fp: eventFingerprint(e), seq: prev?.seq ?? 0 };
+  }
+  writeState(state);
+}
+
+/** Build a sequence map for a manual bulk export so updated shifts bump SEQUENCE */
+export function buildSequenceMap(events: CalendarEvent[]): Map<string, number> {
+  const state = readState();
+  const map = new Map<string, number>();
+  for (const e of events) {
+    const prev = state[e.uid];
+    if (!prev) map.set(e.uid, 0);
+    else if (prev.fp !== eventFingerprint(e)) map.set(e.uid, prev.seq + 1);
+    else map.set(e.uid, prev.seq);
+  }
+  return map;
 }
