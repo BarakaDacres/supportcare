@@ -192,17 +192,6 @@ const ShiftList = ({
     return `${dayNames[d.getDay()]} ${d.getDate()} ${MONTH_NAMES[d.getMonth()]}`;
   };
 
-  // Group filtered shifts by date for sticky day headers
-  const grouped = useMemo(() => {
-    const map = new Map<string, Shift[]>();
-    for (const s of filtered) {
-      const arr = map.get(s.date) ?? [];
-      arr.push(s);
-      map.set(s.date, arr);
-    }
-    return Array.from(map.entries()); // preserves the sort order of `filtered`
-  }, [filtered]);
-
   const todayStr = (() => {
     const t = new Date();
     return `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}-${String(t.getDate()).padStart(2, '0')}`;
@@ -211,6 +200,25 @@ const ShiftList = ({
     const t = new Date(); t.setDate(t.getDate() + 1);
     return `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}-${String(t.getDate()).padStart(2, '0')}`;
   })();
+
+  // Group filtered shifts by date for sticky day headers.
+  // While today has shifts, pin it to the very top of the list — it floats
+  // back to its natural chronological position once the day passes.
+  const grouped = useMemo(() => {
+    const map = new Map<string, Shift[]>();
+    for (const s of filtered) {
+      const arr = map.get(s.date) ?? [];
+      arr.push(s);
+      map.set(s.date, arr);
+    }
+    const entries = Array.from(map.entries());
+    const todayIdx = entries.findIndex(([d]) => d === todayStr);
+    if (todayIdx > 0) {
+      const [todayEntry] = entries.splice(todayIdx, 1);
+      entries.unshift(todayEntry);
+    }
+    return entries;
+  }, [filtered, todayStr]);
 
   const formatGroupHeader = (dateStr: string) => {
     const d = parseLocalDate(dateStr);
