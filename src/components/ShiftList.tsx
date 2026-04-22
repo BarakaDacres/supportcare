@@ -398,21 +398,38 @@ const ShiftList = ({
             const dayTotal = dayShifts.reduce((s, sh) => s + effectiveGrossPay(sh), 0);
             return (
               <section key={dateStr} className="space-y-2">
-                {/* Sticky day header */}
+                {/* Sticky day header — Liquid Glass treatment.
+                    Today gets the bright "selected pill" look (specular sheen,
+                    primary tint, dual stroke). Past/upcoming days stay subdued. */}
                 <div
                   className="sticky z-20 -mx-1 px-1"
                   style={{ top: 'calc(env(safe-area-inset-top, 0px) + 56px)' }}
                 >
                   <div
-                    className="flex items-center justify-between gap-3 px-3 py-1.5 rounded-xl"
-                    style={{
-                      background: 'hsl(var(--glass-1))',
-                      backdropFilter: 'blur(20px) saturate(180%)',
-                      WebkitBackdropFilter: 'blur(20px) saturate(180%)',
-                      border: '0.5px solid hsl(var(--glass-stroke))',
-                    }}
+                    className={`relative flex items-center justify-between gap-3 px-3.5 py-2 rounded-2xl overflow-hidden ${header.isToday ? 'lg-day-header-today' : 'lg-day-header'}`}
                   >
-                    <div className="flex items-baseline gap-2 min-w-0">
+                    {header.isToday && (
+                      <span
+                        aria-hidden
+                        className="pointer-events-none absolute inset-0 rounded-2xl"
+                        style={{
+                          background: 'linear-gradient(180deg, hsl(var(--glass-highlight)) 0%, transparent 38%, transparent 62%, hsl(var(--glass-shadow)) 100%)',
+                          opacity: 0.6,
+                          mixBlendMode: 'overlay',
+                        }}
+                      />
+                    )}
+                    <div className="relative flex items-baseline gap-2 min-w-0">
+                      {header.isToday && (
+                        <span
+                          aria-hidden
+                          className="inline-block w-1.5 h-1.5 rounded-full mr-1.5"
+                          style={{
+                            background: 'hsl(var(--primary))',
+                            boxShadow: '0 0 0 3px hsl(var(--primary)/0.18), 0 0 8px hsl(var(--primary)/0.55)',
+                          }}
+                        />
+                      )}
                       <span
                         className="text-[13px] font-bold tracking-tight truncate"
                         style={{ color: header.isToday ? 'hsl(var(--primary))' : 'hsl(var(--foreground))' }}
@@ -421,7 +438,7 @@ const ShiftList = ({
                       </span>
                       <span className="text-[11px] text-muted-foreground truncate">{header.sub}</span>
                     </div>
-                    <span className="text-[11px] font-semibold money-text shrink-0">
+                    <span className="relative text-[11px] font-semibold money-text shrink-0">
                       {formatCurrency(dayTotal)}
                     </span>
                   </div>
