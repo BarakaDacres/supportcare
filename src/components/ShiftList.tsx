@@ -7,7 +7,7 @@ import type { PayRates } from '@/lib/shiftCalculator';
 import { DEFAULT_RATES, formatTime12h, getDayOfWeek, shiftHasEveningHours } from '@/lib/shiftCalculator';
 import { formatCurrency } from '@/lib/formatUtils';
 import { MONTH_NAMES } from '@/lib/dateUtils';
-import { downloadBulkICS, checkAutoSync, performAutoSync, markAllSynced, isAutoSyncEnabled, setAutoSyncEnabled, cleanSyncedIds, type CalendarEvent } from '@/lib/calendarExport';
+import { downloadBulkICS, checkAutoSync, performAutoSync, markAllSynced, isAutoSyncEnabled, setAutoSyncEnabled, cleanSyncedIds, buildSequenceMap, type CalendarEvent } from '@/lib/calendarExport';
 import ShiftForm from './ShiftForm';
 
 interface ShiftListProps {
@@ -107,19 +107,19 @@ const ShiftList = ({
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
   const [autoSync, setAutoSync] = useState(isAutoSyncEnabled);
 
-  // Auto-sync: check for new upcoming shifts whenever shifts change
+  // Auto-sync: re-export upcoming shifts whenever any of them change.
+  // Uses fingerprint+SEQUENCE so calendar apps update events with the same UID
+  // instead of duplicating them.
   useEffect(() => {
     if (!autoSync) return;
     const upcomingShifts = shifts.filter(s => getShiftStatus(s) === 'upcoming');
-    // Clean up old synced IDs
     cleanSyncedIds(shifts.map(s => s.id));
     const events: CalendarEvent[] = upcomingShifts.map(s =>
       buildCalendarEvent(s, clients.find(c => c.id === s.client_id)?.service_address)
     );
-    const newEvents = checkAutoSync(events);
-    if (newEvents && newEvents.length > 0) {
-      // Small delay so it doesn't fire on initial load
-      const timer = setTimeout(() => performAutoSync(newEvents), 1500);
+    const payload = checkAutoSync(events);
+    if (payload && payload.events.length > 0) {
+      const timer = setTimeout(() => performAutoSync(payload), 1500);
       return () => clearTimeout(timer);
     }
   }, [shifts, clients, autoSync]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -330,7 +330,8 @@ const ShiftList = ({
               <button
                 onClick={() => {
                   const events: CalendarEvent[] = upcomingShifts.map(s => buildCalendarEvent(s, clients.find(c => c.id === s.client_id)?.service_address));
-                  downloadBulkICS(events);
+                  const sequences = buildSequenceMap(events);
+                  downloadBulkICS(events, sequences);
                   markAllSynced(events);
                 }}
                 className="glass-chip py-1 px-2.5 text-[11px] font-semibold transition-all duration-200 active:scale-95"
