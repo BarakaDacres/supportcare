@@ -7,7 +7,7 @@ import type { PayRates } from '@/lib/shiftCalculator';
 import { DEFAULT_RATES, formatTime12h, getDayOfWeek, shiftHasEveningHours } from '@/lib/shiftCalculator';
 import { formatCurrency } from '@/lib/formatUtils';
 import { MONTH_NAMES } from '@/lib/dateUtils';
-import { downloadBulkICS, checkAutoSync, performAutoSync, markAllSynced, isAutoSyncEnabled, setAutoSyncEnabled, cleanSyncedIds, type CalendarEvent } from '@/lib/calendarExport';
+import { downloadBulkICS, checkAutoSync, performAutoSync, markAllSynced, isAutoSyncEnabled, setAutoSyncEnabled, cleanSyncedIds, buildSequenceMap, type CalendarEvent } from '@/lib/calendarExport';
 import ShiftForm from './ShiftForm';
 
 interface ShiftListProps {
@@ -107,19 +107,19 @@ const ShiftList = ({
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
   const [autoSync, setAutoSync] = useState(isAutoSyncEnabled);
 
-  // Auto-sync: check for new upcoming shifts whenever shifts change
+  // Auto-sync: re-export upcoming shifts whenever any of them change.
+  // Uses fingerprint+SEQUENCE so calendar apps update events with the same UID
+  // instead of duplicating them.
   useEffect(() => {
     if (!autoSync) return;
     const upcomingShifts = shifts.filter(s => getShiftStatus(s) === 'upcoming');
-    // Clean up old synced IDs
     cleanSyncedIds(shifts.map(s => s.id));
     const events: CalendarEvent[] = upcomingShifts.map(s =>
       buildCalendarEvent(s, clients.find(c => c.id === s.client_id)?.service_address)
     );
-    const newEvents = checkAutoSync(events);
-    if (newEvents && newEvents.length > 0) {
-      // Small delay so it doesn't fire on initial load
-      const timer = setTimeout(() => performAutoSync(newEvents), 1500);
+    const payload = checkAutoSync(events);
+    if (payload && payload.events.length > 0) {
+      const timer = setTimeout(() => performAutoSync(payload), 1500);
       return () => clearTimeout(timer);
     }
   }, [shifts, clients, autoSync]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -192,17 +192,6 @@ const ShiftList = ({
     return `${dayNames[d.getDay()]} ${d.getDate()} ${MONTH_NAMES[d.getMonth()]}`;
   };
 
-  // Group filtered shifts by date for sticky day headers
-  const grouped = useMemo(() => {
-    const map = new Map<string, Shift[]>();
-    for (const s of filtered) {
-      const arr = map.get(s.date) ?? [];
-      arr.push(s);
-      map.set(s.date, arr);
-    }
-    return Array.from(map.entries()); // preserves the sort order of `filtered`
-  }, [filtered]);
-
   const todayStr = (() => {
     const t = new Date();
     return `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}-${String(t.getDate()).padStart(2, '0')}`;
@@ -211,6 +200,25 @@ const ShiftList = ({
     const t = new Date(); t.setDate(t.getDate() + 1);
     return `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}-${String(t.getDate()).padStart(2, '0')}`;
   })();
+
+  // Group filtered shifts by date for sticky day headers.
+  // While today has shifts, pin it to the very top of the list — it floats
+  // back to its natural chronological position once the day passes.
+  const grouped = useMemo(() => {
+    const map = new Map<string, Shift[]>();
+    for (const s of filtered) {
+      const arr = map.get(s.date) ?? [];
+      arr.push(s);
+      map.set(s.date, arr);
+    }
+    const entries = Array.from(map.entries());
+    const todayIdx = entries.findIndex(([d]) => d === todayStr);
+    if (todayIdx > 0) {
+      const [todayEntry] = entries.splice(todayIdx, 1);
+      entries.unshift(todayEntry);
+    }
+    return entries;
+  }, [filtered, todayStr]);
 
   const formatGroupHeader = (dateStr: string) => {
     const d = parseLocalDate(dateStr);
@@ -330,7 +338,8 @@ const ShiftList = ({
               <button
                 onClick={() => {
                   const events: CalendarEvent[] = upcomingShifts.map(s => buildCalendarEvent(s, clients.find(c => c.id === s.client_id)?.service_address));
-                  downloadBulkICS(events);
+                  const sequences = buildSequenceMap(events);
+                  downloadBulkICS(events, sequences);
                   markAllSynced(events);
                 }}
                 className="glass-chip py-1 px-2.5 text-[11px] font-semibold transition-all duration-200 active:scale-95"
@@ -389,21 +398,38 @@ const ShiftList = ({
             const dayTotal = dayShifts.reduce((s, sh) => s + effectiveGrossPay(sh), 0);
             return (
               <section key={dateStr} className="space-y-2">
-                {/* Sticky day header */}
+                {/* Sticky day header — Liquid Glass treatment.
+                    Today gets the bright "selected pill" look (specular sheen,
+                    primary tint, dual stroke). Past/upcoming days stay subdued. */}
                 <div
                   className="sticky z-20 -mx-1 px-1"
                   style={{ top: 'calc(env(safe-area-inset-top, 0px) + 56px)' }}
                 >
                   <div
-                    className="flex items-center justify-between gap-3 px-3 py-1.5 rounded-xl"
-                    style={{
-                      background: 'hsl(var(--glass-1))',
-                      backdropFilter: 'blur(20px) saturate(180%)',
-                      WebkitBackdropFilter: 'blur(20px) saturate(180%)',
-                      border: '0.5px solid hsl(var(--glass-stroke))',
-                    }}
+                    className={`relative flex items-center justify-between gap-3 px-3.5 py-2 rounded-2xl overflow-hidden ${header.isToday ? 'lg-day-header-today' : 'lg-day-header'}`}
                   >
-                    <div className="flex items-baseline gap-2 min-w-0">
+                    {header.isToday && (
+                      <span
+                        aria-hidden
+                        className="pointer-events-none absolute inset-0 rounded-2xl"
+                        style={{
+                          background: 'linear-gradient(180deg, hsl(var(--glass-highlight)) 0%, transparent 38%, transparent 62%, hsl(var(--glass-shadow)) 100%)',
+                          opacity: 0.6,
+                          mixBlendMode: 'overlay',
+                        }}
+                      />
+                    )}
+                    <div className="relative flex items-baseline gap-2 min-w-0">
+                      {header.isToday && (
+                        <span
+                          aria-hidden
+                          className="inline-block w-1.5 h-1.5 rounded-full mr-1.5"
+                          style={{
+                            background: 'hsl(var(--primary))',
+                            boxShadow: '0 0 0 3px hsl(var(--primary)/0.18), 0 0 8px hsl(var(--primary)/0.55)',
+                          }}
+                        />
+                      )}
                       <span
                         className="text-[13px] font-bold tracking-tight truncate"
                         style={{ color: header.isToday ? 'hsl(var(--primary))' : 'hsl(var(--foreground))' }}
@@ -412,7 +438,7 @@ const ShiftList = ({
                       </span>
                       <span className="text-[11px] text-muted-foreground truncate">{header.sub}</span>
                     </div>
-                    <span className="text-[11px] font-semibold money-text shrink-0">
+                    <span className="relative text-[11px] font-semibold money-text shrink-0">
                       {formatCurrency(dayTotal)}
                     </span>
                   </div>

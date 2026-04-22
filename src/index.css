@@ -918,6 +918,45 @@
   .lg-footnote { font-size: var(--text-footnote); color: hsl(var(--muted-foreground)); letter-spacing: -0.006em; }
 
   /* ────────────────────────────────────────────────────
+     LIQUID GLASS — Day headers (Shifts list)
+     Inspired by macOS Tahoe sidebar selected-row treatment.
+  ──────────────────────────────────────────────────── */
+  .lg-day-header {
+    background: hsl(var(--glass-1));
+    backdrop-filter: blur(24px) saturate(180%);
+    -webkit-backdrop-filter: blur(24px) saturate(180%);
+    border: 0.5px solid hsl(var(--glass-stroke));
+    box-shadow:
+      0 1px 0 hsl(var(--glass-highlight)) inset,
+      0 1px 3px hsl(var(--foreground) / 0.05);
+  }
+  /* "Today" — bright selected-pill look */
+  .lg-day-header-today {
+    background:
+      linear-gradient(180deg, hsl(var(--primary) / 0.10), hsl(var(--primary) / 0.04)),
+      hsl(var(--glass-2));
+    backdrop-filter: blur(32px) saturate(200%);
+    -webkit-backdrop-filter: blur(32px) saturate(200%);
+    border: 0.5px solid hsl(var(--primary) / 0.28);
+    box-shadow:
+      0 1px 0 hsl(var(--glass-highlight)) inset,
+      0 0 0 0.5px hsl(var(--primary) / 0.18) inset,
+      0 4px 14px hsl(var(--primary) / 0.14),
+      0 1px 3px hsl(var(--foreground) / 0.06);
+  }
+  .dark .lg-day-header-today {
+    background:
+      linear-gradient(180deg, hsl(var(--primary) / 0.16), hsl(var(--primary) / 0.06)),
+      hsl(var(--glass-3));
+    border-color: hsl(var(--primary) / 0.36);
+    box-shadow:
+      0 1px 0 hsl(var(--glass-highlight)) inset,
+      0 0 0 0.5px hsl(var(--primary) / 0.24) inset,
+      0 6px 22px hsl(var(--primary) / 0.22),
+      0 1px 4px hsl(0 0% 0% / 0.4);
+  }
+
+  /* ────────────────────────────────────────────────────
      ENTRY CARD (mobile)
   ──────────────────────────────────────────────────── */
   .entry-card {
