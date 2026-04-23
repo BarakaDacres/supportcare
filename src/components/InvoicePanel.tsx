@@ -79,6 +79,23 @@ function buildInvoiceNumber(counter: number): string {
   return `INV-${String(counter).padStart(3, '0')}`;
 }
 
+/**
+ * Smart numbering — finds the lowest available INV-NNN slot.
+ * If invoices INV-001, INV-002, INV-004 exist → returns 3.
+ * If contiguous (1,2,3) → returns 4.
+ * Ignores any non-INV-### formatted numbers.
+ */
+function nextAvailableInvoiceNumber(existing: Array<{ invoice_number: string }>): number {
+  const used = new Set<number>();
+  for (const inv of existing) {
+    const m = /^INV-(\d+)$/i.exec(inv.invoice_number ?? '');
+    if (m) used.add(parseInt(m[1], 10));
+  }
+  let n = 1;
+  while (used.has(n)) n++;
+  return n;
+}
+
 function getFortnightPeriodsForYear(year: number) {
   const jan1 = new Date(year, 0, 1);
   const dow = jan1.getDay();
@@ -904,7 +921,14 @@ const InvoicePanel = ({
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) { setGenerateError('Not signed in. Please sign in and try again.'); return; }
 
-      const invoiceNumber = buildInvoiceNumber(await onIncrementCounter());
+      // Smart numbering: fill the lowest available INV-### slot
+      const nextNum = nextAvailableInvoiceNumber(invoices);
+      const invoiceNumber = buildInvoiceNumber(nextNum);
+      // Keep the counter as a high-water mark so legacy displays stay sensible
+      const currentCounter = settings?.invoice_counter ?? 0;
+      if (nextNum > currentCounter) {
+        try { await onIncrementCounter(); } catch { /* non-fatal */ }
+      }
       const issueDate     = formatDateISO(new Date());
       const dueDate       = addDays(issueDate, settings?.invoice_due_days ?? 7);
 
@@ -995,7 +1019,9 @@ const InvoicePanel = ({
       periodStart: inv.period_start,
       periodEnd:   inv.period_end,
       shifts:      [],
-      total:       inv.total_amount,
+      // Always show fresh, recalculated total so the PDF/preview reflects current shift data.
+      // Falls back to the saved total only if the period hasn't synced yet.
+      total:       invPeriodIdx >= 0 ? total : inv.total_amount,
       issuerName:    settings?.business_name    ?? '',
       issuerEmail:   settings?.email             ?? '',
       abn:           settings?.abn               ?? '',
