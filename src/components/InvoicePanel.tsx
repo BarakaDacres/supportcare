@@ -797,6 +797,39 @@ const InvoicePanel = ({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const lineGroups = useMemo(() => groupShiftsForInvoice(periodShifts, rates, ndisCodes), [periodShifts, settings]);
 
+  // ─── Live preview recalc ──────────────────────────────────────────────────
+  // When viewing any saved invoice, always derive shifts/total/lineGroups from
+  // the latest `shifts` list filtered to the invoice's saved period + client.
+  // Guarantees the preview & print PDF reflect current data — even for invoices
+  // from prior years or outside the active fortnight selector.
+  const livePreview = useMemo(() => {
+    if (!preview) return null;
+    const startStr = preview.periodStart;
+    const endStr   = preview.periodEnd;
+    const invClient = invoices.find(i => i.id === preview.invoiceId)?.client_id ?? null;
+    const filtered = shifts
+      .filter(s => {
+        if (s.date < startStr || s.date > endStr) return false;
+        if (invClient && s.client_id !== invClient) return false;
+        return true;
+      })
+      .sort((a, b) => a.date.localeCompare(b.date) || a.start_time.localeCompare(b.start_time));
+    const liveTotal  = filtered.reduce((acc, sh) => acc + effectiveGrossPay(sh), 0);
+    const liveGroups = groupShiftsForInvoice(filtered, rates, ndisCodes);
+    return { shifts: filtered, total: liveTotal, lineGroups: liveGroups };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [preview, shifts, invoices, settings]);
+
+  // The preview shown to the user: snapshot fields + live recalculated totals/shifts
+  const renderPreview = useMemo(() => {
+    if (!preview) return null;
+    if (!livePreview) return preview;
+    return { ...preview, shifts: livePreview.shifts, total: livePreview.total };
+  }, [preview, livePreview]);
+
+  // Line groups used by both the on-screen preview AND the PDF export
+  const renderLineGroups = livePreview?.lineGroups ?? lineGroups;
+
   const filteredInvoices = useMemo(() => {
     return invoices.filter(inv => {
       if (statusFilter === 'all') return true;
