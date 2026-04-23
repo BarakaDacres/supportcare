@@ -1667,7 +1667,8 @@ const InvoicePanel = ({
                 </div>
               </div>
             </div>
-          )}
+            );
+          })()}
         </>
       )}
 
