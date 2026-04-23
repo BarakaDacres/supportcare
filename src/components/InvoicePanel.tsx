@@ -1031,7 +1031,7 @@ const InvoicePanel = ({
     const useDefaults = settings?.use_default_invoice_notes !== false;
     const ext       = clientExtra(mc);
 
-    // Sync the period selector to match the invoice's period so lineGroups is correct
+    // Sync the period selector when possible so generator stays in context
     const invYear = inv.year ?? new Date(inv.period_start).getFullYear();
     const invPeriods = getFortnightPeriodsForYear(invYear);
     const invPeriodIdx = invPeriods.findIndex(p =>
@@ -1052,9 +1052,8 @@ const InvoicePanel = ({
       periodStart: inv.period_start,
       periodEnd:   inv.period_end,
       shifts:      [],
-      // Always show fresh, recalculated total so the PDF/preview reflects current shift data.
-      // Falls back to the saved total only if the period hasn't synced yet.
-      total:       invPeriodIdx >= 0 ? total : inv.total_amount,
+      // Initial value only — `livePreview` recalculates from current shifts on render.
+      total:       inv.total_amount,
       issuerName:    settings?.business_name    ?? '',
       issuerEmail:   settings?.email             ?? '',
       abn:           settings?.abn               ?? '',
