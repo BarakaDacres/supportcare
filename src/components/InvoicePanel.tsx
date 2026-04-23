@@ -1363,7 +1363,10 @@ const InvoicePanel = ({
           </div>
 
           {/* ── Invoice Preview ── */}
-          {preview && (
+          {renderPreview && (() => {
+            const preview = renderPreview;
+            const lineGroups = renderLineGroups;
+            return (
             <div className="space-y-3">
               {/* Action bar */}
               <div className="flex items-center justify-between flex-wrap gap-2">
