@@ -1689,11 +1689,15 @@ const InvoicePanel = ({
             ))}
           </div>
 
-          {/* Loading */}
-          {invoicesLoading && (
+          {/* Loading — only show full spinner when we have NO data yet */}
+          {invoicesLoading && invoices.length === 0 && (
             <div className="flex flex-col items-center justify-center py-12 gap-3">
               <div className="w-7 h-7 rounded-full border-2 border-primary/30 border-t-primary animate-spin" />
               <p className="text-xs text-muted-foreground">Loading invoices…</p>
+              <button onClick={onRefreshInvoices}
+                className="glass-chip text-[11px] mt-1" style={{ color: 'hsl(var(--primary))' }}>
+                <RefreshCw className="w-3 h-3" /> Retry
+              </button>
             </div>
           )}
 
@@ -1711,7 +1715,7 @@ const InvoicePanel = ({
           )}
 
           {/* Filtered empty */}
-          {!invoicesLoading && invoices.length > 0 && filteredInvoices.length === 0 && (
+          {invoices.length > 0 && filteredInvoices.length === 0 && (
             <div className="glass-card p-8 text-center space-y-2">
               <AlertCircle className="w-8 h-8 mx-auto text-muted-foreground opacity-50" />
               <p className="text-sm text-muted-foreground">No invoices match this filter.</p>
@@ -1722,8 +1726,8 @@ const InvoicePanel = ({
             </div>
           )}
 
-          {/* Invoice list */}
-          {!invoicesLoading && filteredInvoices.length > 0 && filteredInvoices.map(inv => (
+          {/* Invoice list — render whenever we have invoices, even during background refresh */}
+          {filteredInvoices.length > 0 && filteredInvoices.map(inv => (
             <InvoiceCard
               key={inv.id}
               invoice={inv}
