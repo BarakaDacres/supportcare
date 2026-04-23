@@ -79,6 +79,23 @@ function buildInvoiceNumber(counter: number): string {
   return `INV-${String(counter).padStart(3, '0')}`;
 }
 
+/**
+ * Smart numbering — finds the lowest available INV-NNN slot.
+ * If invoices INV-001, INV-002, INV-004 exist → returns 3.
+ * If contiguous (1,2,3) → returns 4.
+ * Ignores any non-INV-### formatted numbers.
+ */
+function nextAvailableInvoiceNumber(existing: Array<{ invoice_number: string }>): number {
+  const used = new Set<number>();
+  for (const inv of existing) {
+    const m = /^INV-(\d+)$/i.exec(inv.invoice_number ?? '');
+    if (m) used.add(parseInt(m[1], 10));
+  }
+  let n = 1;
+  while (used.has(n)) n++;
+  return n;
+}
+
 function getFortnightPeriodsForYear(year: number) {
   const jan1 = new Date(year, 0, 1);
   const dow = jan1.getDay();
