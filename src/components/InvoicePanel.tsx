@@ -921,7 +921,14 @@ const InvoicePanel = ({
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) { setGenerateError('Not signed in. Please sign in and try again.'); return; }
 
-      const invoiceNumber = buildInvoiceNumber(await onIncrementCounter());
+      // Smart numbering: fill the lowest available INV-### slot
+      const nextNum = nextAvailableInvoiceNumber(invoices);
+      const invoiceNumber = buildInvoiceNumber(nextNum);
+      // Keep the counter as a high-water mark so legacy displays stay sensible
+      const currentCounter = settings?.invoice_counter ?? 0;
+      if (nextNum > currentCounter) {
+        try { await onIncrementCounter(); } catch { /* non-fatal */ }
+      }
       const issueDate     = formatDateISO(new Date());
       const dueDate       = addDays(issueDate, settings?.invoice_due_days ?? 7);
 
