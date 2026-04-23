@@ -45,6 +45,7 @@ export function useInvoices() {
       const { data, error: err } = await supabase
         .from('invoices')
         .select('id, invoice_number, status, total_amount, period_start, period_end, created_at, updated_at, sent_at, paid_at, due_date, client_id, fortnight_number, year, notes')
+        .eq('user_id', userIdRef.current)
         .order('created_at', { ascending: false });
 
       if (err) {

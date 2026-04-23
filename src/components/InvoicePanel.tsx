@@ -797,6 +797,39 @@ const InvoicePanel = ({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const lineGroups = useMemo(() => groupShiftsForInvoice(periodShifts, rates, ndisCodes), [periodShifts, settings]);
 
+  // ─── Live preview recalc ──────────────────────────────────────────────────
+  // When viewing any saved invoice, always derive shifts/total/lineGroups from
+  // the latest `shifts` list filtered to the invoice's saved period + client.
+  // Guarantees the preview & print PDF reflect current data — even for invoices
+  // from prior years or outside the active fortnight selector.
+  const livePreview = useMemo(() => {
+    if (!preview) return null;
+    const startStr = preview.periodStart;
+    const endStr   = preview.periodEnd;
+    const invClient = invoices.find(i => i.id === preview.invoiceId)?.client_id ?? null;
+    const filtered = shifts
+      .filter(s => {
+        if (s.date < startStr || s.date > endStr) return false;
+        if (invClient && s.client_id !== invClient) return false;
+        return true;
+      })
+      .sort((a, b) => a.date.localeCompare(b.date) || a.start_time.localeCompare(b.start_time));
+    const liveTotal  = filtered.reduce((acc, sh) => acc + effectiveGrossPay(sh), 0);
+    const liveGroups = groupShiftsForInvoice(filtered, rates, ndisCodes);
+    return { shifts: filtered, total: liveTotal, lineGroups: liveGroups };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [preview, shifts, invoices, settings]);
+
+  // The preview shown to the user: snapshot fields + live recalculated totals/shifts
+  const renderPreview = useMemo(() => {
+    if (!preview) return null;
+    if (!livePreview) return preview;
+    return { ...preview, shifts: livePreview.shifts, total: livePreview.total };
+  }, [preview, livePreview]);
+
+  // Line groups used by both the on-screen preview AND the PDF export
+  const renderLineGroups = livePreview?.lineGroups ?? lineGroups;
+
   const filteredInvoices = useMemo(() => {
     return invoices.filter(inv => {
       if (statusFilter === 'all') return true;
@@ -972,15 +1005,17 @@ const InvoicePanel = ({
 
   // ─── Export PDF ──────────────────────────────────────────────────────────────
   const handleExportPDF = async () => {
-    if (!preview) return;
-    if (lineGroups.length === 0 && preview.total === 0) {
+    const snap = renderPreview;
+    const groups = renderLineGroups;
+    if (!snap) return;
+    if (groups.length === 0 && snap.total === 0) {
       setExportError('No invoice data to export.');
       return;
     }
     setExporting(true);
     setExportError(null);
     try {
-      await exportToPDF(preview, lineGroups);
+      await exportToPDF(snap, groups);
     } catch (e) {
       console.error('PDF export error:', e);
       setExportError('Export failed. Please try again.');
@@ -998,7 +1033,7 @@ const InvoicePanel = ({
     const useDefaults = settings?.use_default_invoice_notes !== false;
     const ext       = clientExtra(mc);
 
-    // Sync the period selector to match the invoice's period so lineGroups is correct
+    // Sync the period selector when possible so generator stays in context
     const invYear = inv.year ?? new Date(inv.period_start).getFullYear();
     const invPeriods = getFortnightPeriodsForYear(invYear);
     const invPeriodIdx = invPeriods.findIndex(p =>
@@ -1019,9 +1054,8 @@ const InvoicePanel = ({
       periodStart: inv.period_start,
       periodEnd:   inv.period_end,
       shifts:      [],
-      // Always show fresh, recalculated total so the PDF/preview reflects current shift data.
-      // Falls back to the saved total only if the period hasn't synced yet.
-      total:       invPeriodIdx >= 0 ? total : inv.total_amount,
+      // Initial value only — `livePreview` recalculates from current shifts on render.
+      total:       inv.total_amount,
       issuerName:    settings?.business_name    ?? '',
       issuerEmail:   settings?.email             ?? '',
       abn:           settings?.abn               ?? '',
@@ -1329,7 +1363,10 @@ const InvoicePanel = ({
           </div>
 
           {/* ── Invoice Preview ── */}
-          {preview && (
+          {renderPreview && (() => {
+            const preview = renderPreview;
+            const lineGroups = renderLineGroups;
+            return (
             <div className="space-y-3">
               {/* Action bar */}
               <div className="flex items-center justify-between flex-wrap gap-2">
@@ -1630,7 +1667,8 @@ const InvoicePanel = ({
                 </div>
               </div>
             </div>
-          )}
+            );
+          })()}
         </>
       )}
 
@@ -1651,11 +1689,15 @@ const InvoicePanel = ({
             ))}
           </div>
 
-          {/* Loading */}
-          {invoicesLoading && (
+          {/* Loading — only show full spinner when we have NO data yet */}
+          {invoicesLoading && invoices.length === 0 && (
             <div className="flex flex-col items-center justify-center py-12 gap-3">
               <div className="w-7 h-7 rounded-full border-2 border-primary/30 border-t-primary animate-spin" />
               <p className="text-xs text-muted-foreground">Loading invoices…</p>
+              <button onClick={onRefreshInvoices}
+                className="glass-chip text-[11px] mt-1" style={{ color: 'hsl(var(--primary))' }}>
+                <RefreshCw className="w-3 h-3" /> Retry
+              </button>
             </div>
           )}
 
@@ -1673,7 +1715,7 @@ const InvoicePanel = ({
           )}
 
           {/* Filtered empty */}
-          {!invoicesLoading && invoices.length > 0 && filteredInvoices.length === 0 && (
+          {invoices.length > 0 && filteredInvoices.length === 0 && (
             <div className="glass-card p-8 text-center space-y-2">
               <AlertCircle className="w-8 h-8 mx-auto text-muted-foreground opacity-50" />
               <p className="text-sm text-muted-foreground">No invoices match this filter.</p>
@@ -1684,8 +1726,8 @@ const InvoicePanel = ({
             </div>
           )}
 
-          {/* Invoice list */}
-          {!invoicesLoading && filteredInvoices.length > 0 && filteredInvoices.map(inv => (
+          {/* Invoice list — render whenever we have invoices, even during background refresh */}
+          {filteredInvoices.length > 0 && filteredInvoices.map(inv => (
             <InvoiceCard
               key={inv.id}
               invoice={inv}
