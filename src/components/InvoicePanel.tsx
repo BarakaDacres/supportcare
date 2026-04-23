@@ -1019,7 +1019,9 @@ const InvoicePanel = ({
       periodStart: inv.period_start,
       periodEnd:   inv.period_end,
       shifts:      [],
-      total:       inv.total_amount,
+      // Always show fresh, recalculated total so the PDF/preview reflects current shift data.
+      // Falls back to the saved total only if the period hasn't synced yet.
+      total:       invPeriodIdx >= 0 ? total : inv.total_amount,
       issuerName:    settings?.business_name    ?? '',
       issuerEmail:   settings?.email             ?? '',
       abn:           settings?.abn               ?? '',
