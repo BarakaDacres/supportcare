@@ -1005,15 +1005,17 @@ const InvoicePanel = ({
 
   // ─── Export PDF ──────────────────────────────────────────────────────────────
   const handleExportPDF = async () => {
-    if (!preview) return;
-    if (lineGroups.length === 0 && preview.total === 0) {
+    const snap = renderPreview;
+    const groups = renderLineGroups;
+    if (!snap) return;
+    if (groups.length === 0 && snap.total === 0) {
       setExportError('No invoice data to export.');
       return;
     }
     setExporting(true);
     setExportError(null);
     try {
-      await exportToPDF(preview, lineGroups);
+      await exportToPDF(snap, groups);
     } catch (e) {
       console.error('PDF export error:', e);
       setExportError('Export failed. Please try again.');
