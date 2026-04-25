@@ -163,19 +163,20 @@ const ShiftForm = ({
     const sleepoEnd   = storedEnd || '06:00';
     setIsPhSleepover(prev => {
       const next = !prev;
+      const phSleepoverDefault = String(rates.rate_sleepover_public_holiday ?? 400);
       if (next) {
         setIsSleepover(true);
         setIsPublicHoliday(true);
         setStartTime(sleepoStart);
         setEndTime(sleepoEnd);
-        if (!feeOverride) setFeeOverride('400');
+        if (!feeOverride) setFeeOverride(phSleepoverDefault);
         if (!notesCustomised.current) {
           setNotes('Night Sleepover Support - Public Holiday');
           notesCustomised.current = true;
         }
       } else {
         setIsPublicHoliday(false);
-        if (feeOverride === '400') setFeeOverride('');
+        if (feeOverride === phSleepoverDefault) setFeeOverride('');
       }
       return next;
     });
@@ -505,7 +506,7 @@ const ShiftForm = ({
                     step={0.01}
                     value={feeOverride}
                     onChange={e => setFeeOverride(e.target.value)}
-                    placeholder={isPhSleepover ? '400' : calc ? String(calc.grossPay) : ''}
+                    placeholder={isPhSleepover ? String(phSleepoverRate) : calc ? String(calc.grossPay) : ''}
                     className="glass-input flex-1 text-foreground"
                     style={{ minHeight: 44, width: '100%', boxSizing: 'border-box' }}
                   />
@@ -589,7 +590,7 @@ const ShiftForm = ({
                       <Star className="w-2 h-2 absolute -top-0.5 -right-0.5" style={{ color: 'hsl(34 97% 52%)', fill: 'hsl(34 97% 52%)' }} />
                     </div>
                     <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: 'hsl(34 90% 40%)' }}>
-                      Public Holiday Sleepover — $400 flat
+                      Public Holiday Sleepover — ${phSleepoverRate} flat
                     </span>
                   </div>
                 )}

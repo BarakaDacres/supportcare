@@ -163,7 +163,7 @@ function getSleepoverCategory(shift: Shift): InvoiceCategory {
 
 function getCategoryRate(category: InvoiceCategory, rates: PayRates): number {
   switch (category) {
-    case 'public_holiday_sleepover': return (rates as PayRates & { rate_ph_sleepover?: number }).rate_ph_sleepover ?? 400;
+    case 'public_holiday_sleepover': return rates.rate_sleepover_public_holiday ?? 400;
     case 'public_holiday':           return rates.rate_public_holiday ?? 150;
     case 'saturday':                 return rates.rate_saturday;
     case 'sunday':                   return rates.rate_sunday;
