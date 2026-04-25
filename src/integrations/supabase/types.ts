@@ -38,6 +38,7 @@ export type Database = {
           rate_evening: number | null
           rate_public_holiday: number | null
           rate_saturday: number | null
+          rate_sleepover_public_holiday: number | null
           rate_sleepover_weekday: number | null
           rate_sleepover_weekend: number | null
           rate_sunday: number | null
@@ -71,6 +72,7 @@ export type Database = {
           rate_evening?: number | null
           rate_public_holiday?: number | null
           rate_saturday?: number | null
+          rate_sleepover_public_holiday?: number | null
           rate_sleepover_weekday?: number | null
           rate_sleepover_weekend?: number | null
           rate_sunday?: number | null
@@ -104,6 +106,7 @@ export type Database = {
           rate_evening?: number | null
           rate_public_holiday?: number | null
           rate_saturday?: number | null
+          rate_sleepover_public_holiday?: number | null
           rate_sleepover_weekday?: number | null
           rate_sleepover_weekend?: number | null
           rate_sunday?: number | null
@@ -409,6 +412,7 @@ export type Database = {
           rate_evening: number
           rate_public_holiday: number
           rate_saturday: number
+          rate_sleepover_public_holiday: number
           rate_sleepover_weekday: number
           rate_sleepover_weekend: number
           rate_sunday: number
@@ -440,6 +444,7 @@ export type Database = {
           rate_evening?: number
           rate_public_holiday?: number
           rate_saturday?: number
+          rate_sleepover_public_holiday?: number
           rate_sleepover_weekday?: number
           rate_sleepover_weekend?: number
           rate_sunday?: number
@@ -471,6 +476,7 @@ export type Database = {
           rate_evening?: number
           rate_public_holiday?: number
           rate_saturday?: number
+          rate_sleepover_public_holiday?: number
           rate_sleepover_weekday?: number
           rate_sleepover_weekend?: number
           rate_sunday?: number

@@ -214,7 +214,7 @@ const ShiftForm = ({
   };
 
   const phRate = rates.rate_public_holiday ?? 150;
-  const phSleepoverRate = 400;
+  const phSleepoverRate = rates.rate_sleepover_public_holiday ?? 400;
   const eveningRate = rates.rate_evening ?? 75;
 
   const calc =

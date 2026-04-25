@@ -328,6 +328,7 @@ const RatesPanel = ({ settings, loading, onSave }: RatesPanelProps) => {
       <CollapsibleSection title="Sleepover Shifts" subtitle="Flat fees & overnight window">
         <RateRow label="Weekday Night" sublabel="Mon – Fri" value={val('rate_sleepover_weekday', settings.rate_sleepover_weekday) as number} onChange={v => set('rate_sleepover_weekday', v)} unit="flat" />
         <RateRow label="Weekend Night" sublabel="Sat & Sun" value={val('rate_sleepover_weekend', settings.rate_sleepover_weekend) as number} onChange={v => set('rate_sleepover_weekend', v)} unit="flat" />
+        <RateRow label="Public Holiday Night" sublabel="Sleepover on a public holiday" value={val('rate_sleepover_public_holiday', settings.rate_sleepover_public_holiday) as number} onChange={v => set('rate_sleepover_public_holiday', v)} unit="flat" />
         <div>
           <div className="ml-4 mr-0 h-px" style={{ background: 'hsl(var(--divider))' }} />
           <div className="px-4 py-3">

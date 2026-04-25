@@ -20,6 +20,7 @@ export interface PayRates {
   rate_sunday: number;            // Sunday hourly (daytime)
   rate_sleepover_weekday: number; // flat per night Mon–Fri
   rate_sleepover_weekend: number; // flat per night Sat–Sun
+  rate_sleepover_public_holiday?: number; // flat per night on a public holiday
   rate_public_holiday?: number;   // Public holiday hourly
   rate_evening?: number;          // Evening 18:00–22:00 hourly (any day)
 }
@@ -30,6 +31,7 @@ export const DEFAULT_RATES: PayRates = {
   rate_sunday: 90,
   rate_sleepover_weekday: 300,
   rate_sleepover_weekend: 350,
+  rate_sleepover_public_holiday: 400,
   rate_public_holiday: 150,
   rate_evening: 75,
 };
@@ -228,10 +230,18 @@ export function calculateShiftPay(
 
   if (isSleepover) {
     const dayOfWeek = getDayOfWeek(dateStr);
-    const rate = isWeekendSleeperNight(dayOfWeek)
-      ? rates.rate_sleepover_weekend
-      : rates.rate_sleepover_weekday;
-    const label = isWeekendSleeperNight(dayOfWeek) ? 'Weekend Sleepover' : 'Weekday Sleepover';
+    let rate: number;
+    let label: string;
+    if (isPublicHoliday) {
+      rate = rates.rate_sleepover_public_holiday ?? 400;
+      label = 'Public Holiday Sleepover';
+    } else if (isWeekendSleeperNight(dayOfWeek)) {
+      rate = rates.rate_sleepover_weekend;
+      label = 'Weekend Sleepover';
+    } else {
+      rate = rates.rate_sleepover_weekday;
+      label = 'Weekday Sleepover';
+    }
     return {
       hoursWorked: totalHours,
       grossPay: rate,

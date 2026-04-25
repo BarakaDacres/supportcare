@@ -49,7 +49,9 @@ const Index = ({ auth }: IndexProps) => {
         rate_sunday: settings.rate_sunday,
         rate_sleepover_weekday: settings.rate_sleepover_weekday,
         rate_sleepover_weekend: settings.rate_sleepover_weekend,
+        rate_sleepover_public_holiday: settings.rate_sleepover_public_holiday,
         rate_public_holiday: settings.rate_public_holiday,
+        rate_evening: settings.rate_evening,
       }
     : undefined;
 
