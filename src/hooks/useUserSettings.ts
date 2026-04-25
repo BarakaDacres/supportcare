@@ -37,6 +37,7 @@ export interface UserSettings {
   rate_sunday: number;
   rate_sleepover_weekday: number;
   rate_sleepover_weekend: number;
+  rate_sleepover_public_holiday: number;
   rate_public_holiday: number;
   rate_evening: number;
   invoice_counter: number;
@@ -66,6 +67,7 @@ export const DEFAULT_SETTINGS: Omit<UserSettings, 'id' | 'user_id'> = {
   rate_sunday: 90,
   rate_sleepover_weekday: 300,
   rate_sleepover_weekend: 350,
+  rate_sleepover_public_holiday: 400,
   rate_public_holiday: 150,
   rate_evening: 75,
   invoice_counter: 0,
