@@ -18,6 +18,7 @@ export interface ClientRateFields {
   rate_evening: number | null;
   rate_sleepover_weekday: number | null;
   rate_sleepover_weekend: number | null;
+  rate_sleepover_public_holiday?: number | null;
   rate_public_holiday: number | null;
 }
 
@@ -38,6 +39,7 @@ export function getEffectiveRates(
     rate_evening:           globalRates?.rate_evening           ?? DEFAULT_RATES.rate_evening,
     rate_sleepover_weekday: globalRates?.rate_sleepover_weekday ?? DEFAULT_RATES.rate_sleepover_weekday,
     rate_sleepover_weekend: globalRates?.rate_sleepover_weekend ?? DEFAULT_RATES.rate_sleepover_weekend,
+    rate_sleepover_public_holiday: globalRates?.rate_sleepover_public_holiday ?? DEFAULT_RATES.rate_sleepover_public_holiday,
     rate_public_holiday:    globalRates?.rate_public_holiday    ?? DEFAULT_RATES.rate_public_holiday,
   };
 
