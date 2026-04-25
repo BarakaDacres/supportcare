@@ -52,6 +52,7 @@ export function getEffectiveRates(
     rate_evening:           client.rate_evening           ?? base.rate_evening,
     rate_sleepover_weekday: client.rate_sleepover_weekday ?? base.rate_sleepover_weekday,
     rate_sleepover_weekend: client.rate_sleepover_weekend ?? base.rate_sleepover_weekend,
+    rate_sleepover_public_holiday: client.rate_sleepover_public_holiday ?? base.rate_sleepover_public_holiday,
     rate_public_holiday:    client.rate_public_holiday    ?? base.rate_public_holiday,
   };
 }
