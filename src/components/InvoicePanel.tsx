@@ -770,6 +770,7 @@ const InvoicePanel = ({
     rate_sunday:            settings?.rate_sunday            ?? DEFAULT_RATES.rate_sunday,
     rate_sleepover_weekday: settings?.rate_sleepover_weekday ?? DEFAULT_RATES.rate_sleepover_weekday,
     rate_sleepover_weekend: settings?.rate_sleepover_weekend ?? DEFAULT_RATES.rate_sleepover_weekend,
+    rate_sleepover_public_holiday: settings?.rate_sleepover_public_holiday ?? DEFAULT_RATES.rate_sleepover_public_holiday,
     rate_public_holiday:    settings?.rate_public_holiday    ?? DEFAULT_RATES.rate_public_holiday,
     rate_evening:           settings?.rate_evening           ?? DEFAULT_RATES.rate_evening,
   };
