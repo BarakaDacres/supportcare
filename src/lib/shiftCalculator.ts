@@ -230,10 +230,18 @@ export function calculateShiftPay(
 
   if (isSleepover) {
     const dayOfWeek = getDayOfWeek(dateStr);
-    const rate = isWeekendSleeperNight(dayOfWeek)
-      ? rates.rate_sleepover_weekend
-      : rates.rate_sleepover_weekday;
-    const label = isWeekendSleeperNight(dayOfWeek) ? 'Weekend Sleepover' : 'Weekday Sleepover';
+    let rate: number;
+    let label: string;
+    if (isPublicHoliday) {
+      rate = rates.rate_sleepover_public_holiday ?? 400;
+      label = 'Public Holiday Sleepover';
+    } else if (isWeekendSleeperNight(dayOfWeek)) {
+      rate = rates.rate_sleepover_weekend;
+      label = 'Weekend Sleepover';
+    } else {
+      rate = rates.rate_sleepover_weekday;
+      label = 'Weekday Sleepover';
+    }
     return {
       hoursWorked: totalHours,
       grossPay: rate,
