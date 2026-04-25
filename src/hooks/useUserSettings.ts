@@ -223,6 +223,7 @@ export function useUserSettings() {
     rate_sunday: settings?.rate_sunday ?? 90,
     rate_sleepover_weekday: settings?.rate_sleepover_weekday ?? 300,
     rate_sleepover_weekend: settings?.rate_sleepover_weekend ?? 350,
+    rate_sleepover_public_holiday: settings?.rate_sleepover_public_holiday ?? 400,
     rate_public_holiday: settings?.rate_public_holiday ?? 150,
     rate_evening: settings?.rate_evening ?? 75,
   }), [settings]);
