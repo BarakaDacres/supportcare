@@ -102,7 +102,7 @@ const ShiftList = ({
 
   const [filterPeriod, setFilterPeriod] = useState<FilterPeriod>('month');
   const [filterClient, setFilterClient] = useState('');
-  const [sortMode, setSortMode] = useState<SortMode>('date-desc');
+  const [sortMode, setSortMode] = useState<SortMode>('date-asc');
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
   const [autoSync, setAutoSync] = useState(isAutoSyncEnabled);
