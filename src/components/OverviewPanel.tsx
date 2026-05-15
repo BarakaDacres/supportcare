@@ -1427,47 +1427,26 @@ const OverviewPanel = ({
             </p>
           )}
         </div>
-        {(() => {
-          const wb = stats.weekBreakdown;
-          const weekdayHours = wb.regularDayH + wb.eveningH;
-          const weekendHours = wb.satDayH + wb.sunDayH;
-          return (
-            <>
-              <div
-                className="grid grid-cols-2 gap-3 pt-4"
-                style={{ borderTop: '0.5px solid hsl(var(--border))' }}
-              >
-                <div className="text-center">
-                  <Sun className="w-4 h-4 mx-auto mb-1" style={{ color: 'hsl(var(--muted-foreground))' }} />
-                  <p className="text-sm font-bold text-foreground">{weekdayHours.toFixed(1)}h</p>
-                  <p className="text-[9px] text-muted-foreground uppercase tracking-wider">Weekday</p>
-                </div>
-                <div className="text-center">
-                  <Sunset className="w-4 h-4 mx-auto mb-1" style={{ color: 'hsl(var(--muted-foreground))' }} />
-                  <p className="text-sm font-bold text-foreground">{weekendHours.toFixed(1)}h</p>
-                  <p className="text-[9px] text-muted-foreground uppercase tracking-wider">Weekend</p>
-                </div>
-              </div>
-              <div className="grid grid-cols-3 gap-3 pt-3">
-                <div className="text-center">
-                  <Clock className="w-4 h-4 mx-auto mb-1" style={{ color: 'hsl(var(--muted-foreground))' }} />
-                  <p className="text-sm font-bold text-foreground">{stats.weekHours.toFixed(1)}h</p>
-                  <p className="text-[9px] text-muted-foreground uppercase tracking-wider">Hours</p>
-                </div>
-                <div className="text-center">
-                  <Zap className="w-4 h-4 mx-auto mb-1" style={{ color: 'hsl(var(--muted-foreground))' }} />
-                  <p className="text-sm font-bold text-foreground">{stats.weekShiftCount}</p>
-                  <p className="text-[9px] text-muted-foreground uppercase tracking-wider">Shifts</p>
-                </div>
-                <div className="text-center">
-                  <Moon className="w-4 h-4 mx-auto mb-1" style={{ color: 'hsl(var(--muted-foreground))' }} />
-                  <p className="text-sm font-bold text-foreground">{stats.weekSleepovers}</p>
-                  <p className="text-[9px] text-muted-foreground uppercase tracking-wider">Sleepovers</p>
-                </div>
-              </div>
-            </>
-          );
-        })()}
+        <div
+          className="grid grid-cols-3 gap-3 pt-4"
+          style={{ borderTop: '0.5px solid hsl(var(--border))' }}
+        >
+          <div className="text-center">
+            <Clock className="w-4 h-4 mx-auto mb-1" style={{ color: 'hsl(var(--muted-foreground))' }} />
+            <p className="text-sm font-bold text-foreground">{stats.weekHours.toFixed(1)}h</p>
+            <p className="text-[9px] text-muted-foreground uppercase tracking-wider">Hours</p>
+          </div>
+          <div className="text-center">
+            <Zap className="w-4 h-4 mx-auto mb-1" style={{ color: 'hsl(var(--muted-foreground))' }} />
+            <p className="text-sm font-bold text-foreground">{stats.weekShiftCount}</p>
+            <p className="text-[9px] text-muted-foreground uppercase tracking-wider">Shifts</p>
+          </div>
+          <div className="text-center">
+            <Moon className="w-4 h-4 mx-auto mb-1" style={{ color: 'hsl(var(--muted-foreground))' }} />
+            <p className="text-sm font-bold text-foreground">{stats.weekSleepovers}</p>
+            <p className="text-[9px] text-muted-foreground uppercase tracking-wider">Sleepovers</p>
+          </div>
+        </div>
 
         {/* ── Weekly earnings breakdown by category ── */}
         {stats.weekGross > 0 && (() => {
