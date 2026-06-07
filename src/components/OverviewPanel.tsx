@@ -99,6 +99,66 @@ function formatTime(t: string): string {
   return t.slice(0, 5);
 }
 
+// ── Week breakdown helper (shared) ────────────────────────────────────────────
+function computeWeekBreakdown(weekShifts: Shift[], settings: UserSettings | null) {
+  let regularDay = 0, regularDayH = 0;
+  let evening = 0, eveningH = 0;
+  let satDay = 0, satDayH = 0;
+  let sunDay = 0, sunDayH = 0;
+  let weekdaySleepover = 0, weekdaySleepoverN = 0;
+  let weekendSleepover = 0, weekendSleepoverN = 0;
+  let publicHoliday = 0, publicHolidayH = 0;
+  let phSleepover = 0, phSleepoverN = 0;
+
+  const userRates: PayRates = settings ? {
+    rate_weekday: settings.rate_weekday,
+    rate_saturday: settings.rate_saturday,
+    rate_sunday: settings.rate_sunday,
+    rate_sleepover_weekday: settings.rate_sleepover_weekday,
+    rate_sleepover_weekend: settings.rate_sleepover_weekend,
+    rate_public_holiday: settings.rate_public_holiday,
+    rate_evening: settings.rate_evening,
+  } : DEFAULT_RATES;
+
+  for (const s of weekShifts) {
+    const dow = getDayOfWeek(s.date);
+    if (s.is_sleepover) {
+      const pay = effectiveGrossPay(s);
+      if (s.is_public_holiday) { phSleepover += pay; phSleepoverN += 1; }
+      else if (dow === 6 || dow === 0) { weekendSleepover += pay; weekendSleepoverN += 1; }
+      else { weekdaySleepover += pay; weekdaySleepoverN += 1; }
+      continue;
+    }
+    if (s.is_public_holiday) {
+      publicHoliday += effectiveGrossPay(s);
+      publicHolidayH += Number(s.hours_worked);
+      continue;
+    }
+    const calc = calculateShiftPay(s.date, s.start_time, s.end_time, false, userRates, false);
+    for (const seg of calc.breakdown) {
+      const segHours = seg.hours ?? 0;
+      const segAmount = seg.amount;
+      const isEveningSeg = seg.label.includes('Evening');
+      const isSat = seg.label.startsWith('Sat');
+      const isSun = seg.label.startsWith('Sun');
+      if (isSat) { satDay += segAmount; satDayH += segHours; }
+      else if (isSun) { sunDay += segAmount; sunDayH += segHours; }
+      else if (isEveningSeg) { evening += segAmount; eveningH += segHours; }
+      else { regularDay += segAmount; regularDayH += segHours; }
+    }
+  }
+  return {
+    regularDay, regularDayH,
+    evening,    eveningH,
+    satDay,     satDayH,
+    sunDay,     sunDayH,
+    weekdaySleepover, weekdaySleepoverN,
+    weekendSleepover, weekendSleepoverN,
+    publicHoliday,    publicHolidayH,
+    phSleepover,      phSleepoverN,
+  };
+}
+
 // ── Count-up animation hook ──────────────────────────────────────────────────
 function useCountUp(target: number, duration = 600, deps: unknown[] = []) {
   const [value, setValue] = useState(0);
