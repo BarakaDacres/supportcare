@@ -1446,6 +1446,23 @@ const OverviewPanel = ({
     return () => clearInterval(timer);
   }, [stats.nextShift, stats.activeShift]);
 
+  // ── Weekly card swipe state ─────────────────────────────────────────────
+  const [weekIndex, setWeekIndex] = useState(0);
+  const weekTouchStartX = useRef<number | null>(null);
+  const handleWeekTouchStart = (e: React.TouchEvent) => {
+    weekTouchStartX.current = e.touches[0].clientX;
+  };
+  const handleWeekTouchEnd = (e: React.TouchEvent) => {
+    if (weekTouchStartX.current === null) return;
+    const dx = e.changedTouches[0].clientX - weekTouchStartX.current;
+    if (Math.abs(dx) > 48) {
+      haptic('light');
+      if (dx < 0 && weekIndex < allWeeksStats.length - 1) setWeekIndex(weekIndex + 1);
+      if (dx > 0 && weekIndex > 0) setWeekIndex(weekIndex - 1);
+    }
+    weekTouchStartX.current = null;
+  };
+
   return (
     <div className="space-y-4">
       {/* ── Welcome greeting ── */}
