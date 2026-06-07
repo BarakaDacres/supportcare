@@ -1507,298 +1507,101 @@ const OverviewPanel = ({
         locked={locked}
       />
 
-      {/* ── Weekly Earnings card (most prominent) ── */}
+      {/* ── Weekly Earnings cards (swipeable) ── */}
       <ElevatedCard hero>
-        <div className="flex items-center justify-between mb-3">
-          <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest flex items-center gap-1.5">
-            <CalendarDays className="w-3.5 h-3.5" /> This Week
-          </p>
-          <span className="text-[10px] text-muted-foreground">Mon–Sun</span>
-        </div>
-        <div className="mb-4">
-          <AnimatedCurrency
-            value={stats.weekGross}
-            className="text-4xl font-bold money-text leading-none tracking-tight"
-            deps={animDeps}
-          />
-          <div className="flex items-center gap-2 mt-1.5">
-            <p className="text-xs text-muted-foreground">weekly gross</p>
-            {stats.prevWeekGross > 0 && (() => {
-              const diff = stats.weekGross - stats.prevWeekGross;
-              const pct = (diff / stats.prevWeekGross) * 100;
-              const isUp = diff >= 0;
+        <div className="overflow-hidden" onTouchStart={handleWeekTouchStart} onTouchEnd={handleWeekTouchEnd}>
+          <div className="flex transition-transform duration-300 ease-out" style={{ transform: `translateX(-${weekIndex * 100}%)` }}>
+            {allWeeksStats.map((weekStat, i) => {
+              const isCurrent = i === 0;
+              const label = isCurrent
+                ? 'This Week'
+                : `Week of ${weekStat.weekStart.getDate()} ${MONTH_SHORT[weekStat.weekStart.getMonth()]} – ${weekStat.weekEnd.getDate()} ${MONTH_SHORT[weekStat.weekEnd.getMonth()]}`;
               return (
-                <span
-                  className="inline-flex items-center gap-0.5 text-[10px] font-semibold rounded-full px-1.5 py-0.5"
-                  style={{
-                    background: isUp ? 'hsl(var(--stat-green)/0.10)' : 'hsl(var(--stat-red)/0.10)',
-                    color: isUp ? 'hsl(var(--stat-green))' : 'hsl(var(--stat-red))',
-                  }}
-                >
-                  {isUp ? <ArrowUpRight className="w-2.5 h-2.5" /> : <ArrowDownRight className="w-2.5 h-2.5" />}
-                  {Math.abs(pct).toFixed(0)}%
-                </span>
-              );
-            })()}
-          </div>
-          {stats.prevWeekGross > 0 && (
-            <p className="text-[10px] text-muted-foreground/60 mt-0.5">
-              Last week: {formatCurrency(stats.prevWeekGross)}
-            </p>
-          )}
-        </div>
-        <div
-          className="grid grid-cols-3 gap-3 pt-4"
-          style={{ borderTop: '0.5px solid hsl(var(--border))' }}
-        >
-          <div className="text-center">
-            <Clock className="w-4 h-4 mx-auto mb-1" style={{ color: 'hsl(var(--muted-foreground))' }} />
-            <p className="text-sm font-bold text-foreground">{stats.weekHours.toFixed(1)}h</p>
-            <p className="text-[9px] text-muted-foreground uppercase tracking-wider">Hours</p>
-          </div>
-          <div className="text-center">
-            <Zap className="w-4 h-4 mx-auto mb-1" style={{ color: 'hsl(var(--muted-foreground))' }} />
-            <p className="text-sm font-bold text-foreground">{stats.weekShiftCount}</p>
-            <p className="text-[9px] text-muted-foreground uppercase tracking-wider">Shifts</p>
-          </div>
-          <div className="text-center">
-            <Moon className="w-4 h-4 mx-auto mb-1" style={{ color: 'hsl(var(--muted-foreground))' }} />
-            <p className="text-sm font-bold text-foreground">{stats.weekSleepovers}</p>
-            <p className="text-[9px] text-muted-foreground uppercase tracking-wider">Sleepovers</p>
-          </div>
-        </div>
-
-        {/* ── Weekly earnings breakdown by category ── */}
-        {stats.weekGross > 0 && (() => {
-          const wb = stats.weekBreakdown;
-          type BreakdownRow = { label: string; value: number; meta: string; color: string };
-          const rows: BreakdownRow[] = [];
-          if (wb.regularDay > 0)
-            rows.push({ label: 'Weekday Day',           value: wb.regularDay,        meta: `${wb.regularDayH.toFixed(1)}h`,           color: 'hsl(var(--money-green))' });
-          if (wb.evening > 0)
-            rows.push({ label: 'Evening',               value: wb.evening,           meta: `${wb.eveningH.toFixed(1)}h`,              color: 'hsl(38 90% 45%)' });
-          if (wb.satDay > 0)
-            rows.push({ label: 'Saturday Day',          value: wb.satDay,            meta: `${wb.satDayH.toFixed(1)}h`,               color: 'hsl(var(--primary))' });
-          if (wb.sunDay > 0)
-            rows.push({ label: 'Sunday Day',            value: wb.sunDay,            meta: `${wb.sunDayH.toFixed(1)}h`,               color: 'hsl(271 91% 65%)' });
-          if (wb.weekdaySleepover > 0)
-            rows.push({ label: 'Weekday Sleepover',     value: wb.weekdaySleepover,  meta: `${wb.weekdaySleepoverN} night${wb.weekdaySleepoverN !== 1 ? 's' : ''}`, color: '#2563EB' });
-          if (wb.weekendSleepover > 0)
-            rows.push({ label: 'Weekend Sleepover',     value: wb.weekendSleepover,  meta: `${wb.weekendSleepoverN} night${wb.weekendSleepoverN !== 1 ? 's' : ''}`, color: '#7C3AED' });
-          if (wb.publicHoliday > 0)
-            rows.push({ label: 'Public Holiday',        value: wb.publicHoliday,     meta: `${wb.publicHolidayH.toFixed(1)}h`,        color: 'hsl(34 97% 48%)' });
-          if (wb.phSleepover > 0)
-            rows.push({ label: 'PH Sleepover',          value: wb.phSleepover,       meta: `${wb.phSleepoverN} night${wb.phSleepoverN !== 1 ? 's' : ''}`,          color: 'hsl(34 90% 38%)' });
-          if (rows.length <= 1) return null;
-          return (
-            <div className="mt-4 pt-4 space-y-1.5" style={{ borderTop: '0.5px solid hsl(var(--border))' }}>
-              <p className="text-[9px] font-semibold text-muted-foreground uppercase tracking-widest mb-3">Income Breakdown</p>
-              {rows.map(row => (
-                <div key={row.label} className="flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-2 min-w-0">
-                    <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: row.color }} />
-                    <span className="text-xs text-muted-foreground truncate">{row.label}</span>
-                  </div>
-                  <div className="flex items-center gap-2 shrink-0">
-                    <span className="text-[10px] text-muted-foreground/70">{row.meta}</span>
-                    <span className="text-xs font-semibold text-foreground">{formatCurrency(row.value)}</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          );
-        })()}
-
-        {/* ── Active Now / Next Shift — refined iOS-style status card with countdown ── */}
-        {(activeShiftInfo || nextShiftInfo) && (() => {
-          const info = activeShiftInfo ?? nextShiftInfo!;
-          const isActive = !!activeShiftInfo;
-          const shift = isActive ? stats.activeShift : stats.nextShift;
-
-          // Progress bar calculation for active shifts
-          let progressPct = 0;
-          if (isActive && stats.activeShift) {
-            const s = stats.activeShift;
-            const [startH, startM] = s.start_time.split(':').map(Number);
-            const [endH, endM] = s.end_time.split(':').map(Number);
-            const [sy, sm, sd] = s.date.split('-').map(Number);
-            const shiftStart = new Date(sy, sm - 1, sd, startH, startM, 0, 0);
-            const endDayOffset = s.is_sleepover || endH < startH ? 1 : 0;
-            const shiftEnd = new Date(sy, sm - 1, sd + endDayOffset, endH, endM, 0, 0);
-            const now = new Date();
-            const total = shiftEnd.getTime() - shiftStart.getTime();
-            const elapsed = now.getTime() - shiftStart.getTime();
-            progressPct = Math.min(100, Math.max(0, (elapsed / total) * 100));
-          }
-
-          // Background and border colors — stronger in light mode for Next Shift
-          const bgColor = isActive
-            ? 'hsl(var(--stat-green)/0.06)'
-            : info.isEvening
-            ? 'hsl(38 90% 52% / 0.08)'
-            : info.isPublicHoliday
-            ? 'hsl(34 97% 52% / 0.08)'
-            : 'hsl(var(--primary)/0.08)';
-
-          const borderColor = isActive
-            ? 'hsl(var(--stat-green)/0.25)'
-            : info.isEvening
-            ? 'hsl(38 90% 52% / 0.30)'
-            : info.isPublicHoliday
-            ? 'hsl(34 97% 52% / 0.30)'
-            : 'hsl(var(--primary)/0.25)';
-
-          const accentColor = isActive
-            ? 'hsl(var(--stat-green))'
-            : info.isEvening
-            ? 'hsl(38 90% 48%)'
-            : info.isPublicHoliday
-            ? 'hsl(34 90% 40%)'
-            : 'hsl(var(--primary))';
-
-          // Progress bar color
-          const progressColor = isActive
-            ? 'hsl(var(--stat-green))'
-            : info.isEvening
-            ? 'hsl(38 90% 48%)'
-            : 'hsl(var(--primary))';
-
-          // Type tag colors
-          const tagStyle: React.CSSProperties = info.isSleepover ? {
-            background: 'hsl(221 83% 53% / 0.14)',
-            color: 'hsl(221 83% 45%)',
-            border: '1px solid hsl(221 83% 53% / 0.25)',
-          } : info.isPublicHoliday ? {
-            background: 'hsl(34 97% 52% / 0.14)',
-            color: 'hsl(34 90% 38%)',
-            border: '1px solid hsl(34 97% 52% / 0.25)',
-          } : info.isEvening ? {
-            background: 'hsl(38 90% 52% / 0.14)',
-            color: 'hsl(38 90% 35%)',
-            border: '1px solid hsl(38 90% 52% / 0.25)',
-          } : isActive ? {
-            background: 'hsl(var(--stat-green)/0.14)',
-            color: 'hsl(var(--stat-green))',
-            border: '1px solid hsl(var(--stat-green)/0.25)',
-          } : {
-            background: 'hsl(var(--primary)/0.12)',
-            color: 'hsl(var(--primary))',
-            border: '1px solid hsl(var(--primary)/0.22)',
-          };
-
-          return (
-            <div className="pt-4 mt-1" style={{ borderTop: '0.5px solid hsl(var(--border))' }}>
-              {/* Status label row with pulsing dot */}
-              <div className="flex items-center gap-1.5 mb-3">
-                <span
-                  style={{
-                    display: 'inline-block',
-                    width: 6, height: 6, borderRadius: '50%',
-                    background: isActive ? 'hsl(var(--stat-green))' : accentColor,
-                    opacity: isActive ? 1 : 0.8,
-                    animation: isActive ? 'shiftDotPulse 1.8s ease-in-out infinite' : 'none',
-                    flexShrink: 0,
-                  }}
-                />
-                <span
-                  className="text-[9px] font-semibold uppercase tracking-widest"
-                  style={{ color: isActive ? 'hsl(var(--stat-green))' : accentColor }}
-                >
-                  {isActive ? 'In Progress' : 'Next Shift'}
-                </span>
-              </div>
-
-              {/* The card itself */}
-              <div
-                className="w-full text-left overflow-hidden"
-                style={{
-                  borderRadius: 'var(--radius)',
-                  background: bgColor,
-                  border: `1px solid ${borderColor}`,
-                }}
-              >
-                {/* Card content */}
-                <div className="px-4 pt-3.5 pb-3.5 flex items-center justify-between gap-3">
-                  <div className="flex-1 min-w-0 space-y-1">
-                    {/* Date — medium/semibold, primary info */}
-                    <p className="text-sm font-semibold text-foreground leading-snug tracking-tight">
-                      {info.dateLabel}
+                <div key={i} className="w-full flex-shrink-0">
+                  <div className="flex items-center justify-between mb-3">
+                    <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest flex items-center gap-1.5">
+                      <CalendarDays className="w-3.5 h-3.5" /> {label}
                     </p>
-                    {/* Time — regular weight */}
-                    <p className="text-xs font-normal leading-snug" style={{ color: 'hsl(var(--muted-foreground))' }}>
-                      {info.timeLabel}
-                    </p>
-                    {/* Client name if available */}
-                    {shift?.client_name && (
-                      <p className="text-[10px] font-normal" style={{ color: 'hsl(var(--muted-foreground)/0.7)' }}>
-                        {shift.client_name}
-                      </p>
+                    <span className="text-[10px] text-muted-foreground">Mon–Sun</span>
+                  </div>
+                  <div className="mb-4">
+                    <AnimatedCurrency value={weekStat.weekGross} className="text-4xl font-bold money-text leading-none tracking-tight" deps={animDeps} />
+                    <div className="flex items-center gap-2 mt-1.5">
+                      <p className="text-xs text-muted-foreground">weekly gross</p>
+                      {weekStat.prevWeekGross > 0 && (() => {
+                        const diff = weekStat.weekGross - weekStat.prevWeekGross;
+                        const pct = (diff / weekStat.prevWeekGross) * 100;
+                        const isUp = diff >= 0;
+                        return (
+                          <span className="inline-flex items-center gap-0.5 text-[10px] font-semibold rounded-full px-1.5 py-0.5" style={{ background: isUp ? 'hsl(var(--stat-green)/0.10)' : 'hsl(var(--stat-red)/0.10)', color: isUp ? 'hsl(var(--stat-green))' : 'hsl(var(--stat-red))' }}>
+                            {isUp ? <ArrowUpRight className="w-2.5 h-2.5" /> : <ArrowDownRight className="w-2.5 h-2.5" />}
+                            {Math.abs(pct).toFixed(0)}%
+                          </span>
+                        );
+                      })()}
+                    </div>
+                    {weekStat.prevWeekGross > 0 && (
+                      <p className="text-[10px] text-muted-foreground/60 mt-0.5">Last week: {formatCurrency(weekStat.prevWeekGross)}</p>
                     )}
                   </div>
-
-                  {/* Right side: type tag + countdown */}
-                  <div className="flex flex-col items-end gap-1.5 shrink-0">
-                    <span
-                      className="text-[10px] font-medium rounded-lg"
-                      style={{ ...tagStyle, padding: '3px 8px', letterSpacing: '0.01em' }}
-                    >
-                      {info.typeLabel}
-                    </span>
-                    {/* Countdown — only for next shift, not active */}
-                    {!isActive && countdown && (
-                      <div
-                        className="flex items-center gap-1 rounded-lg px-2 py-1"
-                        style={{
-                          background: 'hsl(var(--primary)/0.10)',
-                          border: '1px solid hsl(var(--primary)/0.18)',
-                        }}
-                      >
-                        <svg width="9" height="9" viewBox="0 0 24 24" fill="none" style={{ flexShrink: 0 }}>
-                          <circle cx="12" cy="12" r="9" stroke="hsl(var(--primary))" strokeWidth="2" />
-                          <path d="M12 7v5l3 3" stroke="hsl(var(--primary))" strokeWidth="2" strokeLinecap="round" />
-                        </svg>
-                        <span
-                          className="text-[10px] font-bold tabular-nums"
-                          style={{ color: 'hsl(var(--primary))', letterSpacing: '-0.01em' }}
-                        >
-                          {countdown}
-                        </span>
+                  <div className="grid grid-cols-3 gap-3 pt-4" style={{ borderTop: '0.5px solid hsl(var(--border))' }}>
+                    <div className="text-center">
+                      <Clock className="w-4 h-4 mx-auto mb-1" style={{ color: 'hsl(var(--muted-foreground))' }} />
+                      <p className="text-sm font-bold text-foreground">{weekStat.weekHours.toFixed(1)}h</p>
+                      <p className="text-[9px] text-muted-foreground uppercase tracking-wider">Hours</p>
+                    </div>
+                    <div className="text-center">
+                      <Zap className="w-4 h-4 mx-auto mb-1" style={{ color: 'hsl(var(--muted-foreground))' }} />
+                      <p className="text-sm font-bold text-foreground">{weekStat.weekShiftCount}</p>
+                      <p className="text-[9px] text-muted-foreground uppercase tracking-wider">Shifts</p>
+                    </div>
+                    <div className="text-center">
+                      <Moon className="w-4 h-4 mx-auto mb-1" style={{ color: 'hsl(var(--muted-foreground))' }} />
+                      <p className="text-sm font-bold text-foreground">{weekStat.weekSleepovers}</p>
+                      <p className="text-[9px] text-muted-foreground uppercase tracking-wider">Sleepovers</p>
+                    </div>
+                  </div>
+                  {weekStat.weekGross > 0 && (() => {
+                    const wb = weekStat.weekBreakdown;
+                    type BreakdownRow = { label: string; value: number; meta: string; color: string };
+                    const rows: BreakdownRow[] = [];
+                    if (wb.regularDay > 0) rows.push({ label: 'Weekday Day', value: wb.regularDay, meta: `${wb.regularDayH.toFixed(1)}h`, color: 'hsl(var(--money-green))' });
+                    if (wb.evening > 0) rows.push({ label: 'Evening', value: wb.evening, meta: `${wb.eveningH.toFixed(1)}h`, color: 'hsl(38 90% 45%)' });
+                    if (wb.satDay > 0) rows.push({ label: 'Saturday Day', value: wb.satDay, meta: `${wb.satDayH.toFixed(1)}h`, color: 'hsl(var(--primary))' });
+                    if (wb.sunDay > 0) rows.push({ label: 'Sunday Day', value: wb.sunDay, meta: `${wb.sunDayH.toFixed(1)}h`, color: 'hsl(271 91% 65%)' });
+                    if (wb.weekdaySleepover > 0) rows.push({ label: 'Weekday Sleepover', value: wb.weekdaySleepover, meta: `${wb.weekdaySleepoverN} night${wb.weekdaySleepoverN !== 1 ? 's' : ''}`, color: '#2563EB' });
+                    if (wb.weekendSleepover > 0) rows.push({ label: 'Weekend Sleepover', value: wb.weekendSleepover, meta: `${wb.weekendSleepoverN} night${wb.weekendSleepoverN !== 1 ? 's' : ''}`, color: '#7C3AED' });
+                    if (wb.publicHoliday > 0) rows.push({ label: 'Public Holiday', value: wb.publicHoliday, meta: `${wb.publicHolidayH.toFixed(1)}h`, color: 'hsl(34 97% 48%)' });
+                    if (wb.phSleepover > 0) rows.push({ label: 'PH Sleepover', value: wb.phSleepover, meta: `${wb.phSleepoverN} night${wb.phSleepoverN !== 1 ? 's' : ''}`, color: 'hsl(34 90% 38%)' });
+                    if (rows.length <= 1) return null;
+                    return (
+                      <div className="mt-4 pt-4 space-y-1.5" style={{ borderTop: '0.5px solid hsl(var(--border))' }}>
+                        <p className="text-[9px] font-semibold text-muted-foreground uppercase tracking-widest mb-3">Income Breakdown</p>
+                        {rows.map(row => (
+                          <div key={row.label} className="flex items-center justify-between gap-2">
+                            <div className="flex items-center gap-2 min-w-0">
+                              <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: row.color }} />
+                              <span className="text-xs text-muted-foreground truncate">{row.label}</span>
+                            </div>
+                            <div className="flex items-center gap-2 shrink-0">
+                              <span className="text-[10px] text-muted-foreground/70">{row.meta}</span>
+                              <span className="text-xs font-semibold text-foreground">{formatCurrency(row.value)}</span>
+                            </div>
+                          </div>
+                        ))}
                       </div>
-                    )}
-                  </div>
+                    );
+                  })()}
                 </div>
-
-                {/* Progress bar — active shifts only, 2px height at bottom */}
-                {isActive && (
-                  <div style={{ height: 2, background: 'hsl(var(--border)/0.5)', borderRadius: 0 }}>
-                    <div
-                      style={{
-                        height: '100%',
-                        width: `${progressPct}%`,
-                        background: progressColor,
-                        borderRadius: 0,
-                        transition: 'width 1s linear',
-                        opacity: 0.75,
-                      }}
-                    />
-                  </div>
-                )}
-              </div>
-            </div>
-          );
-        })()}
-        {!activeShiftInfo && !nextShiftInfo && (
-          <div className="pt-4 mt-1" style={{ borderTop: '0.5px solid hsl(var(--border))' }}>
-            <p className="text-[9px] font-semibold text-muted-foreground uppercase tracking-widest mb-1.5">Next Shift</p>
-            <p className="text-xs text-muted-foreground">No upcoming shifts scheduled.</p>
+              );
+            })}
           </div>
-        )}
-        <style>{`
-          @keyframes shiftDotPulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.35; }
-          }
-        `}</style>
+        </div>
+        <div className="flex items-center justify-center gap-1.5 mt-4">
+          {allWeeksStats.map((_, i) => (
+            <div key={i} className="rounded-full transition-all duration-300" style={{ width: i === weekIndex ? 16 : 6, height: 6, background: i === weekIndex ? 'hsl(var(--primary))' : 'hsl(var(--muted-foreground)/0.3)' }} />
+          ))}
+        </div>
       </ElevatedCard>
 
       {/* ── Month summary card ── */}
