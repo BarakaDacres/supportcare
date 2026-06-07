@@ -1321,6 +1321,49 @@ const OverviewPanel = ({
     };
   }, [shifts, selectedMonth, selectedYear, settings]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // ── Multi-week stats for swipeable carousel ───────────────────────────────
+  const allWeeksStats = useMemo(() => {
+    const today2 = new Date();
+    today2.setHours(0, 0, 0, 0);
+    const currentWeekStart = getMondayOf(today2);
+
+    const gross = (arr: Shift[]) => arr.reduce((s, sh) => s + effectiveGrossPay(sh), 0);
+    const hours = (arr: Shift[]) =>
+      arr.filter(s => !s.is_sleepover).reduce((s, sh) => s + Number(sh.hours_worked), 0);
+
+    return Array.from({ length: 5 }, (_, i) => {
+      const ws = new Date(currentWeekStart);
+      ws.setDate(ws.getDate() - i * 7);
+      const we = new Date(ws);
+      we.setDate(we.getDate() + 6);
+
+      const weekShifts = shifts.filter(s => {
+        const d = parseDate(s.date);
+        return d >= ws && d <= we;
+      });
+
+      const pws = new Date(ws);
+      pws.setDate(pws.getDate() - 7);
+      const pwe = new Date(pws);
+      pwe.setDate(pwe.getDate() + 6);
+      const prevWeekShifts = shifts.filter(s => {
+        const d = parseDate(s.date);
+        return d >= pws && d <= pwe;
+      });
+
+      return {
+        weekStart: ws,
+        weekEnd: we,
+        weekGross: gross(weekShifts),
+        prevWeekGross: gross(prevWeekShifts),
+        weekHours: hours(weekShifts),
+        weekShiftCount: weekShifts.length,
+        weekSleepovers: weekShifts.filter(s => s.is_sleepover).length,
+        weekBreakdown: computeWeekBreakdown(weekShifts, settings),
+      };
+    });
+  }, [shifts, settings]);
+
   const unpaidStats = useMemo(() => {
     const unpaid = invoices.filter(inv => inv.status !== 'paid');
     return {
