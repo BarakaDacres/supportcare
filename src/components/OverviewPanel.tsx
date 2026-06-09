@@ -1551,8 +1551,27 @@ const OverviewPanel = ({
 
       {/* ── Weekly Earnings cards (swipeable) ── */}
       <ElevatedCard hero>
-        <div className="overflow-hidden" onTouchStart={handleWeekTouchStart} onTouchEnd={handleWeekTouchEnd}>
-          <div className="flex transition-transform duration-300 ease-out" style={{ transform: `translateX(-${weekIndex * 100}%)` }}>
+        <div
+          className="overflow-hidden touch-pan-y select-none outline-none"
+          role="region"
+          aria-roledescription="carousel"
+          aria-label="Weekly earnings, swipe left or right to navigate"
+          tabIndex={0}
+          onKeyDown={onWeekKeyDown}
+          onPointerDown={onWeekPointerDown}
+          onPointerMove={onWeekPointerMove}
+          onPointerUp={onWeekPointerUp}
+          onPointerCancel={onWeekPointerUp}
+          style={{ cursor: dragDx !== 0 ? 'grabbing' : 'grab' }}
+        >
+          <div
+            className="flex"
+            style={{
+              transform: `translateX(calc(-${weekIndex * 100}% + ${dragDx}px))`,
+              transition: dragDx !== 0 ? 'none' : 'transform 320ms cubic-bezier(0.22, 1, 0.36, 1)',
+            }}
+          >
+
             {allWeeksStats.map((weekStat, i) => {
               const isCurrent = i === 0;
               const label = isCurrent
