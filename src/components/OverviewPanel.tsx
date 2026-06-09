@@ -1448,20 +1448,62 @@ const OverviewPanel = ({
 
   // ── Weekly card swipe state ─────────────────────────────────────────────
   const [weekIndex, setWeekIndex] = useState(0);
-  const weekTouchStartX = useRef<number | null>(null);
-  const handleWeekTouchStart = (e: React.TouchEvent) => {
-    weekTouchStartX.current = e.touches[0].clientX;
-  };
-  const handleWeekTouchEnd = (e: React.TouchEvent) => {
-    if (weekTouchStartX.current === null) return;
-    const dx = e.changedTouches[0].clientX - weekTouchStartX.current;
-    if (Math.abs(dx) > 48) {
+  const [dragDx, setDragDx] = useState(0);
+  const weekDragStartX = useRef<number | null>(null);
+  const weekDragStartY = useRef<number | null>(null);
+  const weekDragLocked = useRef<'h' | 'v' | null>(null);
+
+  const canPrevWeek = weekIndex > 0;                            // newer (swipe right)
+  const canNextWeek = weekIndex < allWeeksStats.length - 1;     // older (swipe left)
+
+  const gotoWeek = (next: number) => {
+    const clamped = Math.max(0, Math.min(allWeeksStats.length - 1, next));
+    if (clamped !== weekIndex) {
       haptic('light');
-      if (dx < 0 && weekIndex < allWeeksStats.length - 1) setWeekIndex(weekIndex + 1);
-      if (dx > 0 && weekIndex > 0) setWeekIndex(weekIndex - 1);
+      setWeekIndex(clamped);
     }
-    weekTouchStartX.current = null;
   };
+
+  const onWeekPointerDown = (e: React.PointerEvent) => {
+    weekDragStartX.current = e.clientX;
+    weekDragStartY.current = e.clientY;
+    weekDragLocked.current = null;
+    setDragDx(0);
+  };
+  const onWeekPointerMove = (e: React.PointerEvent) => {
+    if (weekDragStartX.current === null || weekDragStartY.current === null) return;
+    const dx = e.clientX - weekDragStartX.current;
+    const dy = e.clientY - weekDragStartY.current;
+    if (weekDragLocked.current === null) {
+      if (Math.abs(dx) < 6 && Math.abs(dy) < 6) return;
+      weekDragLocked.current = Math.abs(dx) > Math.abs(dy) ? 'h' : 'v';
+    }
+    if (weekDragLocked.current === 'h') {
+      // Resistance at edges
+      let adj = dx;
+      if ((dx > 0 && !canPrevWeek) || (dx < 0 && !canNextWeek)) adj = dx * 0.25;
+      setDragDx(adj);
+    }
+  };
+  const onWeekPointerUp = (e: React.PointerEvent) => {
+    if (weekDragStartX.current === null) return;
+    const dx = e.clientX - weekDragStartX.current;
+    weekDragStartX.current = null;
+    weekDragStartY.current = null;
+    setDragDx(0);
+    if (weekDragLocked.current !== 'h') return;
+    weekDragLocked.current = null;
+    if (Math.abs(dx) > 40) {
+      if (dx < 0 && canNextWeek) gotoWeek(weekIndex + 1);
+      else if (dx > 0 && canPrevWeek) gotoWeek(weekIndex - 1);
+    }
+  };
+
+  const onWeekKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'ArrowLeft') { e.preventDefault(); if (canPrevWeek) gotoWeek(weekIndex - 1); }
+    else if (e.key === 'ArrowRight') { e.preventDefault(); if (canNextWeek) gotoWeek(weekIndex + 1); }
+  };
+
 
   return (
     <div className="space-y-4">
