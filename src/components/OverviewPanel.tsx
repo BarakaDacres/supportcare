@@ -1698,7 +1698,7 @@ const OverviewPanel = ({
                             display: 'inline-block', width: 6, height: 6, borderRadius: '50%',
                             background: isActive ? 'hsl(var(--stat-green))' : 'hsl(var(--muted-foreground))',
                             opacity: isActive ? 1 : 0.6,
-                            animation: isActive ? 'shiftDotPulse 1.8s ease-in-out infinite' : 'none',
+                            animation: isActive ? 'calPulse 1.8s ease-in-out infinite' : 'none',
                           }} />
                           <span className="text-[9px] font-semibold uppercase tracking-widest" style={{ color: isActive ? 'hsl(var(--stat-green))' : 'hsl(var(--muted-foreground))' }}>
                             {isActive ? 'In Progress' : 'Next Shift'}
