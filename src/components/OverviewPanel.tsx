@@ -1667,16 +1667,112 @@ const OverviewPanel = ({
                       </div>
                     );
                   })()}
+
+                  {/* ── Active Now / Next Shift status (current week only) ── */}
+                  {isCurrent && (activeShiftInfo || nextShiftInfo) && (() => {
+                    const info = activeShiftInfo ?? nextShiftInfo!;
+                    const isActive = !!activeShiftInfo;
+                    const clientName = isActive ? stats.activeShift?.client_name : stats.nextShift?.client_name;
+
+                    const bgColor = isActive
+                      ? 'hsl(var(--stat-green)/0.06)'
+                      : info.isEvening ? 'hsl(38 90% 52% / 0.06)'
+                      : info.isPublicHoliday ? 'hsl(34 97% 52% / 0.06)'
+                      : 'hsl(var(--primary)/0.05)';
+                    const borderColor = isActive
+                      ? 'hsl(var(--stat-green)/0.20)'
+                      : info.isEvening ? 'hsl(38 90% 52% / 0.22)'
+                      : info.isPublicHoliday ? 'hsl(34 97% 52% / 0.22)'
+                      : 'hsl(var(--primary)/0.18)';
+                    const chipStyle: React.CSSProperties = info.isSleepover
+                      ? { background: '#2563EB', color: '#fff' }
+                      : info.isPublicHoliday ? { background: 'hsl(34 97% 48%)', color: '#fff' }
+                      : info.isEvening ? { background: 'hsl(38 90% 44%)', color: '#fff' }
+                      : isActive ? { background: 'hsl(var(--stat-green))', color: '#fff' }
+                      : { background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))' };
+
+                    return (
+                      <div className="mt-4 pt-4" style={{ borderTop: '0.5px solid hsl(var(--border))' }}>
+                        <div className="flex items-center gap-1.5 mb-2.5">
+                          <span style={{
+                            display: 'inline-block', width: 6, height: 6, borderRadius: '50%',
+                            background: isActive ? 'hsl(var(--stat-green))' : 'hsl(var(--muted-foreground))',
+                            opacity: isActive ? 1 : 0.6,
+                            animation: isActive ? 'shiftDotPulse 1.8s ease-in-out infinite' : 'none',
+                          }} />
+                          <span className="text-[9px] font-semibold uppercase tracking-widest" style={{ color: isActive ? 'hsl(var(--stat-green))' : 'hsl(var(--muted-foreground))' }}>
+                            {isActive ? 'In Progress' : 'Next Shift'}
+                          </span>
+                          {!isActive && countdown && (
+                            <span className="ml-auto text-[10px] font-semibold text-muted-foreground/80 tabular-nums">in {countdown}</span>
+                          )}
+                        </div>
+                        <div
+                          className="rounded-2xl px-3.5 py-3 flex items-center justify-between gap-3"
+                          style={{ background: bgColor, border: `0.5px solid ${borderColor}` }}
+                        >
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-semibold text-foreground leading-snug tracking-tight">{info.dateLabel}</p>
+                            <p className="text-xs mt-0.5" style={{ color: 'hsl(var(--muted-foreground))' }}>{info.timeLabel}</p>
+                            {clientName && (
+                              <p className="text-[10px] mt-1 truncate" style={{ color: 'hsl(var(--muted-foreground)/0.7)' }}>{clientName}</p>
+                            )}
+                          </div>
+                          <span className="shrink-0 text-[10px] font-bold px-2.5 py-1 rounded-full" style={chipStyle}>
+                            {info.typeLabel}
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })()}
                 </div>
               );
             })}
           </div>
         </div>
-        <div className="flex items-center justify-center gap-1.5 mt-4">
-          {allWeeksStats.map((_, i) => (
-            <div key={i} className="rounded-full transition-all duration-300" style={{ width: i === weekIndex ? 16 : 6, height: 6, background: i === weekIndex ? 'hsl(var(--primary))' : 'hsl(var(--muted-foreground)/0.3)' }} />
-          ))}
+
+        {/* ── Carousel controls: chevrons + dots ── */}
+        <div className="flex items-center justify-center gap-3 mt-4">
+          <button
+            type="button"
+            onClick={() => gotoWeek(weekIndex - 1)}
+            disabled={!canPrevWeek}
+            aria-label="Newer week"
+            className="w-7 h-7 rounded-full flex items-center justify-center active:scale-90 transition-all disabled:opacity-30"
+            style={{ background: 'hsl(var(--muted)/0.5)', color: 'hsl(var(--foreground))' }}
+          >
+            <ChevronLeft className="w-3.5 h-3.5" />
+          </button>
+          <div className="flex items-center gap-1.5" role="tablist" aria-label="Weeks">
+            {allWeeksStats.map((_, i) => (
+              <button
+                key={i}
+                type="button"
+                role="tab"
+                aria-selected={i === weekIndex}
+                aria-label={i === 0 ? 'This week' : i === 1 ? 'Last week' : `${i} weeks ago`}
+                onClick={() => gotoWeek(i)}
+                className="rounded-full transition-all duration-300 active:scale-90"
+                style={{
+                  width: i === weekIndex ? 18 : 6, height: 6,
+                  background: i === weekIndex ? 'hsl(var(--primary))' : 'hsl(var(--muted-foreground)/0.3)',
+                  border: 'none', padding: 0, cursor: 'pointer',
+                }}
+              />
+            ))}
+          </div>
+          <button
+            type="button"
+            onClick={() => gotoWeek(weekIndex + 1)}
+            disabled={!canNextWeek}
+            aria-label="Older week"
+            className="w-7 h-7 rounded-full flex items-center justify-center active:scale-90 transition-all disabled:opacity-30"
+            style={{ background: 'hsl(var(--muted)/0.5)', color: 'hsl(var(--foreground))' }}
+          >
+            <ChevronRight className="w-3.5 h-3.5" />
+          </button>
         </div>
+
       </ElevatedCard>
 
       {/* ── Month summary card ── */}
