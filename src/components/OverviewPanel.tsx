@@ -1448,20 +1448,62 @@ const OverviewPanel = ({
 
   // ── Weekly card swipe state ─────────────────────────────────────────────
   const [weekIndex, setWeekIndex] = useState(0);
-  const weekTouchStartX = useRef<number | null>(null);
-  const handleWeekTouchStart = (e: React.TouchEvent) => {
-    weekTouchStartX.current = e.touches[0].clientX;
-  };
-  const handleWeekTouchEnd = (e: React.TouchEvent) => {
-    if (weekTouchStartX.current === null) return;
-    const dx = e.changedTouches[0].clientX - weekTouchStartX.current;
-    if (Math.abs(dx) > 48) {
+  const [dragDx, setDragDx] = useState(0);
+  const weekDragStartX = useRef<number | null>(null);
+  const weekDragStartY = useRef<number | null>(null);
+  const weekDragLocked = useRef<'h' | 'v' | null>(null);
+
+  const canPrevWeek = weekIndex > 0;                            // newer (swipe right)
+  const canNextWeek = weekIndex < allWeeksStats.length - 1;     // older (swipe left)
+
+  const gotoWeek = (next: number) => {
+    const clamped = Math.max(0, Math.min(allWeeksStats.length - 1, next));
+    if (clamped !== weekIndex) {
       haptic('light');
-      if (dx < 0 && weekIndex < allWeeksStats.length - 1) setWeekIndex(weekIndex + 1);
-      if (dx > 0 && weekIndex > 0) setWeekIndex(weekIndex - 1);
+      setWeekIndex(clamped);
     }
-    weekTouchStartX.current = null;
   };
+
+  const onWeekPointerDown = (e: React.PointerEvent) => {
+    weekDragStartX.current = e.clientX;
+    weekDragStartY.current = e.clientY;
+    weekDragLocked.current = null;
+    setDragDx(0);
+  };
+  const onWeekPointerMove = (e: React.PointerEvent) => {
+    if (weekDragStartX.current === null || weekDragStartY.current === null) return;
+    const dx = e.clientX - weekDragStartX.current;
+    const dy = e.clientY - weekDragStartY.current;
+    if (weekDragLocked.current === null) {
+      if (Math.abs(dx) < 6 && Math.abs(dy) < 6) return;
+      weekDragLocked.current = Math.abs(dx) > Math.abs(dy) ? 'h' : 'v';
+    }
+    if (weekDragLocked.current === 'h') {
+      // Resistance at edges
+      let adj = dx;
+      if ((dx > 0 && !canPrevWeek) || (dx < 0 && !canNextWeek)) adj = dx * 0.25;
+      setDragDx(adj);
+    }
+  };
+  const onWeekPointerUp = (e: React.PointerEvent) => {
+    if (weekDragStartX.current === null) return;
+    const dx = e.clientX - weekDragStartX.current;
+    weekDragStartX.current = null;
+    weekDragStartY.current = null;
+    setDragDx(0);
+    if (weekDragLocked.current !== 'h') return;
+    weekDragLocked.current = null;
+    if (Math.abs(dx) > 40) {
+      if (dx < 0 && canNextWeek) gotoWeek(weekIndex + 1);
+      else if (dx > 0 && canPrevWeek) gotoWeek(weekIndex - 1);
+    }
+  };
+
+  const onWeekKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'ArrowLeft') { e.preventDefault(); if (canPrevWeek) gotoWeek(weekIndex - 1); }
+    else if (e.key === 'ArrowRight') { e.preventDefault(); if (canNextWeek) gotoWeek(weekIndex + 1); }
+  };
+
 
   return (
     <div className="space-y-4">
@@ -1509,21 +1551,54 @@ const OverviewPanel = ({
 
       {/* ── Weekly Earnings cards (swipeable) ── */}
       <ElevatedCard hero>
-        <div className="overflow-hidden" onTouchStart={handleWeekTouchStart} onTouchEnd={handleWeekTouchEnd}>
-          <div className="flex transition-transform duration-300 ease-out" style={{ transform: `translateX(-${weekIndex * 100}%)` }}>
+        <div
+          className="overflow-hidden touch-pan-y select-none outline-none"
+          role="region"
+          aria-roledescription="carousel"
+          aria-label="Weekly earnings, swipe left or right to navigate"
+          tabIndex={0}
+          onKeyDown={onWeekKeyDown}
+          onPointerDown={onWeekPointerDown}
+          onPointerMove={onWeekPointerMove}
+          onPointerUp={onWeekPointerUp}
+          onPointerCancel={onWeekPointerUp}
+          style={{ cursor: dragDx !== 0 ? 'grabbing' : 'grab' }}
+        >
+          <div
+            className="flex"
+            style={{
+              transform: `translateX(calc(-${weekIndex * 100}% + ${dragDx}px))`,
+              transition: dragDx !== 0 ? 'none' : 'transform 320ms cubic-bezier(0.22, 1, 0.36, 1)',
+            }}
+          >
+
             {allWeeksStats.map((weekStat, i) => {
               const isCurrent = i === 0;
+              const rangeLabel = `${weekStat.weekStart.getDate()} ${MONTH_SHORT[weekStat.weekStart.getMonth()]} – ${weekStat.weekEnd.getDate()} ${MONTH_SHORT[weekStat.weekEnd.getMonth()]}`;
               const label = isCurrent
                 ? 'This Week'
-                : `Week of ${weekStat.weekStart.getDate()} ${MONTH_SHORT[weekStat.weekStart.getMonth()]} – ${weekStat.weekEnd.getDate()} ${MONTH_SHORT[weekStat.weekEnd.getMonth()]}`;
+                : i === 1
+                ? 'Last Week'
+                : `${i} weeks ago`;
               return (
-                <div key={i} className="w-full flex-shrink-0">
+                <div
+                  key={i}
+                  className="w-full flex-shrink-0"
+                  role="group"
+                  aria-roledescription="slide"
+                  aria-label={`${label} (${rangeLabel})`}
+                  aria-hidden={i !== weekIndex}
+                >
                   <div className="flex items-center justify-between mb-3">
-                    <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest flex items-center gap-1.5">
-                      <CalendarDays className="w-3.5 h-3.5" /> {label}
-                    </p>
+                    <div className="flex flex-col">
+                      <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest flex items-center gap-1.5">
+                        <CalendarDays className="w-3.5 h-3.5" /> {label}
+                      </p>
+                      <p className="text-[10px] text-muted-foreground/70 mt-0.5">{rangeLabel}</p>
+                    </div>
                     <span className="text-[10px] text-muted-foreground">Mon–Sun</span>
                   </div>
+
                   <div className="mb-4">
                     <AnimatedCurrency value={weekStat.weekGross} className="text-4xl font-bold money-text leading-none tracking-tight" deps={animDeps} />
                     <div className="flex items-center gap-2 mt-1.5">
@@ -1592,16 +1667,112 @@ const OverviewPanel = ({
                       </div>
                     );
                   })()}
+
+                  {/* ── Active Now / Next Shift status (current week only) ── */}
+                  {isCurrent && (activeShiftInfo || nextShiftInfo) && (() => {
+                    const info = activeShiftInfo ?? nextShiftInfo!;
+                    const isActive = !!activeShiftInfo;
+                    const clientName = isActive ? stats.activeShift?.client_name : stats.nextShift?.client_name;
+
+                    const bgColor = isActive
+                      ? 'hsl(var(--stat-green)/0.06)'
+                      : info.isEvening ? 'hsl(38 90% 52% / 0.06)'
+                      : info.isPublicHoliday ? 'hsl(34 97% 52% / 0.06)'
+                      : 'hsl(var(--primary)/0.05)';
+                    const borderColor = isActive
+                      ? 'hsl(var(--stat-green)/0.20)'
+                      : info.isEvening ? 'hsl(38 90% 52% / 0.22)'
+                      : info.isPublicHoliday ? 'hsl(34 97% 52% / 0.22)'
+                      : 'hsl(var(--primary)/0.18)';
+                    const chipStyle: React.CSSProperties = info.isSleepover
+                      ? { background: '#2563EB', color: '#fff' }
+                      : info.isPublicHoliday ? { background: 'hsl(34 97% 48%)', color: '#fff' }
+                      : info.isEvening ? { background: 'hsl(38 90% 44%)', color: '#fff' }
+                      : isActive ? { background: 'hsl(var(--stat-green))', color: '#fff' }
+                      : { background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))' };
+
+                    return (
+                      <div className="mt-4 pt-4" style={{ borderTop: '0.5px solid hsl(var(--border))' }}>
+                        <div className="flex items-center gap-1.5 mb-2.5">
+                          <span style={{
+                            display: 'inline-block', width: 6, height: 6, borderRadius: '50%',
+                            background: isActive ? 'hsl(var(--stat-green))' : 'hsl(var(--muted-foreground))',
+                            opacity: isActive ? 1 : 0.6,
+                            animation: isActive ? 'calPulse 1.8s ease-in-out infinite' : 'none',
+                          }} />
+                          <span className="text-[9px] font-semibold uppercase tracking-widest" style={{ color: isActive ? 'hsl(var(--stat-green))' : 'hsl(var(--muted-foreground))' }}>
+                            {isActive ? 'In Progress' : 'Next Shift'}
+                          </span>
+                          {!isActive && countdown && (
+                            <span className="ml-auto text-[10px] font-semibold text-muted-foreground/80 tabular-nums">in {countdown}</span>
+                          )}
+                        </div>
+                        <div
+                          className="rounded-2xl px-3.5 py-3 flex items-center justify-between gap-3"
+                          style={{ background: bgColor, border: `0.5px solid ${borderColor}` }}
+                        >
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-semibold text-foreground leading-snug tracking-tight">{info.dateLabel}</p>
+                            <p className="text-xs mt-0.5" style={{ color: 'hsl(var(--muted-foreground))' }}>{info.timeLabel}</p>
+                            {clientName && (
+                              <p className="text-[10px] mt-1 truncate" style={{ color: 'hsl(var(--muted-foreground)/0.7)' }}>{clientName}</p>
+                            )}
+                          </div>
+                          <span className="shrink-0 text-[10px] font-bold px-2.5 py-1 rounded-full" style={chipStyle}>
+                            {info.typeLabel}
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })()}
                 </div>
               );
             })}
           </div>
         </div>
-        <div className="flex items-center justify-center gap-1.5 mt-4">
-          {allWeeksStats.map((_, i) => (
-            <div key={i} className="rounded-full transition-all duration-300" style={{ width: i === weekIndex ? 16 : 6, height: 6, background: i === weekIndex ? 'hsl(var(--primary))' : 'hsl(var(--muted-foreground)/0.3)' }} />
-          ))}
+
+        {/* ── Carousel controls: chevrons + dots ── */}
+        <div className="flex items-center justify-center gap-3 mt-4">
+          <button
+            type="button"
+            onClick={() => gotoWeek(weekIndex - 1)}
+            disabled={!canPrevWeek}
+            aria-label="Newer week"
+            className="w-7 h-7 rounded-full flex items-center justify-center active:scale-90 transition-all disabled:opacity-30"
+            style={{ background: 'hsl(var(--muted)/0.5)', color: 'hsl(var(--foreground))' }}
+          >
+            <ChevronLeft className="w-3.5 h-3.5" />
+          </button>
+          <div className="flex items-center gap-1.5" role="tablist" aria-label="Weeks">
+            {allWeeksStats.map((_, i) => (
+              <button
+                key={i}
+                type="button"
+                role="tab"
+                aria-selected={i === weekIndex}
+                aria-label={i === 0 ? 'This week' : i === 1 ? 'Last week' : `${i} weeks ago`}
+                onClick={() => gotoWeek(i)}
+                className="rounded-full transition-all duration-300 active:scale-90"
+                style={{
+                  width: i === weekIndex ? 18 : 6, height: 6,
+                  background: i === weekIndex ? 'hsl(var(--primary))' : 'hsl(var(--muted-foreground)/0.3)',
+                  border: 'none', padding: 0, cursor: 'pointer',
+                }}
+              />
+            ))}
+          </div>
+          <button
+            type="button"
+            onClick={() => gotoWeek(weekIndex + 1)}
+            disabled={!canNextWeek}
+            aria-label="Older week"
+            className="w-7 h-7 rounded-full flex items-center justify-center active:scale-90 transition-all disabled:opacity-30"
+            style={{ background: 'hsl(var(--muted)/0.5)', color: 'hsl(var(--foreground))' }}
+          >
+            <ChevronRight className="w-3.5 h-3.5" />
+          </button>
         </div>
+
       </ElevatedCard>
 
       {/* ── Month summary card ── */}
