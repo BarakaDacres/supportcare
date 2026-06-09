@@ -1574,17 +1574,31 @@ const OverviewPanel = ({
 
             {allWeeksStats.map((weekStat, i) => {
               const isCurrent = i === 0;
+              const rangeLabel = `${weekStat.weekStart.getDate()} ${MONTH_SHORT[weekStat.weekStart.getMonth()]} – ${weekStat.weekEnd.getDate()} ${MONTH_SHORT[weekStat.weekEnd.getMonth()]}`;
               const label = isCurrent
                 ? 'This Week'
-                : `Week of ${weekStat.weekStart.getDate()} ${MONTH_SHORT[weekStat.weekStart.getMonth()]} – ${weekStat.weekEnd.getDate()} ${MONTH_SHORT[weekStat.weekEnd.getMonth()]}`;
+                : i === 1
+                ? 'Last Week'
+                : `${i} weeks ago`;
               return (
-                <div key={i} className="w-full flex-shrink-0">
+                <div
+                  key={i}
+                  className="w-full flex-shrink-0"
+                  role="group"
+                  aria-roledescription="slide"
+                  aria-label={`${label} (${rangeLabel})`}
+                  aria-hidden={i !== weekIndex}
+                >
                   <div className="flex items-center justify-between mb-3">
-                    <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest flex items-center gap-1.5">
-                      <CalendarDays className="w-3.5 h-3.5" /> {label}
-                    </p>
+                    <div className="flex flex-col">
+                      <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest flex items-center gap-1.5">
+                        <CalendarDays className="w-3.5 h-3.5" /> {label}
+                      </p>
+                      <p className="text-[10px] text-muted-foreground/70 mt-0.5">{rangeLabel}</p>
+                    </div>
                     <span className="text-[10px] text-muted-foreground">Mon–Sun</span>
                   </div>
+
                   <div className="mb-4">
                     <AnimatedCurrency value={weekStat.weekGross} className="text-4xl font-bold money-text leading-none tracking-tight" deps={animDeps} />
                     <div className="flex items-center gap-2 mt-1.5">
