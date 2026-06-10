@@ -1446,12 +1446,71 @@ const OverviewPanel = ({
     return () => clearInterval(timer);
   }, [stats.nextShift, stats.activeShift]);
 
+  // ── Active shift live progress (0..1) for in-progress bar ───────────────
+  const [nowTick, setNowTick] = useState(() => Date.now());
+  useEffect(() => {
+    if (!stats.activeShift) return;
+    const t = setInterval(() => setNowTick(Date.now()), 30_000);
+    return () => clearInterval(t);
+  }, [stats.activeShift]);
+  const activeProgress = useMemo(() => {
+    const s = stats.activeShift;
+    if (!s) return 0;
+    const [sh, sm] = s.start_time.split(':').map(Number);
+    const [eh, em] = s.end_time.split(':').map(Number);
+    const [yy, mm, dd] = s.date.split('-').map(Number);
+    const start = new Date(yy, mm - 1, dd, sh, sm, 0, 0).getTime();
+    let end = new Date(yy, mm - 1, dd, eh, em, 0, 0).getTime();
+    if (end <= start) end += 24 * 60 * 60 * 1000;
+    const p = (nowTick - start) / (end - start);
+    return Math.min(Math.max(p, 0), 1);
+  }, [stats.activeShift, nowTick]);
+  const activeTimeLabel = useMemo(() => {
+    const s = stats.activeShift;
+    if (!s) return null;
+    const [sh, sm] = s.start_time.split(':').map(Number);
+    const [eh, em] = s.end_time.split(':').map(Number);
+    const [yy, mm, dd] = s.date.split('-').map(Number);
+    const start = new Date(yy, mm - 1, dd, sh, sm, 0, 0).getTime();
+    let end = new Date(yy, mm - 1, dd, eh, em, 0, 0).getTime();
+    if (end <= start) end += 24 * 60 * 60 * 1000;
+    const remainingMin = Math.max(0, Math.round((end - nowTick) / 60000));
+    const hrs = Math.floor(remainingMin / 60);
+    const mins = remainingMin % 60;
+    return hrs > 0 ? `${hrs}h ${mins}m left` : `${mins}m left`;
+  }, [stats.activeShift, nowTick]);
+
   // ── Weekly card swipe state ─────────────────────────────────────────────
   const [weekIndex, setWeekIndex] = useState(0);
   const [dragDx, setDragDx] = useState(0);
   const weekDragStartX = useRef<number | null>(null);
   const weekDragStartY = useRef<number | null>(null);
   const weekDragLocked = useRef<'h' | 'v' | null>(null);
+
+  // ── Per-slide height tracking so empty weeks don't reserve unused space ─
+  const slideRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const [slideHeights, setSlideHeights] = useState<number[]>([]);
+  useEffect(() => {
+    const els = slideRefs.current;
+    if (!els.length) return;
+    const measure = () => {
+      const heights = els.map(el => el?.offsetHeight ?? 0);
+      setSlideHeights(prev => {
+        if (prev.length === heights.length && prev.every((h, i) => h === heights[i])) return prev;
+        return heights;
+      });
+    };
+    measure();
+    const observers = els.map(el => {
+      if (!el) return null;
+      const ro = new ResizeObserver(measure);
+      ro.observe(el);
+      return ro;
+    });
+    return () => { observers.forEach(o => o?.disconnect()); };
+  }, [allWeeksStats.length]);
+  const carouselHeight = slideHeights[weekIndex] || undefined;
+
 
   const canPrevWeek = weekIndex > 0;                            // newer (swipe right)
   const canNextWeek = weekIndex < allWeeksStats.length - 1;     // older (swipe left)
