@@ -1621,15 +1621,20 @@ const OverviewPanel = ({
           onPointerMove={onWeekPointerMove}
           onPointerUp={onWeekPointerUp}
           onPointerCancel={onWeekPointerUp}
-          style={{ cursor: dragDx !== 0 ? 'grabbing' : 'grab' }}
+          style={{
+            cursor: dragDx !== 0 ? 'grabbing' : 'grab',
+            height: carouselHeight,
+            transition: dragDx !== 0 ? 'none' : 'height 320ms cubic-bezier(0.22, 1, 0.36, 1)',
+          }}
         >
           <div
-            className="flex"
+            className="flex items-start"
             style={{
               transform: `translateX(calc(-${weekIndex * 100}% + ${dragDx}px))`,
               transition: dragDx !== 0 ? 'none' : 'transform 320ms cubic-bezier(0.22, 1, 0.36, 1)',
             }}
           >
+
 
             {allWeeksStats.map((weekStat, i) => {
               const isCurrent = i === 0;
