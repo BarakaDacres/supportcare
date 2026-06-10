@@ -1446,12 +1446,71 @@ const OverviewPanel = ({
     return () => clearInterval(timer);
   }, [stats.nextShift, stats.activeShift]);
 
+  // ── Active shift live progress (0..1) for in-progress bar ───────────────
+  const [nowTick, setNowTick] = useState(() => Date.now());
+  useEffect(() => {
+    if (!stats.activeShift) return;
+    const t = setInterval(() => setNowTick(Date.now()), 30_000);
+    return () => clearInterval(t);
+  }, [stats.activeShift]);
+  const activeProgress = useMemo(() => {
+    const s = stats.activeShift;
+    if (!s) return 0;
+    const [sh, sm] = s.start_time.split(':').map(Number);
+    const [eh, em] = s.end_time.split(':').map(Number);
+    const [yy, mm, dd] = s.date.split('-').map(Number);
+    const start = new Date(yy, mm - 1, dd, sh, sm, 0, 0).getTime();
+    let end = new Date(yy, mm - 1, dd, eh, em, 0, 0).getTime();
+    if (end <= start) end += 24 * 60 * 60 * 1000;
+    const p = (nowTick - start) / (end - start);
+    return Math.min(Math.max(p, 0), 1);
+  }, [stats.activeShift, nowTick]);
+  const activeTimeLabel = useMemo(() => {
+    const s = stats.activeShift;
+    if (!s) return null;
+    const [sh, sm] = s.start_time.split(':').map(Number);
+    const [eh, em] = s.end_time.split(':').map(Number);
+    const [yy, mm, dd] = s.date.split('-').map(Number);
+    const start = new Date(yy, mm - 1, dd, sh, sm, 0, 0).getTime();
+    let end = new Date(yy, mm - 1, dd, eh, em, 0, 0).getTime();
+    if (end <= start) end += 24 * 60 * 60 * 1000;
+    const remainingMin = Math.max(0, Math.round((end - nowTick) / 60000));
+    const hrs = Math.floor(remainingMin / 60);
+    const mins = remainingMin % 60;
+    return hrs > 0 ? `${hrs}h ${mins}m left` : `${mins}m left`;
+  }, [stats.activeShift, nowTick]);
+
   // ── Weekly card swipe state ─────────────────────────────────────────────
   const [weekIndex, setWeekIndex] = useState(0);
   const [dragDx, setDragDx] = useState(0);
   const weekDragStartX = useRef<number | null>(null);
   const weekDragStartY = useRef<number | null>(null);
   const weekDragLocked = useRef<'h' | 'v' | null>(null);
+
+  // ── Per-slide height tracking so empty weeks don't reserve unused space ─
+  const slideRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const [slideHeights, setSlideHeights] = useState<number[]>([]);
+  useEffect(() => {
+    const els = slideRefs.current;
+    if (!els.length) return;
+    const measure = () => {
+      const heights = els.map(el => el?.offsetHeight ?? 0);
+      setSlideHeights(prev => {
+        if (prev.length === heights.length && prev.every((h, i) => h === heights[i])) return prev;
+        return heights;
+      });
+    };
+    measure();
+    const observers = els.map(el => {
+      if (!el) return null;
+      const ro = new ResizeObserver(measure);
+      ro.observe(el);
+      return ro;
+    });
+    return () => { observers.forEach(o => o?.disconnect()); };
+  }, [allWeeksStats.length]);
+  const carouselHeight = slideHeights[weekIndex] || undefined;
+
 
   const canPrevWeek = weekIndex > 0;                            // newer (swipe right)
   const canNextWeek = weekIndex < allWeeksStats.length - 1;     // older (swipe left)
@@ -1562,15 +1621,20 @@ const OverviewPanel = ({
           onPointerMove={onWeekPointerMove}
           onPointerUp={onWeekPointerUp}
           onPointerCancel={onWeekPointerUp}
-          style={{ cursor: dragDx !== 0 ? 'grabbing' : 'grab' }}
+          style={{
+            cursor: dragDx !== 0 ? 'grabbing' : 'grab',
+            height: carouselHeight,
+            transition: dragDx !== 0 ? 'none' : 'height 320ms cubic-bezier(0.22, 1, 0.36, 1)',
+          }}
         >
           <div
-            className="flex"
+            className="flex items-start"
             style={{
               transform: `translateX(calc(-${weekIndex * 100}% + ${dragDx}px))`,
               transition: dragDx !== 0 ? 'none' : 'transform 320ms cubic-bezier(0.22, 1, 0.36, 1)',
             }}
           >
+
 
             {allWeeksStats.map((weekStat, i) => {
               const isCurrent = i === 0;
@@ -1583,12 +1647,14 @@ const OverviewPanel = ({
               return (
                 <div
                   key={i}
+                  ref={el => { slideRefs.current[i] = el; }}
                   className="w-full flex-shrink-0"
                   role="group"
                   aria-roledescription="slide"
                   aria-label={`${label} (${rangeLabel})`}
                   aria-hidden={i !== weekIndex}
                 >
+
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex flex-col">
                       <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest flex items-center gap-1.5">
@@ -1703,10 +1769,14 @@ const OverviewPanel = ({
                           <span className="text-[9px] font-semibold uppercase tracking-widest" style={{ color: isActive ? 'hsl(var(--stat-green))' : 'hsl(var(--muted-foreground))' }}>
                             {isActive ? 'In Progress' : 'Next Shift'}
                           </span>
+                          {isActive && activeTimeLabel && (
+                            <span className="ml-auto text-[10px] font-semibold tabular-nums" style={{ color: 'hsl(var(--stat-green))' }}>{activeTimeLabel}</span>
+                          )}
                           {!isActive && countdown && (
                             <span className="ml-auto text-[10px] font-semibold text-muted-foreground/80 tabular-nums">in {countdown}</span>
                           )}
                         </div>
+
                         <div
                           className="rounded-2xl px-3.5 py-3 flex items-center justify-between gap-3"
                           style={{ background: bgColor, border: `0.5px solid ${borderColor}` }}
@@ -1722,7 +1792,40 @@ const OverviewPanel = ({
                             {info.typeLabel}
                           </span>
                         </div>
+                        {isActive && (
+                          <div className="mt-2.5">
+                            <div
+                              className="w-full rounded-full overflow-hidden"
+                              style={{ height: 4, background: 'hsl(var(--stat-green)/0.12)' }}
+                              role="progressbar"
+                              aria-valuemin={0}
+                              aria-valuemax={100}
+                              aria-valuenow={Math.round(activeProgress * 100)}
+                              aria-label="Shift progress"
+                            >
+                              <div
+                                style={{
+                                  width: `${(activeProgress * 100).toFixed(2)}%`,
+                                  height: '100%',
+                                  background: 'hsl(var(--stat-green))',
+                                  borderRadius: 999,
+                                  transition: 'width 600ms cubic-bezier(0.22, 1, 0.36, 1)',
+                                  boxShadow: '0 0 8px hsl(var(--stat-green)/0.6)',
+                                }}
+                              />
+                            </div>
+                            <div className="flex items-center justify-between mt-1.5">
+                              <span className="text-[9px] font-semibold tabular-nums" style={{ color: 'hsl(var(--stat-green))' }}>
+                                {Math.round(activeProgress * 100)}% complete
+                              </span>
+                              <span className="text-[9px] text-muted-foreground/70 tabular-nums">
+                                {info.timeLabel}
+                              </span>
+                            </div>
+                          </div>
+                        )}
                       </div>
+
                     );
                   })()}
                 </div>
