@@ -1769,10 +1769,14 @@ const OverviewPanel = ({
                           <span className="text-[9px] font-semibold uppercase tracking-widest" style={{ color: isActive ? 'hsl(var(--stat-green))' : 'hsl(var(--muted-foreground))' }}>
                             {isActive ? 'In Progress' : 'Next Shift'}
                           </span>
+                          {isActive && activeTimeLabel && (
+                            <span className="ml-auto text-[10px] font-semibold tabular-nums" style={{ color: 'hsl(var(--stat-green))' }}>{activeTimeLabel}</span>
+                          )}
                           {!isActive && countdown && (
                             <span className="ml-auto text-[10px] font-semibold text-muted-foreground/80 tabular-nums">in {countdown}</span>
                           )}
                         </div>
+
                         <div
                           className="rounded-2xl px-3.5 py-3 flex items-center justify-between gap-3"
                           style={{ background: bgColor, border: `0.5px solid ${borderColor}` }}
