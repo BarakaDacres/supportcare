@@ -1792,7 +1792,40 @@ const OverviewPanel = ({
                             {info.typeLabel}
                           </span>
                         </div>
+                        {isActive && (
+                          <div className="mt-2.5">
+                            <div
+                              className="w-full rounded-full overflow-hidden"
+                              style={{ height: 4, background: 'hsl(var(--stat-green)/0.12)' }}
+                              role="progressbar"
+                              aria-valuemin={0}
+                              aria-valuemax={100}
+                              aria-valuenow={Math.round(activeProgress * 100)}
+                              aria-label="Shift progress"
+                            >
+                              <div
+                                style={{
+                                  width: `${(activeProgress * 100).toFixed(2)}%`,
+                                  height: '100%',
+                                  background: 'hsl(var(--stat-green))',
+                                  borderRadius: 999,
+                                  transition: 'width 600ms cubic-bezier(0.22, 1, 0.36, 1)',
+                                  boxShadow: '0 0 8px hsl(var(--stat-green)/0.6)',
+                                }}
+                              />
+                            </div>
+                            <div className="flex items-center justify-between mt-1.5">
+                              <span className="text-[9px] font-semibold tabular-nums" style={{ color: 'hsl(var(--stat-green))' }}>
+                                {Math.round(activeProgress * 100)}% complete
+                              </span>
+                              <span className="text-[9px] text-muted-foreground/70 tabular-nums">
+                                {info.timeLabel}
+                              </span>
+                            </div>
+                          </div>
+                        )}
                       </div>
+
                     );
                   })()}
                 </div>
