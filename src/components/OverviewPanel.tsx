@@ -1647,12 +1647,14 @@ const OverviewPanel = ({
               return (
                 <div
                   key={i}
+                  ref={el => { slideRefs.current[i] = el; }}
                   className="w-full flex-shrink-0"
                   role="group"
                   aria-roledescription="slide"
                   aria-label={`${label} (${rangeLabel})`}
                   aria-hidden={i !== weekIndex}
                 >
+
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex flex-col">
                       <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest flex items-center gap-1.5">
