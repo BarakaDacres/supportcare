@@ -1355,6 +1355,7 @@ const OverviewPanel = ({
       return {
         weekStart: ws,
         weekEnd: we,
+        weekShifts,
         weekGross: gross(weekShifts),
         prevWeekGross: gross(prevWeekShifts),
         weekHours: hours(weekShifts),
