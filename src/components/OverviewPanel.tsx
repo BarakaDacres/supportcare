@@ -1513,6 +1513,60 @@ const OverviewPanel = ({
   }, [allWeeksStats.length]);
   const carouselHeight = slideHeights[weekIndex] || undefined;
 
+  // ── Weekly receipt print dialog ─────────────────────────────────────────────
+  const [printDialog, setPrintDialog] = useState<{
+    open: boolean;
+    weekStart: Date;
+    weekEnd: Date;
+    shifts: Shift[];
+    recipientName: string;
+    invoiceNumber: string;
+    startISO: string;
+    endISO: string;
+    notes: string;
+  } | null>(null);
+
+  const openPrintDialog = (weekStat: { weekStart: Date; weekEnd: Date; weekShifts: Shift[] }) => {
+    const names = Array.from(new Set(weekStat.weekShifts.map(s => s.client_name).filter(Boolean) as string[]));
+    const defaultRecipient = names.length === 1 ? names[0] : '';
+    const startISO = formatDateISO(weekStat.weekStart);
+    const endISO = formatDateISO(weekStat.weekEnd);
+    const invNum = `WK-${startISO.replace(/-/g, '')}`;
+    setPrintDialog({
+      open: true,
+      weekStart: weekStat.weekStart,
+      weekEnd: weekStat.weekEnd,
+      shifts: weekStat.weekShifts,
+      recipientName: defaultRecipient,
+      invoiceNumber: invNum,
+      startISO,
+      endISO,
+      notes: '',
+    });
+  };
+
+  const submitPrintDialog = () => {
+    if (!printDialog) return;
+    const ws = parseDate(printDialog.startISO);
+    const we = parseDate(printDialog.endISO);
+    // Filter shifts to selected range
+    const filtered = shifts.filter(s => {
+      const d = parseDate(s.date);
+      return d >= ws && d <= we;
+    });
+    printWeeklyReceipt({
+      weekStart: ws,
+      weekEnd: we,
+      shifts: filtered,
+      settings,
+      displayName,
+      recipientName: printDialog.recipientName.trim() || null,
+      invoiceNumber: printDialog.invoiceNumber.trim() || null,
+      notes: printDialog.notes.trim() || null,
+    });
+    setPrintDialog(null);
+  };
+
 
   const canPrevWeek = weekIndex > 0;                            // newer (swipe right)
   const canNextWeek = weekIndex < allWeeksStats.length - 1;     // older (swipe left)
@@ -1670,13 +1724,7 @@ const OverviewPanel = ({
                         onClick={(e) => {
                           e.stopPropagation();
                           haptic('selection');
-                          printWeeklyReceipt({
-                            weekStart: weekStat.weekStart,
-                            weekEnd: weekStat.weekEnd,
-                            shifts: weekStat.weekShifts,
-                            settings,
-                            displayName,
-                          });
+                          openPrintDialog(weekStat);
                         }}
                         disabled={weekStat.weekShiftCount === 0}
                         aria-label="Print weekly receipt"
@@ -2132,6 +2180,120 @@ const OverviewPanel = ({
         onAddFromTemplate={onAddFromTemplate}
       />
 
+
+      {/* Weekly receipt print dialog */}
+      {printDialog?.open && (
+        <div
+          className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center px-4 pb-4 sm:pb-0"
+          style={{ background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(24px)' }}
+          onClick={() => setPrintDialog(null)}
+        >
+          <div
+            className="w-full max-w-md rounded-3xl p-5 space-y-4"
+            style={{
+              background: 'hsl(var(--card))',
+              border: '1px solid hsl(var(--border))',
+              boxShadow: '0 20px 60px rgba(0,0,0,0.5)',
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <h3 className="text-base font-bold tracking-tight">Print weekly receipt</h3>
+                <p className="text-[11px] text-muted-foreground mt-0.5">Personalise before printing</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setPrintDialog(null)}
+                aria-label="Close"
+                className="w-8 h-8 rounded-full flex items-center justify-center active:scale-90 transition-all"
+                style={{ background: 'hsl(var(--muted)/0.6)' }}
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              <div>
+                <label className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">Client / Billed to</label>
+                <input
+                  type="text"
+                  value={printDialog.recipientName}
+                  onChange={(e) => setPrintDialog(p => p ? { ...p, recipientName: e.target.value } : p)}
+                  placeholder="e.g. Acme Care Pty Ltd"
+                  className="w-full mt-1 px-3 py-2.5 rounded-xl text-sm bg-transparent outline-none"
+                  style={{ background: 'hsl(var(--muted)/0.5)', border: '1px solid hsl(var(--border))' }}
+                />
+              </div>
+
+              <div>
+                <label className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">Invoice number</label>
+                <input
+                  type="text"
+                  value={printDialog.invoiceNumber}
+                  onChange={(e) => setPrintDialog(p => p ? { ...p, invoiceNumber: e.target.value } : p)}
+                  className="w-full mt-1 px-3 py-2.5 rounded-xl text-sm bg-transparent outline-none font-mono"
+                  style={{ background: 'hsl(var(--muted)/0.5)', border: '1px solid hsl(var(--border))' }}
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">From</label>
+                  <input
+                    type="date"
+                    value={printDialog.startISO}
+                    onChange={(e) => setPrintDialog(p => p ? { ...p, startISO: e.target.value } : p)}
+                    className="w-full mt-1 px-3 py-2.5 rounded-xl text-sm bg-transparent outline-none"
+                    style={{ background: 'hsl(var(--muted)/0.5)', border: '1px solid hsl(var(--border))' }}
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">To</label>
+                  <input
+                    type="date"
+                    value={printDialog.endISO}
+                    onChange={(e) => setPrintDialog(p => p ? { ...p, endISO: e.target.value } : p)}
+                    className="w-full mt-1 px-3 py-2.5 rounded-xl text-sm bg-transparent outline-none"
+                    style={{ background: 'hsl(var(--muted)/0.5)', border: '1px solid hsl(var(--border))' }}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">Notes (optional)</label>
+                <textarea
+                  value={printDialog.notes}
+                  onChange={(e) => setPrintDialog(p => p ? { ...p, notes: e.target.value } : p)}
+                  rows={2}
+                  placeholder="Payment terms, thanks, etc."
+                  className="w-full mt-1 px-3 py-2.5 rounded-xl text-sm bg-transparent outline-none resize-none"
+                  style={{ background: 'hsl(var(--muted)/0.5)', border: '1px solid hsl(var(--border))' }}
+                />
+              </div>
+            </div>
+
+            <div className="flex gap-2 pt-1">
+              <button
+                type="button"
+                onClick={() => setPrintDialog(null)}
+                className="flex-1 py-3 rounded-2xl text-sm font-semibold active:scale-95 transition-all"
+                style={{ background: 'hsl(var(--muted)/0.6)', color: 'hsl(var(--foreground))' }}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={submitPrintDialog}
+                className="flex-[1.4] py-3 rounded-2xl text-sm font-bold active:scale-95 transition-all inline-flex items-center justify-center gap-2"
+                style={{ background: 'hsl(var(--foreground))', color: 'hsl(var(--background))' }}
+              >
+                <Printer className="w-4 h-4" /> Print receipt
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );
