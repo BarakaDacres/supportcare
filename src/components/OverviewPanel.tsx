@@ -1513,6 +1513,60 @@ const OverviewPanel = ({
   }, [allWeeksStats.length]);
   const carouselHeight = slideHeights[weekIndex] || undefined;
 
+  // ── Weekly receipt print dialog ─────────────────────────────────────────────
+  const [printDialog, setPrintDialog] = useState<{
+    open: boolean;
+    weekStart: Date;
+    weekEnd: Date;
+    shifts: Shift[];
+    recipientName: string;
+    invoiceNumber: string;
+    startISO: string;
+    endISO: string;
+    notes: string;
+  } | null>(null);
+
+  const openPrintDialog = (weekStat: { weekStart: Date; weekEnd: Date; weekShifts: Shift[] }) => {
+    const names = Array.from(new Set(weekStat.weekShifts.map(s => s.client_name).filter(Boolean) as string[]));
+    const defaultRecipient = names.length === 1 ? names[0] : '';
+    const startISO = formatDateISO(weekStat.weekStart);
+    const endISO = formatDateISO(weekStat.weekEnd);
+    const invNum = `WK-${startISO.replace(/-/g, '')}`;
+    setPrintDialog({
+      open: true,
+      weekStart: weekStat.weekStart,
+      weekEnd: weekStat.weekEnd,
+      shifts: weekStat.weekShifts,
+      recipientName: defaultRecipient,
+      invoiceNumber: invNum,
+      startISO,
+      endISO,
+      notes: '',
+    });
+  };
+
+  const submitPrintDialog = () => {
+    if (!printDialog) return;
+    const ws = parseDate(printDialog.startISO);
+    const we = parseDate(printDialog.endISO);
+    // Filter shifts to selected range
+    const filtered = shifts.filter(s => {
+      const d = parseDate(s.date);
+      return d >= ws && d <= we;
+    });
+    printWeeklyReceipt({
+      weekStart: ws,
+      weekEnd: we,
+      shifts: filtered,
+      settings,
+      displayName,
+      recipientName: printDialog.recipientName.trim() || null,
+      invoiceNumber: printDialog.invoiceNumber.trim() || null,
+      notes: printDialog.notes.trim() || null,
+    });
+    setPrintDialog(null);
+  };
+
 
   const canPrevWeek = weekIndex > 0;                            // newer (swipe right)
   const canNextWeek = weekIndex < allWeeksStats.length - 1;     // older (swipe left)
