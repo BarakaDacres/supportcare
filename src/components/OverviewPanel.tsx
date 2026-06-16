@@ -1724,13 +1724,7 @@ const OverviewPanel = ({
                         onClick={(e) => {
                           e.stopPropagation();
                           haptic('selection');
-                          printWeeklyReceipt({
-                            weekStart: weekStat.weekStart,
-                            weekEnd: weekStat.weekEnd,
-                            shifts: weekStat.weekShifts,
-                            settings,
-                            displayName,
-                          });
+                          openPrintDialog(weekStat);
                         }}
                         disabled={weekStat.weekShiftCount === 0}
                         aria-label="Print weekly receipt"
