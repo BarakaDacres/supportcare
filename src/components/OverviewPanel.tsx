@@ -44,8 +44,9 @@ function haptic(style: 'light' | 'medium' | 'selection' = 'light') {
 export { haptic };
 import {
   TrendingUp, Clock, Moon, CalendarDays, Zap, Target,
-  ChevronLeft, ChevronRight, Users, FileText, ArrowUpRight, ArrowDownRight, X, Sunset, Sun,
+  ChevronLeft, ChevronRight, Users, FileText, ArrowUpRight, ArrowDownRight, X, Sunset, Sun, Printer,
 } from 'lucide-react';
+import { printWeeklyReceipt } from '@/lib/printWeeklyReceipt';
 import { formatCurrency } from '@/lib/formatUtils';
 import type { Shift } from '@/hooks/useShifts';
 import { effectiveGrossPay } from '@/hooks/useShifts';
