@@ -44,8 +44,9 @@ function haptic(style: 'light' | 'medium' | 'selection' = 'light') {
 export { haptic };
 import {
   TrendingUp, Clock, Moon, CalendarDays, Zap, Target,
-  ChevronLeft, ChevronRight, Users, FileText, ArrowUpRight, ArrowDownRight, X, Sunset, Sun,
+  ChevronLeft, ChevronRight, Users, FileText, ArrowUpRight, ArrowDownRight, X, Sunset, Sun, Printer,
 } from 'lucide-react';
+import { printWeeklyReceipt } from '@/lib/printWeeklyReceipt';
 import { formatCurrency } from '@/lib/formatUtils';
 import type { Shift } from '@/hooks/useShifts';
 import { effectiveGrossPay } from '@/hooks/useShifts';
@@ -1354,6 +1355,7 @@ const OverviewPanel = ({
       return {
         weekStart: ws,
         weekEnd: we,
+        weekShifts,
         weekGross: gross(weekShifts),
         prevWeekGross: gross(prevWeekShifts),
         weekHours: hours(weekShifts),
@@ -1662,7 +1664,30 @@ const OverviewPanel = ({
                       </p>
                       <p className="text-[10px] text-muted-foreground/70 mt-0.5">{rangeLabel}</p>
                     </div>
-                    <span className="text-[10px] text-muted-foreground">Mon–Sun</span>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          haptic('selection');
+                          printWeeklyReceipt({
+                            weekStart: weekStat.weekStart,
+                            weekEnd: weekStat.weekEnd,
+                            shifts: weekStat.weekShifts,
+                            settings,
+                            displayName,
+                          });
+                        }}
+                        disabled={weekStat.weekShiftCount === 0}
+                        aria-label="Print weekly receipt"
+                        title="Print weekly hours"
+                        className="w-7 h-7 rounded-full flex items-center justify-center active:scale-90 transition-all disabled:opacity-30"
+                        style={{ background: 'hsl(var(--muted)/0.5)', color: 'hsl(var(--foreground))' }}
+                      >
+                        <Printer className="w-3.5 h-3.5" />
+                      </button>
+                      <span className="text-[10px] text-muted-foreground">Mon–Sun</span>
+                    </div>
                   </div>
 
                   <div className="mb-4">
