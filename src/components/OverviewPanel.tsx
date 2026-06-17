@@ -2320,26 +2320,62 @@ const OverviewPanel = ({
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">From</label>
-                  <input
-                    type="date"
-                    value={printDialog.startISO}
-                    onChange={(e) => setPrintDialog(p => p ? { ...p, startISO: e.target.value } : p)}
-                    className="w-full mt-1 px-3 py-2.5 rounded-xl text-sm bg-transparent outline-none"
+              <div>
+                <label className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">Period</label>
+                {/* Hidden native date inputs — opened via the tiles below for a consistent picker UX */}
+                <input
+                  ref={printDateFromRef}
+                  type="date"
+                  value={printDialog.startISO}
+                  max={printDialog.endISO || undefined}
+                  onChange={(e) => setPrintDialog(p => p ? { ...p, startISO: e.target.value } : p)}
+                  className="sr-only"
+                  tabIndex={-1}
+                />
+                <input
+                  ref={printDateToRef}
+                  type="date"
+                  value={printDialog.endISO}
+                  min={printDialog.startISO || undefined}
+                  onChange={(e) => setPrintDialog(p => p ? { ...p, endISO: e.target.value } : p)}
+                  className="sr-only"
+                  tabIndex={-1}
+                />
+                <div className="grid grid-cols-2 gap-2 mt-1">
+                  <button
+                    type="button"
+                    onClick={() => { printDateFromRef.current?.showPicker?.(); printDateFromRef.current?.focus(); }}
+                    className="flex items-center gap-2 rounded-xl px-3 py-2.5 text-left active:scale-[0.98] transition-all"
                     style={{ background: 'hsl(var(--muted)/0.5)', border: '1px solid hsl(var(--border))' }}
-                  />
-                </div>
-                <div>
-                  <label className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">To</label>
-                  <input
-                    type="date"
-                    value={printDialog.endISO}
-                    onChange={(e) => setPrintDialog(p => p ? { ...p, endISO: e.target.value } : p)}
-                    className="w-full mt-1 px-3 py-2.5 rounded-xl text-sm bg-transparent outline-none"
+                  >
+                    <div
+                      className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
+                      style={{ background: 'hsl(var(--primary)/0.12)' }}
+                    >
+                      <CalendarIcon className="w-3.5 h-3.5" style={{ color: 'hsl(var(--primary))' }} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[9px] font-semibold text-muted-foreground uppercase tracking-wider leading-none mb-0.5">From</p>
+                      <p className="text-[12px] font-semibold text-foreground truncate">{formatDatePretty(printDialog.startISO)}</p>
+                    </div>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { printDateToRef.current?.showPicker?.(); printDateToRef.current?.focus(); }}
+                    className="flex items-center gap-2 rounded-xl px-3 py-2.5 text-left active:scale-[0.98] transition-all"
                     style={{ background: 'hsl(var(--muted)/0.5)', border: '1px solid hsl(var(--border))' }}
-                  />
+                  >
+                    <div
+                      className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
+                      style={{ background: 'hsl(var(--primary)/0.12)' }}
+                    >
+                      <CalendarIcon className="w-3.5 h-3.5" style={{ color: 'hsl(var(--primary))' }} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[9px] font-semibold text-muted-foreground uppercase tracking-wider leading-none mb-0.5">To</p>
+                      <p className="text-[12px] font-semibold text-foreground truncate">{formatDatePretty(printDialog.endISO)}</p>
+                    </div>
+                  </button>
                 </div>
               </div>
 
