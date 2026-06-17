@@ -44,7 +44,7 @@ function haptic(style: 'light' | 'medium' | 'selection' = 'light') {
 export { haptic };
 import {
   TrendingUp, Clock, Moon, CalendarDays, Zap, Target,
-  ChevronLeft, ChevronRight, Users, FileText, ArrowUpRight, ArrowDownRight, X, Sunset, Sun, Printer,
+  ChevronLeft, ChevronRight, Users, FileText, ArrowUpRight, ArrowDownRight, X, Sunset, Sun, Printer, Download, Calendar as CalendarIcon,
 } from 'lucide-react';
 import { printWeeklyReceipt, downloadWeeklyReceiptPDF, buildWeeklyReceiptHTML, type ReceiptBreakdownRow } from '@/lib/printWeeklyReceipt';
 import { formatCurrency } from '@/lib/formatUtils';
