@@ -142,7 +142,7 @@ export function buildWeeklyReceiptHTML(opts: PrintWeeklyReceiptOptions): string 
   .notes .lbl { color: var(--muted); text-transform: uppercase; letter-spacing: .08em; font-size: 9px; display:block; margin-bottom: 3px; }
 
   .thanks { text-align:center; margin-top: 14px; font-size: 14px; font-weight: 800; letter-spacing: .28em; }
-  .stamp  { text-align:center; margin-top: 4px; font-size: 9px; color: var(--muted); letter-spacing: .06em; }
+  .stamp  { text-align:center; margin-top: 4px; font-size: 9px; color: var(--accent); letter-spacing: .06em; font-weight:600; }
 
   .toolbar {
     position: fixed; left:0; right:0; bottom:0;
