@@ -46,7 +46,7 @@ import {
   TrendingUp, Clock, Moon, CalendarDays, Zap, Target,
   ChevronLeft, ChevronRight, Users, FileText, ArrowUpRight, ArrowDownRight, X, Sunset, Sun, Printer,
 } from 'lucide-react';
-import { printWeeklyReceipt } from '@/lib/printWeeklyReceipt';
+import { printWeeklyReceipt, buildWeeklyReceiptHTML, type ReceiptBreakdownRow } from '@/lib/printWeeklyReceipt';
 import { formatCurrency } from '@/lib/formatUtils';
 import type { Shift } from '@/hooks/useShifts';
 import { effectiveGrossPay } from '@/hooks/useShifts';
@@ -1545,27 +1545,69 @@ const OverviewPanel = ({
     });
   };
 
-  const submitPrintDialog = () => {
-    if (!printDialog) return;
-    const ws = parseDate(printDialog.startISO);
-    const we = parseDate(printDialog.endISO);
-    // Filter shifts to selected range
+  // Compute receipt payload (breakdown + totals) for a date range — mirrors the weekly card.
+  const buildReceiptPayload = (startISO: string, endISO: string) => {
+    const ws = parseDate(startISO);
+    const we = parseDate(endISO);
     const filtered = shifts.filter(s => {
       const d = parseDate(s.date);
       return d >= ws && d <= we;
     });
+    const wb = computeWeekBreakdown(filtered, settings);
+    const rows: ReceiptBreakdownRow[] = [];
+    if (wb.regularDay > 0)        rows.push({ label: 'Weekday Day',       meta: `${wb.regularDayH.toFixed(1)}h`, amount: wb.regularDay });
+    if (wb.evening > 0)           rows.push({ label: 'Evening',           meta: `${wb.eveningH.toFixed(1)}h`,    amount: wb.evening });
+    if (wb.satDay > 0)            rows.push({ label: 'Saturday Day',      meta: `${wb.satDayH.toFixed(1)}h`,     amount: wb.satDay });
+    if (wb.sunDay > 0)            rows.push({ label: 'Sunday Day',        meta: `${wb.sunDayH.toFixed(1)}h`,     amount: wb.sunDay });
+    if (wb.weekdaySleepover > 0)  rows.push({ label: 'Weekday Sleepover', meta: `${wb.weekdaySleepoverN} night${wb.weekdaySleepoverN !== 1 ? 's' : ''}`, amount: wb.weekdaySleepover });
+    if (wb.weekendSleepover > 0)  rows.push({ label: 'Weekend Sleepover', meta: `${wb.weekendSleepoverN} night${wb.weekendSleepoverN !== 1 ? 's' : ''}`, amount: wb.weekendSleepover });
+    if (wb.publicHoliday > 0)     rows.push({ label: 'Public Holiday',    meta: `${wb.publicHolidayH.toFixed(1)}h`, amount: wb.publicHoliday });
+    if (wb.phSleepover > 0)       rows.push({ label: 'PH Sleepover',      meta: `${wb.phSleepoverN} night${wb.phSleepoverN !== 1 ? 's' : ''}`, amount: wb.phSleepover });
+    const totalHours = filtered.filter(s => !s.is_sleepover).reduce((sum, s) => sum + Number(s.hours_worked), 0);
+    const totalSleepovers = filtered.filter(s => s.is_sleepover).length;
+    const totalGross = filtered.reduce((sum, s) => sum + effectiveGrossPay(s), 0);
+    return { ws, we, rows, totalHours, totalShifts: filtered.length, totalSleepovers, totalGross };
+  };
+
+  const submitPrintDialog = () => {
+    if (!printDialog) return;
+    const p = buildReceiptPayload(printDialog.startISO, printDialog.endISO);
     printWeeklyReceipt({
-      weekStart: ws,
-      weekEnd: we,
-      shifts: filtered,
+      weekStart: p.ws,
+      weekEnd: p.we,
+      breakdownRows: p.rows,
+      totalHours: p.totalHours,
+      totalShifts: p.totalShifts,
+      totalSleepovers: p.totalSleepovers,
+      totalGross: p.totalGross,
       settings,
-      displayName,
       recipientName: printDialog.recipientName.trim() || null,
       invoiceNumber: printDialog.invoiceNumber.trim() || null,
       notes: printDialog.notes.trim() || null,
     });
     setPrintDialog(null);
   };
+
+  // Live preview HTML — re-renders as user edits dialog fields.
+  const previewHtml = useMemo(() => {
+    if (!printDialog) return '';
+    const p = buildReceiptPayload(printDialog.startISO, printDialog.endISO);
+    return buildWeeklyReceiptHTML({
+      weekStart: p.ws,
+      weekEnd: p.we,
+      breakdownRows: p.rows,
+      totalHours: p.totalHours,
+      totalShifts: p.totalShifts,
+      totalSleepovers: p.totalSleepovers,
+      totalGross: p.totalGross,
+      settings,
+      recipientName: printDialog.recipientName.trim() || null,
+      invoiceNumber: printDialog.invoiceNumber.trim() || null,
+      notes: printDialog.notes.trim() || null,
+      preview: true,
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [printDialog, shifts, settings]);
 
 
   const canPrevWeek = weekIndex > 0;                            // newer (swipe right)
@@ -2189,7 +2231,7 @@ const OverviewPanel = ({
           onClick={() => setPrintDialog(null)}
         >
           <div
-            className="w-full max-w-md rounded-3xl p-5 space-y-4"
+            className="w-full max-w-md rounded-3xl p-5 space-y-4 max-h-[92vh] overflow-y-auto"
             style={{
               background: 'hsl(var(--card))',
               border: '1px solid hsl(var(--border))',
@@ -2211,6 +2253,20 @@ const OverviewPanel = ({
               >
                 <X className="w-4 h-4" />
               </button>
+            </div>
+
+            {/* Live receipt preview */}
+            <div
+              className="rounded-2xl overflow-hidden flex items-start justify-center"
+              style={{ background: '#e9e9ec', border: '1px solid hsl(var(--border))', height: 280 }}
+            >
+              <iframe
+                title="Receipt preview"
+                srcDoc={previewHtml}
+                sandbox=""
+                className="w-full h-full"
+                style={{ border: 0, background: 'transparent', transform: 'scale(0.9)', transformOrigin: 'top center' }}
+              />
             </div>
 
             <div className="space-y-3">
