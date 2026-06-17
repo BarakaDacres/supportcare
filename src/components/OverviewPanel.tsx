@@ -2255,6 +2255,20 @@ const OverviewPanel = ({
               </button>
             </div>
 
+            {/* Live receipt preview */}
+            <div
+              className="rounded-2xl overflow-hidden flex items-start justify-center"
+              style={{ background: '#e9e9ec', border: '1px solid hsl(var(--border))', height: 280 }}
+            >
+              <iframe
+                title="Receipt preview"
+                srcDoc={previewHtml}
+                sandbox=""
+                className="w-full h-full"
+                style={{ border: 0, background: 'transparent', transform: 'scale(0.9)', transformOrigin: 'top center' }}
+              />
+            </div>
+
             <div className="space-y-3">
               <div>
                 <label className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">Client / Billed to</label>
