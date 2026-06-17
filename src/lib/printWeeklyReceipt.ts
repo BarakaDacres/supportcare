@@ -66,10 +66,14 @@ export function buildWeeklyReceiptHTML(opts: PrintWeeklyReceiptOptions): string 
 <title>Weekly Hours · ${escape(fmtRange(weekStart, weekEnd))}</title>
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <style>
-  :root { --ink:#111; --muted:#666; --paper:#ffffff; }
+  :root { --ink:#111; --muted:#666; --paper:#ffffff; --accent:#1d6fff; }
   * { box-sizing: border-box; }
   html, body {
     margin: 0; padding: 0;
+    background: ${preview ? '#ffffff' : '#d9d9d9'};
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Helvetica Neue", Helvetica, Arial, sans-serif;
+    -webkit-font-smoothing: antialiased; color: var(--ink);
+  }
     background: ${preview ? '#ffffff' : '#d9d9d9'};
     font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Helvetica Neue", Helvetica, Arial, sans-serif;
     -webkit-font-smoothing: antialiased; color: var(--ink);
