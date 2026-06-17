@@ -2231,7 +2231,7 @@ const OverviewPanel = ({
           onClick={() => setPrintDialog(null)}
         >
           <div
-            className="w-full max-w-md rounded-3xl p-5 space-y-4"
+            className="w-full max-w-md rounded-3xl p-5 space-y-4 max-h-[92vh] overflow-y-auto"
             style={{
               background: 'hsl(var(--card))',
               border: '1px solid hsl(var(--border))',
