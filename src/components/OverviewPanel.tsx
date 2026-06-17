@@ -1571,10 +1571,10 @@ const OverviewPanel = ({
     return { ws, we, rows, totalHours, totalShifts: filtered.length, totalSleepovers, totalGross };
   };
 
-  const submitPrintDialog = () => {
-    if (!printDialog) return;
+  const buildPrintPayloadForDialog = () => {
+    if (!printDialog) return null;
     const p = buildReceiptPayload(printDialog.startISO, printDialog.endISO);
-    printWeeklyReceipt({
+    return {
       weekStart: p.ws,
       weekEnd: p.we,
       breakdownRows: p.rows,
@@ -1586,7 +1586,20 @@ const OverviewPanel = ({
       recipientName: printDialog.recipientName.trim() || null,
       invoiceNumber: printDialog.invoiceNumber.trim() || null,
       notes: printDialog.notes.trim() || null,
-    });
+    };
+  };
+
+  const submitPrintDialog = () => {
+    const payload = buildPrintPayloadForDialog();
+    if (!payload) return;
+    printWeeklyReceipt(payload);
+    setPrintDialog(null);
+  };
+
+  const handleSavePDF = async () => {
+    const payload = buildPrintPayloadForDialog();
+    if (!payload) return;
+    await downloadWeeklyReceiptPDF(payload);
     setPrintDialog(null);
   };
 
