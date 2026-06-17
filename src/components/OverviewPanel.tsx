@@ -1531,7 +1531,9 @@ const OverviewPanel = ({
     const defaultRecipient = names.length === 1 ? names[0] : '';
     const startISO = formatDateISO(weekStat.weekStart);
     const endISO = formatDateISO(weekStat.weekEnd);
-    const invNum = `WK-${startISO.replace(/-/g, '')}`;
+    const mm = String(weekStat.weekStart.getMonth() + 1).padStart(2, '0');
+    const dd = String(weekStat.weekStart.getDate()).padStart(2, '0');
+    const invNum = `WK${mm}${dd}`;
     setPrintDialog({
       open: true,
       weekStart: weekStat.weekStart,
