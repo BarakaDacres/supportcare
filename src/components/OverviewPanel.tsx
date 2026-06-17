@@ -1525,6 +1525,18 @@ const OverviewPanel = ({
     endISO: string;
     notes: string;
   } | null>(null);
+  const printDateFromRef = useRef<HTMLInputElement>(null);
+  const printDateToRef = useRef<HTMLInputElement>(null);
+
+  const formatDatePretty = (iso: string) => {
+    if (!iso) return '—';
+    const [y, m, d] = iso.split('-').map(Number);
+    if (!y || !m || !d) return iso;
+    const dt = new Date(y, m - 1, d);
+    const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    return `${days[dt.getDay()]}, ${d} ${months[m - 1]} ${y}`;
+  };
 
   const openPrintDialog = (weekStat: { weekStart: Date; weekEnd: Date; weekShifts: Shift[] }) => {
     const names = Array.from(new Set(weekStat.weekShifts.map(s => s.client_name).filter(Boolean) as string[]));
