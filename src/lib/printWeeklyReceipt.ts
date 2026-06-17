@@ -1,7 +1,5 @@
 import type { UserSettings } from '@/hooks/useUserSettings';
 import { formatCurrency } from '@/lib/formatUtils';
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-import html2pdf from 'html2pdf.js';
 
 const MONTH = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 const DOW   = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
