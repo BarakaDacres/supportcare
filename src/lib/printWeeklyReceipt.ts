@@ -1,7 +1,8 @@
 import type { UserSettings } from '@/hooks/useUserSettings';
 import { formatCurrency } from '@/lib/formatUtils';
-// @ts-expect-error - no types for html2pdf.js
-import html2pdf from 'html2pdf.js';
+// html2pdf.js ships without types
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+import html2pdf from 'html2pdf.js' as any;
 
 const MONTH = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 const DOW   = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
