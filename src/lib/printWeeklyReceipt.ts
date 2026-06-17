@@ -66,10 +66,14 @@ export function buildWeeklyReceiptHTML(opts: PrintWeeklyReceiptOptions): string 
 <title>Weekly Hours · ${escape(fmtRange(weekStart, weekEnd))}</title>
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <style>
-  :root { --ink:#111; --muted:#666; --paper:#ffffff; }
+  :root { --ink:#111; --muted:#666; --paper:#ffffff; --accent:#1d6fff; }
   * { box-sizing: border-box; }
   html, body {
     margin: 0; padding: 0;
+    background: ${preview ? '#ffffff' : '#d9d9d9'};
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Helvetica Neue", Helvetica, Arial, sans-serif;
+    -webkit-font-smoothing: antialiased; color: var(--ink);
+  }
     background: ${preview ? '#ffffff' : '#d9d9d9'};
     font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Helvetica Neue", Helvetica, Arial, sans-serif;
     -webkit-font-smoothing: antialiased; color: var(--ink);
@@ -89,11 +93,10 @@ export function buildWeeklyReceiptHTML(opts: PrintWeeklyReceiptOptions): string 
   }
 
   h1.title {
-    text-align: center; font-size: 12px; font-weight: 800;
-    letter-spacing: 0.36em; margin: 0 0 10px;
+    text-align: center; font-size: 26px; font-weight: 900;
+    letter-spacing: 0.14em; margin: 0 0 14px;
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", Helvetica, Arial, sans-serif;
   }
-  .title-rule { display:flex; align-items:center; gap:8px; margin: 0 0 12px; }
-  .title-rule::before, .title-rule::after { content:""; flex:1; border-top: 1px solid var(--ink); }
 
   .meta-grid {
     display: grid; grid-template-columns: 1fr 1fr; gap: 3px 10px;
@@ -139,7 +142,7 @@ export function buildWeeklyReceiptHTML(opts: PrintWeeklyReceiptOptions): string 
   .notes .lbl { color: var(--muted); text-transform: uppercase; letter-spacing: .08em; font-size: 9px; display:block; margin-bottom: 3px; }
 
   .thanks { text-align:center; margin-top: 14px; font-size: 14px; font-weight: 800; letter-spacing: .28em; }
-  .stamp  { text-align:center; margin-top: 4px; font-size: 9px; color: var(--muted); letter-spacing: .06em; }
+  .stamp  { text-align:center; margin-top: 4px; font-size: 9px; color: var(--accent); letter-spacing: .06em; font-weight:600; }
 
   .toolbar {
     position: fixed; left:0; right:0; bottom:0;
@@ -169,7 +172,7 @@ export function buildWeeklyReceiptHTML(opts: PrintWeeklyReceiptOptions): string 
   <div class="stage">
     <article class="receipt" role="document" aria-label="Weekly Hours Receipt">
 
-      <div class="title-rule"><h1 class="title">WEEKLY HOURS</h1></div>
+      <h1 class="title">INVOICE</h1>
 
       <div class="meta-grid">
         <div><div class="lbl">Invoice #</div><div class="val">${escape(invoiceNumber || '—')}</div></div>
@@ -185,7 +188,7 @@ export function buildWeeklyReceiptHTML(opts: PrintWeeklyReceiptOptions): string 
 
       <hr class="dashed" />
 
-      <div class="items-head"><span>Hours</span><span>Amount</span></div>
+      <div class="items-head"><span>Services Rendered</span><span>Amount</span></div>
       <div class="items">${rowsHtml}</div>
 
       <div class="totals">
@@ -270,6 +273,49 @@ export function printWeeklyReceipt(opts: PrintWeeklyReceiptOptions) {
   w.document.open();
   w.document.write(html);
   w.document.close();
+}
+
+/**
+ * Generate a PDF and trigger a direct download (no system print dialog).
+ * Uses html2pdf.js (already in deps). Dynamically imported to keep initial bundle slim.
+ */
+export async function downloadWeeklyReceiptPDF(opts: PrintWeeklyReceiptOptions) {
+  const html = buildWeeklyReceiptHTML({ ...opts, preview: true });
+
+  // Render off-screen so html2canvas can rasterise the receipt at its true 80mm width.
+  const host = document.createElement('div');
+  host.style.position = 'fixed';
+  host.style.left = '-10000px';
+  host.style.top = '0';
+  host.style.background = '#ffffff';
+  host.innerHTML = html;
+  document.body.appendChild(host);
+
+  // Pull the .receipt node out of the parsed HTML body for cleaner rendering.
+  const receiptEl = host.querySelector('.receipt') as HTMLElement | null;
+  const target = receiptEl ?? host;
+
+  const filename = `invoice-${(opts.invoiceNumber || 'WK').replace(/[^\w-]+/g, '')}.pdf`;
+
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const mod: any = await import('html2pdf.js');
+    const html2pdf = mod.default || mod;
+    await html2pdf()
+      .set({
+        margin: 0,
+        filename,
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 3, backgroundColor: '#ffffff', useCORS: true },
+        jsPDF: { unit: 'mm', format: [80, Math.max(150, target.offsetHeight * 0.2646 + 10)], orientation: 'portrait' },
+      })
+      .from(target)
+      .save();
+  } catch (e) {
+    console.error('PDF download failed', e);
+  } finally {
+    host.remove();
+  }
 }
 
 function escape(s: string): string {

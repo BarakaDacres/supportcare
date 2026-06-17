@@ -44,9 +44,9 @@ function haptic(style: 'light' | 'medium' | 'selection' = 'light') {
 export { haptic };
 import {
   TrendingUp, Clock, Moon, CalendarDays, Zap, Target,
-  ChevronLeft, ChevronRight, Users, FileText, ArrowUpRight, ArrowDownRight, X, Sunset, Sun, Printer,
+  ChevronLeft, ChevronRight, Users, FileText, ArrowUpRight, ArrowDownRight, X, Sunset, Sun, Printer, Download, Calendar as CalendarIcon,
 } from 'lucide-react';
-import { printWeeklyReceipt, buildWeeklyReceiptHTML, type ReceiptBreakdownRow } from '@/lib/printWeeklyReceipt';
+import { printWeeklyReceipt, downloadWeeklyReceiptPDF, buildWeeklyReceiptHTML, type ReceiptBreakdownRow } from '@/lib/printWeeklyReceipt';
 import { formatCurrency } from '@/lib/formatUtils';
 import type { Shift } from '@/hooks/useShifts';
 import { effectiveGrossPay } from '@/hooks/useShifts';
@@ -1525,13 +1525,27 @@ const OverviewPanel = ({
     endISO: string;
     notes: string;
   } | null>(null);
+  const printDateFromRef = useRef<HTMLInputElement>(null);
+  const printDateToRef = useRef<HTMLInputElement>(null);
+
+  const formatDatePretty = (iso: string) => {
+    if (!iso) return '—';
+    const [y, m, d] = iso.split('-').map(Number);
+    if (!y || !m || !d) return iso;
+    const dt = new Date(y, m - 1, d);
+    const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    return `${days[dt.getDay()]}, ${d} ${months[m - 1]} ${y}`;
+  };
 
   const openPrintDialog = (weekStat: { weekStart: Date; weekEnd: Date; weekShifts: Shift[] }) => {
     const names = Array.from(new Set(weekStat.weekShifts.map(s => s.client_name).filter(Boolean) as string[]));
     const defaultRecipient = names.length === 1 ? names[0] : '';
     const startISO = formatDateISO(weekStat.weekStart);
     const endISO = formatDateISO(weekStat.weekEnd);
-    const invNum = `WK-${startISO.replace(/-/g, '')}`;
+    const mm = String(weekStat.weekStart.getMonth() + 1).padStart(2, '0');
+    const dd = String(weekStat.weekStart.getDate()).padStart(2, '0');
+    const invNum = `WK${mm}${dd}`;
     setPrintDialog({
       open: true,
       weekStart: weekStat.weekStart,
@@ -1569,10 +1583,10 @@ const OverviewPanel = ({
     return { ws, we, rows, totalHours, totalShifts: filtered.length, totalSleepovers, totalGross };
   };
 
-  const submitPrintDialog = () => {
-    if (!printDialog) return;
+  const buildPrintPayloadForDialog = () => {
+    if (!printDialog) return null;
     const p = buildReceiptPayload(printDialog.startISO, printDialog.endISO);
-    printWeeklyReceipt({
+    return {
       weekStart: p.ws,
       weekEnd: p.we,
       breakdownRows: p.rows,
@@ -1584,7 +1598,20 @@ const OverviewPanel = ({
       recipientName: printDialog.recipientName.trim() || null,
       invoiceNumber: printDialog.invoiceNumber.trim() || null,
       notes: printDialog.notes.trim() || null,
-    });
+    };
+  };
+
+  const submitPrintDialog = () => {
+    const payload = buildPrintPayloadForDialog();
+    if (!payload) return;
+    printWeeklyReceipt(payload);
+    setPrintDialog(null);
+  };
+
+  const handleSavePDF = async () => {
+    const payload = buildPrintPayloadForDialog();
+    if (!payload) return;
+    await downloadWeeklyReceiptPDF(payload);
     setPrintDialog(null);
   };
 
@@ -2293,26 +2320,62 @@ const OverviewPanel = ({
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">From</label>
-                  <input
-                    type="date"
-                    value={printDialog.startISO}
-                    onChange={(e) => setPrintDialog(p => p ? { ...p, startISO: e.target.value } : p)}
-                    className="w-full mt-1 px-3 py-2.5 rounded-xl text-sm bg-transparent outline-none"
+              <div>
+                <label className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">Period</label>
+                {/* Hidden native date inputs — opened via the tiles below for a consistent picker UX */}
+                <input
+                  ref={printDateFromRef}
+                  type="date"
+                  value={printDialog.startISO}
+                  max={printDialog.endISO || undefined}
+                  onChange={(e) => setPrintDialog(p => p ? { ...p, startISO: e.target.value } : p)}
+                  className="sr-only"
+                  tabIndex={-1}
+                />
+                <input
+                  ref={printDateToRef}
+                  type="date"
+                  value={printDialog.endISO}
+                  min={printDialog.startISO || undefined}
+                  onChange={(e) => setPrintDialog(p => p ? { ...p, endISO: e.target.value } : p)}
+                  className="sr-only"
+                  tabIndex={-1}
+                />
+                <div className="grid grid-cols-2 gap-2 mt-1">
+                  <button
+                    type="button"
+                    onClick={() => { printDateFromRef.current?.showPicker?.(); printDateFromRef.current?.focus(); }}
+                    className="flex items-center gap-2 rounded-xl px-3 py-2.5 text-left active:scale-[0.98] transition-all"
                     style={{ background: 'hsl(var(--muted)/0.5)', border: '1px solid hsl(var(--border))' }}
-                  />
-                </div>
-                <div>
-                  <label className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">To</label>
-                  <input
-                    type="date"
-                    value={printDialog.endISO}
-                    onChange={(e) => setPrintDialog(p => p ? { ...p, endISO: e.target.value } : p)}
-                    className="w-full mt-1 px-3 py-2.5 rounded-xl text-sm bg-transparent outline-none"
+                  >
+                    <div
+                      className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
+                      style={{ background: 'hsl(var(--primary)/0.12)' }}
+                    >
+                      <CalendarIcon className="w-3.5 h-3.5" style={{ color: 'hsl(var(--primary))' }} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[9px] font-semibold text-muted-foreground uppercase tracking-wider leading-none mb-0.5">From</p>
+                      <p className="text-[12px] font-semibold text-foreground truncate">{formatDatePretty(printDialog.startISO)}</p>
+                    </div>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { printDateToRef.current?.showPicker?.(); printDateToRef.current?.focus(); }}
+                    className="flex items-center gap-2 rounded-xl px-3 py-2.5 text-left active:scale-[0.98] transition-all"
                     style={{ background: 'hsl(var(--muted)/0.5)', border: '1px solid hsl(var(--border))' }}
-                  />
+                  >
+                    <div
+                      className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
+                      style={{ background: 'hsl(var(--primary)/0.12)' }}
+                    >
+                      <CalendarIcon className="w-3.5 h-3.5" style={{ color: 'hsl(var(--primary))' }} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[9px] font-semibold text-muted-foreground uppercase tracking-wider leading-none mb-0.5">To</p>
+                      <p className="text-[12px] font-semibold text-foreground truncate">{formatDatePretty(printDialog.endISO)}</p>
+                    </div>
+                  </button>
                 </div>
               </div>
 
@@ -2329,23 +2392,33 @@ const OverviewPanel = ({
               </div>
             </div>
 
-            <div className="flex gap-2 pt-1">
+            <div className="flex flex-col gap-2 pt-1">
               <button
                 type="button"
-                onClick={() => setPrintDialog(null)}
-                className="flex-1 py-3 rounded-2xl text-sm font-semibold active:scale-95 transition-all"
-                style={{ background: 'hsl(var(--muted)/0.6)', color: 'hsl(var(--foreground))' }}
+                onClick={handleSavePDF}
+                className="w-full py-3 rounded-2xl text-sm font-bold active:scale-95 transition-all inline-flex items-center justify-center gap-2"
+                style={{ background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))' }}
               >
-                Cancel
+                <Download className="w-4 h-4" /> Save PDF
               </button>
-              <button
-                type="button"
-                onClick={submitPrintDialog}
-                className="flex-[1.4] py-3 rounded-2xl text-sm font-bold active:scale-95 transition-all inline-flex items-center justify-center gap-2"
-                style={{ background: 'hsl(var(--foreground))', color: 'hsl(var(--background))' }}
-              >
-                <Printer className="w-4 h-4" /> Print receipt
-              </button>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setPrintDialog(null)}
+                  className="flex-1 py-3 rounded-2xl text-sm font-semibold active:scale-95 transition-all"
+                  style={{ background: 'hsl(var(--muted)/0.6)', color: 'hsl(var(--foreground))' }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={submitPrintDialog}
+                  className="flex-[1.4] py-3 rounded-2xl text-sm font-bold active:scale-95 transition-all inline-flex items-center justify-center gap-2"
+                  style={{ background: 'hsl(var(--foreground))', color: 'hsl(var(--background))' }}
+                >
+                  <Printer className="w-4 h-4" /> Print
+                </button>
+              </div>
             </div>
           </div>
         </div>
