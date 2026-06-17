@@ -172,7 +172,7 @@ export function buildWeeklyReceiptHTML(opts: PrintWeeklyReceiptOptions): string 
   <div class="stage">
     <article class="receipt" role="document" aria-label="Weekly Hours Receipt">
 
-      <div class="title-rule"><h1 class="title">WEEKLY HOURS</h1></div>
+      <h1 class="title">INVOICE</h1>
 
       <div class="meta-grid">
         <div><div class="lbl">Invoice #</div><div class="val">${escape(invoiceNumber || '—')}</div></div>
