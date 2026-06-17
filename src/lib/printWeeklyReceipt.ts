@@ -188,7 +188,7 @@ export function buildWeeklyReceiptHTML(opts: PrintWeeklyReceiptOptions): string 
 
       <hr class="dashed" />
 
-      <div class="items-head"><span>Hours</span><span>Amount</span></div>
+      <div class="items-head"><span>Services Rendered</span><span>Amount</span></div>
       <div class="items">${rowsHtml}</div>
 
       <div class="totals">
