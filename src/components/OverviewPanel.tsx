@@ -2392,23 +2392,33 @@ const OverviewPanel = ({
               </div>
             </div>
 
-            <div className="flex gap-2 pt-1">
+            <div className="flex flex-col gap-2 pt-1">
               <button
                 type="button"
-                onClick={() => setPrintDialog(null)}
-                className="flex-1 py-3 rounded-2xl text-sm font-semibold active:scale-95 transition-all"
-                style={{ background: 'hsl(var(--muted)/0.6)', color: 'hsl(var(--foreground))' }}
+                onClick={handleSavePDF}
+                className="w-full py-3 rounded-2xl text-sm font-bold active:scale-95 transition-all inline-flex items-center justify-center gap-2"
+                style={{ background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))' }}
               >
-                Cancel
+                <Download className="w-4 h-4" /> Save PDF
               </button>
-              <button
-                type="button"
-                onClick={submitPrintDialog}
-                className="flex-[1.4] py-3 rounded-2xl text-sm font-bold active:scale-95 transition-all inline-flex items-center justify-center gap-2"
-                style={{ background: 'hsl(var(--foreground))', color: 'hsl(var(--background))' }}
-              >
-                <Printer className="w-4 h-4" /> Print receipt
-              </button>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setPrintDialog(null)}
+                  className="flex-1 py-3 rounded-2xl text-sm font-semibold active:scale-95 transition-all"
+                  style={{ background: 'hsl(var(--muted)/0.6)', color: 'hsl(var(--foreground))' }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={submitPrintDialog}
+                  className="flex-[1.4] py-3 rounded-2xl text-sm font-bold active:scale-95 transition-all inline-flex items-center justify-center gap-2"
+                  style={{ background: 'hsl(var(--foreground))', color: 'hsl(var(--background))' }}
+                >
+                  <Printer className="w-4 h-4" /> Print
+                </button>
+              </div>
             </div>
           </div>
         </div>
