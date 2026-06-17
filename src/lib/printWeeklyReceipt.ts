@@ -93,11 +93,10 @@ export function buildWeeklyReceiptHTML(opts: PrintWeeklyReceiptOptions): string 
   }
 
   h1.title {
-    text-align: center; font-size: 12px; font-weight: 800;
-    letter-spacing: 0.36em; margin: 0 0 10px;
+    text-align: center; font-size: 26px; font-weight: 900;
+    letter-spacing: 0.14em; margin: 0 0 14px;
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", Helvetica, Arial, sans-serif;
   }
-  .title-rule { display:flex; align-items:center; gap:8px; margin: 0 0 12px; }
-  .title-rule::before, .title-rule::after { content:""; flex:1; border-top: 1px solid var(--ink); }
 
   .meta-grid {
     display: grid; grid-template-columns: 1fr 1fr; gap: 3px 10px;
