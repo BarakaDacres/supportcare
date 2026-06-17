@@ -275,6 +275,49 @@ export function printWeeklyReceipt(opts: PrintWeeklyReceiptOptions) {
   w.document.close();
 }
 
+/**
+ * Generate a PDF and trigger a direct download (no system print dialog).
+ * Uses html2pdf.js (already in deps). Dynamically imported to keep initial bundle slim.
+ */
+export async function downloadWeeklyReceiptPDF(opts: PrintWeeklyReceiptOptions) {
+  const html = buildWeeklyReceiptHTML({ ...opts, preview: true });
+
+  // Render off-screen so html2canvas can rasterise the receipt at its true 80mm width.
+  const host = document.createElement('div');
+  host.style.position = 'fixed';
+  host.style.left = '-10000px';
+  host.style.top = '0';
+  host.style.background = '#ffffff';
+  host.innerHTML = html;
+  document.body.appendChild(host);
+
+  // Pull the .receipt node out of the parsed HTML body for cleaner rendering.
+  const receiptEl = host.querySelector('.receipt') as HTMLElement | null;
+  const target = receiptEl ?? host;
+
+  const filename = `invoice-${(opts.invoiceNumber || 'WK').replace(/[^\w-]+/g, '')}.pdf`;
+
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const mod: any = await import('html2pdf.js');
+    const html2pdf = mod.default || mod;
+    await html2pdf()
+      .set({
+        margin: 0,
+        filename,
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 3, backgroundColor: '#ffffff', useCORS: true },
+        jsPDF: { unit: 'mm', format: [80, Math.max(150, target.offsetHeight * 0.2646 + 10)], orientation: 'portrait' },
+      })
+      .from(target)
+      .save();
+  } catch (e) {
+    console.error('PDF download failed', e);
+  } finally {
+    host.remove();
+  }
+}
+
 function escape(s: string): string {
   return s
     .replace(/&/g, '&amp;')
