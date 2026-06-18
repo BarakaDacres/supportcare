@@ -66,17 +66,15 @@ export function buildWeeklyReceiptHTML(opts: PrintWeeklyReceiptOptions): string 
 <title>Weekly Hours · ${escape(fmtRange(weekStart, weekEnd))}</title>
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <style>
-  :root { --ink:#111; --muted:#666; --paper:#ffffff; --accent:#1d6fff; }
+  :root { --ink:#0b0b0c; --muted:#7a7a82; --hair:#e6e6ea; --paper:#ffffff; --accent:#1d6fff; }
   * { box-sizing: border-box; }
   html, body {
     margin: 0; padding: 0;
-    background: ${preview ? '#ffffff' : '#d9d9d9'};
+    background: ${preview ? '#ffffff' : '#ececef'};
     font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Helvetica Neue", Helvetica, Arial, sans-serif;
-    -webkit-font-smoothing: antialiased; color: var(--ink);
-  }
-    background: ${preview ? '#ffffff' : '#d9d9d9'};
-    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Helvetica Neue", Helvetica, Arial, sans-serif;
-    -webkit-font-smoothing: antialiased; color: var(--ink);
+    -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale;
+    text-rendering: geometricPrecision;
+    color: var(--ink);
   }
   .stage {
     min-height: ${preview ? 'auto' : '100vh'};
@@ -84,65 +82,71 @@ export function buildWeeklyReceiptHTML(opts: PrintWeeklyReceiptOptions): string 
     padding: ${preview ? '0' : '20px 12px 96px'};
   }
   .receipt {
-    width: 80mm;            /* true thermal receipt width */
+    width: 80mm;
     background: var(--paper); color: var(--ink);
-    padding: 8mm 6mm 10mm;
-    ${preview ? '' : 'box-shadow: 0 14px 40px rgba(0,0,0,0.22);'}
-    font-feature-settings: "tnum" 1;
-    font-size: 11px; line-height: 1.35;
+    padding: 9mm 7mm 10mm;
+    ${preview ? '' : 'box-shadow: 0 14px 40px rgba(0,0,0,0.18);'}
+    font-feature-settings: "tnum" 1, "ss01" 1;
+    font-size: 11px; line-height: 1.4;
   }
 
   h1.title {
-    text-align: center; font-size: 26px; font-weight: 900;
-    letter-spacing: 0.14em; margin: 0 0 14px;
+    text-align: center; font-size: 28px; font-weight: 800;
+    letter-spacing: 0.18em; margin: 0 0 4px;
     font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  }
+  .subtitle {
+    text-align:center; font-size: 9px; color: var(--muted);
+    letter-spacing: .22em; text-transform: uppercase; margin: 0 0 14px;
   }
 
   .meta-grid {
-    display: grid; grid-template-columns: 1fr 1fr; gap: 3px 10px;
-    font-size: 10.5px; margin: 0 0 10px;
+    display: grid; grid-template-columns: 1fr 1fr; gap: 8px 12px;
+    font-size: 10.5px; margin: 0 0 12px;
   }
-  .meta-grid .lbl { color: var(--muted); text-transform: uppercase; letter-spacing: .08em; font-size: 9px; }
-  .meta-grid .val { font-weight: 600; font-variant-numeric: tabular-nums; }
+  .meta-grid .lbl { color: var(--muted); text-transform: uppercase; letter-spacing: .1em; font-size: 8.5px; margin-bottom: 2px; }
+  .meta-grid .val { font-weight: 600; font-variant-numeric: tabular-nums; font-size: 11.5px; }
   .meta-grid .span2 { grid-column: 1 / -1; }
 
   .billed {
-    border: 1px dashed var(--ink); padding: 6px 8px; margin: 6px 0 10px;
+    padding: 2px 0 0; margin: 2px 0 12px;
     font-size: 10.5px;
   }
-  .billed .lbl { color: var(--muted); text-transform: uppercase; letter-spacing: .08em; font-size: 9px; margin-bottom: 2px; }
-  .billed .val { font-weight: 700; font-size: 12px; }
+  .billed .lbl { color: var(--muted); text-transform: uppercase; letter-spacing: .1em; font-size: 8.5px; margin-bottom: 3px; }
+  .billed .val { font-weight: 700; font-size: 13px; letter-spacing: -0.005em; }
 
-  .dashed { border:none; border-top: 1.2px dashed var(--ink); margin: 8px 0; }
+  .rule { border:none; border-top: 1px solid var(--hair); margin: 10px 0; }
 
   .items-head {
-    display:flex; justify-content:space-between; font-size: 9px; color: var(--muted);
-    text-transform: uppercase; letter-spacing: .1em; padding: 2px 0 4px;
+    display:flex; justify-content:space-between; font-size: 8.5px; color: var(--muted);
+    text-transform: uppercase; letter-spacing: .12em; padding: 2px 0 6px;
   }
   .row {
     display:flex; align-items:flex-start; justify-content:space-between; gap:10px;
-    padding: 6px 0; border-bottom: 1px dotted rgba(0,0,0,0.18);
+    padding: 7px 0; border-bottom: 1px solid var(--hair);
   }
   .row:last-child { border-bottom: none; }
   .row-main { min-width:0; flex:1; }
-  .row-label { font-size: 12px; font-weight: 600; line-height:1.2; }
+  .row-label { font-size: 12px; font-weight: 600; line-height:1.25; letter-spacing: -0.005em; }
   .row-meta  { font-size: 10px; color: var(--muted); margin-top:2px; }
   .row-amt   { font-size: 12px; font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
 
-  .totals { margin-top: 6px; }
-  .kv { display:flex; justify-content:space-between; font-size:11px; padding: 2px 0; }
-  .kv .v { font-variant-numeric: tabular-nums; }
+  .totals { margin-top: 8px; }
+  .kv { display:flex; justify-content:space-between; font-size:11px; color: var(--muted); padding: 3px 0; }
+  .kv .v { font-variant-numeric: tabular-nums; color: var(--ink); font-weight: 600; }
   .total-row {
     display:flex; justify-content:space-between; align-items:baseline;
-    font-size: 17px; font-weight: 800; padding: 8px 0 4px;
-    border-top: 1.5px solid var(--ink); margin-top: 8px;
+    font-size: 18px; font-weight: 800; padding: 10px 0 4px;
+    border-top: 1.5px solid var(--ink); margin-top: 10px;
+    letter-spacing: -0.01em;
   }
+  .total-row .v { font-variant-numeric: tabular-nums; }
 
-  .notes { font-size: 10.5px; color: var(--ink); margin: 10px 0 0; line-height: 1.45; white-space: pre-wrap; }
-  .notes .lbl { color: var(--muted); text-transform: uppercase; letter-spacing: .08em; font-size: 9px; display:block; margin-bottom: 3px; }
+  .notes { font-size: 10.5px; color: var(--ink); margin: 12px 0 0; line-height: 1.5; white-space: pre-wrap; }
+  .notes .lbl { color: var(--muted); text-transform: uppercase; letter-spacing: .1em; font-size: 8.5px; display:block; margin-bottom: 4px; }
 
-  .thanks { text-align:center; margin-top: 14px; font-size: 14px; font-weight: 800; letter-spacing: .28em; }
-  .stamp  { text-align:center; margin-top: 4px; font-size: 9px; color: var(--accent); letter-spacing: .06em; font-weight:600; }
+  .thanks { text-align:center; margin-top: 18px; font-size: 13px; font-weight: 700; letter-spacing: .32em; }
+  .stamp  { text-align:center; margin-top: 4px; font-size: 9px; color: var(--accent); letter-spacing: .08em; font-weight:600; }
 
   .toolbar {
     position: fixed; left:0; right:0; bottom:0;
@@ -163,7 +167,7 @@ export function buildWeeklyReceiptHTML(opts: PrintWeeklyReceiptOptions): string 
     @page { size: 80mm auto; margin: 0; }
     html, body { background:#fff; }
     .stage { padding: 0; min-height: 0; }
-    .receipt { box-shadow:none; width: 80mm; padding: 5mm 5mm 8mm; }
+    .receipt { box-shadow:none; width: 80mm; padding: 6mm 6mm 8mm; }
     .toolbar { display:none !important; }
   }
 </style>
@@ -173,6 +177,7 @@ export function buildWeeklyReceiptHTML(opts: PrintWeeklyReceiptOptions): string 
     <article class="receipt" role="document" aria-label="Weekly Hours Receipt">
 
       <h1 class="title">INVOICE</h1>
+      <p class="subtitle">Weekly Statement</p>
 
       <div class="meta-grid">
         <div><div class="lbl">Invoice #</div><div class="val">${escape(invoiceNumber || '—')}</div></div>
@@ -186,16 +191,15 @@ export function buildWeeklyReceiptHTML(opts: PrintWeeklyReceiptOptions): string 
         <div class="val">${escape(recipientName)}</div>
       </div>` : ''}
 
-      <hr class="dashed" />
+      <hr class="rule" />
 
       <div class="items-head"><span>Services Rendered</span><span>Amount</span></div>
       <div class="items">${rowsHtml}</div>
 
       <div class="totals">
         <div class="kv"><span>Hours worked</span><span class="v">${totalHours.toFixed(2)} h</span></div>
-        <div class="kv"><span>Shifts</span><span class="v">${totalShifts}</span></div>
         ${totalSleepovers > 0 ? `<div class="kv"><span>Sleepovers</span><span class="v">${totalSleepovers}</span></div>` : ''}
-        <div class="total-row"><span>Total</span><span>${escape(formatCurrency(totalGross))}</span></div>
+        <div class="total-row"><span>Total</span><span class="v">${escape(formatCurrency(totalGross))}</span></div>
       </div>
 
       ${notes ? `<div class="notes"><span class="lbl">Notes</span>${escape(notes)}</div>` : ''}
