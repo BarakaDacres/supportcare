@@ -286,20 +286,33 @@ export function printWeeklyReceipt(opts: PrintWeeklyReceiptOptions) {
 export async function downloadWeeklyReceiptPDF(opts: PrintWeeklyReceiptOptions) {
   const html = buildWeeklyReceiptHTML({ ...opts, preview: true });
 
-  // Render off-screen so html2canvas can rasterise the receipt at its true 80mm width.
+  // Render off-screen at a fixed pixel width that matches 80mm so html2canvas
+  // captures crisp text at the correct layout. 96 CSS px = 1 in; 80mm ≈ 302.36px.
+  const RECEIPT_PX = 302; // ~80mm at 96dpi
   const host = document.createElement('div');
   host.style.position = 'fixed';
   host.style.left = '-10000px';
   host.style.top = '0';
+  host.style.width = `${RECEIPT_PX}px`;
   host.style.background = '#ffffff';
   host.innerHTML = html;
   document.body.appendChild(host);
 
-  // Pull the .receipt node out of the parsed HTML body for cleaner rendering.
   const receiptEl = host.querySelector('.receipt') as HTMLElement | null;
   const target = receiptEl ?? host;
+  if (receiptEl) {
+    receiptEl.style.width = `${RECEIPT_PX}px`;
+    receiptEl.style.boxShadow = 'none';
+  }
+
+  // Wait a tick for fonts/layout to settle.
+  await new Promise(r => requestAnimationFrame(() => r(null)));
+  if ((document as any).fonts?.ready) {
+    try { await (document as any).fonts.ready; } catch { /* noop */ }
+  }
 
   const filename = `invoice-${(opts.invoiceNumber || 'WK').replace(/[^\w-]+/g, '')}.pdf`;
+  const heightMM = Math.max(120, (target.offsetHeight / RECEIPT_PX) * 80 + 4);
 
   try {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -309,9 +322,15 @@ export async function downloadWeeklyReceiptPDF(opts: PrintWeeklyReceiptOptions) 
       .set({
         margin: 0,
         filename,
-        image: { type: 'jpeg', quality: 0.98 },
-        html2canvas: { scale: 3, backgroundColor: '#ffffff', useCORS: true },
-        jsPDF: { unit: 'mm', format: [80, Math.max(150, target.offsetHeight * 0.2646 + 10)], orientation: 'portrait' },
+        image: { type: 'png', quality: 1 },
+        html2canvas: {
+          scale: 4,
+          backgroundColor: '#ffffff',
+          useCORS: true,
+          letterRendering: true,
+          windowWidth: RECEIPT_PX,
+        },
+        jsPDF: { unit: 'mm', format: [80, heightMM], orientation: 'portrait', compress: true },
       })
       .from(target)
       .save();
