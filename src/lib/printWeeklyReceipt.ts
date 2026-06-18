@@ -279,66 +279,200 @@ export function printWeeklyReceipt(opts: PrintWeeklyReceiptOptions) {
   w.document.close();
 }
 
+// ─── Vector PDF export (matches Invoices page quality) ──────────────────────
+// Uses jsPDF with embedded Inter fonts — true vector output, DPI-independent.
+// Pixel-perfect on any printer/device; mirrors layout of the on-screen receipt.
+
+async function loadFontBase64(url: string): Promise<string> {
+  const res = await fetch(url);
+  const buf = await res.arrayBuffer();
+  const bytes = new Uint8Array(buf);
+  let bin = '';
+  for (let i = 0; i < bytes.byteLength; i++) bin += String.fromCharCode(bytes[i]);
+  return btoa(bin);
+}
+
+const RPAL = {
+  ink:    '#0B0B0C',
+  mid:    '#3A3A40',
+  muted:  '#7A7A82',
+  hair:   '#E6E6EA',
+  accent: '#1D6FFF',
+};
+
+function hexToRgb(hex: string): [number, number, number] {
+  const n = parseInt(hex.replace('#', ''), 16);
+  return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+}
+
 /**
- * Generate a PDF and trigger a direct download (no system print dialog).
- * Uses html2pdf.js (already in deps). Dynamically imported to keep initial bundle slim.
+ * Vector PDF generation — matches Invoices page DPI/scale exactly because there
+ * is no rasterization step. Text is embedded as fonts, lines as PDF vectors.
+ * Output: 80mm wide thermal-receipt format with auto-computed height.
  */
 export async function downloadWeeklyReceiptPDF(opts: PrintWeeklyReceiptOptions) {
-  const html = buildWeeklyReceiptHTML({ ...opts, preview: true });
+  const { jsPDF } = await import('jspdf');
 
-  // Render off-screen at a fixed pixel width that matches 80mm so html2canvas
-  // captures crisp text at the correct layout. 96 CSS px = 1 in; 80mm ≈ 302.36px.
-  const RECEIPT_PX = 302; // ~80mm at 96dpi
-  const host = document.createElement('div');
-  host.style.position = 'fixed';
-  host.style.left = '-10000px';
-  host.style.top = '0';
-  host.style.width = `${RECEIPT_PX}px`;
-  host.style.background = '#ffffff';
-  host.innerHTML = html;
-  document.body.appendChild(host);
+  const [interReg, interSemi] = await Promise.all([
+    loadFontBase64('/fonts/Inter-Regular.ttf'),
+    loadFontBase64('/fonts/Inter-SemiBold.ttf'),
+  ]);
 
-  const receiptEl = host.querySelector('.receipt') as HTMLElement | null;
-  const target = receiptEl ?? host;
-  if (receiptEl) {
-    receiptEl.style.width = `${RECEIPT_PX}px`;
-    receiptEl.style.boxShadow = 'none';
-  }
+  const W = 80;       // mm — thermal receipt width
+  const M = 6;        // mm — side margin
+  const CW = W - M * 2;
+  const now = new Date();
 
-  // Wait a tick for fonts/layout to settle.
-  await new Promise(r => requestAnimationFrame(() => r(null)));
-  if ((document as any).fonts?.ready) {
-    try { await (document as any).fonts.ready; } catch { /* noop */ }
-  }
+  // Render in two passes: first measures total height, second produces the
+  // final PDF at the exact page size so the receipt is trimmed perfectly.
+  const render = (doc: InstanceType<typeof jsPDF>, draw: boolean): number => {
+    doc.addFileToVFS('Inter-Regular.ttf', interReg);
+    doc.addFont('Inter-Regular.ttf', 'Inter', 'normal');
+    doc.addFileToVFS('Inter-SemiBold.ttf', interSemi);
+    doc.addFont('Inter-SemiBold.ttf', 'Inter', 'bold');
+
+    const sf = (size: number, weight: 'normal' | 'bold' = 'normal', color = RPAL.ink) => {
+      doc.setFontSize(size); doc.setFont('Inter', weight); doc.setTextColor(...hexToRgb(color));
+    };
+    const tx = (t: string, x: number, yp: number, o?: Parameters<typeof doc.text>[3]) => {
+      if (draw) doc.text(t, x, yp, o);
+    };
+    const hline = (yp: number, color = RPAL.hair, lw = 0.2) => {
+      if (!draw) return;
+      doc.setDrawColor(...hexToRgb(color)); doc.setLineWidth(lw);
+      doc.line(M, yp, W - M, yp);
+    };
+
+    let y = 10;
+
+    // Title
+    sf(22, 'bold', RPAL.ink);
+    tx('INVOICE', W / 2, y, { align: 'center', charSpace: 0.6 });
+    y += 4.2;
+    sf(6.5, 'normal', RPAL.muted);
+    tx('WEEKLY  STATEMENT', W / 2, y, { align: 'center', charSpace: 0.9 });
+    y += 7;
+
+    // Meta grid (2-col)
+    const colR = W - M;
+    sf(5.8, 'normal', RPAL.muted);
+    tx('INVOICE #', M, y, { charSpace: 0.3 });
+    tx('ISSUED',    colR, y, { align: 'right', charSpace: 0.3 });
+    y += 3.2;
+    sf(9.5, 'bold', RPAL.ink);
+    tx(opts.invoiceNumber || '—', M, y);
+    tx(fmtDateLong(now), colR, y, { align: 'right' });
+    y += 5.4;
+
+    sf(5.8, 'normal', RPAL.muted);
+    tx('PERIOD', M, y, { charSpace: 0.3 });
+    y += 3.2;
+    sf(9.5, 'bold', RPAL.ink);
+    tx(fmtRange(opts.weekStart, opts.weekEnd), M, y);
+    y += 6;
+
+    // Billed to
+    if (opts.recipientName) {
+      sf(5.8, 'normal', RPAL.muted);
+      tx('BILLED TO', M, y, { charSpace: 0.3 });
+      y += 3.4;
+      sf(11, 'bold', RPAL.ink);
+      tx(opts.recipientName, M, y);
+      y += 5;
+    }
+
+    y += 2;
+    hline(y); y += 4;
+
+    // Items head
+    sf(5.8, 'normal', RPAL.muted);
+    tx('SERVICES RENDERED', M, y, { charSpace: 0.3 });
+    tx('AMOUNT',            colR, y, { align: 'right', charSpace: 0.3 });
+    y += 3.5;
+
+    // Rows
+    const rows = opts.breakdownRows.length
+      ? opts.breakdownRows
+      : [{ label: 'No hours this week', meta: '', amount: 0 }];
+
+    rows.forEach((r, i) => {
+      if (i > 0) { hline(y - 0.5); }
+      y += 3.2;
+      sf(9.5, 'bold', RPAL.ink);
+      tx(r.label, M, y);
+      sf(9.5, 'bold', RPAL.ink);
+      tx(formatCurrency(r.amount), colR, y, { align: 'right' });
+      if (r.meta) {
+        y += 3.4;
+        sf(7.5, 'normal', RPAL.muted);
+        tx(r.meta, M, y);
+      }
+      y += 3.2;
+    });
+
+    y += 2;
+
+    // Sub-totals (kv)
+    sf(8.5, 'normal', RPAL.muted);
+    tx('Hours worked', M, y);
+    sf(8.5, 'bold', RPAL.ink);
+    tx(`${opts.totalHours.toFixed(2)} h`, colR, y, { align: 'right' });
+    y += 4;
+
+    if (opts.totalSleepovers > 0) {
+      sf(8.5, 'normal', RPAL.muted);
+      tx('Sleepovers', M, y);
+      sf(8.5, 'bold', RPAL.ink);
+      tx(String(opts.totalSleepovers), colR, y, { align: 'right' });
+      y += 4;
+    }
+
+    // TOTAL row — thick top rule
+    y += 2;
+    if (draw) {
+      doc.setDrawColor(...hexToRgb(RPAL.ink));
+      doc.setLineWidth(0.5);
+      doc.line(M, y, W - M, y);
+    }
+    y += 5.8;
+    sf(14, 'bold', RPAL.ink);
+    tx('TOTAL', M, y);
+    tx(formatCurrency(opts.totalGross), colR, y, { align: 'right' });
+    y += 6;
+
+    // Notes
+    if (opts.notes && opts.notes.trim()) {
+      y += 3;
+      sf(5.8, 'normal', RPAL.muted);
+      tx('NOTES', M, y, { charSpace: 0.3 });
+      y += 3.4;
+      sf(8.5, 'normal', RPAL.ink);
+      const lines = doc.splitTextToSize(opts.notes.trim(), CW) as string[];
+      lines.forEach(ln => { tx(ln, M, y); y += 3.6; });
+    }
+
+    // Thanks
+    y += 8;
+    sf(11, 'bold', RPAL.ink);
+    tx('THANK YOU', W / 2, y, { align: 'center', charSpace: 1.2 });
+    y += 4;
+    sf(6.5, 'bold', RPAL.accent);
+    tx(`Generated by Support Care · ${now.toLocaleDateString('en-AU')}`, W / 2, y, { align: 'center', charSpace: 0.2 });
+    y += 6;
+
+    return y;
+  };
+
+  // Pass 1 — measure on a tall scratch doc
+  const measureDoc = new jsPDF({ unit: 'mm', format: [W, 1000], orientation: 'portrait' });
+  const finalH = Math.max(120, render(measureDoc, false));
+
+  // Pass 2 — real doc at the exact size
+  const doc = new jsPDF({ unit: 'mm', format: [W, finalH], orientation: 'portrait', compress: true });
+  render(doc, true);
 
   const filename = `invoice-${(opts.invoiceNumber || 'WK').replace(/[^\w-]+/g, '')}.pdf`;
-  const heightMM = Math.max(120, (target.offsetHeight / RECEIPT_PX) * 80 + 4);
-
-  try {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const mod: any = await import('html2pdf.js');
-    const html2pdf = mod.default || mod;
-    await html2pdf()
-      .set({
-        margin: 0,
-        filename,
-        image: { type: 'png', quality: 1 },
-        html2canvas: {
-          scale: 4,
-          backgroundColor: '#ffffff',
-          useCORS: true,
-          letterRendering: true,
-          windowWidth: RECEIPT_PX,
-        },
-        jsPDF: { unit: 'mm', format: [80, heightMM], orientation: 'portrait', compress: true },
-      })
-      .from(target)
-      .save();
-  } catch (e) {
-    console.error('PDF download failed', e);
-  } finally {
-    host.remove();
-  }
+  doc.save(filename);
 }
 
 function escape(s: string): string {
