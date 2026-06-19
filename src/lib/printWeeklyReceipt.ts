@@ -319,7 +319,7 @@ export async function downloadWeeklyReceiptPDF(opts: PrintWeeklyReceiptOptions) 
   ]);
 
   const W = 80;       // mm — thermal receipt width
-  const M = 6;        // mm — side margin
+  const M = 4.5;      // mm — side margin (tightened so content uses more width)
   const CW = W - M * 2;
   const now = new Date();
 
