@@ -84,7 +84,7 @@ export function buildWeeklyReceiptHTML(opts: PrintWeeklyReceiptOptions): string 
   .receipt {
     width: 80mm;
     background: var(--paper); color: var(--ink);
-    padding: 9mm 7mm 10mm;
+    padding: 9mm 4.5mm 10mm;
     ${preview ? '' : 'box-shadow: 0 14px 40px rgba(0,0,0,0.18);'}
     font-feature-settings: "tnum" 1, "ss01" 1;
     font-size: 11px; line-height: 1.4;
