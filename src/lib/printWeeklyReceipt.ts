@@ -167,7 +167,7 @@ export function buildWeeklyReceiptHTML(opts: PrintWeeklyReceiptOptions): string 
     @page { size: 80mm auto; margin: 0; }
     html, body { background:#fff; }
     .stage { padding: 0; min-height: 0; }
-    .receipt { box-shadow:none; width: 80mm; padding: 6mm 6mm 8mm; }
+    .receipt { box-shadow:none; width: 80mm; padding: 6mm 4.5mm 8mm; }
     .toolbar { display:none !important; }
   }
 </style>
