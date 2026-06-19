@@ -1538,14 +1538,26 @@ const OverviewPanel = ({
     return `${days[dt.getDay()]}, ${d} ${months[m - 1]} ${y}`;
   };
 
+  const deriveInvoiceNumber = (name: string, weekStart: Date) => {
+    const mm = String(weekStart.getMonth() + 1).padStart(2, '0');
+    const dd = String(weekStart.getDate()).padStart(2, '0');
+    const initials = (name || '')
+      .trim()
+      .split(/\s+/)
+      .map(w => w.charAt(0).toUpperCase())
+      .filter(Boolean)
+      .slice(0, 3)
+      .join('');
+    const prefix = initials || 'WK';
+    return `${prefix}${mm}${dd}`;
+  };
+
   const openPrintDialog = (weekStat: { weekStart: Date; weekEnd: Date; weekShifts: Shift[] }) => {
     const names = Array.from(new Set(weekStat.weekShifts.map(s => s.client_name).filter(Boolean) as string[]));
     const defaultRecipient = names.length === 1 ? names[0] : '';
     const startISO = formatDateISO(weekStat.weekStart);
     const endISO = formatDateISO(weekStat.weekEnd);
-    const mm = String(weekStat.weekStart.getMonth() + 1).padStart(2, '0');
-    const dd = String(weekStat.weekStart.getDate()).padStart(2, '0');
-    const invNum = `WK${mm}${dd}`;
+    const invNum = deriveInvoiceNumber(defaultRecipient, weekStat.weekStart);
     setPrintDialog({
       open: true,
       weekStart: weekStat.weekStart,
@@ -1569,14 +1581,14 @@ const OverviewPanel = ({
     });
     const wb = computeWeekBreakdown(filtered, settings);
     const rows: ReceiptBreakdownRow[] = [];
-    if (wb.regularDay > 0)        rows.push({ label: 'Weekday Day',       meta: `${wb.regularDayH.toFixed(1)}h`, amount: wb.regularDay });
-    if (wb.evening > 0)           rows.push({ label: 'Evening',           meta: `${wb.eveningH.toFixed(1)}h`,    amount: wb.evening });
-    if (wb.satDay > 0)            rows.push({ label: 'Saturday Day',      meta: `${wb.satDayH.toFixed(1)}h`,     amount: wb.satDay });
-    if (wb.sunDay > 0)            rows.push({ label: 'Sunday Day',        meta: `${wb.sunDayH.toFixed(1)}h`,     amount: wb.sunDay });
-    if (wb.weekdaySleepover > 0)  rows.push({ label: 'Weekday Sleepover', meta: `${wb.weekdaySleepoverN} night${wb.weekdaySleepoverN !== 1 ? 's' : ''}`, amount: wb.weekdaySleepover });
-    if (wb.weekendSleepover > 0)  rows.push({ label: 'Weekend Sleepover', meta: `${wb.weekendSleepoverN} night${wb.weekendSleepoverN !== 1 ? 's' : ''}`, amount: wb.weekendSleepover });
-    if (wb.publicHoliday > 0)     rows.push({ label: 'Public Holiday',    meta: `${wb.publicHolidayH.toFixed(1)}h`, amount: wb.publicHoliday });
-    if (wb.phSleepover > 0)       rows.push({ label: 'PH Sleepover',      meta: `${wb.phSleepoverN} night${wb.phSleepoverN !== 1 ? 's' : ''}`, amount: wb.phSleepover });
+    if (wb.regularDay > 0)        rows.push({ label: 'Daily Support',              meta: `${wb.regularDayH.toFixed(1)}h`, amount: wb.regularDay });
+    if (wb.evening > 0)           rows.push({ label: 'Evening Support (Mon–Fri)',  meta: `${wb.eveningH.toFixed(1)}h`,    amount: wb.evening });
+    if (wb.satDay > 0)            rows.push({ label: 'Saturday Support',           meta: `${wb.satDayH.toFixed(1)}h`,     amount: wb.satDay });
+    if (wb.sunDay > 0)            rows.push({ label: 'Sunday Support',             meta: `${wb.sunDayH.toFixed(1)}h`,     amount: wb.sunDay });
+    if (wb.weekdaySleepover > 0)  rows.push({ label: 'Weekday Sleepover',          meta: `${wb.weekdaySleepoverN} night${wb.weekdaySleepoverN !== 1 ? 's' : ''}`, amount: wb.weekdaySleepover });
+    if (wb.weekendSleepover > 0)  rows.push({ label: 'Weekend Sleepover',          meta: `${wb.weekendSleepoverN} night${wb.weekendSleepoverN !== 1 ? 's' : ''}`, amount: wb.weekendSleepover });
+    if (wb.publicHoliday > 0)     rows.push({ label: 'Public Holiday Support',     meta: `${wb.publicHolidayH.toFixed(1)}h`, amount: wb.publicHoliday });
+    if (wb.phSleepover > 0)       rows.push({ label: 'Public Holiday Sleepover',   meta: `${wb.phSleepoverN} night${wb.phSleepoverN !== 1 ? 's' : ''}`, amount: wb.phSleepover });
     const totalHours = filtered.filter(s => !s.is_sleepover).reduce((sum, s) => sum + Number(s.hours_worked), 0);
     const totalSleepovers = filtered.filter(s => s.is_sleepover).length;
     const totalGross = filtered.reduce((sum, s) => sum + effectiveGrossPay(s), 0);
@@ -2302,7 +2314,16 @@ const OverviewPanel = ({
                 <input
                   type="text"
                   value={printDialog.recipientName}
-                  onChange={(e) => setPrintDialog(p => p ? { ...p, recipientName: e.target.value } : p)}
+                  onChange={(e) => setPrintDialog(p => {
+                    if (!p) return p;
+                    const newName = e.target.value;
+                    const prevAuto = deriveInvoiceNumber(p.recipientName, p.weekStart);
+                    // Auto-update invoice number only if user hasn't manually customized it
+                    const nextInv = p.invoiceNumber === prevAuto
+                      ? deriveInvoiceNumber(newName, p.weekStart)
+                      : p.invoiceNumber;
+                    return { ...p, recipientName: newName, invoiceNumber: nextInv };
+                  })}
                   placeholder="e.g. Acme Care Pty Ltd"
                   className="w-full mt-1 px-3 py-2.5 rounded-xl text-sm bg-transparent outline-none"
                   style={{ background: 'hsl(var(--muted)/0.5)', border: '1px solid hsl(var(--border))' }}
