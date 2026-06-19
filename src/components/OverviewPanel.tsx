@@ -2314,7 +2314,16 @@ const OverviewPanel = ({
                 <input
                   type="text"
                   value={printDialog.recipientName}
-                  onChange={(e) => setPrintDialog(p => p ? { ...p, recipientName: e.target.value } : p)}
+                  onChange={(e) => setPrintDialog(p => {
+                    if (!p) return p;
+                    const newName = e.target.value;
+                    const prevAuto = deriveInvoiceNumber(p.recipientName, p.weekStart);
+                    // Auto-update invoice number only if user hasn't manually customized it
+                    const nextInv = p.invoiceNumber === prevAuto
+                      ? deriveInvoiceNumber(newName, p.weekStart)
+                      : p.invoiceNumber;
+                    return { ...p, recipientName: newName, invoiceNumber: nextInv };
+                  })}
                   placeholder="e.g. Acme Care Pty Ltd"
                   className="w-full mt-1 px-3 py-2.5 rounded-xl text-sm bg-transparent outline-none"
                   style={{ background: 'hsl(var(--muted)/0.5)', border: '1px solid hsl(var(--border))' }}
