@@ -107,6 +107,7 @@ export function buildWeeklyReceiptHTML(opts: PrintWeeklyReceiptOptions): string 
   }
   .meta-grid .lbl { color: var(--muted); text-transform: uppercase; letter-spacing: .1em; font-size: 8.5px; margin-bottom: 2px; }
   .meta-grid .val { font-weight: 600; font-variant-numeric: tabular-nums; font-size: 11.5px; }
+  .meta-grid .right { text-align: right; }
   .meta-grid .span2 { grid-column: 1 / -1; }
 
   .billed {
