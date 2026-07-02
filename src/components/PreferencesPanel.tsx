@@ -378,6 +378,20 @@ const PreferencesPanel = ({
         <SectionLabel>App</SectionLabel>
         <SettingsGroup>
           <SettingsRow
+            icon={<CalendarDays className="w-[18px] h-[18px]" />}
+            label="Week Starts On"
+            sublabel="Sets the range used across weekly views"
+            right={
+              <div className="flex items-center gap-1">
+                <span className="text-[15px] text-muted-foreground font-medium">
+                  {DAY_OPTIONS.find(o => o.value === weekStartDay)?.label ?? 'Monday'}
+                </span>
+                <ChevronRight className="w-4 h-4 text-muted-foreground/50" />
+              </div>
+            }
+            onClick={() => setShowWeekStartModal(true)}
+          />
+          <SettingsRow
             icon={<Smartphone className="w-[18px] h-[18px]" />}
             label="Haptics"
             sublabel="Tactile feedback on interactions"
