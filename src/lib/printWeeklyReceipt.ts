@@ -183,7 +183,7 @@ export function buildWeeklyReceiptHTML(opts: PrintWeeklyReceiptOptions): string 
 
       <div class="meta-grid">
         <div><div class="lbl">Invoice #</div><div class="val">${escape(invoiceNumber || '—')}</div></div>
-        <div><div class="lbl">Issued</div><div class="val">${escape(`${now.getDate()}/${now.getMonth() + 1}/${now.getFullYear()}`)}</div></div>
+        <div class="right"><div class="lbl">Issued</div><div class="val">${escape(issuedShort)}</div></div>
         <div class="span2"><div class="lbl">Period</div><div class="val">${escape(fmtRange(weekStart, weekEnd))}</div></div>
       </div>
 
