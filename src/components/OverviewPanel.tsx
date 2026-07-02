@@ -1390,7 +1390,7 @@ const OverviewPanel = ({
         weekBreakdown: computeWeekBreakdown(weekShifts, settings),
       };
     });
-  }, [shifts, settings]);
+  }, [shifts, settings, weekStartDow]);
 
   const unpaidStats = useMemo(() => {
     const unpaid = invoices.filter(inv => inv.status !== 'paid');
