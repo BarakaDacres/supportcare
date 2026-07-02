@@ -188,6 +188,69 @@ const DueDateModal = ({
   </div>
 );
 
+/* ── Week Start Day Modal ── */
+const DAY_OPTIONS = [
+  { value: 0, label: 'Sunday',    sub: 'Sunday – Saturday' },
+  { value: 1, label: 'Monday',    sub: 'Monday – Sunday' },
+  { value: 2, label: 'Tuesday',   sub: 'Tuesday – Monday' },
+  { value: 3, label: 'Wednesday', sub: 'Wednesday – Tuesday' },
+  { value: 4, label: 'Thursday',  sub: 'Thursday – Wednesday' },
+  { value: 5, label: 'Friday',    sub: 'Friday – Thursday' },
+  { value: 6, label: 'Saturday',  sub: 'Saturday – Friday' },
+];
+
+const WeekStartModal = ({
+  current, onChange, onClose,
+}: { current: number; onChange: (v: number) => void; onClose: () => void }) => (
+  <div
+    className="fixed inset-0 z-[100] flex items-center justify-center px-4"
+    style={{ background: 'hsl(var(--foreground)/0.35)', backdropFilter: 'blur(8px)' }}
+    onClick={onClose}
+  >
+    <div
+      className="lg-settings-card w-full max-w-sm animate-in fade-in zoom-in-95 duration-200"
+      style={{ boxShadow: 'var(--card-shadow-lg)' }}
+      onClick={e => e.stopPropagation()}
+    >
+      <div className="px-4 pt-5 pb-3 text-center border-b" style={{ borderColor: 'hsl(var(--divider))' }}>
+        <p className="text-[15px] font-semibold text-foreground">Week Starts On</p>
+        <p className="text-[13px] text-muted-foreground mt-0.5">Sets the range for weekly views</p>
+      </div>
+      <div className="max-h-[60vh] overflow-y-auto">
+        {DAY_OPTIONS.map((opt, i) => (
+          <div key={opt.value}>
+            <button
+              type="button"
+              onClick={() => { onChange(opt.value); onClose(); }}
+              className="w-full flex items-center gap-3 px-5 transition-colors duration-150 active:bg-accent/30"
+              style={{ minHeight: 56 }}
+            >
+              <div className="flex-1 text-left">
+                <p className="text-[15px] text-foreground">{opt.label}</p>
+                <p className="text-[12px] text-muted-foreground mt-0.5">{opt.sub}</p>
+              </div>
+              {current === opt.value && <Check className="w-4 h-4" style={{ color: 'hsl(var(--primary))' }} />}
+            </button>
+            {i < DAY_OPTIONS.length - 1 && (
+              <div className="ml-5 h-px" style={{ background: 'hsl(var(--divider))' }} />
+            )}
+          </div>
+        ))}
+      </div>
+      <div className="p-3 border-t" style={{ borderColor: 'hsl(var(--divider))' }}>
+        <button
+          type="button"
+          onClick={onClose}
+          className="w-full rounded-xl text-[16px] font-semibold transition-colors duration-150 active:bg-accent/30"
+          style={{ minHeight: 50, background: 'hsl(var(--muted))', color: 'hsl(var(--foreground))' }}
+        >
+          Cancel
+        </button>
+      </div>
+    </div>
+  </div>
+);
+
 /* ── Main ── */
 interface PreferencesPanelProps {
   settings: UserSettings | null;
