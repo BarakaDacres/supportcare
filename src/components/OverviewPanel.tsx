@@ -1118,6 +1118,22 @@ const OverviewPanel = ({
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
+  // Week-start-day preference (0=Sun..6=Sat), reactive to Settings changes.
+  const [weekStartDow, setWeekStartDow] = useState<number>(() => readWeekStartPref());
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent<number>).detail;
+      if (typeof detail === 'number') setWeekStartDow(detail);
+      else setWeekStartDow(readWeekStartPref());
+    };
+    window.addEventListener('pref-week-start-changed', handler);
+    window.addEventListener('storage', handler);
+    return () => {
+      window.removeEventListener('pref-week-start-changed', handler);
+      window.removeEventListener('storage', handler);
+    };
+  }, []);
+
   // Day popup is now handled inline inside EarningsCalendarHeatmap
 
       const stats = useMemo(() => {
