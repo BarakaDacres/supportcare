@@ -44,6 +44,7 @@ export function buildWeeklyReceiptHTML(opts: PrintWeeklyReceiptOptions): string 
   } = opts;
 
   const now = new Date();
+  const issuedShort = `${now.getDate()}/${now.getMonth() + 1}/${now.getFullYear()}`;
 
   const rowsHtml = breakdownRows.length
     ? breakdownRows.map(r => `
