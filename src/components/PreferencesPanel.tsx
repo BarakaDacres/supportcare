@@ -269,11 +269,16 @@ const PreferencesPanel = ({
   templates, clients, onAddTemplate, onUpdateTemplate, onDeleteTemplate,
 }: PreferencesPanelProps) => {
   const [showDueDateModal, setShowDueDateModal] = useState(false);
+  const [showWeekStartModal, setShowWeekStartModal] = useState(false);
 
   const [shiftReminders, setShiftReminders]     = useState(() => localStorage.getItem('pref_shift_reminders')   !== 'false');
   const [invoiceReminders, setInvoiceReminders] = useState(() => localStorage.getItem('pref_invoice_reminders') !== 'false');
   const [haptics, setHaptics]                   = useState(() => localStorage.getItem('pref_haptics')           !== 'false');
   const [autoTimezone, setAutoTimezone]         = useState(() => localStorage.getItem('pref_auto_timezone')     !== 'false');
+  const [weekStartDay, setWeekStartDay]         = useState<number>(() => {
+    const v = Number(localStorage.getItem('pref_week_start_day'));
+    return Number.isFinite(v) && v >= 0 && v <= 6 ? v : 1;
+  });
 
   const useDefaultNotes  = settings?.use_default_invoice_notes ?? true;
   const showTaxEstimate  = settings?.show_tax_estimate ?? false;
