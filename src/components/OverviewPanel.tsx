@@ -84,12 +84,22 @@ function parseDate(dateStr: string): Date {
 }
 
 function getMondayOf(date: Date): Date {
+  return getWeekStartOf(date, 1);
+}
+
+function getWeekStartOf(date: Date, startDow: number): Date {
   const d = new Date(date);
   const dow = d.getDay();
-  const diff = dow === 0 ? -6 : 1 - dow;
-  d.setDate(d.getDate() + diff);
+  const diff = ((dow - startDow) + 7) % 7;
+  d.setDate(d.getDate() - diff);
   d.setHours(0, 0, 0, 0);
   return d;
+}
+
+function readWeekStartPref(): number {
+  if (typeof window === 'undefined') return 1;
+  const v = Number(localStorage.getItem('pref_week_start_day'));
+  return Number.isFinite(v) && v >= 0 && v <= 6 ? v : 1;
 }
 
 function formatDateISO(d: Date): string {
