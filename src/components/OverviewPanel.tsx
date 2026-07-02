@@ -1346,13 +1346,13 @@ const OverviewPanel = ({
         return weeks;
       })(),
     };
-  }, [shifts, selectedMonth, selectedYear, settings]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [shifts, selectedMonth, selectedYear, settings, weekStartDow]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Multi-week stats for swipeable carousel ───────────────────────────────
   const allWeeksStats = useMemo(() => {
     const today2 = new Date();
     today2.setHours(0, 0, 0, 0);
-    const currentWeekStart = getMondayOf(today2);
+    const currentWeekStart = getWeekStartOf(today2, weekStartDow);
 
     const gross = (arr: Shift[]) => arr.reduce((s, sh) => s + effectiveGrossPay(sh), 0);
     const hours = (arr: Shift[]) =>
