@@ -347,7 +347,8 @@ export async function downloadWeeklyReceiptPDF(opts: PrintWeeklyReceiptOptions) 
 
     const issuedShort = `${now.getDate()}/${now.getMonth() + 1}/${now.getFullYear()}`;
 
-    let y = 12;
+    // Top margin matches HTML preview's `padding-top: 9mm`
+    let y = 9 + 3; // 9mm padding + ~3mm baseline offset for 22pt title
 
     // Title — no charSpace so center alignment is true
     sf(22, 'bold', RPAL.ink);
