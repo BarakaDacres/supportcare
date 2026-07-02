@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Sun, Moon, Monitor, Bell, FileText, Smartphone, Check, ChevronRight, Clock } from 'lucide-react';
+import { Sun, Moon, Monitor, Bell, FileText, Smartphone, Check, ChevronRight, Clock, CalendarDays } from 'lucide-react';
 import type { UserSettings } from '@/hooks/useUserSettings';
 import type { ShiftTemplate, NewShiftTemplate } from '@/hooks/useShiftTemplates';
 import type { Client } from '@/hooks/useClients';
