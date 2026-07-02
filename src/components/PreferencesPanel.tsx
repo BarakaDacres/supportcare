@@ -426,6 +426,18 @@ const PreferencesPanel = ({
           onClose={() => setShowDueDateModal(false)}
         />
       )}
+
+      {showWeekStartModal && (
+        <WeekStartModal
+          current={weekStartDay}
+          onChange={v => {
+            setWeekStartDay(v);
+            localStorage.setItem('pref_week_start_day', String(v));
+            window.dispatchEvent(new CustomEvent('pref-week-start-changed', { detail: v }));
+          }}
+          onClose={() => setShowWeekStartModal(false)}
+        />
+      )}
     </div>
   );
 };
