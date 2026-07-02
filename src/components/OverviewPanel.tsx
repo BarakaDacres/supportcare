@@ -1137,7 +1137,7 @@ const OverviewPanel = ({
   // Day popup is now handled inline inside EarningsCalendarHeatmap
 
       const stats = useMemo(() => {
-    const weekStart = getMondayOf(today);
+    const weekStart = getWeekStartOf(today, weekStartDow);
     const weekEnd = new Date(weekStart);
     weekEnd.setDate(weekEnd.getDate() + 6);
 
