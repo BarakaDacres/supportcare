@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Sun, Moon, Monitor, Bell, FileText, Smartphone, Check, ChevronRight, Clock } from 'lucide-react';
+import { Sun, Moon, Monitor, Bell, FileText, Smartphone, Check, ChevronRight, Clock, CalendarDays } from 'lucide-react';
 import type { UserSettings } from '@/hooks/useUserSettings';
 import type { ShiftTemplate, NewShiftTemplate } from '@/hooks/useShiftTemplates';
 import type { Client } from '@/hooks/useClients';
@@ -188,6 +188,69 @@ const DueDateModal = ({
   </div>
 );
 
+/* ── Week Start Day Modal ── */
+const DAY_OPTIONS = [
+  { value: 0, label: 'Sunday',    sub: 'Sunday – Saturday' },
+  { value: 1, label: 'Monday',    sub: 'Monday – Sunday' },
+  { value: 2, label: 'Tuesday',   sub: 'Tuesday – Monday' },
+  { value: 3, label: 'Wednesday', sub: 'Wednesday – Tuesday' },
+  { value: 4, label: 'Thursday',  sub: 'Thursday – Wednesday' },
+  { value: 5, label: 'Friday',    sub: 'Friday – Thursday' },
+  { value: 6, label: 'Saturday',  sub: 'Saturday – Friday' },
+];
+
+const WeekStartModal = ({
+  current, onChange, onClose,
+}: { current: number; onChange: (v: number) => void; onClose: () => void }) => (
+  <div
+    className="fixed inset-0 z-[100] flex items-center justify-center px-4"
+    style={{ background: 'hsl(var(--foreground)/0.35)', backdropFilter: 'blur(8px)' }}
+    onClick={onClose}
+  >
+    <div
+      className="lg-settings-card w-full max-w-sm animate-in fade-in zoom-in-95 duration-200"
+      style={{ boxShadow: 'var(--card-shadow-lg)' }}
+      onClick={e => e.stopPropagation()}
+    >
+      <div className="px-4 pt-5 pb-3 text-center border-b" style={{ borderColor: 'hsl(var(--divider))' }}>
+        <p className="text-[15px] font-semibold text-foreground">Week Starts On</p>
+        <p className="text-[13px] text-muted-foreground mt-0.5">Sets the range for weekly views</p>
+      </div>
+      <div className="max-h-[60vh] overflow-y-auto">
+        {DAY_OPTIONS.map((opt, i) => (
+          <div key={opt.value}>
+            <button
+              type="button"
+              onClick={() => { onChange(opt.value); onClose(); }}
+              className="w-full flex items-center gap-3 px-5 transition-colors duration-150 active:bg-accent/30"
+              style={{ minHeight: 56 }}
+            >
+              <div className="flex-1 text-left">
+                <p className="text-[15px] text-foreground">{opt.label}</p>
+                <p className="text-[12px] text-muted-foreground mt-0.5">{opt.sub}</p>
+              </div>
+              {current === opt.value && <Check className="w-4 h-4" style={{ color: 'hsl(var(--primary))' }} />}
+            </button>
+            {i < DAY_OPTIONS.length - 1 && (
+              <div className="ml-5 h-px" style={{ background: 'hsl(var(--divider))' }} />
+            )}
+          </div>
+        ))}
+      </div>
+      <div className="p-3 border-t" style={{ borderColor: 'hsl(var(--divider))' }}>
+        <button
+          type="button"
+          onClick={onClose}
+          className="w-full rounded-xl text-[16px] font-semibold transition-colors duration-150 active:bg-accent/30"
+          style={{ minHeight: 50, background: 'hsl(var(--muted))', color: 'hsl(var(--foreground))' }}
+        >
+          Cancel
+        </button>
+      </div>
+    </div>
+  </div>
+);
+
 /* ── Main ── */
 interface PreferencesPanelProps {
   settings: UserSettings | null;
@@ -206,11 +269,16 @@ const PreferencesPanel = ({
   templates, clients, onAddTemplate, onUpdateTemplate, onDeleteTemplate,
 }: PreferencesPanelProps) => {
   const [showDueDateModal, setShowDueDateModal] = useState(false);
+  const [showWeekStartModal, setShowWeekStartModal] = useState(false);
 
   const [shiftReminders, setShiftReminders]     = useState(() => localStorage.getItem('pref_shift_reminders')   !== 'false');
   const [invoiceReminders, setInvoiceReminders] = useState(() => localStorage.getItem('pref_invoice_reminders') !== 'false');
   const [haptics, setHaptics]                   = useState(() => localStorage.getItem('pref_haptics')           !== 'false');
   const [autoTimezone, setAutoTimezone]         = useState(() => localStorage.getItem('pref_auto_timezone')     !== 'false');
+  const [weekStartDay, setWeekStartDay]         = useState<number>(() => {
+    const v = Number(localStorage.getItem('pref_week_start_day'));
+    return Number.isFinite(v) && v >= 0 && v <= 6 ? v : 1;
+  });
 
   const useDefaultNotes  = settings?.use_default_invoice_notes ?? true;
   const showTaxEstimate  = settings?.show_tax_estimate ?? false;
@@ -310,6 +378,20 @@ const PreferencesPanel = ({
         <SectionLabel>App</SectionLabel>
         <SettingsGroup>
           <SettingsRow
+            icon={<CalendarDays className="w-[18px] h-[18px]" />}
+            label="Week Starts On"
+            sublabel="Sets the range used across weekly views"
+            right={
+              <div className="flex items-center gap-1">
+                <span className="text-[15px] text-muted-foreground font-medium">
+                  {DAY_OPTIONS.find(o => o.value === weekStartDay)?.label ?? 'Monday'}
+                </span>
+                <ChevronRight className="w-4 h-4 text-muted-foreground/50" />
+              </div>
+            }
+            onClick={() => setShowWeekStartModal(true)}
+          />
+          <SettingsRow
             icon={<Smartphone className="w-[18px] h-[18px]" />}
             label="Haptics"
             sublabel="Tactile feedback on interactions"
@@ -342,6 +424,18 @@ const PreferencesPanel = ({
           current={invoiceDueDays}
           onChange={v => onSave({ invoice_due_days: v } as Partial<Omit<UserSettings, 'id' | 'user_id'>>)}
           onClose={() => setShowDueDateModal(false)}
+        />
+      )}
+
+      {showWeekStartModal && (
+        <WeekStartModal
+          current={weekStartDay}
+          onChange={v => {
+            setWeekStartDay(v);
+            localStorage.setItem('pref_week_start_day', String(v));
+            window.dispatchEvent(new CustomEvent('pref-week-start-changed', { detail: v }));
+          }}
+          onClose={() => setShowWeekStartModal(false)}
         />
       )}
     </div>

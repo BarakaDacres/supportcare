@@ -84,12 +84,22 @@ function parseDate(dateStr: string): Date {
 }
 
 function getMondayOf(date: Date): Date {
+  return getWeekStartOf(date, 1);
+}
+
+function getWeekStartOf(date: Date, startDow: number): Date {
   const d = new Date(date);
   const dow = d.getDay();
-  const diff = dow === 0 ? -6 : 1 - dow;
-  d.setDate(d.getDate() + diff);
+  const diff = ((dow - startDow) + 7) % 7;
+  d.setDate(d.getDate() - diff);
   d.setHours(0, 0, 0, 0);
   return d;
+}
+
+function readWeekStartPref(): number {
+  if (typeof window === 'undefined') return 1;
+  const v = Number(localStorage.getItem('pref_week_start_day'));
+  return Number.isFinite(v) && v >= 0 && v <= 6 ? v : 1;
 }
 
 function formatDateISO(d: Date): string {
@@ -1108,10 +1118,26 @@ const OverviewPanel = ({
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
+  // Week-start-day preference (0=Sun..6=Sat), reactive to Settings changes.
+  const [weekStartDow, setWeekStartDow] = useState<number>(() => readWeekStartPref());
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent<number>).detail;
+      if (typeof detail === 'number') setWeekStartDow(detail);
+      else setWeekStartDow(readWeekStartPref());
+    };
+    window.addEventListener('pref-week-start-changed', handler);
+    window.addEventListener('storage', handler);
+    return () => {
+      window.removeEventListener('pref-week-start-changed', handler);
+      window.removeEventListener('storage', handler);
+    };
+  }, []);
+
   // Day popup is now handled inline inside EarningsCalendarHeatmap
 
       const stats = useMemo(() => {
-    const weekStart = getMondayOf(today);
+    const weekStart = getWeekStartOf(today, weekStartDow);
     const weekEnd = new Date(weekStart);
     weekEnd.setDate(weekEnd.getDate() + 6);
 
@@ -1320,13 +1346,13 @@ const OverviewPanel = ({
         return weeks;
       })(),
     };
-  }, [shifts, selectedMonth, selectedYear, settings]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [shifts, selectedMonth, selectedYear, settings, weekStartDow]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Multi-week stats for swipeable carousel ───────────────────────────────
   const allWeeksStats = useMemo(() => {
     const today2 = new Date();
     today2.setHours(0, 0, 0, 0);
-    const currentWeekStart = getMondayOf(today2);
+    const currentWeekStart = getWeekStartOf(today2, weekStartDow);
 
     const gross = (arr: Shift[]) => arr.reduce((s, sh) => s + effectiveGrossPay(sh), 0);
     const hours = (arr: Shift[]) =>
@@ -1364,7 +1390,7 @@ const OverviewPanel = ({
         weekBreakdown: computeWeekBreakdown(weekShifts, settings),
       };
     });
-  }, [shifts, settings]);
+  }, [shifts, settings, weekStartDow]);
 
   const unpaidStats = useMemo(() => {
     const unpaid = invoices.filter(inv => inv.status !== 'paid');
