@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
-import { X, Clock, Moon, User, FileText, ChevronDown, DollarSign, Star, Sunset, Calendar } from 'lucide-react';
+import { X, Clock, Moon, User, FileText, ChevronDown, DollarSign, Star, Sunset, Calendar, Zap } from 'lucide-react';
 import { BottomSheet } from '@/components/ui/bottom-sheet';
 import { calculateShiftPay, formatTime12h, type PayRates, DEFAULT_RATES, getDayOfWeek, isWeekendSleeperNight, shiftHasEveningHours, dayLabel } from '@/lib/shiftCalculator';
 import { formatCurrency } from '@/lib/formatUtils';
@@ -73,6 +73,7 @@ const ShiftForm = ({
   const [endTime, setEndTime] = useState(initialValues?.end_time ?? '17:00');
   const [isSleepover, setIsSleepover] = useState(initialValues?.is_sleepover ?? false);
   const [isPublicHoliday, setIsPublicHoliday] = useState(initialValues?.is_public_holiday ?? false);
+  const [isOvertime, setIsOvertime] = useState(initialValues?.is_overtime ?? false);
   const [isPhSleepover, setIsPhSleepover] = useState(
     initialValues?.is_sleepover === true && initialValues?.is_public_holiday === true
   );
@@ -217,10 +218,11 @@ const ShiftForm = ({
   const phRate = rates.rate_public_holiday ?? 150;
   const phSleepoverRate = rates.rate_sleepover_public_holiday ?? 400;
   const eveningRate = rates.rate_evening ?? 75;
+  const overtimeRate = rates.rate_overtime ?? 90;
 
   const calc =
     date && startTime && endTime
-      ? calculateShiftPay(date, startTime, endTime, isSleepover, rates, isPublicHoliday)
+      ? calculateShiftPay(date, startTime, endTime, isSleepover, rates, isPublicHoliday, isOvertime)
       : null;
 
   const feeOverrideNum = feeOverride !== '' ? parseFloat(feeOverride) : null;
@@ -230,8 +232,9 @@ const ShiftForm = ({
     ? phSleepoverRate
     : calc?.grossPay ?? 0;
 
-  const phActive = isPublicHoliday && !isSleepover;
-  const hasEvening = !isSleepover && !isPublicHoliday && shiftHasEveningHours(startTime, endTime);
+  const phActive = isPublicHoliday && !isSleepover && !isOvertime;
+  const otActive = isOvertime && !isPhSleepover;
+  const hasEvening = !isSleepover && !isPublicHoliday && !isOvertime && shiftHasEveningHours(startTime, endTime);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -249,6 +252,7 @@ const ShiftForm = ({
         end_time: endTime,
         is_sleepover: isSleepover,
         is_public_holiday: isPublicHoliday,
+        is_overtime: isOvertime,
         client_id: clientId || null,
         notes: notes.trim() || null,
         fee_override: finalFeeOverride,
