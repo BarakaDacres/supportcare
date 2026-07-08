@@ -416,7 +416,7 @@ const ShiftForm = ({
               </button>
 
               {/* Public Holiday (hourly) */}
-              {!isSleepover && (
+              {!isSleepover && !isOvertime && (
                 <button
                   type="button"
                   onClick={() => setIsPublicHoliday(prev => !prev)}
@@ -445,6 +445,45 @@ const ShiftForm = ({
                     <span
                       className="absolute top-[3px] rounded-full bg-white shadow-sm transition-all duration-200"
                       style={{ width: 18, height: 18, left: isPublicHoliday ? 21 : 3 }}
+                    />
+                  </span>
+                </button>
+              )}
+
+              {/* Overtime (hourly, overrides PH/Evening/Day) */}
+              {!isPhSleepover && (
+                <button
+                  type="button"
+                  onClick={() => setIsOvertime(prev => {
+                    const next = !prev;
+                    if (next) setIsPublicHoliday(false);
+                    return next;
+                  })}
+                  className="w-full flex items-center gap-3 rounded-2xl border transition-all duration-200 px-4"
+                  style={{
+                    minHeight: 48,
+                    borderColor: isOvertime ? 'hsl(280 70% 60% / 0.55)' : 'hsl(var(--border))',
+                    background: isOvertime ? 'hsl(280 70% 60% / 0.08)' : 'transparent',
+                  }}
+                >
+                  <Zap
+                    className="w-4 h-4 shrink-0"
+                    style={{ color: isOvertime ? 'hsl(280 70% 60%)' : 'hsl(var(--muted-foreground))' }}
+                  />
+                  <span
+                    className="text-sm font-semibold flex-1 text-left"
+                    style={{ color: isOvertime ? 'hsl(280 70% 60%)' : 'hsl(var(--foreground))' }}
+                  >
+                    Overtime
+                  </span>
+                  <span className="text-[10px] text-muted-foreground mr-2">${overtimeRate}/hr</span>
+                  <span
+                    className="relative shrink-0 rounded-full transition-all duration-200"
+                    style={{ width: 42, height: 24, background: isOvertime ? 'hsl(280 70% 60%)' : 'hsl(var(--muted))' }}
+                  >
+                    <span
+                      className="absolute top-[3px] rounded-full bg-white shadow-sm transition-all duration-200"
+                      style={{ width: 18, height: 18, left: isOvertime ? 21 : 3 }}
                     />
                   </span>
                 </button>
@@ -603,6 +642,14 @@ const ShiftForm = ({
                     <Star className="w-3 h-3" style={{ color: 'hsl(34 97% 52%)' }} />
                     <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: 'hsl(34 97% 52%)' }}>
                       Public Holiday Rate Active — ${phRate}/hr
+                    </span>
+                  </div>
+                )}
+                {otActive && (
+                  <div className="flex items-center gap-1.5 mb-1">
+                    <Zap className="w-3 h-3" style={{ color: 'hsl(280 70% 60%)' }} />
+                    <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: 'hsl(280 70% 60%)' }}>
+                      Overtime Rate Active — ${overtimeRate}/hr
                     </span>
                   </div>
                 )}
