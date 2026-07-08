@@ -11,6 +11,7 @@ export interface Shift {
   end_time: string;
   is_sleepover: boolean;
   is_public_holiday: boolean;
+  is_overtime: boolean;
   notes: string | null;
   hours_worked: number;
   gross_pay: number;
@@ -28,6 +29,7 @@ export interface NewShift {
   end_time: string;
   is_sleepover: boolean;
   is_public_holiday?: boolean;
+  is_overtime?: boolean;
   notes?: string | null;
   fee_override?: number | null;
 }
@@ -37,6 +39,7 @@ function mapShiftRow(row: Record<string, unknown>): Shift {
     ...(row as Omit<Shift, 'client_name'>),
     fee_override: row.fee_override != null ? Number(row.fee_override) : null,
     is_public_holiday: Boolean(row.is_public_holiday),
+    is_overtime: Boolean(row.is_overtime),
     client_name: (row.clients as { name: string } | null)?.name ?? null,
   };
 }
@@ -173,7 +176,8 @@ export function useShifts(rates: PayRates = DEFAULT_RATES) {
 
     const effectiveRates = ratesOverride ?? rates;
     const isPublicHoliday = shift.is_public_holiday ?? false;
-    const calc = calculateShiftPay(shift.date, shift.start_time, shift.end_time, shift.is_sleepover, effectiveRates, isPublicHoliday);
+    const isOvertime = shift.is_overtime ?? false;
+    const calc = calculateShiftPay(shift.date, shift.start_time, shift.end_time, shift.is_sleepover, effectiveRates, isPublicHoliday, isOvertime);
     const feeOverride = shift.fee_override != null && shift.fee_override > 0 ? shift.fee_override : null;
     const grossPay = feeOverride ?? calc.grossPay;
 
@@ -188,6 +192,7 @@ export function useShifts(rates: PayRates = DEFAULT_RATES) {
           end_time: shift.end_time,
           is_sleepover: shift.is_sleepover,
           is_public_holiday: isPublicHoliday,
+          is_overtime: isOvertime,
           notes: shift.notes ?? null,
           hours_worked: calc.hoursWorked,
           gross_pay: grossPay,
@@ -219,8 +224,9 @@ export function useShifts(rates: PayRates = DEFAULT_RATES) {
       end_time: shift.end_time ?? existing.end_time,
       is_sleepover: shift.is_sleepover !== undefined ? shift.is_sleepover : existing.is_sleepover,
       is_public_holiday: shift.is_public_holiday !== undefined ? shift.is_public_holiday : existing.is_public_holiday,
+      is_overtime: shift.is_overtime !== undefined ? shift.is_overtime : existing.is_overtime,
     };
-    const calc = calculateShiftPay(merged.date, merged.start_time, merged.end_time, merged.is_sleepover, effectiveRates, merged.is_public_holiday);
+    const calc = calculateShiftPay(merged.date, merged.start_time, merged.end_time, merged.is_sleepover, effectiveRates, merged.is_public_holiday, merged.is_overtime);
 
     const feeOverride = shift.fee_override !== undefined
       ? (shift.fee_override != null && shift.fee_override > 0 ? shift.fee_override : null)
@@ -234,6 +240,7 @@ export function useShifts(rates: PayRates = DEFAULT_RATES) {
         .update({
           ...shift,
           is_public_holiday: merged.is_public_holiday,
+          is_overtime: merged.is_overtime,
           hours_worked: calc.hoursWorked,
           gross_pay: grossPay,
           fee_override: feeOverride,
@@ -321,6 +328,7 @@ export function useShifts(rates: PayRates = DEFAULT_RATES) {
       end_time: shift.end_time,
       is_sleepover: shift.is_sleepover,
       is_public_holiday: shift.is_public_holiday,
+      is_overtime: shift.is_overtime,
       notes: shift.notes,
     });
   }, [shifts, addShift]);
