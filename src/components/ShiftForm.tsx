@@ -669,7 +669,7 @@ const ShiftForm = ({
                   <div>
                     <p
                       className="text-xl font-bold leading-none"
-                      style={{ color: (isPhSleepover || phActive) ? 'hsl(34 97% 52%)' : 'hsl(var(--money-green))' }}
+                      style={{ color: (isPhSleepover || phActive) ? 'hsl(34 97% 52%)' : otActive ? 'hsl(280 70% 60%)' : 'hsl(var(--money-green))' }}
                     >
                       {formatCurrency(effectivePay)}
                     </p>
