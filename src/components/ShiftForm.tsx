@@ -615,6 +615,9 @@ const ShiftForm = ({
                 style={isPhSleepover ? {
                   background: 'hsl(34 97% 52% / 0.10)',
                   border: '1px solid hsl(34 97% 52% / 0.4)',
+                } : otActive ? {
+                  background: 'hsl(280 70% 60% / 0.08)',
+                  border: '1px solid hsl(280 70% 60% / 0.35)',
                 } : phActive ? {
                   background: 'hsl(34 97% 52% / 0.1)',
                   border: '1px solid hsl(34 97% 52% / 0.35)',
