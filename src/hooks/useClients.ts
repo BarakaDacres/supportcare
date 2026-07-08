@@ -37,6 +37,7 @@ export interface Client {
   rate_sleepover_weekday: number | null;
   rate_sleepover_weekend: number | null;
   rate_public_holiday: number | null;
+  rate_overtime: number | null;
 }
 
 /** Whether the client is archived */
