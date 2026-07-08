@@ -1,5 +1,5 @@
 import { useState, useMemo, useRef, useCallback, useEffect } from 'react';
-import { Plus, Moon, User, ChevronDown, SortAsc, Lock, Sun, AlertCircle, Star, Sunset, Pencil, Copy, Trash2, CalendarPlus, RefreshCw } from 'lucide-react';
+import { Plus, Moon, User, ChevronDown, SortAsc, Lock, Sun, AlertCircle, Star, Sunset, Pencil, Copy, Trash2, CalendarPlus, RefreshCw, Zap } from 'lucide-react';
 import type { Shift, NewShift } from '@/hooks/useShifts';
 import { effectiveGrossPay } from '@/hooks/useShifts';
 import type { Client } from '@/hooks/useClients';
@@ -46,8 +46,9 @@ function getShiftBadges(shift: Shift) {
   const isWeekday = !isWeekend;
   const isSleepover = shift.is_sleepover;
   const isPublicHoliday = shift.is_public_holiday;
-  const isEvening = !isSleepover && !isPublicHoliday && shiftHasEveningHours(shift.start_time, shift.end_time);
-  return { isSleepover, isWeekend, isWeekday, isPublicHoliday, isEvening };
+  const isOvertime = shift.is_overtime;
+  const isEvening = !isSleepover && !isPublicHoliday && !isOvertime && shiftHasEveningHours(shift.start_time, shift.end_time);
+  return { isSleepover, isWeekend, isWeekday, isPublicHoliday, isOvertime, isEvening };
 }
 
 type ShiftStatus = 'active' | 'upcoming' | 'completed';
@@ -445,7 +446,7 @@ const ShiftList = ({
                 </div>
 
                 {dayShifts.map(shift => {
-                  const { isSleepover, isWeekend, isWeekday, isPublicHoliday, isEvening } = getShiftBadges(shift);
+                  const { isSleepover, isWeekend, isWeekday, isPublicHoliday, isOvertime, isEvening } = getShiftBadges(shift);
                   void isWeekday;
                   const hasOverride = shift.fee_override != null && shift.fee_override > 0;
                   const displayPay = effectiveGrossPay(shift);
@@ -458,6 +459,7 @@ const ShiftList = ({
                     : locked;
 
                   const shiftTypeLabel = (() => {
+                    if (isOvertime) return { label: 'Overtime', icon: <Zap className="w-2.5 h-2.5" />, style: { background: 'hsl(280 70% 60% / 0.13)', color: 'hsl(280 70% 55%)', border: '1px solid hsl(280 70% 60% / 0.28)' } };
                     if (isPublicHoliday) return { label: 'Public Holiday', icon: <Star className="w-2.5 h-2.5" />, style: { background: 'hsl(34 97% 52% / 0.13)', color: 'hsl(34 97% 44%)', border: '1px solid hsl(34 97% 52% / 0.25)' } };
                     if (isSleepover) return { label: 'Sleepover', icon: <Moon className="w-2.5 h-2.5" />, style: { background: 'hsl(var(--sleepover-color)/0.13)', color: 'hsl(var(--sleepover-color))', border: '1px solid hsl(var(--sleepover-color)/0.25)' } };
                     if (isEvening) return { label: 'Evening', icon: <Sunset className="w-2.5 h-2.5" />, style: { background: 'hsl(var(--evening-color)/0.12)', color: 'hsl(var(--evening-color))', border: '1px solid hsl(var(--evening-color)/0.25)' } };
@@ -614,6 +616,7 @@ const ShiftList = ({
             end_time: editingShift.end_time,
             is_sleepover: editingShift.is_sleepover,
             is_public_holiday: editingShift.is_public_holiday,
+            is_overtime: editingShift.is_overtime,
             client_id: editingShift.client_id,
             notes: editingShift.notes,
             fee_override: editingShift.fee_override,
