@@ -387,6 +387,7 @@ const RatesPanel = ({ settings, loading, onSave }: RatesPanelProps) => {
         <NdisRow label="Saturday Support" value={ndisCodesState.saturday} onChange={v => setCode('saturday', v)} />
         <NdisRow label="Sunday Support" value={ndisCodesState.sunday} onChange={v => setCode('sunday', v)} />
         <NdisRow label="Public Holiday" value={ndisCodesState.public_holiday} onChange={v => setCode('public_holiday', v)} />
+        <NdisRow label="Overtime" value={ndisCodesState.overtime} onChange={v => setCode('overtime', v)} />
         <NdisRow label="Weekday Sleepover" value={ndisCodesState.weekday_sleepover} onChange={v => setCode('weekday_sleepover', v)} />
         <NdisRow label="Weekend Sleepover (Sat)" value={ndisCodesState.saturday_sleepover} onChange={v => setCode('saturday_sleepover', v)} />
         <NdisRow label="Weekend Sleepover (Sun)" value={ndisCodesState.sunday_sleepover} onChange={v => setCode('sunday_sleepover', v)} isLast />
