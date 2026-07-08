@@ -23,6 +23,7 @@ export interface PayRates {
   rate_sleepover_public_holiday?: number; // flat per night on a public holiday
   rate_public_holiday?: number;   // Public holiday hourly
   rate_evening?: number;          // Evening 18:00–22:00 hourly (any day)
+  rate_overtime?: number;         // Overtime hourly (overrides all when flagged)
 }
 
 export const DEFAULT_RATES: PayRates = {
@@ -34,6 +35,7 @@ export const DEFAULT_RATES: PayRates = {
   rate_sleepover_public_holiday: 400,
   rate_public_holiday: 150,
   rate_evening: 75,
+  rate_overtime: 90,
 };
 
 /** Evening window in minutes since midnight — user-configurable via localStorage */
@@ -214,6 +216,7 @@ export function calculateShiftPay(
   isSleepover: boolean,
   rates: PayRates = DEFAULT_RATES,
   isPublicHoliday = false,
+  isOvertime = false,
 ): ShiftCalculation {
   // Refresh evening window from user prefs
   refreshEveningWindow();
@@ -227,12 +230,21 @@ export function calculateShiftPay(
   }
 
   const totalHours = (endMinutes - startMinutes) / 60;
+  const overtimeRate = rates.rate_overtime ?? 90;
 
   if (isSleepover) {
     const dayOfWeek = getDayOfWeek(dateStr);
     let rate: number;
     let label: string;
-    if (isPublicHoliday) {
+    if (isOvertime) {
+      // Overtime sleepover — pay by hours at overtime rate
+      rate = overtimeRate;
+      return {
+        hoursWorked: +totalHours.toFixed(2),
+        grossPay: +(totalHours * rate).toFixed(2),
+        breakdown: [{ label: 'Overtime Sleepover', hours: +totalHours.toFixed(2), rate, amount: +(totalHours * rate).toFixed(2) }],
+      };
+    } else if (isPublicHoliday) {
       rate = rates.rate_sleepover_public_holiday ?? 400;
       label = 'Public Holiday Sleepover';
     } else if (isWeekendSleeperNight(dayOfWeek)) {
@@ -263,12 +275,14 @@ export function calculateShiftPay(
     const dayName = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][seg.dayOfWeek];
     const isWeekday = seg.dayOfWeek >= 1 && seg.dayOfWeek <= 5; // Mon–Fri only
 
-    if (isPublicHoliday) {
+    if (isOvertime) {
+      rate = overtimeRate;
+      zoneLabel = `Overtime ${seg.date}`;
+    } else if (isPublicHoliday) {
       rate = phRate;
       zoneLabel = `Public Holiday ${seg.date}`;
     } else if (seg.isEvening && isWeekday) {
       // Evening rate only overrides weekday (Mon–Fri) rates.
-      // Saturday ($75) and Sunday ($90) are already ≥ evening rate, so use their day rate.
       rate = eveningRate;
       zoneLabel = `${dayName} ${seg.date} (Evening)`;
     } else {

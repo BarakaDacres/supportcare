@@ -20,13 +20,11 @@ export interface ClientRateFields {
   rate_sleepover_weekend: number | null;
   rate_sleepover_public_holiday?: number | null;
   rate_public_holiday: number | null;
+  rate_overtime?: number | null;
 }
 
 /**
  * Resolve effective rates for a client, falling back field-by-field.
- *
- * @param client     The client record (or null if no client selected)
- * @param globalRates  Rates from user_settings (or undefined if not loaded yet)
  */
 export function getEffectiveRates(
   client: ClientRateFields | null | undefined,
@@ -41,6 +39,7 @@ export function getEffectiveRates(
     rate_sleepover_weekend: globalRates?.rate_sleepover_weekend ?? DEFAULT_RATES.rate_sleepover_weekend,
     rate_sleepover_public_holiday: globalRates?.rate_sleepover_public_holiday ?? DEFAULT_RATES.rate_sleepover_public_holiday,
     rate_public_holiday:    globalRates?.rate_public_holiday    ?? DEFAULT_RATES.rate_public_holiday,
+    rate_overtime:          globalRates?.rate_overtime          ?? DEFAULT_RATES.rate_overtime,
   };
 
   if (!client || !client.use_custom_rates) return base;
@@ -54,5 +53,6 @@ export function getEffectiveRates(
     rate_sleepover_weekend: client.rate_sleepover_weekend ?? base.rate_sleepover_weekend,
     rate_sleepover_public_holiday: client.rate_sleepover_public_holiday ?? base.rate_sleepover_public_holiday,
     rate_public_holiday:    client.rate_public_holiday    ?? base.rate_public_holiday,
+    rate_overtime:          client.rate_overtime          ?? base.rate_overtime,
   };
 }

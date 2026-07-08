@@ -40,6 +40,7 @@ export interface UserSettings {
   rate_sleepover_public_holiday: number;
   rate_public_holiday: number;
   rate_evening: number;
+  rate_overtime: number;
   invoice_counter: number;
   /** Days after issue date the invoice is due */
   invoice_due_days: number;
@@ -70,6 +71,7 @@ export const DEFAULT_SETTINGS: Omit<UserSettings, 'id' | 'user_id'> = {
   rate_sleepover_public_holiday: 400,
   rate_public_holiday: 150,
   rate_evening: 75,
+  rate_overtime: 90,
   invoice_counter: 0,
   invoice_due_days: 7,
 };
@@ -226,6 +228,7 @@ export function useUserSettings() {
     rate_sleepover_public_holiday: settings?.rate_sleepover_public_holiday ?? 400,
     rate_public_holiday: settings?.rate_public_holiday ?? 150,
     rate_evening: settings?.rate_evening ?? 75,
+    rate_overtime: settings?.rate_overtime ?? 90,
   }), [settings]);
 
   return { settings, loading, fetchSettings, updateSettings, incrementInvoiceCounter, getRates };

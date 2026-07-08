@@ -53,6 +53,7 @@ const emptyForm = () => ({
   rate_sleepover_weekday: '',
   rate_sleepover_weekend: '',
   rate_public_holiday: '',
+  rate_overtime: '',
 });
 
 type ClientForm = ReturnType<typeof emptyForm>;
@@ -85,6 +86,7 @@ function clientToForm(c: Client): ClientForm {
     rate_sleepover_weekday: c.rate_sleepover_weekday != null ? String(c.rate_sleepover_weekday) : '',
     rate_sleepover_weekend: c.rate_sleepover_weekend != null ? String(c.rate_sleepover_weekend) : '',
     rate_public_holiday: c.rate_public_holiday != null ? String(c.rate_public_holiday) : '',
+    rate_overtime: c.rate_overtime != null ? String(c.rate_overtime) : '',
   };
 }
 
@@ -300,7 +302,10 @@ const ClientFormSheet = ({
                     <FormField label="Sleepover Wkday $" value={form.rate_sleepover_weekday} onChange={v => set('rate_sleepover_weekday', v)} placeholder={String(DEFAULT_RATES.rate_sleepover_weekday)} type="number" />
                     <FormField label="Sleepover Wkend $" value={form.rate_sleepover_weekend} onChange={v => set('rate_sleepover_weekend', v)} placeholder={String(DEFAULT_RATES.rate_sleepover_weekend)} type="number" />
                   </div>
-                  <FormField label="Public Holiday $/hr" value={form.rate_public_holiday} onChange={v => set('rate_public_holiday', v)} placeholder={String(DEFAULT_RATES.rate_public_holiday)} type="number" />
+                  <div className="grid grid-cols-2 gap-3" style={{ width: '100%' }}>
+                    <FormField label="Public Holiday $/hr" value={form.rate_public_holiday} onChange={v => set('rate_public_holiday', v)} placeholder={String(DEFAULT_RATES.rate_public_holiday)} type="number" />
+                    <FormField label="Overtime $/hr" value={form.rate_overtime} onChange={v => set('rate_overtime', v)} placeholder={String(DEFAULT_RATES.rate_overtime ?? 90)} type="number" />
+                  </div>
                 </>
               )}
             </div>
@@ -638,6 +643,7 @@ const ClientProfile = ({
                 { label: 'Sleep Wk', val: client.rate_sleepover_weekday, def: DEFAULT_RATES.rate_sleepover_weekday },
                 { label: 'Sleep We', val: client.rate_sleepover_weekend, def: DEFAULT_RATES.rate_sleepover_weekend },
                 { label: 'PH', val: client.rate_public_holiday, def: DEFAULT_RATES.rate_public_holiday },
+                { label: 'OT', val: client.rate_overtime, def: DEFAULT_RATES.rate_overtime ?? 90 },
               ].map(r => (
                 <span key={r.label} className="text-[10px] font-medium px-2.5 py-1 rounded-lg"
                   style={{
@@ -747,6 +753,7 @@ const ClientsPanel = ({ clients, shifts, loading, onAdd, onUpdate, onDelete, onA
     rate_sleepover_weekday: parseRate(form.rate_sleepover_weekday),
     rate_sleepover_weekend: parseRate(form.rate_sleepover_weekend),
     rate_public_holiday: parseRate(form.rate_public_holiday),
+    rate_overtime: parseRate(form.rate_overtime),
   });
 
   const handleAdd = async (form: ClientForm) => {

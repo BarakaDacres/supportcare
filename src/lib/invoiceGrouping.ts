@@ -26,6 +26,8 @@ export interface NdisItemCodes {
   sunday_sleepover: string;
   public_holiday: string;
   public_holiday_sleepover: string;
+  overtime: string;
+  overtime_sleepover: string;
 }
 
 export const DEFAULT_NDIS_CODES: NdisItemCodes = {
@@ -38,6 +40,8 @@ export const DEFAULT_NDIS_CODES: NdisItemCodes = {
   sunday_sleepover:         '01_019_0107_1_1',
   public_holiday:           '01_012_0107_1_1',
   public_holiday_sleepover: '01_019_0107_1_1',
+  overtime:                 '01_011_0107_1_1',
+  overtime_sleepover:       '01_019_0107_1_1',
 };
 
 export type InvoiceCategory =
@@ -49,7 +53,9 @@ export type InvoiceCategory =
   | 'saturday_sleepover'
   | 'sunday_sleepover'
   | 'public_holiday'
-  | 'public_holiday_sleepover';
+  | 'public_holiday_sleepover'
+  | 'overtime'
+  | 'overtime_sleepover';
 
 export const CATEGORY_LABELS: Record<InvoiceCategory, string> = {
   daily:                    'Daily Support',
@@ -61,6 +67,8 @@ export const CATEGORY_LABELS: Record<InvoiceCategory, string> = {
   sunday_sleepover:         'Sunday Sleepover',
   public_holiday:           'Public Holiday Support',
   public_holiday_sleepover: 'Public Holiday Sleepover',
+  overtime:                 'Overtime Support',
+  overtime_sleepover:       'Overtime Sleepover',
 };
 
 export interface InvoiceLineGroup {
@@ -133,7 +141,9 @@ function segmentShift(shift: Shift): ShiftSegment[] {
       const isWeekday = dow >= 1 && dow <= 5;
 
       let category: InvoiceCategory;
-      if (shift.is_public_holiday) {
+      if (shift.is_overtime) {
+        category = 'overtime';
+      } else if (shift.is_public_holiday) {
         category = 'public_holiday';
       } else if (isEvening && isWeekday) {
         category = 'evening';
@@ -154,6 +164,7 @@ function segmentShift(shift: Shift): ShiftSegment[] {
 }
 
 function getSleepoverCategory(shift: Shift): InvoiceCategory {
+  if (shift.is_overtime) return 'overtime_sleepover';
   if (shift.is_public_holiday) return 'public_holiday_sleepover';
   const dow = getDayOfWeek(shift.date);
   if (dow === 6) return 'saturday_sleepover';
@@ -163,6 +174,8 @@ function getSleepoverCategory(shift: Shift): InvoiceCategory {
 
 function getCategoryRate(category: InvoiceCategory, rates: PayRates): number {
   switch (category) {
+    case 'overtime_sleepover':       return rates.rate_overtime ?? 90;
+    case 'overtime':                 return rates.rate_overtime ?? 90;
     case 'public_holiday_sleepover': return rates.rate_sleepover_public_holiday ?? 400;
     case 'public_holiday':           return rates.rate_public_holiday ?? 150;
     case 'saturday':                 return rates.rate_saturday;

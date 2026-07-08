@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
-import { X, Clock, Moon, User, FileText, ChevronDown, DollarSign, Star, Sunset, Calendar } from 'lucide-react';
+import { X, Clock, Moon, User, FileText, ChevronDown, DollarSign, Star, Sunset, Calendar, Zap } from 'lucide-react';
 import { BottomSheet } from '@/components/ui/bottom-sheet';
 import { calculateShiftPay, formatTime12h, type PayRates, DEFAULT_RATES, getDayOfWeek, isWeekendSleeperNight, shiftHasEveningHours, dayLabel } from '@/lib/shiftCalculator';
 import { formatCurrency } from '@/lib/formatUtils';
@@ -73,6 +73,7 @@ const ShiftForm = ({
   const [endTime, setEndTime] = useState(initialValues?.end_time ?? '17:00');
   const [isSleepover, setIsSleepover] = useState(initialValues?.is_sleepover ?? false);
   const [isPublicHoliday, setIsPublicHoliday] = useState(initialValues?.is_public_holiday ?? false);
+  const [isOvertime, setIsOvertime] = useState(initialValues?.is_overtime ?? false);
   const [isPhSleepover, setIsPhSleepover] = useState(
     initialValues?.is_sleepover === true && initialValues?.is_public_holiday === true
   );
@@ -217,10 +218,11 @@ const ShiftForm = ({
   const phRate = rates.rate_public_holiday ?? 150;
   const phSleepoverRate = rates.rate_sleepover_public_holiday ?? 400;
   const eveningRate = rates.rate_evening ?? 75;
+  const overtimeRate = rates.rate_overtime ?? 90;
 
   const calc =
     date && startTime && endTime
-      ? calculateShiftPay(date, startTime, endTime, isSleepover, rates, isPublicHoliday)
+      ? calculateShiftPay(date, startTime, endTime, isSleepover, rates, isPublicHoliday, isOvertime)
       : null;
 
   const feeOverrideNum = feeOverride !== '' ? parseFloat(feeOverride) : null;
@@ -230,8 +232,9 @@ const ShiftForm = ({
     ? phSleepoverRate
     : calc?.grossPay ?? 0;
 
-  const phActive = isPublicHoliday && !isSleepover;
-  const hasEvening = !isSleepover && !isPublicHoliday && shiftHasEveningHours(startTime, endTime);
+  const phActive = isPublicHoliday && !isSleepover && !isOvertime;
+  const otActive = isOvertime && !isPhSleepover;
+  const hasEvening = !isSleepover && !isPublicHoliday && !isOvertime && shiftHasEveningHours(startTime, endTime);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -249,6 +252,7 @@ const ShiftForm = ({
         end_time: endTime,
         is_sleepover: isSleepover,
         is_public_holiday: isPublicHoliday,
+        is_overtime: isOvertime,
         client_id: clientId || null,
         notes: notes.trim() || null,
         fee_override: finalFeeOverride,
@@ -412,7 +416,7 @@ const ShiftForm = ({
               </button>
 
               {/* Public Holiday (hourly) */}
-              {!isSleepover && (
+              {!isSleepover && !isOvertime && (
                 <button
                   type="button"
                   onClick={() => setIsPublicHoliday(prev => !prev)}
@@ -441,6 +445,45 @@ const ShiftForm = ({
                     <span
                       className="absolute top-[3px] rounded-full bg-white shadow-sm transition-all duration-200"
                       style={{ width: 18, height: 18, left: isPublicHoliday ? 21 : 3 }}
+                    />
+                  </span>
+                </button>
+              )}
+
+              {/* Overtime (hourly, overrides PH/Evening/Day) */}
+              {!isPhSleepover && (
+                <button
+                  type="button"
+                  onClick={() => setIsOvertime(prev => {
+                    const next = !prev;
+                    if (next) setIsPublicHoliday(false);
+                    return next;
+                  })}
+                  className="w-full flex items-center gap-3 rounded-2xl border transition-all duration-200 px-4"
+                  style={{
+                    minHeight: 48,
+                    borderColor: isOvertime ? 'hsl(280 70% 60% / 0.55)' : 'hsl(var(--border))',
+                    background: isOvertime ? 'hsl(280 70% 60% / 0.08)' : 'transparent',
+                  }}
+                >
+                  <Zap
+                    className="w-4 h-4 shrink-0"
+                    style={{ color: isOvertime ? 'hsl(280 70% 60%)' : 'hsl(var(--muted-foreground))' }}
+                  />
+                  <span
+                    className="text-sm font-semibold flex-1 text-left"
+                    style={{ color: isOvertime ? 'hsl(280 70% 60%)' : 'hsl(var(--foreground))' }}
+                  >
+                    Overtime
+                  </span>
+                  <span className="text-[10px] text-muted-foreground mr-2">${overtimeRate}/hr</span>
+                  <span
+                    className="relative shrink-0 rounded-full transition-all duration-200"
+                    style={{ width: 42, height: 24, background: isOvertime ? 'hsl(280 70% 60%)' : 'hsl(var(--muted))' }}
+                  >
+                    <span
+                      className="absolute top-[3px] rounded-full bg-white shadow-sm transition-all duration-200"
+                      style={{ width: 18, height: 18, left: isOvertime ? 21 : 3 }}
                     />
                   </span>
                 </button>
@@ -572,6 +615,9 @@ const ShiftForm = ({
                 style={isPhSleepover ? {
                   background: 'hsl(34 97% 52% / 0.10)',
                   border: '1px solid hsl(34 97% 52% / 0.4)',
+                } : otActive ? {
+                  background: 'hsl(280 70% 60% / 0.08)',
+                  border: '1px solid hsl(280 70% 60% / 0.35)',
                 } : phActive ? {
                   background: 'hsl(34 97% 52% / 0.1)',
                   border: '1px solid hsl(34 97% 52% / 0.35)',
@@ -602,6 +648,14 @@ const ShiftForm = ({
                     </span>
                   </div>
                 )}
+                {otActive && (
+                  <div className="flex items-center gap-1.5 mb-1">
+                    <Zap className="w-3 h-3" style={{ color: 'hsl(280 70% 60%)' }} />
+                    <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: 'hsl(280 70% 60%)' }}>
+                      Overtime Rate Active — ${overtimeRate}/hr
+                    </span>
+                  </div>
+                )}
                 {hasEvening && (
                   <div className="flex items-center gap-1.5 mb-1">
                     <Sunset className="w-3 h-3" style={{ color: 'hsl(38 90% 45%)' }} />
@@ -615,7 +669,7 @@ const ShiftForm = ({
                   <div>
                     <p
                       className="text-xl font-bold leading-none"
-                      style={{ color: (isPhSleepover || phActive) ? 'hsl(34 97% 52%)' : 'hsl(var(--money-green))' }}
+                      style={{ color: (isPhSleepover || phActive) ? 'hsl(34 97% 52%)' : otActive ? 'hsl(280 70% 60%)' : 'hsl(var(--money-green))' }}
                     >
                       {formatCurrency(effectivePay)}
                     </p>

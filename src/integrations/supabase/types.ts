@@ -36,6 +36,7 @@ export type Database = {
           participant_number: string | null
           phone: string | null
           rate_evening: number | null
+          rate_overtime: number | null
           rate_public_holiday: number | null
           rate_saturday: number | null
           rate_sleepover_public_holiday: number | null
@@ -70,6 +71,7 @@ export type Database = {
           participant_number?: string | null
           phone?: string | null
           rate_evening?: number | null
+          rate_overtime?: number | null
           rate_public_holiday?: number | null
           rate_saturday?: number | null
           rate_sleepover_public_holiday?: number | null
@@ -104,6 +106,7 @@ export type Database = {
           participant_number?: string | null
           phone?: string | null
           rate_evening?: number | null
+          rate_overtime?: number | null
           rate_public_holiday?: number | null
           rate_saturday?: number | null
           rate_sleepover_public_holiday?: number | null
@@ -343,6 +346,7 @@ export type Database = {
           gross_pay: number
           hours_worked: number
           id: string
+          is_overtime: boolean
           is_public_holiday: boolean
           is_sleepover: boolean
           notes: string | null
@@ -359,6 +363,7 @@ export type Database = {
           gross_pay?: number
           hours_worked?: number
           id?: string
+          is_overtime?: boolean
           is_public_holiday?: boolean
           is_sleepover?: boolean
           notes?: string | null
@@ -375,6 +380,7 @@ export type Database = {
           gross_pay?: number
           hours_worked?: number
           id?: string
+          is_overtime?: boolean
           is_public_holiday?: boolean
           is_sleepover?: boolean
           notes?: string | null
@@ -410,6 +416,7 @@ export type Database = {
           monthly_goal: number | null
           phone: string | null
           rate_evening: number
+          rate_overtime: number
           rate_public_holiday: number
           rate_saturday: number
           rate_sleepover_public_holiday: number
@@ -442,6 +449,7 @@ export type Database = {
           monthly_goal?: number | null
           phone?: string | null
           rate_evening?: number
+          rate_overtime?: number
           rate_public_holiday?: number
           rate_saturday?: number
           rate_sleepover_public_holiday?: number
@@ -474,6 +482,7 @@ export type Database = {
           monthly_goal?: number | null
           phone?: string | null
           rate_evening?: number
+          rate_overtime?: number
           rate_public_holiday?: number
           rate_saturday?: number
           rate_sleepover_public_holiday?: number
