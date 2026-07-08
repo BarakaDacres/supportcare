@@ -290,7 +290,8 @@ const RatesPanel = ({ settings, loading, onSave }: RatesPanelProps) => {
         <RateRow label="Monday – Friday" value={val('rate_weekday', settings.rate_weekday) as number} onChange={v => set('rate_weekday', v)} />
         <RateRow label="Saturday" value={val('rate_saturday', settings.rate_saturday) as number} onChange={v => set('rate_saturday', v)} />
         <RateRow label="Sunday" value={val('rate_sunday', settings.rate_sunday) as number} onChange={v => set('rate_sunday', v)} />
-        <RateRow label="Public Holiday" value={val('rate_public_holiday', settings.rate_public_holiday) as number} onChange={v => set('rate_public_holiday', v)} isLast />
+        <RateRow label="Public Holiday" value={val('rate_public_holiday', settings.rate_public_holiday) as number} onChange={v => set('rate_public_holiday', v)} />
+        <RateRow label="Overtime" sublabel="Applied when Overtime is toggled on a shift" value={val('rate_overtime', settings.rate_overtime) as number} onChange={v => set('rate_overtime', v)} isLast />
       </CollapsibleSection>
 
       {/* ── Evening Shift ── */}
