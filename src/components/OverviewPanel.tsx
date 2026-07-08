@@ -408,6 +408,7 @@ const ElevatedCard = ({
 
 // ── Shift type dot color ──────────────────────────────────────────────────────
 function shiftDotColor(s: Shift): string {
+  if (s.is_overtime) return 'hsl(280 70% 60%)';
   if (s.is_public_holiday) return 'hsl(var(--stat-amber))';
   if (s.is_sleepover) return 'hsl(var(--sleepover-color))';
   if (shiftHasEveningHours(s.start_time, s.end_time)) return 'hsl(var(--evening-color))';
@@ -415,6 +416,7 @@ function shiftDotColor(s: Shift): string {
 }
 
 function shiftTypeLabel(s: Shift): { label: string; bg: string; fg: string; border: string } {
+  if (s.is_overtime) return { label: 'Overtime', bg: 'hsl(280 70% 60% / 0.12)', fg: 'hsl(280 70% 55%)', border: 'hsl(280 70% 60% / 0.25)' };
   if (s.is_public_holiday) return { label: 'Public Holiday', bg: 'hsl(var(--stat-amber)/0.12)', fg: 'hsl(var(--stat-amber))', border: 'hsl(var(--stat-amber)/0.2)' };
   if (s.is_sleepover) return { label: 'Sleepover', bg: 'hsl(var(--sleepover-color)/0.12)', fg: 'hsl(var(--sleepover-color))', border: 'hsl(var(--sleepover-color)/0.2)' };
   if (shiftHasEveningHours(s.start_time, s.end_time)) return { label: 'Evening', bg: 'hsl(var(--evening-color)/0.12)', fg: 'hsl(var(--evening-color))', border: 'hsl(var(--evening-color)/0.2)' };
