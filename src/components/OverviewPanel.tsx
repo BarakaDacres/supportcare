@@ -120,6 +120,8 @@ function computeWeekBreakdown(weekShifts: Shift[], settings: UserSettings | null
   let weekendSleepover = 0, weekendSleepoverN = 0;
   let publicHoliday = 0, publicHolidayH = 0;
   let phSleepover = 0, phSleepoverN = 0;
+  let overtime = 0, overtimeH = 0;
+  let overtimeSleepover = 0, overtimeSleepoverN = 0;
 
   const userRates: PayRates = settings ? {
     rate_weekday: settings.rate_weekday,
@@ -135,9 +137,15 @@ function computeWeekBreakdown(weekShifts: Shift[], settings: UserSettings | null
     const dow = getDayOfWeek(s.date);
     if (s.is_sleepover) {
       const pay = effectiveGrossPay(s);
-      if (s.is_public_holiday) { phSleepover += pay; phSleepoverN += 1; }
+      if (s.is_overtime) { overtimeSleepover += pay; overtimeSleepoverN += 1; }
+      else if (s.is_public_holiday) { phSleepover += pay; phSleepoverN += 1; }
       else if (dow === 6 || dow === 0) { weekendSleepover += pay; weekendSleepoverN += 1; }
       else { weekdaySleepover += pay; weekdaySleepoverN += 1; }
+      continue;
+    }
+    if (s.is_overtime) {
+      overtime += effectiveGrossPay(s);
+      overtimeH += Number(s.hours_worked);
       continue;
     }
     if (s.is_public_holiday) {
@@ -167,6 +175,8 @@ function computeWeekBreakdown(weekShifts: Shift[], settings: UserSettings | null
     weekendSleepover, weekendSleepoverN,
     publicHoliday,    publicHolidayH,
     phSleepover,      phSleepoverN,
+    overtime,         overtimeH,
+    overtimeSleepover, overtimeSleepoverN,
   };
 }
 
@@ -1189,6 +1199,8 @@ const OverviewPanel = ({
       let weekendSleepover = 0, weekendSleepoverN = 0;
       let publicHoliday = 0,    publicHolidayH = 0;
       let phSleepover = 0,      phSleepoverN = 0;
+      let overtime = 0,         overtimeH = 0;
+      let overtimeSleepover = 0, overtimeSleepoverN = 0;
 
       const userRates: PayRates = settings ? {
         rate_weekday: settings.rate_weekday,
@@ -1206,9 +1218,17 @@ const OverviewPanel = ({
         // Sleepover shifts are flat-rate, categorize directly
         if (s.is_sleepover) {
           const pay = effectiveGrossPay(s);
-          if (s.is_public_holiday) { phSleepover += pay; phSleepoverN += 1; }
+          if (s.is_overtime) { overtimeSleepover += pay; overtimeSleepoverN += 1; }
+          else if (s.is_public_holiday) { phSleepover += pay; phSleepoverN += 1; }
           else if (dow === 6 || dow === 0) { weekendSleepover += pay; weekendSleepoverN += 1; }
           else { weekdaySleepover += pay; weekdaySleepoverN += 1; }
+          continue;
+        }
+
+        // Overtime hourly overrides all other categories
+        if (s.is_overtime) {
+          overtime += effectiveGrossPay(s);
+          overtimeH += Number(s.hours_worked);
           continue;
         }
 
@@ -1243,6 +1263,8 @@ const OverviewPanel = ({
         weekendSleepover, weekendSleepoverN,
         publicHoliday,    publicHolidayH,
         phSleepover,      phSleepoverN,
+        overtime,         overtimeH,
+        overtimeSleepover, overtimeSleepoverN,
       };
     })();
 
@@ -1617,6 +1639,8 @@ const OverviewPanel = ({
     if (wb.weekendSleepover > 0)  rows.push({ label: 'Weekend Sleepover',          meta: `${wb.weekendSleepoverN} night${wb.weekendSleepoverN !== 1 ? 's' : ''}`, amount: wb.weekendSleepover });
     if (wb.publicHoliday > 0)     rows.push({ label: 'Public Holiday Support',     meta: `${wb.publicHolidayH.toFixed(1)}h`, amount: wb.publicHoliday });
     if (wb.phSleepover > 0)       rows.push({ label: 'Public Holiday Sleepover',   meta: `${wb.phSleepoverN} night${wb.phSleepoverN !== 1 ? 's' : ''}`, amount: wb.phSleepover });
+    if (wb.overtime > 0)          rows.push({ label: 'Overtime Support',           meta: `${wb.overtimeH.toFixed(1)}h`, amount: wb.overtime });
+    if (wb.overtimeSleepover > 0) rows.push({ label: 'Overtime Sleepover',         meta: `${wb.overtimeSleepoverN} night${wb.overtimeSleepoverN !== 1 ? 's' : ''}`, amount: wb.overtimeSleepover });
     const totalHours = filtered.filter(s => !s.is_sleepover).reduce((sum, s) => sum + Number(s.hours_worked), 0);
     const totalSleepovers = filtered.filter(s => s.is_sleepover).length;
     const totalGross = filtered.reduce((sum, s) => sum + effectiveGrossPay(s), 0);
@@ -1896,6 +1920,8 @@ const OverviewPanel = ({
                     if (wb.weekendSleepover > 0) rows.push({ label: 'Weekend Sleepover', value: wb.weekendSleepover, meta: `${wb.weekendSleepoverN} night${wb.weekendSleepoverN !== 1 ? 's' : ''}`, color: '#7C3AED' });
                     if (wb.publicHoliday > 0) rows.push({ label: 'Public Holiday', value: wb.publicHoliday, meta: `${wb.publicHolidayH.toFixed(1)}h`, color: 'hsl(34 97% 48%)' });
                     if (wb.phSleepover > 0) rows.push({ label: 'PH Sleepover', value: wb.phSleepover, meta: `${wb.phSleepoverN} night${wb.phSleepoverN !== 1 ? 's' : ''}`, color: 'hsl(34 90% 38%)' });
+                    if (wb.overtime > 0) rows.push({ label: 'Overtime', value: wb.overtime, meta: `${wb.overtimeH.toFixed(1)}h`, color: 'hsl(280 70% 60%)' });
+                    if (wb.overtimeSleepover > 0) rows.push({ label: 'Overtime Sleepover', value: wb.overtimeSleepover, meta: `${wb.overtimeSleepoverN} night${wb.overtimeSleepoverN !== 1 ? 's' : ''}`, color: 'hsl(280 65% 50%)' });
                     if (rows.length <= 1) return null;
                     return (
                       <div className="mt-4 pt-4 space-y-1.5" style={{ borderTop: '0.5px solid hsl(var(--border))' }}>
