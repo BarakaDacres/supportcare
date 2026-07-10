@@ -1639,6 +1639,8 @@ const OverviewPanel = ({
     if (wb.weekendSleepover > 0)  rows.push({ label: 'Weekend Sleepover',          meta: `${wb.weekendSleepoverN} night${wb.weekendSleepoverN !== 1 ? 's' : ''}`, amount: wb.weekendSleepover });
     if (wb.publicHoliday > 0)     rows.push({ label: 'Public Holiday Support',     meta: `${wb.publicHolidayH.toFixed(1)}h`, amount: wb.publicHoliday });
     if (wb.phSleepover > 0)       rows.push({ label: 'Public Holiday Sleepover',   meta: `${wb.phSleepoverN} night${wb.phSleepoverN !== 1 ? 's' : ''}`, amount: wb.phSleepover });
+    if (wb.overtime > 0)          rows.push({ label: 'Overtime Support',           meta: `${wb.overtimeH.toFixed(1)}h`, amount: wb.overtime });
+    if (wb.overtimeSleepover > 0) rows.push({ label: 'Overtime Sleepover',         meta: `${wb.overtimeSleepoverN} night${wb.overtimeSleepoverN !== 1 ? 's' : ''}`, amount: wb.overtimeSleepover });
     const totalHours = filtered.filter(s => !s.is_sleepover).reduce((sum, s) => sum + Number(s.hours_worked), 0);
     const totalSleepovers = filtered.filter(s => s.is_sleepover).length;
     const totalGross = filtered.reduce((sum, s) => sum + effectiveGrossPay(s), 0);
