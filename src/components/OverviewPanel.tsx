@@ -1199,6 +1199,8 @@ const OverviewPanel = ({
       let weekendSleepover = 0, weekendSleepoverN = 0;
       let publicHoliday = 0,    publicHolidayH = 0;
       let phSleepover = 0,      phSleepoverN = 0;
+      let overtime = 0,         overtimeH = 0;
+      let overtimeSleepover = 0, overtimeSleepoverN = 0;
 
       const userRates: PayRates = settings ? {
         rate_weekday: settings.rate_weekday,
@@ -1216,9 +1218,17 @@ const OverviewPanel = ({
         // Sleepover shifts are flat-rate, categorize directly
         if (s.is_sleepover) {
           const pay = effectiveGrossPay(s);
-          if (s.is_public_holiday) { phSleepover += pay; phSleepoverN += 1; }
+          if (s.is_overtime) { overtimeSleepover += pay; overtimeSleepoverN += 1; }
+          else if (s.is_public_holiday) { phSleepover += pay; phSleepoverN += 1; }
           else if (dow === 6 || dow === 0) { weekendSleepover += pay; weekendSleepoverN += 1; }
           else { weekdaySleepover += pay; weekdaySleepoverN += 1; }
+          continue;
+        }
+
+        // Overtime hourly overrides all other categories
+        if (s.is_overtime) {
+          overtime += effectiveGrossPay(s);
+          overtimeH += Number(s.hours_worked);
           continue;
         }
 
@@ -1253,6 +1263,8 @@ const OverviewPanel = ({
         weekendSleepover, weekendSleepoverN,
         publicHoliday,    publicHolidayH,
         phSleepover,      phSleepoverN,
+        overtime,         overtimeH,
+        overtimeSleepover, overtimeSleepoverN,
       };
     })();
 
