@@ -1920,6 +1920,8 @@ const OverviewPanel = ({
                     if (wb.weekendSleepover > 0) rows.push({ label: 'Weekend Sleepover', value: wb.weekendSleepover, meta: `${wb.weekendSleepoverN} night${wb.weekendSleepoverN !== 1 ? 's' : ''}`, color: '#7C3AED' });
                     if (wb.publicHoliday > 0) rows.push({ label: 'Public Holiday', value: wb.publicHoliday, meta: `${wb.publicHolidayH.toFixed(1)}h`, color: 'hsl(34 97% 48%)' });
                     if (wb.phSleepover > 0) rows.push({ label: 'PH Sleepover', value: wb.phSleepover, meta: `${wb.phSleepoverN} night${wb.phSleepoverN !== 1 ? 's' : ''}`, color: 'hsl(34 90% 38%)' });
+                    if (wb.overtime > 0) rows.push({ label: 'Overtime', value: wb.overtime, meta: `${wb.overtimeH.toFixed(1)}h`, color: 'hsl(280 70% 60%)' });
+                    if (wb.overtimeSleepover > 0) rows.push({ label: 'Overtime Sleepover', value: wb.overtimeSleepover, meta: `${wb.overtimeSleepoverN} night${wb.overtimeSleepoverN !== 1 ? 's' : ''}`, color: 'hsl(280 65% 50%)' });
                     if (rows.length <= 1) return null;
                     return (
                       <div className="mt-4 pt-4 space-y-1.5" style={{ borderTop: '0.5px solid hsl(var(--border))' }}>
