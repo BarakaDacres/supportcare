@@ -516,8 +516,36 @@ const AnalyticsPanel = ({ shifts, settings, selectedYear, selectedMonth }: Analy
       <div className="grid grid-cols-2 gap-2.5">
         <StatTile label="This Week" animateValue={stats.weeklyGross} value="" icon={BarChart3} iconColor="hsl(var(--primary))" />
         <StatTile label="This Fortnight" animateValue={stats.fortnightGross} value="" icon={BarChart3} iconColor="hsl(var(--primary))" />
-        <StatTile label="This Month" animateValue={stats.monthGross} value="" sub={`${stats.monthHours.toFixed(1)}h worked`} icon={DollarSign} iconColor="hsl(var(--money-green))" />
-        <StatTile label={`FY ${fyLabel} Total`} animateValue={stats.yearGross} value="" sub={`${stats.totalShifts} shifts`} icon={Star} iconColor="hsl(var(--stat-amber))" />
+        <StatTile
+          label="This Month"
+          animateValue={stats.monthGross}
+          value=""
+          sub={`${stats.monthHours.toFixed(1)}h worked`}
+          icon={DollarSign}
+          iconColor="hsl(var(--money-green))"
+          tooltip={
+            <div className="space-y-1">
+              <p className="font-semibold">This Month</p>
+              <p>Total gross income for the selected calendar month ({MONTH_SHORT[selectedMonth]} {selectedYear}).</p>
+              <p className="text-muted-foreground">Hours shown are non‑sleepover worked hours.</p>
+            </div>
+          }
+        />
+        <StatTile
+          label={`FY ${fyLabel} Total`}
+          animateValue={stats.yearGross}
+          value=""
+          sub={`${stats.totalShifts} shifts`}
+          icon={Star}
+          iconColor="hsl(var(--stat-amber))"
+          tooltip={
+            <div className="space-y-1">
+              <p className="font-semibold">FY {fyLabel} Total</p>
+              <p>Sums every completed shift dated between 1 Jul {fyStartYear} and 30 Jun {fyStartYear + 1}.</p>
+              <p className="text-muted-foreground">Includes public holiday, evening, sleepover and overtime earnings.</p>
+            </div>
+          }
+        />
       </div>
 
       {/* Tax projection */}
