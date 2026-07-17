@@ -409,7 +409,8 @@ const AnalyticsPanel = ({ shifts, settings, selectedYear, selectedMonth }: Analy
       {/* Header */}
       <div className="flex items-baseline justify-between">
         <h2 className="text-lg font-bold text-foreground">Analytics</h2>
-        <span className="text-xs font-semibold text-muted-foreground">{selectedYear}</span>
+        <span className="text-xs font-semibold text-muted-foreground">FY {fyLabel}</span>
+
       </div>
 
       {/* ── HERO: Projected Annual ── */}
