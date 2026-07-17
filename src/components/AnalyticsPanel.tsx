@@ -476,7 +476,7 @@ const AnalyticsPanel = ({ shifts, settings, selectedYear, selectedMonth }: Analy
         <StatTile label="This Week" animateValue={stats.weeklyGross} value="" icon={BarChart3} iconColor="hsl(var(--primary))" />
         <StatTile label="This Fortnight" animateValue={stats.fortnightGross} value="" icon={BarChart3} iconColor="hsl(var(--primary))" />
         <StatTile label="This Month" animateValue={stats.monthGross} value="" sub={`${stats.monthHours.toFixed(1)}h worked`} icon={DollarSign} iconColor="hsl(var(--money-green))" />
-        <StatTile label={`${selectedYear} Total`} animateValue={stats.yearGross} value="" sub={`${stats.totalShifts} shifts`} icon={Star} iconColor="hsl(var(--stat-amber))" />
+        <StatTile label={`FY ${fyLabel} Total`} animateValue={stats.yearGross} value="" sub={`${stats.totalShifts} shifts`} icon={Star} iconColor="hsl(var(--stat-amber))" />
       </div>
 
       {/* Tax projection */}
@@ -534,7 +534,7 @@ const AnalyticsPanel = ({ shifts, settings, selectedYear, selectedMonth }: Analy
       {/* Monthly bar chart — animated */}
       <div className="card-elevated overflow-hidden">
         <div className="px-4 pt-4 pb-3">
-          <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Monthly Earnings {selectedYear}</p>
+          <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Monthly Earnings · FY {fyLabel}</p>
         </div>
         <div className="px-4 pb-4">
           <AnimatedBarChart
@@ -583,7 +583,7 @@ const AnalyticsPanel = ({ shifts, settings, selectedYear, selectedMonth }: Analy
         <div className="card-elevated overflow-hidden">
           <div className="px-4 pt-4 pb-2">
             <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest flex items-center gap-1.5">
-              <Moon className="w-3.5 h-3.5" style={{ color: 'hsl(var(--sleepover-color))' }} /> Sleepover Summary · {selectedYear}
+              <Moon className="w-3.5 h-3.5" style={{ color: 'hsl(var(--sleepover-color))' }} /> Sleepover Summary · FY {fyLabel}
             </p>
           </div>
           <div className="px-4 pb-4 space-y-3">
@@ -613,7 +613,7 @@ const AnalyticsPanel = ({ shifts, settings, selectedYear, selectedMonth }: Analy
         <div className="card-elevated overflow-hidden">
           <div className="px-4 pt-4 pb-2">
             <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest flex items-center gap-1.5">
-              <Sunset className="w-3.5 h-3.5" style={{ color: 'hsl(var(--evening-color))' }} /> Evening Hours · {selectedYear}
+              <Sunset className="w-3.5 h-3.5" style={{ color: 'hsl(var(--evening-color))' }} /> Evening Hours · FY {fyLabel}
             </p>
           </div>
           <div className="px-4 pb-4 space-y-3">
