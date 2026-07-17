@@ -78,6 +78,22 @@ const InsightPill = ({ icon: Icon, text, color, delay = 0 }: {
   </div>
 );
 
+// ── Info tooltip helper ──
+const InfoTooltip = ({ children, content, side = 'top' }: {
+  children: React.ReactNode;
+  content: React.ReactNode;
+  side?: 'top' | 'bottom' | 'left' | 'right';
+}) => (
+  <Tooltip>
+    <TooltipTrigger asChild>
+      {children}
+    </TooltipTrigger>
+    <TooltipContent side={side} className="max-w-[260px] text-[11px] leading-relaxed">
+      {content}
+    </TooltipContent>
+  </Tooltip>
+);
+
 /* ── Stat tile with press feedback ── */
 const StatTile = ({
   label, value, sub, icon: Icon, iconColor, animateValue,
