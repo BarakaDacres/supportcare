@@ -1,9 +1,10 @@
 import { useMemo, useState, useEffect, useRef } from 'react';
 import {
   TrendingUp, Moon, BarChart3, Target, Sunset, Star, DollarSign, Clock,
-  Zap, Award, ArrowUpRight, ArrowDownRight, Calendar, Flame,
+  Zap, Award, ArrowUpRight, ArrowDownRight, Calendar, Flame, Info,
 } from 'lucide-react';
 import { formatCurrency } from '@/lib/formatUtils';
+import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import type { Shift } from '@/hooks/useShifts';
 import { effectiveGrossPay } from '@/hooks/useShifts';
 import type { UserSettings } from '@/hooks/useUserSettings';
@@ -77,13 +78,30 @@ const InsightPill = ({ icon: Icon, text, color, delay = 0 }: {
   </div>
 );
 
+// ── Info tooltip helper ──
+const InfoTooltip = ({ children, content, side = 'top' }: {
+  children: React.ReactNode;
+  content: React.ReactNode;
+  side?: 'top' | 'bottom' | 'left' | 'right';
+}) => (
+  <Tooltip>
+    <TooltipTrigger asChild>
+      {children}
+    </TooltipTrigger>
+    <TooltipContent side={side} className="max-w-[260px] text-[11px] leading-relaxed">
+      {content}
+    </TooltipContent>
+  </Tooltip>
+);
+
 /* ── Stat tile with press feedback ── */
 const StatTile = ({
-  label, value, sub, icon: Icon, iconColor, animateValue,
+  label, value, sub, icon: Icon, iconColor, animateValue, tooltip,
 }: {
   label: string; value: string; sub?: string;
   icon?: React.ElementType; iconColor?: string;
   animateValue?: number;
+  tooltip?: React.ReactNode;
 }) => (
   <div
     className="card-elevated transition-transform duration-150 active:scale-[0.97]"
@@ -97,6 +115,13 @@ const StatTile = ({
         </div>
       )}
       <span className="section-label truncate">{label}</span>
+      {tooltip && (
+        <InfoTooltip content={tooltip} side="top">
+          <button className="ml-auto p-0.5 rounded-full focus:outline-none focus-visible:ring-1 focus-visible:ring-ring shrink-0" aria-label={`More about ${label}`}>
+            <Info className="w-3 h-3 text-muted-foreground" />
+          </button>
+        </InfoTooltip>
+      )}
     </div>
     {animateValue !== undefined ? (
       <AnimatedCurrency
@@ -441,7 +466,23 @@ const AnalyticsPanel = ({ shifts, settings, selectedYear, selectedMonth }: Analy
             <TrendingUp className="w-5.5 h-5.5 money-text" />
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest mb-1">Projected Annual</p>
+            <div className="flex items-center gap-1.5 mb-1">
+              <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest">Projected Annual</p>
+              <InfoTooltip
+                content={
+                  <div className="space-y-1">
+                    <p className="font-semibold">Projected Annual</p>
+                    <p>Calculates your full‑year estimate using income from the elapsed months of FY {fyLabel}.</p>
+                    <p className="text-muted-foreground">Formula: FY total ÷ {stats.completedMonths} months × 12 months</p>
+                  </div>
+                }
+                side="right"
+              >
+                <button className="p-0.5 rounded-full focus:outline-none focus-visible:ring-1 focus-visible:ring-ring" aria-label="How projected annual is calculated">
+                  <Info className="w-3 h-3 text-muted-foreground" />
+                </button>
+              </InfoTooltip>
+            </div>
             <AnimatedCurrency
               value={stats.projected}
               className="text-[28px] font-bold money-text leading-none tracking-tight"
@@ -475,8 +516,36 @@ const AnalyticsPanel = ({ shifts, settings, selectedYear, selectedMonth }: Analy
       <div className="grid grid-cols-2 gap-2.5">
         <StatTile label="This Week" animateValue={stats.weeklyGross} value="" icon={BarChart3} iconColor="hsl(var(--primary))" />
         <StatTile label="This Fortnight" animateValue={stats.fortnightGross} value="" icon={BarChart3} iconColor="hsl(var(--primary))" />
-        <StatTile label="This Month" animateValue={stats.monthGross} value="" sub={`${stats.monthHours.toFixed(1)}h worked`} icon={DollarSign} iconColor="hsl(var(--money-green))" />
-        <StatTile label={`FY ${fyLabel} Total`} animateValue={stats.yearGross} value="" sub={`${stats.totalShifts} shifts`} icon={Star} iconColor="hsl(var(--stat-amber))" />
+        <StatTile
+          label="This Month"
+          animateValue={stats.monthGross}
+          value=""
+          sub={`${stats.monthHours.toFixed(1)}h worked`}
+          icon={DollarSign}
+          iconColor="hsl(var(--money-green))"
+          tooltip={
+            <div className="space-y-1">
+              <p className="font-semibold">This Month</p>
+              <p>Total gross income for the selected calendar month ({MONTH_SHORT[selectedMonth]} {selectedYear}).</p>
+              <p className="text-muted-foreground">Hours shown are non‑sleepover worked hours.</p>
+            </div>
+          }
+        />
+        <StatTile
+          label={`FY ${fyLabel} Total`}
+          animateValue={stats.yearGross}
+          value=""
+          sub={`${stats.totalShifts} shifts`}
+          icon={Star}
+          iconColor="hsl(var(--stat-amber))"
+          tooltip={
+            <div className="space-y-1">
+              <p className="font-semibold">FY {fyLabel} Total</p>
+              <p>Sums every completed shift dated between 1 Jul {fyStartYear} and 30 Jun {fyStartYear + 1}.</p>
+              <p className="text-muted-foreground">Includes public holiday, evening, sleepover and overtime earnings.</p>
+            </div>
+          }
+        />
       </div>
 
       {/* Tax projection */}
@@ -533,8 +602,22 @@ const AnalyticsPanel = ({ shifts, settings, selectedYear, selectedMonth }: Analy
 
       {/* Monthly bar chart — animated */}
       <div className="card-elevated overflow-hidden">
-        <div className="px-4 pt-4 pb-3">
+        <div className="px-4 pt-4 pb-3 flex items-center justify-between">
           <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Monthly Earnings · FY {fyLabel}</p>
+          <InfoTooltip
+            content={
+              <div className="space-y-1">
+                <p className="font-semibold">Monthly Earnings</p>
+                <p>Each bar shows the total gross for that month within FY {fyLabel}, ordered July → June.</p>
+                <p className="text-muted-foreground">The highlighted bar matches the month currently selected above.</p>
+              </div>
+            }
+            side="left"
+          >
+            <button className="p-0.5 rounded-full focus:outline-none focus-visible:ring-1 focus-visible:ring-ring" aria-label="How monthly earnings are calculated">
+              <Info className="w-3.5 h-3.5 text-muted-foreground" />
+            </button>
+          </InfoTooltip>
         </div>
         <div className="px-4 pb-4">
           <AnimatedBarChart
