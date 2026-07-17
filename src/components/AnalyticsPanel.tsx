@@ -210,6 +210,14 @@ const AnalyticsPanel = ({ shifts, settings, selectedYear, selectedMonth }: Analy
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
+  // ── Australian Financial Year (Jul 1 → Jun 30) ──
+  // FY is named after its ending year: e.g. Jul 2025 → Jun 2026 = "FY 25–26".
+  const fyStartYear = selectedMonth >= 6 ? selectedYear : selectedYear - 1;
+  const fyStart = new Date(fyStartYear, 6, 1); // Jul 1
+  const fyEnd = new Date(fyStartYear + 1, 5, 30); // Jun 30
+  fyEnd.setHours(23, 59, 59, 999);
+  const fyLabel = `${String(fyStartYear % 100).padStart(2, '0')}–${String((fyStartYear + 1) % 100).padStart(2, '0')}`;
+
   const stats = useMemo(() => {
     const weekStart = getMondayOf(today);
     const weekEnd = new Date(weekStart);
@@ -221,7 +229,8 @@ const AnalyticsPanel = ({ shifts, settings, selectedYear, selectedMonth }: Analy
     const thisWeekShifts = shifts.filter(s => { const d = parseDate(s.date); return d >= weekStart && d <= weekEnd; });
     const thisFortnightShifts = shifts.filter(s => { const d = parseDate(s.date); return d >= fortnightStart && d <= today; });
     const thisMonthShifts = shifts.filter(s => { const d = parseDate(s.date); return d.getMonth() === selectedMonth && d.getFullYear() === selectedYear; });
-    const thisYearShifts = shifts.filter(s => parseDate(s.date).getFullYear() === selectedYear);
+    // FY-scoped shifts (replaces prior calendar-year scope)
+    const thisYearShifts = shifts.filter(s => { const d = parseDate(s.date); return d >= fyStart && d <= fyEnd; });
 
     // Previous month
     const prevMonth = selectedMonth === 0 ? 11 : selectedMonth - 1;
@@ -242,21 +251,27 @@ const AnalyticsPanel = ({ shifts, settings, selectedYear, selectedMonth }: Analy
     const monthHours = workedHours(thisMonthShifts);
     const avgHourly = monthHours > 0 ? monthGross / monthHours : 0;
 
-    const byMonth = Array.from({ length: 12 }, (_, m) => {
-      const ms = thisYearShifts.filter(s => parseDate(s.date).getMonth() === m);
+    // FY month order: Jul, Aug, Sep, Oct, Nov, Dec, Jan, Feb, Mar, Apr, May, Jun
+    const fyMonthOrder = [6, 7, 8, 9, 10, 11, 0, 1, 2, 3, 4, 5];
+    const byMonth = fyMonthOrder.map(m => {
+      const yearForMonth = m >= 6 ? fyStartYear : fyStartYear + 1;
+      const ms = thisYearShifts.filter(s => {
+        const d = parseDate(s.date);
+        return d.getMonth() === m && d.getFullYear() === yearForMonth;
+      });
       return { month: m, gross: gross(ms), count: ms.length };
     });
 
     const maxMonthGross = Math.max(...byMonth.map(b => b.gross), 0);
     const bestMonth = byMonth.reduce((a, b) => (b.gross > a.gross ? b : a), byMonth[0]);
 
-    const currentYear = today.getFullYear();
-    const completedMonths = Math.max(1,
-      selectedYear < currentYear ? 12
-      : selectedYear > currentYear ? 1
-      : today.getMonth() + 1
-    );
+    // Completed months within the FY (elapsed, min 1, max 12)
+    let completedMonths: number;
+    if (today > fyEnd) completedMonths = 12;
+    else if (today < fyStart) completedMonths = 1;
+    else completedMonths = Math.max(1, (today.getFullYear() - fyStartYear) * 12 + (today.getMonth() - 6) + 1);
     const projected = (yearGross / completedMonths) * 12;
+
 
     // Month-over-month growth
     const monthGrowthPct = prevMonthGross > 0
