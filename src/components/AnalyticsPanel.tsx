@@ -96,11 +96,12 @@ const InfoTooltip = ({ children, content, side = 'top' }: {
 
 /* ── Stat tile with press feedback ── */
 const StatTile = ({
-  label, value, sub, icon: Icon, iconColor, animateValue,
+  label, value, sub, icon: Icon, iconColor, animateValue, tooltip,
 }: {
   label: string; value: string; sub?: string;
   icon?: React.ElementType; iconColor?: string;
   animateValue?: number;
+  tooltip?: React.ReactNode;
 }) => (
   <div
     className="card-elevated transition-transform duration-150 active:scale-[0.97]"
@@ -114,6 +115,13 @@ const StatTile = ({
         </div>
       )}
       <span className="section-label truncate">{label}</span>
+      {tooltip && (
+        <InfoTooltip content={tooltip} side="top">
+          <button className="ml-auto p-0.5 rounded-full focus:outline-none focus-visible:ring-1 focus-visible:ring-ring shrink-0" aria-label={`More about ${label}`}>
+            <Info className="w-3 h-3 text-muted-foreground" />
+          </button>
+        </InfoTooltip>
+      )}
     </div>
     {animateValue !== undefined ? (
       <AnimatedCurrency
