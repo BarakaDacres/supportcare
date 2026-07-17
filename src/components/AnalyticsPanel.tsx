@@ -602,8 +602,22 @@ const AnalyticsPanel = ({ shifts, settings, selectedYear, selectedMonth }: Analy
 
       {/* Monthly bar chart — animated */}
       <div className="card-elevated overflow-hidden">
-        <div className="px-4 pt-4 pb-3">
+        <div className="px-4 pt-4 pb-3 flex items-center justify-between">
           <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Monthly Earnings · FY {fyLabel}</p>
+          <InfoTooltip
+            content={
+              <div className="space-y-1">
+                <p className="font-semibold">Monthly Earnings</p>
+                <p>Each bar shows the total gross for that month within FY {fyLabel}, ordered July → June.</p>
+                <p className="text-muted-foreground">The highlighted bar matches the month currently selected above.</p>
+              </div>
+            }
+            side="left"
+          >
+            <button className="p-0.5 rounded-full focus:outline-none focus-visible:ring-1 focus-visible:ring-ring" aria-label="How monthly earnings are calculated">
+              <Info className="w-3.5 h-3.5 text-muted-foreground" />
+            </button>
+          </InfoTooltip>
         </div>
         <div className="px-4 pb-4">
           <AnimatedBarChart
