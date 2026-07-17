@@ -1,9 +1,10 @@
 import { useMemo, useState, useEffect, useRef } from 'react';
 import {
   TrendingUp, Moon, BarChart3, Target, Sunset, Star, DollarSign, Clock,
-  Zap, Award, ArrowUpRight, ArrowDownRight, Calendar, Flame,
+  Zap, Award, ArrowUpRight, ArrowDownRight, Calendar, Flame, Info,
 } from 'lucide-react';
 import { formatCurrency } from '@/lib/formatUtils';
+import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import type { Shift } from '@/hooks/useShifts';
 import { effectiveGrossPay } from '@/hooks/useShifts';
 import type { UserSettings } from '@/hooks/useUserSettings';
