@@ -458,7 +458,23 @@ const AnalyticsPanel = ({ shifts, settings, selectedYear, selectedMonth }: Analy
             <TrendingUp className="w-5.5 h-5.5 money-text" />
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest mb-1">Projected Annual</p>
+            <div className="flex items-center gap-1.5 mb-1">
+              <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest">Projected Annual</p>
+              <InfoTooltip
+                content={
+                  <div className="space-y-1">
+                    <p className="font-semibold">Projected Annual</p>
+                    <p>Calculates your full‑year estimate using income from the elapsed months of FY {fyLabel}.</p>
+                    <p className="text-muted-foreground">Formula: FY total ÷ {stats.completedMonths} months × 12 months</p>
+                  </div>
+                }
+                side="right"
+              >
+                <button className="p-0.5 rounded-full focus:outline-none focus-visible:ring-1 focus-visible:ring-ring" aria-label="How projected annual is calculated">
+                  <Info className="w-3 h-3 text-muted-foreground" />
+                </button>
+              </InfoTooltip>
+            </div>
             <AnimatedCurrency
               value={stats.projected}
               className="text-[28px] font-bold money-text leading-none tracking-tight"
