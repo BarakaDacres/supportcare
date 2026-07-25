@@ -113,50 +113,50 @@
   }
 
   .dark {
-    /* ── Dark: deep near-black with cool undertone ── */
-    --background: 220 16% 4%;
-    --foreground: 220 10% 94%;
-    --card: 220 14% 8%;
-    --card-foreground: 220 10% 94%;
-    --popover: 220 14% 8%;
-    --popover-foreground: 220 10% 94%;
-    --primary: 211 100% 58%;
+    /* ── Dark: Apple-inspired near-black (#090909 / #121212 / #1A1A1A) ── */
+    --background: 0 0% 3.5%;          /* #090909 */
+    --foreground: 0 0% 100%;
+    --card: 0 0% 10%;                 /* #1A1A1A */
+    --card-foreground: 0 0% 100%;
+    --popover: 0 0% 7%;               /* #121212 */
+    --popover-foreground: 0 0% 100%;
+    --primary: 210 100% 65%;          /* #4DA3FF */
     --primary-foreground: 0 0% 100%;
-    --secondary: 220 12% 12%;
-    --secondary-foreground: 220 8% 82%;
-    --muted: 220 12% 11%;
-    --muted-foreground: 220 6% 50%;
-    --accent: 211 100% 58%;
+    --secondary: 0 0% 10%;
+    --secondary-foreground: 0 0% 90%;
+    --muted: 0 0% 9%;
+    --muted-foreground: 0 0% 65%;     /* rgba(255,255,255,0.65) */
+    --accent: 210 100% 65%;
     --accent-foreground: 0 0% 100%;
-    --destructive: 0 62% 52%;
+    --destructive: 3 100% 62%;        /* #FF453A */
     --destructive-foreground: 0 0% 100%;
-    --border: 220 10% 14%;
-    --input: 220 10% 14%;
-    --ring: 211 100% 58%;
+    --border: 0 0% 100%;              /* used with /0.08 via alpha at consumers */
+    --input: 0 0% 12%;
+    --ring: 210 100% 65%;
 
     /* ── Surface system — darker, smokier ── */
-    --glass-bg: 220 16% 7% / 0.78;
-    --glass-border: 220 10% 100% / 0.05;
-    --glass-shadow: 0 0% 0% / 0.45;
-    --glass-blur: 28px;
-    --glow-primary: 211 100% 58% / 0.08;
-    --surface-elevated: 220 14% 10% / 0.9;
+    --glass-bg: 0 0% 7% / 0.72;
+    --glass-border: 0 0% 100% / 0.08;
+    --glass-shadow: 0 0% 0% / 0.5;
+    --glass-blur: 32px;
+    --glow-primary: 210 100% 65% / 0.10;
+    --surface-elevated: 0 0% 10% / 0.9;
 
-    /* ── Card shadows — deeper, more cinematic ── */
-    --card-shadow-sm: 0 1px 4px hsl(0 0% 0% / 0.35), 0 6px 16px hsl(0 0% 0% / 0.3), inset 0 0.5px 0 hsl(220 14% 100% / 0.05);
-    --card-shadow-md: 0 2px 8px hsl(0 0% 0% / 0.4), 0 16px 48px hsl(0 0% 0% / 0.35), inset 0 0.5px 0 hsl(220 14% 100% / 0.06);
-    --card-shadow-lg: 0 4px 16px hsl(0 0% 0% / 0.45), 0 32px 72px hsl(0 0% 0% / 0.4), inset 0 0.5px 0 hsl(220 14% 100% / 0.07);
+    /* ── Card shadows — minimal, deep ── */
+    --card-shadow-sm: 0 1px 2px hsl(0 0% 0% / 0.4), inset 0 0.5px 0 hsl(0 0% 100% / 0.04);
+    --card-shadow-md: 0 4px 16px hsl(0 0% 0% / 0.45), inset 0 0.5px 0 hsl(0 0% 100% / 0.05);
+    --card-shadow-lg: 0 8px 32px hsl(0 0% 0% / 0.55), inset 0 0.5px 0 hsl(0 0% 100% / 0.06);
 
-    /* ── Semantic accents ── */
-    --stat-green: 126 38% 58%;
-    --stat-amber: 35 65% 58%;
-    --stat-red: 0 62% 52%;
+    /* ── Semantic accents (Apple-style) ── */
+    --stat-green: 135 63% 51%;        /* #30D158 */
+    --stat-amber: 36 100% 52%;        /* #FF9F0A */
+    --stat-red: 3 100% 62%;           /* #FF453A */
 
     /* ── Money green ── */
-    --money-green: 126 38% 58%;
-    --money-green-fg: 0 0% 98%;
-    --money-tint: 126 25% 10%;
-    --money-tint-border: 126 22% 18%;
+    --money-green: 135 63% 51%;
+    --money-green-fg: 0 0% 100%;
+    --money-tint: 135 30% 8%;
+    --money-tint-border: 135 25% 16%;
 
     /* ── Purple ── */
     --purple: 262 75% 72%;
@@ -165,35 +165,35 @@
     --purple-tint-border: 262 25% 18%;
 
     /* ── Shift type tags ── */
-    --evening-color: 32 65% 60%;
+    --evening-color: 36 100% 60%;
     --sleepover-color: 248 55% 72%;
     --weekend-color: 265 55% 72%;
 
-    --tab-bar-bg: 220 16% 3% / 0.92;
-    --header-bg: 220 16% 3% / 0.95;
+    --tab-bar-bg: 0 0% 5% / 0.88;
+    --header-bg: 0 0% 4% / 0.92;
 
     /* ── iOS 26 Liquid Glass — smoked dark glass ── */
-    --lg-pill-bg: 220 14% 8% / 0.88;
-    --lg-pill-border: 220 10% 100% / 0.07;
+    --lg-pill-bg: 0 0% 10% / 0.82;
+    --lg-pill-border: 0 0% 100% / 0.08;
     --lg-pill-shadow-color: 0 0% 0% / 0.6;
-    --lg-active-bg: 211 100% 58% / 0.14;
-    --lg-active-border: 211 100% 58% / 0.28;
-    --lg-specular: 0 0% 100% / 0.04;
+    --lg-active-bg: 210 100% 65% / 0.14;
+    --lg-active-border: 210 100% 65% / 0.32;
+    --lg-specular: 0 0% 100% / 0.05;
 
-    --divider: 220 10% 14%;
+    --divider: 0 0% 100% / 0.08;
 
     /* ── Liquid Glass layered surfaces (dark) ── */
-    --glass-1: 220 16% 8% / 0.6;
-    --glass-2: 220 16% 9% / 0.78;
-    --glass-3: 220 16% 11% / 0.92;
-    --glass-stroke: 220 10% 100% / 0.07;
-    --glass-stroke-strong: 220 10% 100% / 0.14;
-    --glass-highlight: 220 10% 100% / 0.05;
-    --glass-tint: 211 100% 58% / 0.05;
+    --glass-1: 0 0% 8% / 0.6;
+    --glass-2: 0 0% 10% / 0.78;
+    --glass-3: 0 0% 12% / 0.92;
+    --glass-stroke: 0 0% 100% / 0.08;
+    --glass-stroke-strong: 0 0% 100% / 0.12;
+    --glass-highlight: 0 0% 100% / 0.05;
+    --glass-tint: 210 100% 65% / 0.05;
 
-    /* ── Ambient gradients (dark) ── */
-    --ambient-1: radial-gradient(1200px 600px at 10% -10%, hsl(211 100% 58% / 0.10), transparent 60%);
-    --ambient-2: radial-gradient(900px 500px at 110% 10%, hsl(262 75% 72% / 0.08), transparent 60%);
+    /* ── Ambient gradients (dark) — subtle ── */
+    --ambient-1: radial-gradient(1200px 600px at 10% -10%, hsl(210 100% 65% / 0.06), transparent 60%);
+    --ambient-2: radial-gradient(900px 500px at 110% 10%, hsl(262 75% 72% / 0.04), transparent 60%);
   }
 }
 
