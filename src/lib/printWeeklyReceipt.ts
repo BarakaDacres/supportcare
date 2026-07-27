@@ -484,20 +484,6 @@ export async function downloadWeeklyReceiptPDF(opts: PrintWeeklyReceiptOptions) 
 
     y += 3;
 
-    // Sub-totals (kv)
-    sf(7, 'normal', RPAL.muted);
-    tx('Hours worked', M, y);
-    sf(7, 'normal', RPAL.ink);
-    tx(`${opts.totalHours.toFixed(2)} h`, colR, y, { align: 'right' });
-    y += 4;
-
-    if (opts.totalSleepovers > 0) {
-      sf(7, 'normal', RPAL.muted);
-      tx('Sleepovers', M, y);
-      sf(7, 'normal', RPAL.ink);
-      tx(String(opts.totalSleepovers), colR, y, { align: 'right' });
-      y += 4;
-    }
 
     // TOTAL row — thick top rule
     y += 2;
