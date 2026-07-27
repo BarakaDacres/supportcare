@@ -519,10 +519,10 @@ export async function downloadWeeklyReceiptPDF(opts: PrintWeeklyReceiptOptions) 
     // Payment details — bank info for the plan manager
     const st = opts.settings;
     const bankRows: Array<[string, string]> = [];
-    if (st?.account_name?.trim())   bankRows.push(['Account', st.account_name.trim()]);
+    if (st?.account_name?.trim())   bankRows.push(['Account', st.account_name.trim().toUpperCase()]);
     if (st?.bank_name?.trim())      bankRows.push(['Bank',    st.bank_name.trim()]);
-    if (st?.bsb?.trim())            bankRows.push(['BSB',     st.bsb.trim()]);
-    if (st?.account_number?.trim()) bankRows.push(['Acct No', st.account_number.trim()]);
+    if (st?.bsb?.trim())            bankRows.push(['BSB',     formatBSB(st.bsb.trim())]);
+    if (st?.account_number?.trim()) bankRows.push(['Acct No', formatAcctNo(st.account_number.trim())]);
 
     if (bankRows.length) {
       y += 5;
