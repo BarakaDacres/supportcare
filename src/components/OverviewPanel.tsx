@@ -1631,16 +1631,18 @@ const OverviewPanel = ({
     });
     const wb = computeWeekBreakdown(filtered, settings);
     const rows: ReceiptBreakdownRow[] = [];
-    if (wb.regularDay > 0)        rows.push({ label: 'Daily Support',              meta: `${wb.regularDayH.toFixed(1)}h`, amount: wb.regularDay });
-    if (wb.evening > 0)           rows.push({ label: 'Evening Support (Mon–Fri)',  meta: `${wb.eveningH.toFixed(1)}h`,    amount: wb.evening });
-    if (wb.satDay > 0)            rows.push({ label: 'Saturday Support',           meta: `${wb.satDayH.toFixed(1)}h`,     amount: wb.satDay });
-    if (wb.sunDay > 0)            rows.push({ label: 'Sunday Support',             meta: `${wb.sunDayH.toFixed(1)}h`,     amount: wb.sunDay });
-    if (wb.weekdaySleepover > 0)  rows.push({ label: 'Weekday Sleepover',          meta: `${wb.weekdaySleepoverN} night${wb.weekdaySleepoverN !== 1 ? 's' : ''}`, amount: wb.weekdaySleepover });
-    if (wb.weekendSleepover > 0)  rows.push({ label: 'Weekend Sleepover',          meta: `${wb.weekendSleepoverN} night${wb.weekendSleepoverN !== 1 ? 's' : ''}`, amount: wb.weekendSleepover });
-    if (wb.publicHoliday > 0)     rows.push({ label: 'Public Holiday Support',     meta: `${wb.publicHolidayH.toFixed(1)}h`, amount: wb.publicHoliday });
-    if (wb.phSleepover > 0)       rows.push({ label: 'Public Holiday Sleepover',   meta: `${wb.phSleepoverN} night${wb.phSleepoverN !== 1 ? 's' : ''}`, amount: wb.phSleepover });
-    if (wb.overtime > 0)          rows.push({ label: 'Overtime Support',           meta: `${wb.overtimeH.toFixed(1)}h`, amount: wb.overtime });
-    if (wb.overtimeSleepover > 0) rows.push({ label: 'Overtime Sleepover',         meta: `${wb.overtimeSleepoverN} night${wb.overtimeSleepoverN !== 1 ? 's' : ''}`, amount: wb.overtimeSleepover });
+    const unit = (amount: number, qty: number) => (qty > 0 ? amount / qty : null);
+    if (wb.regularDay > 0)        rows.push({ label: 'Daily Support',              meta: `${wb.regularDayH.toFixed(1)}h`, amount: wb.regularDay, unitPrice: unit(wb.regularDay, wb.regularDayH) });
+    if (wb.evening > 0)           rows.push({ label: 'Evening Support (Mon–Fri)',  meta: `${wb.eveningH.toFixed(1)}h`,    amount: wb.evening,    unitPrice: unit(wb.evening, wb.eveningH) });
+    if (wb.satDay > 0)            rows.push({ label: 'Saturday Support',           meta: `${wb.satDayH.toFixed(1)}h`,     amount: wb.satDay,     unitPrice: unit(wb.satDay, wb.satDayH) });
+    if (wb.sunDay > 0)            rows.push({ label: 'Sunday Support',             meta: `${wb.sunDayH.toFixed(1)}h`,     amount: wb.sunDay,     unitPrice: unit(wb.sunDay, wb.sunDayH) });
+    if (wb.weekdaySleepover > 0)  rows.push({ label: 'Weekday Sleepover',          meta: `${wb.weekdaySleepoverN} night${wb.weekdaySleepoverN !== 1 ? 's' : ''}`, amount: wb.weekdaySleepover, unitPrice: unit(wb.weekdaySleepover, wb.weekdaySleepoverN) });
+    if (wb.weekendSleepover > 0)  rows.push({ label: 'Weekend Sleepover',          meta: `${wb.weekendSleepoverN} night${wb.weekendSleepoverN !== 1 ? 's' : ''}`, amount: wb.weekendSleepover, unitPrice: unit(wb.weekendSleepover, wb.weekendSleepoverN) });
+    if (wb.publicHoliday > 0)     rows.push({ label: 'Public Holiday Support',     meta: `${wb.publicHolidayH.toFixed(1)}h`, amount: wb.publicHoliday, unitPrice: unit(wb.publicHoliday, wb.publicHolidayH) });
+    if (wb.phSleepover > 0)       rows.push({ label: 'Public Holiday Sleepover',   meta: `${wb.phSleepoverN} night${wb.phSleepoverN !== 1 ? 's' : ''}`, amount: wb.phSleepover, unitPrice: unit(wb.phSleepover, wb.phSleepoverN) });
+    if (wb.overtime > 0)          rows.push({ label: 'Overtime Support',           meta: `${wb.overtimeH.toFixed(1)}h`, amount: wb.overtime, unitPrice: unit(wb.overtime, wb.overtimeH) });
+    if (wb.overtimeSleepover > 0) rows.push({ label: 'Overtime Sleepover',         meta: `${wb.overtimeSleepoverN} night${wb.overtimeSleepoverN !== 1 ? 's' : ''}`, amount: wb.overtimeSleepover, unitPrice: unit(wb.overtimeSleepover, wb.overtimeSleepoverN) });
+
     const totalHours = filtered.filter(s => !s.is_sleepover).reduce((sum, s) => sum + Number(s.hours_worked), 0);
     const totalSleepovers = filtered.filter(s => s.is_sleepover).length;
     const totalGross = filtered.reduce((sum, s) => sum + effectiveGrossPay(s), 0);
