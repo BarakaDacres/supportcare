@@ -69,19 +69,19 @@ export interface PrintWeeklyReceiptOptions {
 export function buildWeeklyReceiptHTML(opts: PrintWeeklyReceiptOptions): string {
   const {
     weekStart, weekEnd, breakdownRows,
-    totalHours, totalShifts, totalSleepovers, totalGross,
-    recipientName, invoiceNumber, notes, preview, settings,
+    totalGross,
+    recipientName, recipientAddress, invoiceNumber, notes, preview, settings,
   } = opts;
 
   const now = new Date();
   const issuedShort = `${now.getDate()}/${now.getMonth() + 1}/${now.getFullYear()}`;
 
-  const abn = settings?.abn?.trim() || '';
+  const abn = settings?.abn?.trim() ? formatABN(settings.abn.trim()) : '';
   const bankRows: Array<[string, string]> = [];
-  if (settings?.account_name?.trim())   bankRows.push(['Account', settings.account_name.trim()]);
+  if (settings?.account_name?.trim())   bankRows.push(['Account', settings.account_name.trim().toUpperCase()]);
   if (settings?.bank_name?.trim())      bankRows.push(['Bank',    settings.bank_name.trim()]);
-  if (settings?.bsb?.trim())            bankRows.push(['BSB',     settings.bsb.trim()]);
-  if (settings?.account_number?.trim()) bankRows.push(['Acct No', settings.account_number.trim()]);
+  if (settings?.bsb?.trim())            bankRows.push(['BSB',     formatBSB(settings.bsb.trim())]);
+  if (settings?.account_number?.trim()) bankRows.push(['Acct No', formatAcctNo(settings.account_number.trim())]);
 
   const bankHtml = bankRows.length ? `
       <div class="pay">
