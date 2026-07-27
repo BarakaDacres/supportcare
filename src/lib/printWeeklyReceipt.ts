@@ -212,6 +212,8 @@ export function buildWeeklyReceiptHTML(opts: PrintWeeklyReceiptOptions): string 
 
       <h1 class="title">INVOICE</h1>
       <p class="subtitle">Weekly Statement</p>
+      ${abn ? `<p class="abn">ABN <b>${escape(abn)}</b></p>` : ''}
+
 
       <div class="meta-grid">
         <div><div class="lbl">Invoice #</div><div class="val">${escape(invoiceNumber || '—')}</div></div>
