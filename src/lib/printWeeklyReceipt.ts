@@ -244,7 +244,8 @@ export function buildWeeklyReceiptHTML(opts: PrintWeeklyReceiptOptions): string 
       ${recipientName ? `
       <div class="billed">
         <div class="lbl">Billed to</div>
-        <div class="val">${escape(recipientName)}</div>
+        <div class="val">${escape(recipientName.toUpperCase())}</div>
+        ${recipientAddress ? `<div class="addr">${escape(recipientAddress)}</div>` : ''}
       </div>` : ''}
 
       <hr class="rule" />
@@ -253,8 +254,6 @@ export function buildWeeklyReceiptHTML(opts: PrintWeeklyReceiptOptions): string 
       <div class="items">${rowsHtml}</div>
 
       <div class="totals">
-        <div class="kv"><span>Hours worked</span><span class="v">${totalHours.toFixed(2)} h</span></div>
-        ${totalSleepovers > 0 ? `<div class="kv"><span>Sleepovers</span><span class="v">${totalSleepovers}</span></div>` : ''}
         <div class="total-row"><span>Total</span><span class="v">${escape(formatCurrency(totalGross))}</span></div>
       </div>
 
