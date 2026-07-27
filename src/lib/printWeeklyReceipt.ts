@@ -30,6 +30,25 @@ export function formatRowMeta(meta: string, unitPrice?: number | null): string {
 }
 
 
+/** "61837428157" → "61 837 428 157" */
+export function formatABN(v: string): string {
+  const d = v.replace(/\D/g, '');
+  if (d.length !== 11) return v.trim();
+  return `${d.slice(0, 2)} ${d.slice(2, 5)} ${d.slice(5, 8)} ${d.slice(8)}`;
+}
+/** "670864" → "670 864" */
+export function formatBSB(v: string): string {
+  const d = v.replace(/\D/g, '');
+  if (d.length !== 6) return v.trim();
+  return `${d.slice(0, 3)} ${d.slice(3)}`;
+}
+/** "29626731" → "2962 6731" */
+export function formatAcctNo(v: string): string {
+  const d = v.replace(/\D/g, '');
+  if (d.length < 6) return v.trim();
+  return d.replace(/(\d{4})(?=\d)/g, '$1 ').trim();
+}
+
 export interface PrintWeeklyReceiptOptions {
   weekStart: Date;
   weekEnd: Date;
@@ -40,6 +59,7 @@ export interface PrintWeeklyReceiptOptions {
   totalGross: number;
   settings?: UserSettings | null;
   recipientName?: string | null;
+  recipientAddress?: string | null;
   invoiceNumber?: string | null;
   notes?: string | null;
   /** When true, omit the on-screen toolbar and stage background (for in-app iframe preview). */
