@@ -394,7 +394,14 @@ export async function downloadWeeklyReceiptPDF(opts: PrintWeeklyReceiptOptions) 
     y += 4.6;
     sf(6.5, 'normal', RPAL.muted);
     tx('WEEKLY STATEMENT', W / 2, y, { align: 'center' });
+    const abn = opts.settings?.abn?.trim() || '';
+    if (abn) {
+      y += 4;
+      sf(6.5, 'normal', RPAL.mid);
+      tx(`ABN ${abn}`, W / 2, y, { align: 'center' });
+    }
     y += 10;
+
 
     // Meta grid (2-col) — extra breathing space
     const colR = W - M;
