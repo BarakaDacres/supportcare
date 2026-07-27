@@ -18,7 +18,17 @@ export interface ReceiptBreakdownRow {
   label: string;
   meta: string;   // e.g. "12.5h" or "2 nights"
   amount: number;
+  /** Effective unit price (per hour / per night) — shown next to the quantity. */
+  unitPrice?: number | null;
 }
+
+/** "12.5h" + 67.56 → "12.5h × $67.56" */
+export function formatRowMeta(meta: string, unitPrice?: number | null): string {
+  if (unitPrice == null || !isFinite(unitPrice) || unitPrice <= 0) return meta;
+  const price = formatCurrency(unitPrice);
+  return meta ? `${meta} × ${price}` : price;
+}
+
 
 export interface PrintWeeklyReceiptOptions {
   weekStart: Date;
