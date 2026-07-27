@@ -452,11 +452,13 @@ export async function downloadWeeklyReceiptPDF(opts: PrintWeeklyReceiptOptions) 
       tx(r.label, M, y);
       sf(7, 'normal', RPAL.mid);
       tx(formatCurrency(r.amount), colR, y, { align: 'right' });
-      if (r.meta) {
+      const metaText = formatRowMeta(r.meta, (r as ReceiptBreakdownRow).unitPrice);
+      if (metaText) {
         y += 2.8;
         sf(5.5, 'normal', RPAL.muted);
-        tx(r.meta, M, y);
+        tx(metaText, M, y);
       }
+
       y += 3;
     });
 
