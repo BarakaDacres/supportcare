@@ -30,6 +30,25 @@ export function formatRowMeta(meta: string, unitPrice?: number | null): string {
 }
 
 
+/** "61837428157" → "61 837 428 157" */
+export function formatABN(v: string): string {
+  const d = v.replace(/\D/g, '');
+  if (d.length !== 11) return v.trim();
+  return `${d.slice(0, 2)} ${d.slice(2, 5)} ${d.slice(5, 8)} ${d.slice(8)}`;
+}
+/** "670864" → "670 864" */
+export function formatBSB(v: string): string {
+  const d = v.replace(/\D/g, '');
+  if (d.length !== 6) return v.trim();
+  return `${d.slice(0, 3)} ${d.slice(3)}`;
+}
+/** "29626731" → "2962 6731" */
+export function formatAcctNo(v: string): string {
+  const d = v.replace(/\D/g, '');
+  if (d.length < 6) return v.trim();
+  return d.replace(/(\d{4})(?=\d)/g, '$1 ').trim();
+}
+
 export interface PrintWeeklyReceiptOptions {
   weekStart: Date;
   weekEnd: Date;
@@ -40,6 +59,7 @@ export interface PrintWeeklyReceiptOptions {
   totalGross: number;
   settings?: UserSettings | null;
   recipientName?: string | null;
+  recipientAddress?: string | null;
   invoiceNumber?: string | null;
   notes?: string | null;
   /** When true, omit the on-screen toolbar and stage background (for in-app iframe preview). */
@@ -49,19 +69,19 @@ export interface PrintWeeklyReceiptOptions {
 export function buildWeeklyReceiptHTML(opts: PrintWeeklyReceiptOptions): string {
   const {
     weekStart, weekEnd, breakdownRows,
-    totalHours, totalShifts, totalSleepovers, totalGross,
-    recipientName, invoiceNumber, notes, preview, settings,
+    totalGross,
+    recipientName, recipientAddress, invoiceNumber, notes, preview, settings,
   } = opts;
 
   const now = new Date();
   const issuedShort = `${now.getDate()}/${now.getMonth() + 1}/${now.getFullYear()}`;
 
-  const abn = settings?.abn?.trim() || '';
+  const abn = settings?.abn?.trim() ? formatABN(settings.abn.trim()) : '';
   const bankRows: Array<[string, string]> = [];
-  if (settings?.account_name?.trim())   bankRows.push(['Account', settings.account_name.trim()]);
+  if (settings?.account_name?.trim())   bankRows.push(['Account', settings.account_name.trim().toUpperCase()]);
   if (settings?.bank_name?.trim())      bankRows.push(['Bank',    settings.bank_name.trim()]);
-  if (settings?.bsb?.trim())            bankRows.push(['BSB',     settings.bsb.trim()]);
-  if (settings?.account_number?.trim()) bankRows.push(['Acct No', settings.account_number.trim()]);
+  if (settings?.bsb?.trim())            bankRows.push(['BSB',     formatBSB(settings.bsb.trim())]);
+  if (settings?.account_number?.trim()) bankRows.push(['Acct No', formatAcctNo(settings.account_number.trim())]);
 
   const bankHtml = bankRows.length ? `
       <div class="pay">
@@ -140,6 +160,7 @@ export function buildWeeklyReceiptHTML(opts: PrintWeeklyReceiptOptions): string 
   }
   .billed .lbl { color: var(--muted); text-transform: uppercase; letter-spacing: .1em; font-size: 8.5px; margin-bottom: 3px; }
   .billed .val { font-weight: 700; font-size: 13px; letter-spacing: -0.005em; }
+  .billed .addr { font-size: 10px; color: var(--muted); margin-top: 2px; line-height: 1.35; white-space: pre-wrap; }
 
   .rule { border:none; border-top: 1px solid var(--hair); margin: 10px 0; }
 
@@ -224,7 +245,8 @@ export function buildWeeklyReceiptHTML(opts: PrintWeeklyReceiptOptions): string 
       ${recipientName ? `
       <div class="billed">
         <div class="lbl">Billed to</div>
-        <div class="val">${escape(recipientName)}</div>
+        <div class="val">${escape(recipientName.toUpperCase())}</div>
+        ${recipientAddress ? `<div class="addr">${escape(recipientAddress)}</div>` : ''}
       </div>` : ''}
 
       <hr class="rule" />
@@ -233,8 +255,6 @@ export function buildWeeklyReceiptHTML(opts: PrintWeeklyReceiptOptions): string 
       <div class="items">${rowsHtml}</div>
 
       <div class="totals">
-        <div class="kv"><span>Hours worked</span><span class="v">${totalHours.toFixed(2)} h</span></div>
-        ${totalSleepovers > 0 ? `<div class="kv"><span>Sleepovers</span><span class="v">${totalSleepovers}</span></div>` : ''}
         <div class="total-row"><span>Total</span><span class="v">${escape(formatCurrency(totalGross))}</span></div>
       </div>
 
@@ -394,7 +414,7 @@ export async function downloadWeeklyReceiptPDF(opts: PrintWeeklyReceiptOptions) 
     y += 4.6;
     sf(6.5, 'normal', RPAL.muted);
     tx('WEEKLY STATEMENT', W / 2, y, { align: 'center' });
-    const abn = opts.settings?.abn?.trim() || '';
+    const abn = opts.settings?.abn?.trim() ? formatABN(opts.settings.abn.trim()) : '';
     if (abn) {
       y += 4;
       sf(6.5, 'normal', RPAL.mid);
@@ -427,9 +447,16 @@ export async function downloadWeeklyReceiptPDF(opts: PrintWeeklyReceiptOptions) 
       tx('BILLED TO', M, y);
       y += 3.6;
       sf(9, 'bold', RPAL.ink);
-      tx(opts.recipientName, M, y);
-      y += 6;
+      tx(opts.recipientName.toUpperCase(), M, y);
+      y += 4;
+      if (opts.recipientAddress?.trim()) {
+        sf(6.5, 'normal', RPAL.muted);
+        const addrLines = doc.splitTextToSize(opts.recipientAddress.trim(), CW) as string[];
+        addrLines.forEach(ln => { tx(ln, M, y); y += 3; });
+      }
+      y += 2;
     }
+
 
     y += 2;
     hline(y); y += 5;
@@ -464,20 +491,6 @@ export async function downloadWeeklyReceiptPDF(opts: PrintWeeklyReceiptOptions) 
 
     y += 3;
 
-    // Sub-totals (kv)
-    sf(7, 'normal', RPAL.muted);
-    tx('Hours worked', M, y);
-    sf(7, 'normal', RPAL.ink);
-    tx(`${opts.totalHours.toFixed(2)} h`, colR, y, { align: 'right' });
-    y += 4;
-
-    if (opts.totalSleepovers > 0) {
-      sf(7, 'normal', RPAL.muted);
-      tx('Sleepovers', M, y);
-      sf(7, 'normal', RPAL.ink);
-      tx(String(opts.totalSleepovers), colR, y, { align: 'right' });
-      y += 4;
-    }
 
     // TOTAL row — thick top rule
     y += 2;
@@ -506,10 +519,10 @@ export async function downloadWeeklyReceiptPDF(opts: PrintWeeklyReceiptOptions) 
     // Payment details — bank info for the plan manager
     const st = opts.settings;
     const bankRows: Array<[string, string]> = [];
-    if (st?.account_name?.trim())   bankRows.push(['Account', st.account_name.trim()]);
+    if (st?.account_name?.trim())   bankRows.push(['Account', st.account_name.trim().toUpperCase()]);
     if (st?.bank_name?.trim())      bankRows.push(['Bank',    st.bank_name.trim()]);
-    if (st?.bsb?.trim())            bankRows.push(['BSB',     st.bsb.trim()]);
-    if (st?.account_number?.trim()) bankRows.push(['Acct No', st.account_number.trim()]);
+    if (st?.bsb?.trim())            bankRows.push(['BSB',     formatBSB(st.bsb.trim())]);
+    if (st?.account_number?.trim()) bankRows.push(['Acct No', formatAcctNo(st.account_number.trim())]);
 
     if (bankRows.length) {
       y += 5;
