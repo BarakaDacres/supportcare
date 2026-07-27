@@ -50,7 +50,7 @@ import { printWeeklyReceipt, downloadWeeklyReceiptPDF, buildWeeklyReceiptHTML, t
 import { formatCurrency } from '@/lib/formatUtils';
 import type { Shift } from '@/hooks/useShifts';
 import { effectiveGrossPay } from '@/hooks/useShifts';
-import type { Client } from '@/hooks/useClients';
+import { getEffectiveBillingAddress, type Client } from '@/hooks/useClients';
 import type { UserSettings } from '@/hooks/useUserSettings';
 import { MONTH_NAMES, MONTH_SHORT } from '@/lib/dateUtils';
 import { shiftHasEveningHours, getDayOfWeek } from '@/lib/shiftCalculator';
@@ -1649,6 +1649,15 @@ const OverviewPanel = ({
     return { ws, we, rows, totalHours, totalShifts: filtered.length, totalSleepovers, totalGross };
   };
 
+  // Resolve the client's billing/service address for the receipt "Billed to" block.
+  const recipientAddressFor = (name: string) => {
+    const n = (name || '').trim().toLowerCase();
+    if (!n) return null;
+    const c = clients.find(cl => (cl.name || '').trim().toLowerCase() === n);
+    if (!c) return null;
+    return getEffectiveBillingAddress(c).trim() || null;
+  };
+
   const buildPrintPayloadForDialog = () => {
     if (!printDialog) return null;
     const p = buildReceiptPayload(printDialog.startISO, printDialog.endISO);
@@ -1662,6 +1671,7 @@ const OverviewPanel = ({
       totalGross: p.totalGross,
       settings,
       recipientName: printDialog.recipientName.trim() || null,
+      recipientAddress: recipientAddressFor(printDialog.recipientName),
       invoiceNumber: printDialog.invoiceNumber.trim() || null,
       notes: printDialog.notes.trim() || null,
     };
@@ -1695,6 +1705,7 @@ const OverviewPanel = ({
       totalGross: p.totalGross,
       settings,
       recipientName: printDialog.recipientName.trim() || null,
+      recipientAddress: recipientAddressFor(printDialog.recipientName),
       invoiceNumber: printDialog.invoiceNumber.trim() || null,
       notes: printDialog.notes.trim() || null,
       preview: true,
