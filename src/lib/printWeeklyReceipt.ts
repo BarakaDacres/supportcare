@@ -414,7 +414,7 @@ export async function downloadWeeklyReceiptPDF(opts: PrintWeeklyReceiptOptions) 
     y += 4.6;
     sf(6.5, 'normal', RPAL.muted);
     tx('WEEKLY STATEMENT', W / 2, y, { align: 'center' });
-    const abn = opts.settings?.abn?.trim() || '';
+    const abn = opts.settings?.abn?.trim() ? formatABN(opts.settings.abn.trim()) : '';
     if (abn) {
       y += 4;
       sf(6.5, 'normal', RPAL.mid);
@@ -447,9 +447,16 @@ export async function downloadWeeklyReceiptPDF(opts: PrintWeeklyReceiptOptions) 
       tx('BILLED TO', M, y);
       y += 3.6;
       sf(9, 'bold', RPAL.ink);
-      tx(opts.recipientName, M, y);
-      y += 6;
+      tx(opts.recipientName.toUpperCase(), M, y);
+      y += 4;
+      if (opts.recipientAddress?.trim()) {
+        sf(6.5, 'normal', RPAL.muted);
+        const addrLines = doc.splitTextToSize(opts.recipientAddress.trim(), CW) as string[];
+        addrLines.forEach(ln => { tx(ln, M, y); y += 3; });
+      }
+      y += 2;
     }
+
 
     y += 2;
     hline(y); y += 5;
