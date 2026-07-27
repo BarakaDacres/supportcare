@@ -50,23 +50,37 @@ export function buildWeeklyReceiptHTML(opts: PrintWeeklyReceiptOptions): string 
   const {
     weekStart, weekEnd, breakdownRows,
     totalHours, totalShifts, totalSleepovers, totalGross,
-    recipientName, invoiceNumber, notes, preview,
+    recipientName, invoiceNumber, notes, preview, settings,
   } = opts;
 
   const now = new Date();
   const issuedShort = `${now.getDate()}/${now.getMonth() + 1}/${now.getFullYear()}`;
+
+  const abn = settings?.abn?.trim() || '';
+  const bankRows: Array<[string, string]> = [];
+  if (settings?.account_name?.trim())   bankRows.push(['Account', settings.account_name.trim()]);
+  if (settings?.bank_name?.trim())      bankRows.push(['Bank',    settings.bank_name.trim()]);
+  if (settings?.bsb?.trim())            bankRows.push(['BSB',     settings.bsb.trim()]);
+  if (settings?.account_number?.trim()) bankRows.push(['Acct No', settings.account_number.trim()]);
+
+  const bankHtml = bankRows.length ? `
+      <div class="pay">
+        <span class="lbl">Payment Details</span>
+        ${bankRows.map(([k, v]) => `<div class="kv"><span>${escape(k)}</span><span class="v">${escape(v)}</span></div>`).join('')}
+      </div>` : '';
 
   const rowsHtml = breakdownRows.length
     ? breakdownRows.map(r => `
       <div class="row">
         <div class="row-main">
           <div class="row-label">${escape(r.label)}</div>
-          <div class="row-meta">${escape(r.meta)}</div>
+          <div class="row-meta">${escape(formatRowMeta(r.meta, r.unitPrice))}</div>
         </div>
         <div class="row-amt">${escape(formatCurrency(r.amount))}</div>
       </div>
     `).join('')
     : `<div class="row"><div class="row-main"><div class="row-meta">No hours this week.</div></div></div>`;
+
 
   // True thermal-receipt dimensions: 80mm wide (matches uploaded 225pt × 750pt sample).
   // Height is auto on screen; print uses a custom @page width with auto length.
