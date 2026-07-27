@@ -171,8 +171,16 @@ export function buildWeeklyReceiptHTML(opts: PrintWeeklyReceiptOptions): string 
   .notes { font-size: 10.5px; color: var(--ink); margin: 12px 0 0; line-height: 1.5; white-space: pre-wrap; }
   .notes .lbl { color: var(--muted); text-transform: uppercase; letter-spacing: .1em; font-size: 8.5px; display:block; margin-bottom: 4px; }
 
+  .abn { text-align:center; font-size: 9.5px; color: var(--muted); letter-spacing: .06em; margin: -10px 0 14px; }
+  .abn b { color: var(--ink); font-weight: 600; }
+
+  .pay { margin-top: 14px; padding-top: 10px; border-top: 1px solid var(--hair); }
+  .pay .lbl { color: var(--muted); text-transform: uppercase; letter-spacing: .1em; font-size: 8.5px; display:block; margin-bottom: 5px; }
+  .pay .kv { font-size: 10.5px; padding: 2px 0; }
+
   .thanks { text-align:center; margin-top: 18px; font-size: 13px; font-weight: 700; letter-spacing: .32em; }
   .stamp  { text-align:center; margin-top: 4px; font-size: 9px; color: var(--accent); letter-spacing: .08em; font-weight:600; }
+
 
   .toolbar {
     position: fixed; left:0; right:0; bottom:0;
