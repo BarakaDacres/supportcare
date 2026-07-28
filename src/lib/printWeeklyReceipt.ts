@@ -30,6 +30,22 @@ export function formatRowMeta(meta: string, unitPrice?: number | null): string {
 }
 
 
+/**
+ * Format a free-form address into clean lines:
+ *   line 1 = street, line 2 = suburb, state postcode.
+ * Missing parts degrade gracefully (1 part → 1 line).
+ * Mirrors the Invoices page address logic.
+ */
+export function formatAddressLines(value?: string | null): string[] {
+  const raw = (value || '').replace(/\n+/g, ',').trim();
+  if (!raw) return [];
+  const parts = raw.split(',').map(p => p.trim()).filter(Boolean);
+  if (parts.length === 0) return [];
+  if (parts.length === 1) return [parts[0]];
+  if (parts.length === 2) return [parts[0], parts[1]];
+  return [parts.slice(0, parts.length - 2).join(', '), parts.slice(parts.length - 2).join(', ')];
+}
+
 /** "61837428157" → "61 837 428 157" */
 export function formatABN(v: string): string {
   const d = v.replace(/\D/g, '');
