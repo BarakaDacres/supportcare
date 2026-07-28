@@ -255,7 +255,7 @@ export function buildWeeklyReceiptHTML(opts: PrintWeeklyReceiptOptions): string 
 
       <div class="meta-grid">
         <div><div class="lbl">Invoice #</div><div class="val">${escape(invoiceNumber || '—')}</div></div>
-        <div class="right"><div class="lbl">Issued</div><div class="val">${escape(issuedShort)}</div></div>
+        <div class="right"><div class="lbl">Due Date</div><div class="val">Upon receipt</div></div>
         <div class="span2"><div class="lbl">Period</div><div class="val">${escape(fmtRange(weekStart, weekEnd))}</div></div>
       </div>
 
@@ -263,7 +263,7 @@ export function buildWeeklyReceiptHTML(opts: PrintWeeklyReceiptOptions): string 
       <div class="billed">
         <div class="lbl">Billed to</div>
         <div class="val">${escape(recipientName.toUpperCase())}</div>
-        ${recipientAddress ? `<div class="addr">${escape(recipientAddress)}</div>` : ''}
+        ${formatAddressLines(recipientAddress).length ? `<div class="addr">${formatAddressLines(recipientAddress).map(l => `<div>${escape(l)}</div>`).join('')}</div>` : ''}
       </div>` : ''}
 
       <hr class="rule" />
