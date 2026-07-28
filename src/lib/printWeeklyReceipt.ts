@@ -511,15 +511,15 @@ export async function downloadWeeklyReceiptPDF(opts: PrintWeeklyReceiptOptions) 
     y += 3;
 
 
-    // TOTAL row — thick top rule
+    // TOTAL row — hairline top rule
     y += 2;
     if (draw) {
-      doc.setDrawColor(...hexToRgb(RPAL.ink));
-      doc.setLineWidth(0.5);
+      doc.setDrawColor(...hexToRgb(RPAL.hair));
+      doc.setLineWidth(0.4);
       doc.line(M, y, W - M, y);
     }
     y += 5.8;
-    sf(12, 'bold', RPAL.ink);
+    sf(12, 'normal', RPAL.mid);
     tx('TOTAL', M, y);
     tx(formatCurrency(opts.totalGross), colR, y, { align: 'right' });
     y += 6;
