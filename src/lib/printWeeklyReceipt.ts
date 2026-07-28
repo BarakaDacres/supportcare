@@ -444,11 +444,11 @@ export async function downloadWeeklyReceiptPDF(opts: PrintWeeklyReceiptOptions) 
     const colR = W - M;
     sf(5.8, 'normal', RPAL.muted);
     tx('INVOICE #', M, y);
-    tx('ISSUED',    colR, y, { align: 'right' });
+    tx('DUE DATE',  colR, y, { align: 'right' });
     y += 3.6;
     sf(8, 'normal', RPAL.ink);
     tx(opts.invoiceNumber || '—', M, y);
-    tx(issuedShort, colR, y, { align: 'right' });
+    tx('Upon receipt', colR, y, { align: 'right' });
     y += 6.4;
 
     sf(5.8, 'normal', RPAL.muted);
