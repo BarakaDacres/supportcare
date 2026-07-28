@@ -200,9 +200,9 @@ export function buildWeeklyReceiptHTML(opts: PrintWeeklyReceiptOptions): string 
   .kv .v { font-variant-numeric: tabular-nums; color: var(--ink); font-weight: 600; }
   .total-row {
     display:flex; justify-content:space-between; align-items:baseline;
-    font-size: 18px; font-weight: 800; padding: 10px 0 4px;
-    border-top: 1.5px solid var(--ink); margin-top: 10px;
-    letter-spacing: -0.01em;
+    font-size: 18px; font-weight: 600; padding: 10px 0 4px;
+    border-top: 1.5px solid var(--hair); margin-top: 10px;
+    letter-spacing: -0.01em; color: #3a3a40;
   }
   .total-row .v { font-variant-numeric: tabular-nums; }
 
