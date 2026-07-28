@@ -30,6 +30,22 @@ export function formatRowMeta(meta: string, unitPrice?: number | null): string {
 }
 
 
+/**
+ * Format a free-form address into clean lines:
+ *   line 1 = street, line 2 = suburb, state postcode.
+ * Missing parts degrade gracefully (1 part → 1 line).
+ * Mirrors the Invoices page address logic.
+ */
+export function formatAddressLines(value?: string | null): string[] {
+  const raw = (value || '').replace(/\n+/g, ',').trim();
+  if (!raw) return [];
+  const parts = raw.split(',').map(p => p.trim()).filter(Boolean);
+  if (parts.length === 0) return [];
+  if (parts.length === 1) return [parts[0]];
+  if (parts.length === 2) return [parts[0], parts[1]];
+  return [parts.slice(0, parts.length - 2).join(', '), parts.slice(parts.length - 2).join(', ')];
+}
+
 /** "61837428157" → "61 837 428 157" */
 export function formatABN(v: string): string {
   const d = v.replace(/\D/g, '');
@@ -159,8 +175,9 @@ export function buildWeeklyReceiptHTML(opts: PrintWeeklyReceiptOptions): string 
     font-size: 10.5px;
   }
   .billed .lbl { color: var(--muted); text-transform: uppercase; letter-spacing: .1em; font-size: 8.5px; margin-bottom: 3px; }
-  .billed .val { font-weight: 700; font-size: 13px; letter-spacing: -0.005em; }
-  .billed .addr { font-size: 10px; color: var(--muted); margin-top: 2px; line-height: 1.35; white-space: pre-wrap; }
+  .billed .val { font-weight: 600; font-size: 11px; letter-spacing: -0.005em; color: #3a3a40; }
+  .billed .addr { font-size: 9.5px; color: var(--muted); margin-top: 2px; line-height: 1.35; }
+  .billed .addr div { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
   .rule { border:none; border-top: 1px solid var(--hair); margin: 10px 0; }
 
@@ -183,9 +200,9 @@ export function buildWeeklyReceiptHTML(opts: PrintWeeklyReceiptOptions): string 
   .kv .v { font-variant-numeric: tabular-nums; color: var(--ink); font-weight: 600; }
   .total-row {
     display:flex; justify-content:space-between; align-items:baseline;
-    font-size: 18px; font-weight: 800; padding: 10px 0 4px;
-    border-top: 1.5px solid var(--ink); margin-top: 10px;
-    letter-spacing: -0.01em;
+    font-size: 18px; font-weight: 600; padding: 10px 0 4px;
+    border-top: 1.5px solid var(--hair); margin-top: 10px;
+    letter-spacing: -0.01em; color: #3a3a40;
   }
   .total-row .v { font-variant-numeric: tabular-nums; }
 
@@ -238,7 +255,7 @@ export function buildWeeklyReceiptHTML(opts: PrintWeeklyReceiptOptions): string 
 
       <div class="meta-grid">
         <div><div class="lbl">Invoice #</div><div class="val">${escape(invoiceNumber || '—')}</div></div>
-        <div class="right"><div class="lbl">Issued</div><div class="val">${escape(issuedShort)}</div></div>
+        <div class="right"><div class="lbl">Due Date</div><div class="val">Upon receipt</div></div>
         <div class="span2"><div class="lbl">Period</div><div class="val">${escape(fmtRange(weekStart, weekEnd))}</div></div>
       </div>
 
@@ -246,7 +263,7 @@ export function buildWeeklyReceiptHTML(opts: PrintWeeklyReceiptOptions): string 
       <div class="billed">
         <div class="lbl">Billed to</div>
         <div class="val">${escape(recipientName.toUpperCase())}</div>
-        ${recipientAddress ? `<div class="addr">${escape(recipientAddress)}</div>` : ''}
+        ${formatAddressLines(recipientAddress).length ? `<div class="addr">${formatAddressLines(recipientAddress).map(l => `<div>${escape(l)}</div>`).join('')}</div>` : ''}
       </div>` : ''}
 
       <hr class="rule" />
@@ -427,11 +444,11 @@ export async function downloadWeeklyReceiptPDF(opts: PrintWeeklyReceiptOptions) 
     const colR = W - M;
     sf(5.8, 'normal', RPAL.muted);
     tx('INVOICE #', M, y);
-    tx('ISSUED',    colR, y, { align: 'right' });
+    tx('DUE DATE',  colR, y, { align: 'right' });
     y += 3.6;
     sf(8, 'normal', RPAL.ink);
     tx(opts.invoiceNumber || '—', M, y);
-    tx(issuedShort, colR, y, { align: 'right' });
+    tx('Upon receipt', colR, y, { align: 'right' });
     y += 6.4;
 
     sf(5.8, 'normal', RPAL.muted);
@@ -446,13 +463,15 @@ export async function downloadWeeklyReceiptPDF(opts: PrintWeeklyReceiptOptions) 
       sf(5.8, 'normal', RPAL.muted);
       tx('BILLED TO', M, y);
       y += 3.6;
-      sf(9, 'bold', RPAL.ink);
+      sf(8, 'normal', RPAL.mid);
       tx(opts.recipientName.toUpperCase(), M, y);
-      y += 4;
-      if (opts.recipientAddress?.trim()) {
-        sf(6.5, 'normal', RPAL.muted);
-        const addrLines = doc.splitTextToSize(opts.recipientAddress.trim(), CW) as string[];
-        addrLines.forEach(ln => { tx(ln, M, y); y += 3; });
+      y += 3.6;
+      const addrLines = formatAddressLines(opts.recipientAddress);
+      if (addrLines.length) {
+        sf(6, 'normal', RPAL.muted);
+        addrLines.forEach(ln => {
+          (doc.splitTextToSize(ln, CW) as string[]).forEach(sub => { tx(sub, M, y); y += 2.9; });
+        });
       }
       y += 2;
     }
@@ -492,15 +511,15 @@ export async function downloadWeeklyReceiptPDF(opts: PrintWeeklyReceiptOptions) 
     y += 3;
 
 
-    // TOTAL row — thick top rule
+    // TOTAL row — hairline top rule
     y += 2;
     if (draw) {
-      doc.setDrawColor(...hexToRgb(RPAL.ink));
-      doc.setLineWidth(0.5);
+      doc.setDrawColor(...hexToRgb(RPAL.hair));
+      doc.setLineWidth(0.4);
       doc.line(M, y, W - M, y);
     }
     y += 5.8;
-    sf(12, 'bold', RPAL.ink);
+    sf(12, 'normal', RPAL.mid);
     tx('TOTAL', M, y);
     tx(formatCurrency(opts.totalGross), colR, y, { align: 'right' });
     y += 6;
