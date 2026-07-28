@@ -463,13 +463,15 @@ export async function downloadWeeklyReceiptPDF(opts: PrintWeeklyReceiptOptions) 
       sf(5.8, 'normal', RPAL.muted);
       tx('BILLED TO', M, y);
       y += 3.6;
-      sf(9, 'bold', RPAL.ink);
+      sf(8, 'normal', RPAL.mid);
       tx(opts.recipientName.toUpperCase(), M, y);
-      y += 4;
-      if (opts.recipientAddress?.trim()) {
-        sf(6.5, 'normal', RPAL.muted);
-        const addrLines = doc.splitTextToSize(opts.recipientAddress.trim(), CW) as string[];
-        addrLines.forEach(ln => { tx(ln, M, y); y += 3; });
+      y += 3.6;
+      const addrLines = formatAddressLines(opts.recipientAddress);
+      if (addrLines.length) {
+        sf(6, 'normal', RPAL.muted);
+        addrLines.forEach(ln => {
+          (doc.splitTextToSize(ln, CW) as string[]).forEach(sub => { tx(sub, M, y); y += 2.9; });
+        });
       }
       y += 2;
     }
