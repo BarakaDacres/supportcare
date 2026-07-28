@@ -175,8 +175,9 @@ export function buildWeeklyReceiptHTML(opts: PrintWeeklyReceiptOptions): string 
     font-size: 10.5px;
   }
   .billed .lbl { color: var(--muted); text-transform: uppercase; letter-spacing: .1em; font-size: 8.5px; margin-bottom: 3px; }
-  .billed .val { font-weight: 700; font-size: 13px; letter-spacing: -0.005em; }
-  .billed .addr { font-size: 10px; color: var(--muted); margin-top: 2px; line-height: 1.35; white-space: pre-wrap; }
+  .billed .val { font-weight: 600; font-size: 11px; letter-spacing: -0.005em; color: #3a3a40; }
+  .billed .addr { font-size: 9.5px; color: var(--muted); margin-top: 2px; line-height: 1.35; }
+  .billed .addr div { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
   .rule { border:none; border-top: 1px solid var(--hair); margin: 10px 0; }
 
