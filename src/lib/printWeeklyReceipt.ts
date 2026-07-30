@@ -218,14 +218,16 @@ export function buildWeeklyReceiptHTML(opts: PrintWeeklyReceiptOptions): string 
   .meta-grid .right { text-align: right; }
   .meta-grid .span2 { grid-column: 1 / -1; }
 
+  .parties { display:grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 2px 0 12px; }
   .billed {
-    padding: 2px 0 0; margin: 2px 0 12px;
-    font-size: 10.5px;
+    padding: 2px 0 0;
+    font-size: 10.5px; min-width: 0;
   }
+  .billed.right { text-align: right; }
   .billed .lbl { color: var(--muted); text-transform: uppercase; letter-spacing: .1em; font-size: 8.5px; margin-bottom: 3px; }
   .billed .val { font-weight: 600; font-size: 11px; letter-spacing: -0.005em; color: #3a3a40; }
   .billed .addr { font-size: 9.5px; color: var(--muted); margin-top: 2px; line-height: 1.35; }
-  .billed .addr div { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .billed .addr div { overflow: hidden; text-overflow: ellipsis; }
 
   .rule { border:none; border-top: 1px solid var(--hair); margin: 10px 0; }
 
@@ -239,9 +241,12 @@ export function buildWeeklyReceiptHTML(opts: PrintWeeklyReceiptOptions): string 
   }
   .row:last-child { border-bottom: none; }
   .row-main { min-width:0; flex:1; }
-  .row-label { font-size: 12px; font-weight: 600; line-height:1.25; letter-spacing: -0.005em; }
+  .row-date  { font-size: 8.5px; color: var(--muted); letter-spacing: .08em; text-transform: uppercase; margin-bottom: 1px; }
+  .row-label { font-size: 11.5px; font-weight: 600; line-height:1.25; letter-spacing: -0.005em; }
+  .row-code  { font-size: 8.5px; color: var(--muted); margin-top: 1px; letter-spacing: .02em; }
   .row-meta  { font-size: 10px; color: var(--muted); margin-top:2px; }
-  .row-amt   { font-size: 12px; font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .row-amt   { font-size: 11.5px; font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
+
 
   .totals { margin-top: 8px; }
   .kv { display:flex; justify-content:space-between; font-size:11px; color: var(--muted); padding: 3px 0; }
