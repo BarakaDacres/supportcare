@@ -38,6 +38,21 @@ export interface ReceiptServiceRow {
   amount: number;
 }
 
+/** NDIS-style service descriptions used on the weekly receipt. */
+export const RECEIPT_SERVICE_LABELS: Record<string, string> = {
+  daily:                    'Personal Care – Weekday Daytime',
+  evening:                  'Personal Care – Weekday Evening',
+  saturday:                 'Personal Care – Saturday',
+  sunday:                   'Personal Care – Sunday',
+  public_holiday:           'Personal Care – Public Holiday',
+  overtime:                 'Personal Care – Overtime',
+  weekday_sleepover:        'Personal Care – Inactive Sleepover',
+  saturday_sleepover:       'Personal Care – Inactive Sleepover (Saturday)',
+  sunday_sleepover:         'Personal Care – Inactive Sleepover (Sunday)',
+  public_holiday_sleepover: 'Personal Care – Inactive Sleepover (Public Holiday)',
+  overtime_sleepover:       'Personal Care – Inactive Sleepover (Overtime)',
+};
+
 /** "12.5h" + 67.56 → "12.5h × $67.56" */
 export function formatRowMeta(meta: string, unitPrice?: number | null): string {
   if (unitPrice == null || !isFinite(unitPrice) || unitPrice <= 0) return meta;
