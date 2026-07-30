@@ -22,12 +22,34 @@ export interface ReceiptBreakdownRow {
   unitPrice?: number | null;
 }
 
+/** One fully itemised service line on the invoice. */
+export interface ReceiptServiceRow {
+  /** Short-form service date, e.g. "Mon 15/06". */
+  date: string;
+  /** Service type, e.g. "Personal Care", "Social Support". */
+  service: string;
+  /** Optional NDIS support item number. */
+  ndisCode?: string | null;
+  /** Quantity label, e.g. "6.00 hrs" or "1 night". */
+  qty: string;
+  /** Unit rate (per hour / per night). */
+  rate: number;
+  /** Line total. */
+  amount: number;
+}
+
 /** "12.5h" + 67.56 → "12.5h × $67.56" */
 export function formatRowMeta(meta: string, unitPrice?: number | null): string {
   if (unitPrice == null || !isFinite(unitPrice) || unitPrice <= 0) return meta;
   const price = formatCurrency(unitPrice);
   return meta ? `${meta} × ${price}` : price;
 }
+
+/** Short service date: "Mon 15/06" */
+export function fmtDateShort(d: Date): string {
+  return `${DOW[d.getDay()]} ${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}`;
+}
+
 
 
 /**
