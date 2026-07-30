@@ -512,9 +512,6 @@ export async function downloadWeeklyReceiptPDF(opts: PrintWeeklyReceiptOptions) 
     // Title — no charSpace so center alignment is true
     sf(22, 'bold', RPAL.ink);
     tx('INVOICE', W / 2, y, { align: 'center' });
-    y += 4.6;
-    sf(6.5, 'normal', RPAL.muted);
-    tx('WEEKLY STATEMENT', W / 2, y, { align: 'center' });
     const businessName = (opts.providerName ?? opts.settings?.business_name ?? '').trim();
     const providerAddress = (opts.providerAddress ?? opts.settings?.address ?? '').trim();
     const abn = opts.settings?.abn?.trim() ? formatABN(opts.settings.abn.trim()) : '';
