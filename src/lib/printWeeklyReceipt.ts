@@ -172,12 +172,15 @@ export function buildWeeklyReceiptHTML(opts: PrintWeeklyReceiptOptions): string 
           ${r.date ? `<div class="row-date">${escape(r.date)}</div>` : ''}
           <div class="row-label">${escape(r.service)}</div>
           ${r.ndisCode ? `<div class="row-code">Item ${escape(r.ndisCode)}</div>` : ''}
-          <div class="row-meta">${escape(r.qty)}${r.rate > 0 ? ` × ${escape(formatCurrency(r.rate))}` : ''}</div>
+        </div>
+        <div class="row-unit">
+          <div class="row-qty">${escape(r.qty)}</div>
+          ${r.rate > 0 ? `<div class="row-rate">${escape(formatCurrency(r.rate))}</div>` : ''}
         </div>
         <div class="row-amt">${escape(formatCurrency(r.amount))}</div>
       </div>
     `).join('')
-    : `<div class="row"><div class="row-main"><div class="row-meta">No services this period.</div></div></div>`;
+    : `<div class="row"><div class="row-main"><div class="row-code">No services this period.</div></div><div class="row-unit"></div><div class="row-amt"></div></div>`;
 
 
 
