@@ -493,9 +493,16 @@ export async function downloadWeeklyReceiptPDF(opts: PrintWeeklyReceiptOptions) 
     y += 4.6;
     sf(6.5, 'normal', RPAL.muted);
     tx('WEEKLY STATEMENT', W / 2, y, { align: 'center' });
+    const businessName = (opts.providerName ?? opts.settings?.business_name ?? '').trim();
+    const providerAddress = (opts.providerAddress ?? opts.settings?.address ?? '').trim();
     const abn = opts.settings?.abn?.trim() ? formatABN(opts.settings.abn.trim()) : '';
-    if (abn) {
+    if (businessName) {
       y += 4;
+      sf(7, 'bold', RPAL.ink);
+      tx(businessName.toUpperCase(), W / 2, y, { align: 'center' });
+    }
+    if (abn) {
+      y += 3.6;
       sf(6.5, 'normal', RPAL.mid);
       tx(`ABN ${abn}`, W / 2, y, { align: 'center' });
     }
@@ -520,22 +527,31 @@ export async function downloadWeeklyReceiptPDF(opts: PrintWeeklyReceiptOptions) 
     tx(fmtRange(opts.weekStart, opts.weekEnd), M, y);
     y += 7;
 
-    // Billed to
-    if (opts.recipientName) {
+    // Parties — Billed to (left) / Services provided by (right)
+    if (opts.recipientName || businessName) {
+      const halfW = CW / 2 - 2;
+      const yStart = y;
+      let yL = y, yR = y;
+
       sf(5.8, 'normal', RPAL.muted);
-      tx('BILLED TO', M, y);
-      y += 3.6;
+      tx('BILLED TO', M, yL);
+      tx('SERVICES PROVIDED BY', colR, yR, { align: 'right' });
+      yL += 3.6; yR += 3.6;
+
       sf(8, 'normal', RPAL.mid);
-      tx(opts.recipientName.toUpperCase(), M, y);
-      y += 3.6;
-      const addrLines = formatAddressLines(opts.recipientAddress);
-      if (addrLines.length) {
-        sf(6, 'normal', RPAL.muted);
-        addrLines.forEach(ln => {
-          (doc.splitTextToSize(ln, CW) as string[]).forEach(sub => { tx(sub, M, y); y += 2.9; });
-        });
-      }
-      y += 2;
+      tx((opts.recipientName || '—').toUpperCase(), M, yL);
+      tx((businessName || '—').toUpperCase(), colR, yR, { align: 'right' });
+      yL += 3.4; yR += 3.4;
+
+      sf(6, 'normal', RPAL.muted);
+      formatAddressLines(opts.recipientAddress).forEach(ln => {
+        (doc.splitTextToSize(ln, halfW) as string[]).forEach(sub => { tx(sub, M, yL); yL += 2.9; });
+      });
+      formatAddressLines(providerAddress).forEach(ln => {
+        (doc.splitTextToSize(ln, halfW) as string[]).forEach(sub => { tx(sub, colR, yR, { align: 'right' }); yR += 2.9; });
+      });
+
+      y = Math.max(yL, yR, yStart) + 2;
     }
 
 
@@ -548,19 +564,29 @@ export async function downloadWeeklyReceiptPDF(opts: PrintWeeklyReceiptOptions) 
     tx('AMOUNT',            colR, y, { align: 'right' });
     y += 4;
 
-    // Rows — match Invoices page text scale (7pt label, 5.5pt meta)
-    const rows = opts.breakdownRows.length
-      ? opts.breakdownRows
-      : [{ label: 'No hours this week', meta: '', amount: 0 }];
+    // Itemised service rows — date, service type, item number, qty × rate, total
+    const rows: ReceiptServiceRow[] = resolveServiceRows(opts).length
+      ? resolveServiceRows(opts)
+      : [{ date: '', service: 'No services this period', ndisCode: null, qty: '', rate: 0, amount: 0 }];
 
     rows.forEach((r, i) => {
       if (i > 0) { hline(y - 0.5); }
       y += 3;
+      if (r.date) {
+        sf(5.5, 'normal', RPAL.muted);
+        tx(r.date.toUpperCase(), M, y);
+        y += 3;
+      }
       sf(7, 'normal', RPAL.ink);
-      tx(r.label, M, y);
+      tx(r.service, M, y);
       sf(7, 'normal', RPAL.mid);
       tx(formatCurrency(r.amount), colR, y, { align: 'right' });
-      const metaText = formatRowMeta(r.meta, (r as ReceiptBreakdownRow).unitPrice);
+      if (r.ndisCode) {
+        y += 2.8;
+        sf(5.5, 'normal', RPAL.muted);
+        tx(`Item ${r.ndisCode}`, M, y);
+      }
+      const metaText = r.rate > 0 ? `${r.qty} × ${formatCurrency(r.rate)}` : r.qty;
       if (metaText) {
         y += 2.8;
         sf(5.5, 'normal', RPAL.muted);
@@ -569,6 +595,7 @@ export async function downloadWeeklyReceiptPDF(opts: PrintWeeklyReceiptOptions) 
 
       y += 3;
     });
+
 
     y += 3;
 
