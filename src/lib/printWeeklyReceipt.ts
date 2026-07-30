@@ -250,20 +250,25 @@ export function buildWeeklyReceiptHTML(opts: PrintWeeklyReceiptOptions): string 
   .rule { border:none; border-top: 1px solid var(--hair); margin: 10px 0; }
 
   .items-head {
-    display:flex; justify-content:space-between; font-size: 8.5px; color: var(--muted);
-    text-transform: uppercase; letter-spacing: .12em; padding: 2px 0 6px;
+    display:grid; grid-template-columns: 1fr 17mm 15mm; gap: 6px;
+    font-size: 8px; color: var(--muted);
+    text-transform: uppercase; letter-spacing: .1em; padding: 2px 0 6px;
   }
+  .items-head .c2 { text-align: right; }
+  .items-head .c3 { text-align: right; }
   .row {
-    display:flex; align-items:flex-start; justify-content:space-between; gap:10px;
+    display:grid; grid-template-columns: 1fr 17mm 15mm; gap: 6px; align-items: flex-start;
     padding: 7px 0; border-bottom: 1px solid var(--hair);
   }
   .row:last-child { border-bottom: none; }
-  .row-main { min-width:0; flex:1; }
+  .row-main { min-width:0; }
   .row-date  { font-size: 8.5px; color: var(--muted); letter-spacing: .08em; text-transform: uppercase; margin-bottom: 1px; }
-  .row-label { font-size: 11.5px; font-weight: 600; line-height:1.25; letter-spacing: -0.005em; }
+  .row-label { font-size: 10.5px; font-weight: 600; line-height:1.25; letter-spacing: -0.005em; }
   .row-code  { font-size: 8.5px; color: var(--muted); margin-top: 1px; letter-spacing: .02em; }
-  .row-meta  { font-size: 10px; color: var(--muted); margin-top:2px; }
-  .row-amt   { font-size: 11.5px; font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .row-unit  { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .row-qty   { font-size: 10px; color: var(--ink); }
+  .row-rate  { font-size: 9px; color: var(--muted); margin-top: 1px; }
+  .row-amt   { font-size: 11px; font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; text-align: right; }
 
 
   .totals { margin-top: 8px; }
