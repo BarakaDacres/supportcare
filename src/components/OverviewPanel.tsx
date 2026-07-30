@@ -46,7 +46,9 @@ import {
   TrendingUp, Clock, Moon, CalendarDays, Zap, Target,
   ChevronLeft, ChevronRight, Users, FileText, ArrowUpRight, ArrowDownRight, X, Sunset, Sun, Printer, Download, Calendar as CalendarIcon,
 } from 'lucide-react';
-import { printWeeklyReceipt, downloadWeeklyReceiptPDF, buildWeeklyReceiptHTML, type ReceiptBreakdownRow } from '@/lib/printWeeklyReceipt';
+import { printWeeklyReceipt, downloadWeeklyReceiptPDF, buildWeeklyReceiptHTML, fmtDateShort, type ReceiptServiceRow } from '@/lib/printWeeklyReceipt';
+import { groupShiftsForInvoice } from '@/lib/invoiceGrouping';
+import { getEffectiveRates } from '@/lib/rateResolver';
 import { formatCurrency } from '@/lib/formatUtils';
 import type { Shift } from '@/hooks/useShifts';
 import { effectiveGrossPay } from '@/hooks/useShifts';
@@ -1621,33 +1623,55 @@ const OverviewPanel = ({
     });
   };
 
-  // Compute receipt payload (breakdown + totals) for a date range — mirrors the weekly card.
+  // Compute receipt payload (itemised service rows + totals) for a date range.
   const buildReceiptPayload = (startISO: string, endISO: string) => {
     const ws = parseDate(startISO);
     const we = parseDate(endISO);
-    const filtered = shifts.filter(s => {
-      const d = parseDate(s.date);
-      return d >= ws && d <= we;
-    });
-    const wb = computeWeekBreakdown(filtered, settings);
-    const rows: ReceiptBreakdownRow[] = [];
-    const unit = (amount: number, qty: number) => (qty > 0 ? amount / qty : null);
-    if (wb.regularDay > 0)        rows.push({ label: 'Daily Support',              meta: `${wb.regularDayH.toFixed(1)}h`, amount: wb.regularDay, unitPrice: unit(wb.regularDay, wb.regularDayH) });
-    if (wb.evening > 0)           rows.push({ label: 'Evening Support (Mon–Fri)',  meta: `${wb.eveningH.toFixed(1)}h`,    amount: wb.evening,    unitPrice: unit(wb.evening, wb.eveningH) });
-    if (wb.satDay > 0)            rows.push({ label: 'Saturday Support',           meta: `${wb.satDayH.toFixed(1)}h`,     amount: wb.satDay,     unitPrice: unit(wb.satDay, wb.satDayH) });
-    if (wb.sunDay > 0)            rows.push({ label: 'Sunday Support',             meta: `${wb.sunDayH.toFixed(1)}h`,     amount: wb.sunDay,     unitPrice: unit(wb.sunDay, wb.sunDayH) });
-    if (wb.weekdaySleepover > 0)  rows.push({ label: 'Weekday Sleepover',          meta: `${wb.weekdaySleepoverN} night${wb.weekdaySleepoverN !== 1 ? 's' : ''}`, amount: wb.weekdaySleepover, unitPrice: unit(wb.weekdaySleepover, wb.weekdaySleepoverN) });
-    if (wb.weekendSleepover > 0)  rows.push({ label: 'Weekend Sleepover',          meta: `${wb.weekendSleepoverN} night${wb.weekendSleepoverN !== 1 ? 's' : ''}`, amount: wb.weekendSleepover, unitPrice: unit(wb.weekendSleepover, wb.weekendSleepoverN) });
-    if (wb.publicHoliday > 0)     rows.push({ label: 'Public Holiday Support',     meta: `${wb.publicHolidayH.toFixed(1)}h`, amount: wb.publicHoliday, unitPrice: unit(wb.publicHoliday, wb.publicHolidayH) });
-    if (wb.phSleepover > 0)       rows.push({ label: 'Public Holiday Sleepover',   meta: `${wb.phSleepoverN} night${wb.phSleepoverN !== 1 ? 's' : ''}`, amount: wb.phSleepover, unitPrice: unit(wb.phSleepover, wb.phSleepoverN) });
-    if (wb.overtime > 0)          rows.push({ label: 'Overtime Support',           meta: `${wb.overtimeH.toFixed(1)}h`, amount: wb.overtime, unitPrice: unit(wb.overtime, wb.overtimeH) });
-    if (wb.overtimeSleepover > 0) rows.push({ label: 'Overtime Sleepover',         meta: `${wb.overtimeSleepoverN} night${wb.overtimeSleepoverN !== 1 ? 's' : ''}`, amount: wb.overtimeSleepover, unitPrice: unit(wb.overtimeSleepover, wb.overtimeSleepoverN) });
+    const filtered = shifts
+      .filter(s => {
+        const d = parseDate(s.date);
+        return d >= ws && d <= we;
+      })
+      .sort((a, b) => (a.date === b.date ? a.start_time.localeCompare(b.start_time) : a.date.localeCompare(b.date)));
+
+    const globalRates: Partial<PayRates> = {
+      rate_weekday: settings?.rate_weekday,
+      rate_saturday: settings?.rate_saturday,
+      rate_sunday: settings?.rate_sunday,
+      rate_evening: settings?.rate_evening,
+      rate_sleepover_weekday: settings?.rate_sleepover_weekday,
+      rate_sleepover_weekend: settings?.rate_sleepover_weekend,
+      rate_sleepover_public_holiday: settings?.rate_sleepover_public_holiday,
+      rate_public_holiday: settings?.rate_public_holiday,
+      rate_overtime: settings?.rate_overtime,
+    };
+
+    const rows: ReceiptServiceRow[] = [];
+    for (const shift of filtered) {
+      const client = clients.find(c => c.id === shift.client_id) || null;
+      const rates = getEffectiveRates(client, globalRates);
+      const groups = groupShiftsForInvoice([shift], rates);
+      const dateLabel = fmtDateShort(parseDate(shift.date));
+      for (const g of groups) {
+        rows.push({
+          date: dateLabel,
+          service: g.label,
+          ndisCode: g.ndisCode || null,
+          qty: g.isSleepover
+            ? `${g.quantity} night${g.quantity !== 1 ? 's' : ''}`
+            : `${g.quantity.toFixed(2)} hrs`,
+          rate: g.rate,
+          amount: g.subtotal,
+        });
+      }
+    }
 
     const totalHours = filtered.filter(s => !s.is_sleepover).reduce((sum, s) => sum + Number(s.hours_worked), 0);
     const totalSleepovers = filtered.filter(s => s.is_sleepover).length;
     const totalGross = filtered.reduce((sum, s) => sum + effectiveGrossPay(s), 0);
     return { ws, we, rows, totalHours, totalShifts: filtered.length, totalSleepovers, totalGross };
   };
+
 
   // Resolve the client's billing/service address for the receipt "Billed to" block.
   const recipientAddressFor = (name: string) => {
@@ -1664,7 +1688,7 @@ const OverviewPanel = ({
     return {
       weekStart: p.ws,
       weekEnd: p.we,
-      breakdownRows: p.rows,
+      serviceRows: p.rows,
       totalHours: p.totalHours,
       totalShifts: p.totalShifts,
       totalSleepovers: p.totalSleepovers,
@@ -1698,7 +1722,7 @@ const OverviewPanel = ({
     return buildWeeklyReceiptHTML({
       weekStart: p.ws,
       weekEnd: p.we,
-      breakdownRows: p.rows,
+      serviceRows: p.rows,
       totalHours: p.totalHours,
       totalShifts: p.totalShifts,
       totalSleepovers: p.totalSleepovers,

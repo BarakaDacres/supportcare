@@ -22,12 +22,34 @@ export interface ReceiptBreakdownRow {
   unitPrice?: number | null;
 }
 
+/** One fully itemised service line on the invoice. */
+export interface ReceiptServiceRow {
+  /** Short-form service date, e.g. "Mon 15/06". */
+  date: string;
+  /** Service type, e.g. "Personal Care", "Social Support". */
+  service: string;
+  /** Optional NDIS support item number. */
+  ndisCode?: string | null;
+  /** Quantity label, e.g. "6.00 hrs" or "1 night". */
+  qty: string;
+  /** Unit rate (per hour / per night). */
+  rate: number;
+  /** Line total. */
+  amount: number;
+}
+
 /** "12.5h" + 67.56 → "12.5h × $67.56" */
 export function formatRowMeta(meta: string, unitPrice?: number | null): string {
   if (unitPrice == null || !isFinite(unitPrice) || unitPrice <= 0) return meta;
   const price = formatCurrency(unitPrice);
   return meta ? `${meta} × ${price}` : price;
 }
+
+/** Short service date: "Mon 15/06" */
+export function fmtDateShort(d: Date): string {
+  return `${DOW[d.getDay()]} ${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}`;
+}
+
 
 
 /**
@@ -68,7 +90,10 @@ export function formatAcctNo(v: string): string {
 export interface PrintWeeklyReceiptOptions {
   weekStart: Date;
   weekEnd: Date;
-  breakdownRows: ReceiptBreakdownRow[];
+  /** Legacy aggregated summary rows (kept for compatibility, no longer rendered). */
+  breakdownRows?: ReceiptBreakdownRow[];
+  /** Fully itemised service lines. */
+  serviceRows?: ReceiptServiceRow[];
   totalHours: number;
   totalShifts: number;
   totalSleepovers: number;
@@ -76,22 +101,42 @@ export interface PrintWeeklyReceiptOptions {
   settings?: UserSettings | null;
   recipientName?: string | null;
   recipientAddress?: string | null;
+  /** "Services Provided By" — defaults to the business name in settings. */
+  providerName?: string | null;
+  providerAddress?: string | null;
   invoiceNumber?: string | null;
   notes?: string | null;
   /** When true, omit the on-screen toolbar and stage background (for in-app iframe preview). */
   preview?: boolean;
 }
 
+/** Fallback: turn legacy summary rows into itemised-shaped rows. */
+function resolveServiceRows(opts: PrintWeeklyReceiptOptions): ReceiptServiceRow[] {
+  if (opts.serviceRows?.length) return opts.serviceRows;
+  return (opts.breakdownRows || []).map(r => ({
+    date: '',
+    service: r.label,
+    ndisCode: null,
+    qty: r.meta,
+    rate: r.unitPrice ?? 0,
+    amount: r.amount,
+  }));
+}
+
 export function buildWeeklyReceiptHTML(opts: PrintWeeklyReceiptOptions): string {
   const {
-    weekStart, weekEnd, breakdownRows,
+    weekStart, weekEnd,
     totalGross,
     recipientName, recipientAddress, invoiceNumber, notes, preview, settings,
   } = opts;
 
+  const rows = resolveServiceRows(opts);
+
   const now = new Date();
   const issuedShort = `${now.getDate()}/${now.getMonth() + 1}/${now.getFullYear()}`;
 
+  const businessName = (opts.providerName ?? settings?.business_name ?? '').trim();
+  const providerAddress = (opts.providerAddress ?? settings?.address ?? '').trim();
   const abn = settings?.abn?.trim() ? formatABN(settings.abn.trim()) : '';
   const bankRows: Array<[string, string]> = [];
   if (settings?.account_name?.trim())   bankRows.push(['Account', settings.account_name.trim().toUpperCase()]);
@@ -105,17 +150,20 @@ export function buildWeeklyReceiptHTML(opts: PrintWeeklyReceiptOptions): string 
         ${bankRows.map(([k, v]) => `<div class="kv"><span>${escape(k)}</span><span class="v">${escape(v)}</span></div>`).join('')}
       </div>` : '';
 
-  const rowsHtml = breakdownRows.length
-    ? breakdownRows.map(r => `
+  const rowsHtml = rows.length
+    ? rows.map(r => `
       <div class="row">
         <div class="row-main">
-          <div class="row-label">${escape(r.label)}</div>
-          <div class="row-meta">${escape(formatRowMeta(r.meta, r.unitPrice))}</div>
+          ${r.date ? `<div class="row-date">${escape(r.date)}</div>` : ''}
+          <div class="row-label">${escape(r.service)}</div>
+          ${r.ndisCode ? `<div class="row-code">Item ${escape(r.ndisCode)}</div>` : ''}
+          <div class="row-meta">${escape(r.qty)}${r.rate > 0 ? ` × ${escape(formatCurrency(r.rate))}` : ''}</div>
         </div>
         <div class="row-amt">${escape(formatCurrency(r.amount))}</div>
       </div>
     `).join('')
-    : `<div class="row"><div class="row-main"><div class="row-meta">No hours this week.</div></div></div>`;
+    : `<div class="row"><div class="row-main"><div class="row-meta">No services this period.</div></div></div>`;
+
 
 
   // True thermal-receipt dimensions: 80mm wide (matches uploaded 225pt × 750pt sample).
@@ -170,14 +218,16 @@ export function buildWeeklyReceiptHTML(opts: PrintWeeklyReceiptOptions): string 
   .meta-grid .right { text-align: right; }
   .meta-grid .span2 { grid-column: 1 / -1; }
 
+  .parties { display:grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 2px 0 12px; }
   .billed {
-    padding: 2px 0 0; margin: 2px 0 12px;
-    font-size: 10.5px;
+    padding: 2px 0 0;
+    font-size: 10.5px; min-width: 0;
   }
+  .billed.right { text-align: right; }
   .billed .lbl { color: var(--muted); text-transform: uppercase; letter-spacing: .1em; font-size: 8.5px; margin-bottom: 3px; }
   .billed .val { font-weight: 600; font-size: 11px; letter-spacing: -0.005em; color: #3a3a40; }
   .billed .addr { font-size: 9.5px; color: var(--muted); margin-top: 2px; line-height: 1.35; }
-  .billed .addr div { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .billed .addr div { overflow: hidden; text-overflow: ellipsis; }
 
   .rule { border:none; border-top: 1px solid var(--hair); margin: 10px 0; }
 
@@ -191,9 +241,12 @@ export function buildWeeklyReceiptHTML(opts: PrintWeeklyReceiptOptions): string 
   }
   .row:last-child { border-bottom: none; }
   .row-main { min-width:0; flex:1; }
-  .row-label { font-size: 12px; font-weight: 600; line-height:1.25; letter-spacing: -0.005em; }
+  .row-date  { font-size: 8.5px; color: var(--muted); letter-spacing: .08em; text-transform: uppercase; margin-bottom: 1px; }
+  .row-label { font-size: 11.5px; font-weight: 600; line-height:1.25; letter-spacing: -0.005em; }
+  .row-code  { font-size: 8.5px; color: var(--muted); margin-top: 1px; letter-spacing: .02em; }
   .row-meta  { font-size: 10px; color: var(--muted); margin-top:2px; }
-  .row-amt   { font-size: 12px; font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .row-amt   { font-size: 11.5px; font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
+
 
   .totals { margin-top: 8px; }
   .kv { display:flex; justify-content:space-between; font-size:11px; color: var(--muted); padding: 3px 0; }
@@ -250,7 +303,8 @@ export function buildWeeklyReceiptHTML(opts: PrintWeeklyReceiptOptions): string 
 
       <h1 class="title">INVOICE</h1>
       <p class="subtitle">Weekly Statement</p>
-      ${abn ? `<p class="abn">ABN <b>${escape(abn)}</b></p>` : ''}
+      ${businessName ? `<p class="abn" style="margin:-10px 0 2px"><b>${escape(businessName.toUpperCase())}</b></p>` : ''}
+      ${abn ? `<p class="abn"${businessName ? ' style="margin:0 0 14px"' : ''}>ABN <b>${escape(abn)}</b></p>` : ''}
 
 
       <div class="meta-grid">
@@ -259,12 +313,20 @@ export function buildWeeklyReceiptHTML(opts: PrintWeeklyReceiptOptions): string 
         <div class="span2"><div class="lbl">Period</div><div class="val">${escape(fmtRange(weekStart, weekEnd))}</div></div>
       </div>
 
-      ${recipientName ? `
-      <div class="billed">
-        <div class="lbl">Billed to</div>
-        <div class="val">${escape(recipientName.toUpperCase())}</div>
-        ${formatAddressLines(recipientAddress).length ? `<div class="addr">${formatAddressLines(recipientAddress).map(l => `<div>${escape(l)}</div>`).join('')}</div>` : ''}
+      ${(recipientName || businessName) ? `
+      <div class="parties">
+        <div class="billed">
+          <div class="lbl">Billed to</div>
+          <div class="val">${escape((recipientName || '—').toUpperCase())}</div>
+          ${formatAddressLines(recipientAddress).length ? `<div class="addr">${formatAddressLines(recipientAddress).map(l => `<div>${escape(l)}</div>`).join('')}</div>` : ''}
+        </div>
+        <div class="billed right">
+          <div class="lbl">Services provided by</div>
+          <div class="val">${escape((businessName || '—').toUpperCase())}</div>
+          ${formatAddressLines(providerAddress).length ? `<div class="addr">${formatAddressLines(providerAddress).map(l => `<div>${escape(l)}</div>`).join('')}</div>` : ''}
+        </div>
       </div>` : ''}
+
 
       <hr class="rule" />
 
@@ -431,9 +493,16 @@ export async function downloadWeeklyReceiptPDF(opts: PrintWeeklyReceiptOptions) 
     y += 4.6;
     sf(6.5, 'normal', RPAL.muted);
     tx('WEEKLY STATEMENT', W / 2, y, { align: 'center' });
+    const businessName = (opts.providerName ?? opts.settings?.business_name ?? '').trim();
+    const providerAddress = (opts.providerAddress ?? opts.settings?.address ?? '').trim();
     const abn = opts.settings?.abn?.trim() ? formatABN(opts.settings.abn.trim()) : '';
-    if (abn) {
+    if (businessName) {
       y += 4;
+      sf(7, 'bold', RPAL.ink);
+      tx(businessName.toUpperCase(), W / 2, y, { align: 'center' });
+    }
+    if (abn) {
+      y += 3.6;
       sf(6.5, 'normal', RPAL.mid);
       tx(`ABN ${abn}`, W / 2, y, { align: 'center' });
     }
@@ -458,22 +527,31 @@ export async function downloadWeeklyReceiptPDF(opts: PrintWeeklyReceiptOptions) 
     tx(fmtRange(opts.weekStart, opts.weekEnd), M, y);
     y += 7;
 
-    // Billed to
-    if (opts.recipientName) {
+    // Parties — Billed to (left) / Services provided by (right)
+    if (opts.recipientName || businessName) {
+      const halfW = CW / 2 - 2;
+      const yStart = y;
+      let yL = y, yR = y;
+
       sf(5.8, 'normal', RPAL.muted);
-      tx('BILLED TO', M, y);
-      y += 3.6;
+      tx('BILLED TO', M, yL);
+      tx('SERVICES PROVIDED BY', colR, yR, { align: 'right' });
+      yL += 3.6; yR += 3.6;
+
       sf(8, 'normal', RPAL.mid);
-      tx(opts.recipientName.toUpperCase(), M, y);
-      y += 3.6;
-      const addrLines = formatAddressLines(opts.recipientAddress);
-      if (addrLines.length) {
-        sf(6, 'normal', RPAL.muted);
-        addrLines.forEach(ln => {
-          (doc.splitTextToSize(ln, CW) as string[]).forEach(sub => { tx(sub, M, y); y += 2.9; });
-        });
-      }
-      y += 2;
+      tx((opts.recipientName || '—').toUpperCase(), M, yL);
+      tx((businessName || '—').toUpperCase(), colR, yR, { align: 'right' });
+      yL += 3.4; yR += 3.4;
+
+      sf(6, 'normal', RPAL.muted);
+      formatAddressLines(opts.recipientAddress).forEach(ln => {
+        (doc.splitTextToSize(ln, halfW) as string[]).forEach(sub => { tx(sub, M, yL); yL += 2.9; });
+      });
+      formatAddressLines(providerAddress).forEach(ln => {
+        (doc.splitTextToSize(ln, halfW) as string[]).forEach(sub => { tx(sub, colR, yR, { align: 'right' }); yR += 2.9; });
+      });
+
+      y = Math.max(yL, yR, yStart) + 2;
     }
 
 
@@ -486,19 +564,29 @@ export async function downloadWeeklyReceiptPDF(opts: PrintWeeklyReceiptOptions) 
     tx('AMOUNT',            colR, y, { align: 'right' });
     y += 4;
 
-    // Rows — match Invoices page text scale (7pt label, 5.5pt meta)
-    const rows = opts.breakdownRows.length
-      ? opts.breakdownRows
-      : [{ label: 'No hours this week', meta: '', amount: 0 }];
+    // Itemised service rows — date, service type, item number, qty × rate, total
+    const rows: ReceiptServiceRow[] = resolveServiceRows(opts).length
+      ? resolveServiceRows(opts)
+      : [{ date: '', service: 'No services this period', ndisCode: null, qty: '', rate: 0, amount: 0 }];
 
     rows.forEach((r, i) => {
       if (i > 0) { hline(y - 0.5); }
       y += 3;
+      if (r.date) {
+        sf(5.5, 'normal', RPAL.muted);
+        tx(r.date.toUpperCase(), M, y);
+        y += 3;
+      }
       sf(7, 'normal', RPAL.ink);
-      tx(r.label, M, y);
+      tx(r.service, M, y);
       sf(7, 'normal', RPAL.mid);
       tx(formatCurrency(r.amount), colR, y, { align: 'right' });
-      const metaText = formatRowMeta(r.meta, (r as ReceiptBreakdownRow).unitPrice);
+      if (r.ndisCode) {
+        y += 2.8;
+        sf(5.5, 'normal', RPAL.muted);
+        tx(`Item ${r.ndisCode}`, M, y);
+      }
+      const metaText = r.rate > 0 ? `${r.qty} × ${formatCurrency(r.rate)}` : r.qty;
       if (metaText) {
         y += 2.8;
         sf(5.5, 'normal', RPAL.muted);
@@ -507,6 +595,7 @@ export async function downloadWeeklyReceiptPDF(opts: PrintWeeklyReceiptOptions) 
 
       y += 3;
     });
+
 
     y += 3;
 
