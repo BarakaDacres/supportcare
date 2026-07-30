@@ -38,6 +38,21 @@ export interface ReceiptServiceRow {
   amount: number;
 }
 
+/** NDIS-style service descriptions used on the weekly receipt. */
+export const RECEIPT_SERVICE_LABELS: Record<string, string> = {
+  daily:                    'Personal Care – Weekday Daytime',
+  evening:                  'Personal Care – Weekday Evening',
+  saturday:                 'Personal Care – Saturday',
+  sunday:                   'Personal Care – Sunday',
+  public_holiday:           'Personal Care – Public Holiday',
+  overtime:                 'Personal Care – Overtime',
+  weekday_sleepover:        'Personal Care – Inactive Sleepover',
+  saturday_sleepover:       'Personal Care – Inactive Sleepover (Saturday)',
+  sunday_sleepover:         'Personal Care – Inactive Sleepover (Sunday)',
+  public_holiday_sleepover: 'Personal Care – Inactive Sleepover (Public Holiday)',
+  overtime_sleepover:       'Personal Care – Inactive Sleepover (Overtime)',
+};
+
 /** "12.5h" + 67.56 → "12.5h × $67.56" */
 export function formatRowMeta(meta: string, unitPrice?: number | null): string {
   if (unitPrice == null || !isFinite(unitPrice) || unitPrice <= 0) return meta;
@@ -157,12 +172,15 @@ export function buildWeeklyReceiptHTML(opts: PrintWeeklyReceiptOptions): string 
           ${r.date ? `<div class="row-date">${escape(r.date)}</div>` : ''}
           <div class="row-label">${escape(r.service)}</div>
           ${r.ndisCode ? `<div class="row-code">Item ${escape(r.ndisCode)}</div>` : ''}
-          <div class="row-meta">${escape(r.qty)}${r.rate > 0 ? ` × ${escape(formatCurrency(r.rate))}` : ''}</div>
+        </div>
+        <div class="row-unit">
+          <div class="row-qty">${escape(r.qty)}</div>
+          ${r.rate > 0 ? `<div class="row-rate">${escape(formatCurrency(r.rate))}</div>` : ''}
         </div>
         <div class="row-amt">${escape(formatCurrency(r.amount))}</div>
       </div>
     `).join('')
-    : `<div class="row"><div class="row-main"><div class="row-meta">No services this period.</div></div></div>`;
+    : `<div class="row"><div class="row-main"><div class="row-code">No services this period.</div></div><div class="row-unit"></div><div class="row-amt"></div></div>`;
 
 
 
@@ -232,20 +250,25 @@ export function buildWeeklyReceiptHTML(opts: PrintWeeklyReceiptOptions): string 
   .rule { border:none; border-top: 1px solid var(--hair); margin: 10px 0; }
 
   .items-head {
-    display:flex; justify-content:space-between; font-size: 8.5px; color: var(--muted);
-    text-transform: uppercase; letter-spacing: .12em; padding: 2px 0 6px;
+    display:grid; grid-template-columns: 1fr 17mm 15mm; gap: 6px;
+    font-size: 8px; color: var(--muted);
+    text-transform: uppercase; letter-spacing: .1em; padding: 2px 0 6px;
   }
+  .items-head .c2 { text-align: right; }
+  .items-head .c3 { text-align: right; }
   .row {
-    display:flex; align-items:flex-start; justify-content:space-between; gap:10px;
+    display:grid; grid-template-columns: 1fr 17mm 15mm; gap: 6px; align-items: flex-start;
     padding: 7px 0; border-bottom: 1px solid var(--hair);
   }
   .row:last-child { border-bottom: none; }
-  .row-main { min-width:0; flex:1; }
+  .row-main { min-width:0; }
   .row-date  { font-size: 8.5px; color: var(--muted); letter-spacing: .08em; text-transform: uppercase; margin-bottom: 1px; }
-  .row-label { font-size: 11.5px; font-weight: 600; line-height:1.25; letter-spacing: -0.005em; }
+  .row-label { font-size: 10.5px; font-weight: 600; line-height:1.25; letter-spacing: -0.005em; }
   .row-code  { font-size: 8.5px; color: var(--muted); margin-top: 1px; letter-spacing: .02em; }
-  .row-meta  { font-size: 10px; color: var(--muted); margin-top:2px; }
-  .row-amt   { font-size: 11.5px; font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .row-unit  { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .row-qty   { font-size: 10px; color: var(--ink); }
+  .row-rate  { font-size: 9px; color: var(--muted); margin-top: 1px; }
+  .row-amt   { font-size: 11px; font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; text-align: right; }
 
 
   .totals { margin-top: 8px; }
@@ -301,10 +324,9 @@ export function buildWeeklyReceiptHTML(opts: PrintWeeklyReceiptOptions): string 
   <div class="stage">
     <article class="receipt" role="document" aria-label="Weekly Hours Receipt">
 
-      <h1 class="title">INVOICE</h1>
-      <p class="subtitle">Weekly Statement</p>
-      ${businessName ? `<p class="abn" style="margin:-10px 0 2px"><b>${escape(businessName.toUpperCase())}</b></p>` : ''}
-      ${abn ? `<p class="abn"${businessName ? ' style="margin:0 0 14px"' : ''}>ABN <b>${escape(abn)}</b></p>` : ''}
+      <h1 class="title" style="margin-bottom:10px">INVOICE</h1>
+      ${businessName ? `<p class="abn" style="margin:0 0 2px"><b>${escape(businessName.toUpperCase())}</b></p>` : ''}
+      ${abn ? `<p class="abn" style="margin:0 0 14px">ABN <b>${escape(abn)}</b></p>` : ''}
 
 
       <div class="meta-grid">
@@ -330,7 +352,7 @@ export function buildWeeklyReceiptHTML(opts: PrintWeeklyReceiptOptions): string 
 
       <hr class="rule" />
 
-      <div class="items-head"><span>Services Rendered</span><span>Amount</span></div>
+      <div class="items-head"><span>Services Rendered</span><span class="c2">Hours / Rate</span><span class="c3">Amount</span></div>
       <div class="items">${rowsHtml}</div>
 
       <div class="totals">
@@ -490,9 +512,6 @@ export async function downloadWeeklyReceiptPDF(opts: PrintWeeklyReceiptOptions) 
     // Title — no charSpace so center alignment is true
     sf(22, 'bold', RPAL.ink);
     tx('INVOICE', W / 2, y, { align: 'center' });
-    y += 4.6;
-    sf(6.5, 'normal', RPAL.muted);
-    tx('WEEKLY STATEMENT', W / 2, y, { align: 'center' });
     const businessName = (opts.providerName ?? opts.settings?.business_name ?? '').trim();
     const providerAddress = (opts.providerAddress ?? opts.settings?.address ?? '').trim();
     const abn = opts.settings?.abn?.trim() ? formatABN(opts.settings.abn.trim()) : '';
@@ -558,10 +577,17 @@ export async function downloadWeeklyReceiptPDF(opts: PrintWeeklyReceiptOptions) 
     y += 2;
     hline(y); y += 5;
 
+    // Column geometry: description | hours/rate | amount
+    const AMT_W  = 15;                 // mm
+    const UNIT_W = 17;                 // mm
+    const colUnit = colR - AMT_W;      // right edge of the hours/rate column
+    const descW   = colUnit - UNIT_W - M - 1;
+
     // Items head — match Invoices page (6pt bold mid)
     sf(6, 'bold', RPAL.mid);
     tx('SERVICES RENDERED', M, y);
-    tx('AMOUNT',            colR, y, { align: 'right' });
+    tx('HOURS / RATE', colUnit, y, { align: 'right' });
+    tx('AMOUNT',       colR,    y, { align: 'right' });
     y += 4;
 
     // Itemised service rows — date, service type, item number, qty × rate, total
@@ -572,27 +598,38 @@ export async function downloadWeeklyReceiptPDF(opts: PrintWeeklyReceiptOptions) 
     rows.forEach((r, i) => {
       if (i > 0) { hline(y - 0.5); }
       y += 3;
+      const rowTop = y;
       if (r.date) {
         sf(5.5, 'normal', RPAL.muted);
         tx(r.date.toUpperCase(), M, y);
         y += 3;
       }
+      const serviceLineY = y;
       sf(7, 'normal', RPAL.ink);
-      tx(r.service, M, y);
-      sf(7, 'normal', RPAL.mid);
-      tx(formatCurrency(r.amount), colR, y, { align: 'right' });
+      const serviceLines = doc.splitTextToSize(r.service, descW) as string[];
+      serviceLines.forEach((ln, idx) => {
+        tx(ln, M, y);
+        if (idx < serviceLines.length - 1) y += 3;
+      });
       if (r.ndisCode) {
         y += 2.8;
         sf(5.5, 'normal', RPAL.muted);
         tx(`Item ${r.ndisCode}`, M, y);
       }
-      const metaText = r.rate > 0 ? `${r.qty} × ${formatCurrency(r.rate)}` : r.qty;
-      if (metaText) {
-        y += 2.8;
-        sf(5.5, 'normal', RPAL.muted);
-        tx(metaText, M, y);
-      }
 
+      // Middle + right columns, aligned to the service line baseline
+      if (r.qty) {
+        sf(6.5, 'normal', RPAL.ink);
+        tx(r.qty, colUnit, serviceLineY, { align: 'right' });
+      }
+      if (r.rate > 0) {
+        sf(5.5, 'normal', RPAL.muted);
+        tx(formatCurrency(r.rate), colUnit, serviceLineY + 2.8, { align: 'right' });
+      }
+      sf(7, 'normal', RPAL.mid);
+      tx(formatCurrency(r.amount), colR, serviceLineY, { align: 'right' });
+
+      y = Math.max(y, serviceLineY + (r.rate > 0 ? 2.8 : 0), rowTop);
       y += 3;
     });
 
