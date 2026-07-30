@@ -90,7 +90,10 @@ export function formatAcctNo(v: string): string {
 export interface PrintWeeklyReceiptOptions {
   weekStart: Date;
   weekEnd: Date;
-  breakdownRows: ReceiptBreakdownRow[];
+  /** Legacy aggregated summary rows (kept for compatibility, no longer rendered). */
+  breakdownRows?: ReceiptBreakdownRow[];
+  /** Fully itemised service lines. */
+  serviceRows?: ReceiptServiceRow[];
   totalHours: number;
   totalShifts: number;
   totalSleepovers: number;
@@ -98,22 +101,42 @@ export interface PrintWeeklyReceiptOptions {
   settings?: UserSettings | null;
   recipientName?: string | null;
   recipientAddress?: string | null;
+  /** "Services Provided By" — defaults to the business name in settings. */
+  providerName?: string | null;
+  providerAddress?: string | null;
   invoiceNumber?: string | null;
   notes?: string | null;
   /** When true, omit the on-screen toolbar and stage background (for in-app iframe preview). */
   preview?: boolean;
 }
 
+/** Fallback: turn legacy summary rows into itemised-shaped rows. */
+function resolveServiceRows(opts: PrintWeeklyReceiptOptions): ReceiptServiceRow[] {
+  if (opts.serviceRows?.length) return opts.serviceRows;
+  return (opts.breakdownRows || []).map(r => ({
+    date: '',
+    service: r.label,
+    ndisCode: null,
+    qty: r.meta,
+    rate: r.unitPrice ?? 0,
+    amount: r.amount,
+  }));
+}
+
 export function buildWeeklyReceiptHTML(opts: PrintWeeklyReceiptOptions): string {
   const {
-    weekStart, weekEnd, breakdownRows,
+    weekStart, weekEnd,
     totalGross,
     recipientName, recipientAddress, invoiceNumber, notes, preview, settings,
   } = opts;
 
+  const rows = resolveServiceRows(opts);
+
   const now = new Date();
   const issuedShort = `${now.getDate()}/${now.getMonth() + 1}/${now.getFullYear()}`;
 
+  const businessName = (opts.providerName ?? settings?.business_name ?? '').trim();
+  const providerAddress = (opts.providerAddress ?? settings?.address ?? '').trim();
   const abn = settings?.abn?.trim() ? formatABN(settings.abn.trim()) : '';
   const bankRows: Array<[string, string]> = [];
   if (settings?.account_name?.trim())   bankRows.push(['Account', settings.account_name.trim().toUpperCase()]);
@@ -127,17 +150,20 @@ export function buildWeeklyReceiptHTML(opts: PrintWeeklyReceiptOptions): string 
         ${bankRows.map(([k, v]) => `<div class="kv"><span>${escape(k)}</span><span class="v">${escape(v)}</span></div>`).join('')}
       </div>` : '';
 
-  const rowsHtml = breakdownRows.length
-    ? breakdownRows.map(r => `
+  const rowsHtml = rows.length
+    ? rows.map(r => `
       <div class="row">
         <div class="row-main">
-          <div class="row-label">${escape(r.label)}</div>
-          <div class="row-meta">${escape(formatRowMeta(r.meta, r.unitPrice))}</div>
+          ${r.date ? `<div class="row-date">${escape(r.date)}</div>` : ''}
+          <div class="row-label">${escape(r.service)}</div>
+          ${r.ndisCode ? `<div class="row-code">Item ${escape(r.ndisCode)}</div>` : ''}
+          <div class="row-meta">${escape(r.qty)}${r.rate > 0 ? ` × ${escape(formatCurrency(r.rate))}` : ''}</div>
         </div>
         <div class="row-amt">${escape(formatCurrency(r.amount))}</div>
       </div>
     `).join('')
-    : `<div class="row"><div class="row-main"><div class="row-meta">No hours this week.</div></div></div>`;
+    : `<div class="row"><div class="row-main"><div class="row-meta">No services this period.</div></div></div>`;
+
 
 
   // True thermal-receipt dimensions: 80mm wide (matches uploaded 225pt × 750pt sample).
