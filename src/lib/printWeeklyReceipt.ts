@@ -303,7 +303,8 @@ export function buildWeeklyReceiptHTML(opts: PrintWeeklyReceiptOptions): string 
 
       <h1 class="title">INVOICE</h1>
       <p class="subtitle">Weekly Statement</p>
-      ${abn ? `<p class="abn">ABN <b>${escape(abn)}</b></p>` : ''}
+      ${businessName ? `<p class="abn" style="margin:-10px 0 2px"><b>${escape(businessName.toUpperCase())}</b></p>` : ''}
+      ${abn ? `<p class="abn"${businessName ? ' style="margin:0 0 14px"' : ''}>ABN <b>${escape(abn)}</b></p>` : ''}
 
 
       <div class="meta-grid">
@@ -312,12 +313,20 @@ export function buildWeeklyReceiptHTML(opts: PrintWeeklyReceiptOptions): string 
         <div class="span2"><div class="lbl">Period</div><div class="val">${escape(fmtRange(weekStart, weekEnd))}</div></div>
       </div>
 
-      ${recipientName ? `
-      <div class="billed">
-        <div class="lbl">Billed to</div>
-        <div class="val">${escape(recipientName.toUpperCase())}</div>
-        ${formatAddressLines(recipientAddress).length ? `<div class="addr">${formatAddressLines(recipientAddress).map(l => `<div>${escape(l)}</div>`).join('')}</div>` : ''}
+      ${(recipientName || businessName) ? `
+      <div class="parties">
+        <div class="billed">
+          <div class="lbl">Billed to</div>
+          <div class="val">${escape((recipientName || '—').toUpperCase())}</div>
+          ${formatAddressLines(recipientAddress).length ? `<div class="addr">${formatAddressLines(recipientAddress).map(l => `<div>${escape(l)}</div>`).join('')}</div>` : ''}
+        </div>
+        <div class="billed right">
+          <div class="lbl">Services provided by</div>
+          <div class="val">${escape((businessName || '—').toUpperCase())}</div>
+          ${formatAddressLines(providerAddress).length ? `<div class="addr">${formatAddressLines(providerAddress).map(l => `<div>${escape(l)}</div>`).join('')}</div>` : ''}
+        </div>
       </div>` : ''}
+
 
       <hr class="rule" />
 
