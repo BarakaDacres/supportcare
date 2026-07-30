@@ -577,10 +577,17 @@ export async function downloadWeeklyReceiptPDF(opts: PrintWeeklyReceiptOptions) 
     y += 2;
     hline(y); y += 5;
 
+    // Column geometry: description | hours/rate | amount
+    const AMT_W  = 15;                 // mm
+    const UNIT_W = 17;                 // mm
+    const colUnit = colR - AMT_W;      // right edge of the hours/rate column
+    const descW   = colUnit - UNIT_W - M - 1;
+
     // Items head — match Invoices page (6pt bold mid)
     sf(6, 'bold', RPAL.mid);
     tx('SERVICES RENDERED', M, y);
-    tx('AMOUNT',            colR, y, { align: 'right' });
+    tx('HOURS / RATE', colUnit, y, { align: 'right' });
+    tx('AMOUNT',       colR,    y, { align: 'right' });
     y += 4;
 
     // Itemised service rows — date, service type, item number, qty × rate, total
@@ -591,27 +598,38 @@ export async function downloadWeeklyReceiptPDF(opts: PrintWeeklyReceiptOptions) 
     rows.forEach((r, i) => {
       if (i > 0) { hline(y - 0.5); }
       y += 3;
+      const rowTop = y;
       if (r.date) {
         sf(5.5, 'normal', RPAL.muted);
         tx(r.date.toUpperCase(), M, y);
         y += 3;
       }
+      const serviceLineY = y;
       sf(7, 'normal', RPAL.ink);
-      tx(r.service, M, y);
-      sf(7, 'normal', RPAL.mid);
-      tx(formatCurrency(r.amount), colR, y, { align: 'right' });
+      const serviceLines = doc.splitTextToSize(r.service, descW) as string[];
+      serviceLines.forEach((ln, idx) => {
+        tx(ln, M, y);
+        if (idx < serviceLines.length - 1) y += 3;
+      });
       if (r.ndisCode) {
         y += 2.8;
         sf(5.5, 'normal', RPAL.muted);
         tx(`Item ${r.ndisCode}`, M, y);
       }
-      const metaText = r.rate > 0 ? `${r.qty} × ${formatCurrency(r.rate)}` : r.qty;
-      if (metaText) {
-        y += 2.8;
-        sf(5.5, 'normal', RPAL.muted);
-        tx(metaText, M, y);
-      }
 
+      // Middle + right columns, aligned to the service line baseline
+      if (r.qty) {
+        sf(6.5, 'normal', RPAL.ink);
+        tx(r.qty, colUnit, serviceLineY, { align: 'right' });
+      }
+      if (r.rate > 0) {
+        sf(5.5, 'normal', RPAL.muted);
+        tx(formatCurrency(r.rate), colUnit, serviceLineY + 2.8, { align: 'right' });
+      }
+      sf(7, 'normal', RPAL.mid);
+      tx(formatCurrency(r.amount), colR, serviceLineY, { align: 'right' });
+
+      y = Math.max(y, serviceLineY + (r.rate > 0 ? 2.8 : 0), rowTop);
       y += 3;
     });
 
