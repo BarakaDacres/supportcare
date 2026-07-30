@@ -1655,7 +1655,7 @@ const OverviewPanel = ({
       for (const g of groups) {
         rows.push({
           date: dateLabel,
-          service: g.label,
+          service: RECEIPT_SERVICE_LABELS[g.category] ?? g.label,
           ndisCode: g.ndisCode || null,
           qty: g.isSleepover
             ? `${g.quantity} night${g.quantity !== 1 ? 's' : ''}`
