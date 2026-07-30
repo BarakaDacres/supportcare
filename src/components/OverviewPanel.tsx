@@ -46,7 +46,7 @@ import {
   TrendingUp, Clock, Moon, CalendarDays, Zap, Target,
   ChevronLeft, ChevronRight, Users, FileText, ArrowUpRight, ArrowDownRight, X, Sunset, Sun, Printer, Download, Calendar as CalendarIcon,
 } from 'lucide-react';
-import { printWeeklyReceipt, downloadWeeklyReceiptPDF, buildWeeklyReceiptHTML, fmtDateShort, type ReceiptServiceRow } from '@/lib/printWeeklyReceipt';
+import { printWeeklyReceipt, downloadWeeklyReceiptPDF, buildWeeklyReceiptHTML, fmtDateShort, RECEIPT_SERVICE_LABELS, type ReceiptServiceRow } from '@/lib/printWeeklyReceipt';
 import { groupShiftsForInvoice } from '@/lib/invoiceGrouping';
 import { getEffectiveRates } from '@/lib/rateResolver';
 import { formatCurrency } from '@/lib/formatUtils';
