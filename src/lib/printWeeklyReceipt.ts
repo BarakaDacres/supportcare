@@ -324,10 +324,9 @@ export function buildWeeklyReceiptHTML(opts: PrintWeeklyReceiptOptions): string 
   <div class="stage">
     <article class="receipt" role="document" aria-label="Weekly Hours Receipt">
 
-      <h1 class="title">INVOICE</h1>
-      <p class="subtitle">Weekly Statement</p>
-      ${businessName ? `<p class="abn" style="margin:-10px 0 2px"><b>${escape(businessName.toUpperCase())}</b></p>` : ''}
-      ${abn ? `<p class="abn"${businessName ? ' style="margin:0 0 14px"' : ''}>ABN <b>${escape(abn)}</b></p>` : ''}
+      <h1 class="title" style="margin-bottom:10px">INVOICE</h1>
+      ${businessName ? `<p class="abn" style="margin:0 0 2px"><b>${escape(businessName.toUpperCase())}</b></p>` : ''}
+      ${abn ? `<p class="abn" style="margin:0 0 14px">ABN <b>${escape(abn)}</b></p>` : ''}
 
 
       <div class="meta-grid">
