@@ -1688,7 +1688,7 @@ const OverviewPanel = ({
     return {
       weekStart: p.ws,
       weekEnd: p.we,
-      breakdownRows: p.rows,
+      serviceRows: p.rows,
       totalHours: p.totalHours,
       totalShifts: p.totalShifts,
       totalSleepovers: p.totalSleepovers,
@@ -1722,7 +1722,7 @@ const OverviewPanel = ({
     return buildWeeklyReceiptHTML({
       weekStart: p.ws,
       weekEnd: p.we,
-      breakdownRows: p.rows,
+      serviceRows: p.rows,
       totalHours: p.totalHours,
       totalShifts: p.totalShifts,
       totalSleepovers: p.totalSleepovers,
