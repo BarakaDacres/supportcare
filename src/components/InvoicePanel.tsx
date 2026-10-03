@@ -207,7 +207,11 @@ async function loadFontBase64(url: string): Promise<string> {
   return btoa(bin);
 }
 
-async function exportToPDF(snap: InvoiceSnapshot, lineGroups: ReturnType<typeof groupShiftsForInvoice>) {
+async function exportToPDF(
+  snap: InvoiceSnapshot,
+  lineGroups: ReturnType<typeof groupShiftsForInvoice>,
+  status?: InvoiceStatus,
+) {
   const { jsPDF } = await import('jspdf');
 
   // ── Load & embed Inter (SF Pro substitute) + Roboto Mono (item codes) ──────
@@ -317,6 +321,21 @@ async function exportToPDF(snap: InvoiceSnapshot, lineGroups: ReturnType<typeof 
   sf(HEADER_FONT, 'bold', P.accent);
   tx(issuerName, M, y);
   tx('INVOICE', W - M, y, { align: 'right' });
+
+  // Saved invoices marked as paid carry the status into every downloaded PDF,
+  // including invoices created before this treatment was introduced.
+  if (status === 'paid') {
+    const paidW = 17;
+    const paidH = 5;
+    const paidX = W - M - paidW;
+    const paidY = y + 2;
+    doc.setFillColor(...rgb('#F0FDF4'));
+    doc.setDrawColor(...rgb('#86EFAC'));
+    doc.setLineWidth(0.35);
+    doc.roundedRect(paidX, paidY, paidW, paidH, 2.5, 2.5, 'FD');
+    sf(6.5, 'bold', '#15803D');
+    tx('PAID', paidX + paidW / 2, paidY + 3.45, { align: 'center' });
+  }
   y += 5;
 
   const leftMetaStartY = y;
@@ -1016,7 +1035,7 @@ const InvoicePanel = ({
     setExporting(true);
     setExportError(null);
     try {
-      await exportToPDF(snap, groups);
+      await exportToPDF(snap, groups, previewInvoice?.status);
     } catch (e) {
       console.error('PDF export error:', e);
       setExportError('Export failed. Please try again.');
@@ -1447,8 +1466,21 @@ const InvoicePanel = ({
 
                     {/* Right — INVOICE title, then Submitted/Invoice# with deliberate spacing */}
                     <div style={{ textAlign: 'right' }}>
-                      <div style={{ fontSize: 14, fontWeight: 800, color: P.accent, letterSpacing: '-0.02em', marginBottom: 6 }}>
-                        INVOICE
+                      <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 7, marginBottom: 6 }}>
+                        <div style={{ fontSize: 14, fontWeight: 800, color: P.accent, letterSpacing: '-0.02em' }}>
+                          INVOICE
+                        </div>
+                        {previewInvoice?.status === 'paid' && (
+                          <span style={{
+                            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                            minWidth: 38, height: 18, padding: '0 8px', borderRadius: 999,
+                            border: '1px solid #86EFAC', background: '#F0FDF4',
+                            color: '#15803D', fontSize: 7.5, fontWeight: 800,
+                            letterSpacing: '0.06em', lineHeight: 1,
+                          }}>
+                            PAID
+                          </span>
+                        )}
                       </div>
                       <div style={{ fontSize: 8.5, marginBottom: 3, display: 'flex', justifyContent: 'flex-end', gap: 16, alignItems: 'baseline' }}>
                         <span style={{ color: P.muted }}>Submitted:</span>
