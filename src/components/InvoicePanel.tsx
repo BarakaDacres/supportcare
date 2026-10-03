@@ -568,7 +568,7 @@ async function exportToPDF(
     const stampX = totX - stampW - 8;
     const stampY = y + (totH - stampH) / 2;
     doc.saveGraphicsState();
-    doc.setGState(new doc.GState({ opacity: 0.82 }));
+    doc.setGState(doc.GState({ opacity: 0.82 }));
     doc.setDrawColor(...rgb('#16A34A'));
     doc.setLineWidth(0.8);
     doc.roundedRect(stampX, stampY, stampW, stampH, 2, 2, 'S');
