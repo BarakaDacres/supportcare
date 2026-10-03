@@ -328,7 +328,7 @@ async function exportToPDF(
     const paidW = 17;
     const paidH = 5;
     const paidX = W - M - paidW;
-    const paidY = y + 2;
+    const paidY = y - 4;
     doc.setFillColor(...rgb('#F0FDF4'));
     doc.setDrawColor(...rgb('#86EFAC'));
     doc.setLineWidth(0.35);
