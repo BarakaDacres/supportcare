@@ -321,21 +321,6 @@ async function exportToPDF(
   sf(HEADER_FONT, 'bold', P.accent);
   tx(issuerName, M, y);
   tx('INVOICE', W - M, y, { align: 'right' });
-
-  // Saved invoices marked as paid carry the status into every downloaded PDF,
-  // including invoices created before this treatment was introduced.
-  if (status === 'paid') {
-    const paidW = 17;
-    const paidH = 5;
-    const paidX = W - M - paidW;
-    const paidY = y - 4;
-    doc.setFillColor(...rgb('#F0FDF4'));
-    doc.setDrawColor(...rgb('#86EFAC'));
-    doc.setLineWidth(0.35);
-    doc.roundedRect(paidX, paidY, paidW, paidH, 2.5, 2.5, 'FD');
-    sf(6.5, 'bold', '#15803D');
-    tx('PAID', paidX + paidW / 2, paidY + 3.45, { align: 'center' });
-  }
   y += 5;
 
   const leftMetaStartY = y;
@@ -459,7 +444,7 @@ async function exportToPDF(
   sf(7.5, 'bold', P.accent);
   tx('BALANCE DUE', rx + CARD_PAD_X, dy);
   sf(10, 'bold', P.accent);
-  tx(fmt$(snap.total), rx + halfW - CARD_PAD_X, dy, { align: 'right' });
+  tx(fmt$(status === 'paid' ? 0 : snap.total), rx + halfW - CARD_PAD_X, dy, { align: 'right' });
 
   y += finalCardH + 6;
 
@@ -576,6 +561,25 @@ async function exportToPDF(
   ];
   const totRowH = 7;
   const totH = totRows.length * totRowH + 2;
+
+  if (status === 'paid') {
+    const stampW = 39;
+    const stampH = 16;
+    const stampX = totX - stampW - 8;
+    const stampY = y + (totH - stampH) / 2;
+    doc.saveGraphicsState();
+    doc.setGState(doc.GState({ opacity: 0.82 }));
+    doc.setDrawColor(...rgb('#16A34A'));
+    doc.setLineWidth(0.8);
+    doc.roundedRect(stampX, stampY, stampW, stampH, 2, 2, 'S');
+    doc.setLineWidth(0.25);
+    doc.roundedRect(stampX + 1.4, stampY + 1.4, stampW - 2.8, stampH - 2.8, 1.2, 1.2, 'S');
+    sf(13, 'bold', '#15803D');
+    tx('PAID', stampX + stampW / 2, stampY + 9.8, { align: 'center' });
+    sf(5.2, 'bold', '#15803D');
+    tx('BALANCE SETTLED', stampX + stampW / 2, stampY + 13.1, { align: 'center' });
+    doc.restoreGraphicsState();
+  }
 
   box(totX, y, totW, totH, P.cardBorder, 0.5);
   let ty = y + 5.5;
@@ -1466,21 +1470,8 @@ const InvoicePanel = ({
 
                     {/* Right — INVOICE title, then Submitted/Invoice# with deliberate spacing */}
                     <div style={{ textAlign: 'right' }}>
-                      <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 7, marginBottom: 6 }}>
-                        <div style={{ fontSize: 14, fontWeight: 800, color: P.accent, letterSpacing: '-0.02em' }}>
-                          INVOICE
-                        </div>
-                        {previewInvoice?.status === 'paid' && (
-                          <span style={{
-                            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                            minWidth: 38, height: 18, padding: '0 8px', borderRadius: 999,
-                            border: '1px solid #86EFAC', background: '#F0FDF4',
-                            color: '#15803D', fontSize: 7.5, fontWeight: 800,
-                            letterSpacing: '0.06em', lineHeight: 1,
-                          }}>
-                            PAID
-                          </span>
-                        )}
+                      <div style={{ fontSize: 14, fontWeight: 800, color: P.accent, letterSpacing: '-0.02em', marginBottom: 6 }}>
+                        INVOICE
                       </div>
                       <div style={{ fontSize: 8.5, marginBottom: 3, display: 'flex', justifyContent: 'flex-end', gap: 16, alignItems: 'baseline' }}>
                         <span style={{ color: P.muted }}>Submitted:</span>
@@ -1554,7 +1545,7 @@ const InvoicePanel = ({
                        ))}
                        <div style={{ borderTop: `1px solid ${P.cardBorder}`, marginTop: 6, paddingTop: 6, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                          <span style={{ fontSize: 7.5, fontWeight: 700, color: P.accent, textTransform: 'uppercase' as const, letterSpacing: '0.06em' }}>BALANCE DUE</span>
-                         <span style={{ fontSize: 12, fontWeight: 800, color: P.accent }}>{fmt$(preview.total)}</span>
+                         <span style={{ fontSize: 12, fontWeight: 800, color: P.accent }}>{fmt$(previewInvoice?.status === 'paid' ? 0 : preview.total)}</span>
                        </div>
                      </div>
                   </div>
@@ -1632,7 +1623,19 @@ const InvoicePanel = ({
                   </div>
 
                   {/* ── TOTALS ── */}
-                  <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 10 }}>
+                  <div style={{ display: 'flex', justifyContent: previewInvoice?.status === 'paid' ? 'space-between' : 'flex-end', alignItems: 'center', gap: 14, marginBottom: 10 }}>
+                    {previewInvoice?.status === 'paid' && (
+                      <div style={{
+                        width: 92, height: 48, border: '2px solid #16A34A', borderRadius: 7,
+                        boxShadow: 'inset 0 0 0 2px #FFFFFF, inset 0 0 0 3px #16A34A',
+                        color: '#15803D', opacity: 0.84, transform: 'rotate(-3deg)',
+                        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                        lineHeight: 1, flexShrink: 0,
+                      }}>
+                        <span style={{ fontSize: 20, fontWeight: 900, letterSpacing: '0.08em' }}>PAID</span>
+                        <span style={{ fontSize: 6.5, fontWeight: 800, letterSpacing: '0.08em', marginTop: 4 }}>BALANCE SETTLED</span>
+                      </div>
+                    )}
                     <div style={{ minWidth: 210, maxWidth: 250, border: `1px solid ${P.cardBorder}`, borderRadius: 8, overflow: 'hidden' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', padding: '5px 10px', borderBottom: `1px solid ${P.cardBorder}` }}>
                         <span style={{ fontSize: 7.5, color: P.muted }}>SUBTOTAL</span>
