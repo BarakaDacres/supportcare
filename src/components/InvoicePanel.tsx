@@ -15,6 +15,7 @@ import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import {
   FileText, ChevronDown, Download, User, Send, CheckCircle,
   AlertCircle, XCircle, Trash2, RefreshCw, Eye, AlertTriangle, RotateCcw,
+  Square, CheckSquare,
 } from 'lucide-react';
 import { formatCurrency } from '@/lib/formatUtils';
 import type { Shift } from '@/hooks/useShifts';
@@ -211,6 +212,7 @@ async function exportToPDF(
   snap: InvoiceSnapshot,
   lineGroups: ReturnType<typeof groupShiftsForInvoice>,
   status?: InvoiceStatus,
+  download = true,
 ) {
   const { jsPDF } = await import('jspdf');
 
@@ -563,22 +565,12 @@ async function exportToPDF(
   const totH = totRows.length * totRowH + 2;
 
   if (status === 'paid') {
-    const stampW = 39;
-    const stampH = 16;
-    const stampX = totX - stampW - 8;
-    const stampY = y + (totH - stampH) / 2;
-    doc.saveGraphicsState();
-    doc.setGState(doc.GState({ opacity: 0.82 }));
-    doc.setDrawColor(...rgb('#16A34A'));
-    doc.setLineWidth(0.8);
-    doc.roundedRect(stampX, stampY, stampW, stampH, 2, 2, 'S');
-    doc.setLineWidth(0.25);
-    doc.roundedRect(stampX + 1.4, stampY + 1.4, stampW - 2.8, stampH - 2.8, 1.2, 1.2, 'S');
-    sf(13, 'bold', '#15803D');
-    tx('PAID', stampX + stampW / 2, stampY + 9.8, { align: 'center' });
-    sf(5.2, 'bold', '#15803D');
-    tx('BALANCE SETTLED', stampX + stampW / 2, stampY + 13.1, { align: 'center' });
-    doc.restoreGraphicsState();
+    const paidX = totX - 8;
+    const paidY = y + totH / 2;
+    sf(12, 'bold', '#15803D');
+    tx('PAID', paidX, paidY - 1, { align: 'right' });
+    sf(5.5, 'bold', '#15803D');
+    tx('BALANCE SETTLED', paidX, paidY + 3, { align: 'right' });
   }
 
   box(totX, y, totW, totH, P.cardBorder, 0.5);
@@ -655,18 +647,24 @@ async function exportToPDF(
   tx(`This invoice is GST-free under the NDIS.${snap.abn ? `  ABN: ${snap.abn}` : ''}`, M, footY + 4);
   tx('Thank you for your payment.', W - M, footY + 4, { align: 'right' });
 
-  doc.save(`${snap.invoiceNumber}.pdf`);
+  if (download) {
+    doc.save(`${snap.invoiceNumber}.pdf`);
+    return;
+  }
+  return doc.output('blob');
 }
 
 // ─── Invoice list card ─────────────────────────────────────────────────────────
 const InvoiceCard = ({
-  invoice, clients, onView, onUpdateStatus, onDelete,
+  invoice, clients, onView, onUpdateStatus, onDelete, selected, onToggleSelected,
 }: {
   invoice: InvoiceSummary;
   clients: Client[];
   onView: () => void;
   onUpdateStatus: (id: string, s: InvoiceStatus, extra?: { sent_at?: string; paid_at?: string }) => Promise<void>;
   onDelete: (id: string) => Promise<void>;
+  selected: boolean;
+  onToggleSelected: () => void;
 }) => {
   const [busy, setBusy] = useState(false);
   const effectiveStatus = isOverdue(invoice) && !['paid', 'cancelled'].includes(invoice.status) ? 'overdue' : invoice.status;
@@ -680,7 +678,15 @@ const InvoiceCard = ({
   return (
     <div className="glass-card p-4 space-y-3">
       <div className="flex items-start justify-between gap-2">
-        <div className="min-w-0">
+        <button
+          onClick={onToggleSelected}
+          aria-label={`${selected ? 'Deselect' : 'Select'} ${invoice.invoice_number}`}
+          aria-pressed={selected}
+          className="w-11 h-11 -ml-2 -mt-2 shrink-0 flex items-center justify-center text-primary active:scale-95"
+        >
+          {selected ? <CheckSquare className="w-5 h-5" /> : <Square className="w-5 h-5 text-muted-foreground" />}
+        </button>
+        <div className="min-w-0 flex-1">
           <p className="text-sm font-bold text-foreground">{invoice.invoice_number}</p>
           <p className="text-xs text-muted-foreground mt-0.5">
             {formatDateShort(invoice.period_start)} – {formatDateShort(invoice.period_end)}
@@ -752,6 +758,9 @@ const InvoicePanel = ({
   const [preview, setPreview]                   = useState<InvoiceSnapshot | null>(null);
   const [activeTab, setActiveTab]               = useState<'generator' | 'list'>('generator');
   const [statusFilter, setStatusFilter]         = useState<string>('all');
+  const [selectedInvoiceIds, setSelectedInvoiceIds] = useState<Set<string>>(new Set());
+  const [batchExporting, setBatchExporting] = useState(false);
+  const [batchExportError, setBatchExportError] = useState<string | null>(null);
 
   const periods = useMemo(() => getFortnightPeriodsForYear(selectedYear), [selectedYear]);
 
@@ -861,6 +870,14 @@ const InvoicePanel = ({
       return inv.status === statusFilter;
     });
   }, [invoices, statusFilter]);
+
+  useEffect(() => {
+    const currentIds = new Set(invoices.map(inv => inv.id));
+    setSelectedInvoiceIds(previous => {
+      const next = new Set([...previous].filter(id => currentIds.has(id)));
+      return next.size === previous.size ? previous : next;
+    });
+  }, [invoices]);
 
   const existingInvoice = useMemo(() => {
     if (!selectedPeriod) return null;
@@ -1101,6 +1118,88 @@ const InvoicePanel = ({
     });
     setActiveTab('generator');
   }, [clients, settings, clientExtra]);
+
+  const buildSavedInvoiceSnapshot = useCallback((inv: InvoiceSummary): InvoiceSnapshot => {
+    const issueDate = inv.created_at.split('T')[0];
+    const mc = clients.find(c => c.id === inv.client_id) ?? null;
+    const s = settings as unknown as Record<string, string | null>;
+    const ext = clientExtra(mc);
+    const useDefaults = settings?.use_default_invoice_notes !== false;
+    return {
+      invoiceNumber: inv.invoice_number,
+      invoiceId: inv.id,
+      issueDate,
+      dueDate: addDays(issueDate, settings?.invoice_due_days ?? 7),
+      fnNumber: inv.fortnight_number ?? 1,
+      year: inv.year ?? new Date(inv.period_start).getFullYear(),
+      periodStart: inv.period_start,
+      periodEnd: inv.period_end,
+      shifts: [],
+      total: inv.total_amount,
+      issuerName: settings?.business_name ?? '',
+      issuerEmail: settings?.email ?? '',
+      abn: settings?.abn ?? '',
+      phone: (s?.phone as string) ?? '',
+      address: (s?.address as string) ?? '',
+      bankName: settings?.bank_name ?? '',
+      bsb: settings?.bsb ?? '',
+      accountNumber: settings?.account_number ?? '',
+      accountName: (s?.account_name as string) ?? '',
+      invoiceNotes: inv.notes || (useDefaults ? settings?.invoice_notes : null) || '',
+      clientName: mc?.invoice_label ?? mc?.name ?? '',
+      clientAddress: mc ? (mc.billing_address || mc.service_address || '') : '',
+      clientParticipantNumber: mc?.participant_number ?? '',
+      clientOrganisation: ext.organisation,
+      clientContact: ext.contact,
+      clientEmail: ext.email,
+      clientPhone: ext.phone,
+      invoiceDueDays: settings?.invoice_due_days ?? 7,
+    };
+  }, [clients, settings, clientExtra]);
+
+  const toggleSelectedInvoice = useCallback((id: string) => {
+    setSelectedInvoiceIds(previous => {
+      const next = new Set(previous);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  }, []);
+
+  const downloadSelectedInvoices = useCallback(async () => {
+    const selected = invoices.filter(inv => selectedInvoiceIds.has(inv.id));
+    if (selected.length === 0) return;
+    setBatchExporting(true);
+    setBatchExportError(null);
+    try {
+      const { default: JSZip } = await import('jszip');
+      const zip = new JSZip();
+      for (const inv of selected) {
+        const snap = buildSavedInvoiceSnapshot(inv);
+        const client = clients.find(c => c.id === inv.client_id) ?? null;
+        const invoiceRates = getEffectiveRates(client, globalRates);
+        const invoiceShifts = shifts
+          .filter(shift => shift.date >= inv.period_start && shift.date <= inv.period_end && (!inv.client_id || shift.client_id === inv.client_id))
+          .sort((a, b) => a.date.localeCompare(b.date) || a.start_time.localeCompare(b.start_time));
+        snap.shifts = invoiceShifts;
+        snap.total = invoiceShifts.reduce((sum, shift) => sum + effectiveGrossPay(shift), 0);
+        const groups = groupShiftsForInvoice(invoiceShifts, invoiceRates, ndisCodes);
+        const blob = await exportToPDF(snap, groups, inv.status, false);
+        if (blob) zip.file(`${inv.invoice_number}.pdf`, blob);
+      }
+      const archive = await zip.generateAsync({ type: 'blob' });
+      const url = URL.createObjectURL(archive);
+      const anchor = document.createElement('a');
+      anchor.href = url;
+      anchor.download = `invoices-${new Date().toISOString().slice(0, 10)}.zip`;
+      anchor.click();
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Batch PDF export error:', error);
+      setBatchExportError('Could not download the selected invoices. Please try again.');
+    } finally {
+      setBatchExporting(false);
+    }
+  }, [invoices, selectedInvoiceIds, buildSavedInvoiceSnapshot, clients, globalRates, shifts, ndisCodes]);
 
   // ─── Effective status of previewed invoice ───────────────────────────────────
   const previewInvoice = useMemo(
@@ -1626,14 +1725,12 @@ const InvoicePanel = ({
                   <div style={{ display: 'flex', justifyContent: previewInvoice?.status === 'paid' ? 'space-between' : 'flex-end', alignItems: 'center', gap: 14, marginBottom: 10 }}>
                     {previewInvoice?.status === 'paid' && (
                       <div style={{
-                        width: 92, height: 48, border: '2px solid #16A34A', borderRadius: 7,
-                        boxShadow: 'inset 0 0 0 2px #FFFFFF, inset 0 0 0 3px #16A34A',
-                        color: '#15803D', opacity: 0.84, transform: 'rotate(-3deg)',
+                        color: '#15803D',
                         display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
                         lineHeight: 1, flexShrink: 0,
                       }}>
-                        <span style={{ fontSize: 20, fontWeight: 900, letterSpacing: '0.08em' }}>PAID</span>
-                        <span style={{ fontSize: 6.5, fontWeight: 800, letterSpacing: '0.08em', marginTop: 4 }}>BALANCE SETTLED</span>
+                        <span style={{ fontSize: 16, fontWeight: 800 }}>PAID</span>
+                        <span style={{ fontSize: 6.5, fontWeight: 700, marginTop: 4 }}>BALANCE SETTLED</span>
                       </div>
                     )}
                     <div style={{ minWidth: 210, maxWidth: 250, border: `1px solid ${P.cardBorder}`, borderRadius: 8, overflow: 'hidden' }}>
@@ -1725,6 +1822,39 @@ const InvoicePanel = ({
             ))}
           </div>
 
+          {filteredInvoices.length > 0 && (
+            <div className="glass-card p-3 flex items-center justify-between gap-3 sticky top-2 z-20">
+              <button
+                onClick={() => {
+                  const visibleIds = filteredInvoices.map(inv => inv.id);
+                  const allVisibleSelected = visibleIds.every(id => selectedInvoiceIds.has(id));
+                  setSelectedInvoiceIds(previous => {
+                    const next = new Set(previous);
+                    visibleIds.forEach(id => allVisibleSelected ? next.delete(id) : next.add(id));
+                    return next;
+                  });
+                }}
+                className="glass-chip text-xs gap-1.5"
+                style={{ color: 'hsl(var(--foreground))' }}
+              >
+                {filteredInvoices.every(inv => selectedInvoiceIds.has(inv.id))
+                  ? <CheckSquare className="w-4 h-4 text-primary" />
+                  : <Square className="w-4 h-4 text-muted-foreground" />}
+                Select all
+              </button>
+              <button
+                onClick={downloadSelectedInvoices}
+                disabled={selectedInvoiceIds.size === 0 || batchExporting}
+                className="glass-chip text-xs gap-1.5 disabled:opacity-40"
+                style={{ color: 'hsl(var(--primary))' }}
+              >
+                <Download className="w-4 h-4" />
+                {batchExporting ? 'Preparing…' : `Download (${selectedInvoiceIds.size})`}
+              </button>
+            </div>
+          )}
+          {batchExportError && <p className="text-xs text-destructive px-1">{batchExportError}</p>}
+
           {/* Loading — only show full spinner when we have NO data yet */}
           {invoicesLoading && invoices.length === 0 && (
             <div className="flex flex-col items-center justify-center py-12 gap-3">
@@ -1771,6 +1901,8 @@ const InvoicePanel = ({
               onView={() => viewInvoiceFromList(inv)}
               onUpdateStatus={onUpdateStatus}
               onDelete={onDeleteInvoice}
+              selected={selectedInvoiceIds.has(inv.id)}
+              onToggleSelected={() => toggleSelectedInvoice(inv.id)}
             />
           ))}
         </div>
