@@ -579,6 +579,35 @@ const ShiftForm = ({
               </div>
             )}
 
+            {/* Hourly rate override (non-sleepover shifts) */}
+            {!isSleepover && (
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
+                  <DollarSign className="w-3 h-3" /> Override Hourly Rate
+                  <span className="normal-case font-normal text-muted-foreground">(optional)</span>
+                </label>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-muted-foreground shrink-0">$</span>
+                  <input
+                    type="number"
+                    min={0}
+                    step={0.01}
+                    value={hourlyOverride}
+                    onChange={e => setHourlyOverride(e.target.value)}
+                    placeholder={calc && calc.hoursWorked > 0 ? String(+(calc.grossPay / calc.hoursWorked).toFixed(2)) : ''}
+                    className="glass-input flex-1 text-foreground"
+                    style={{ minHeight: 44, width: '100%', boxSizing: 'border-box' }}
+                  />
+                  <span className="text-sm text-muted-foreground shrink-0">/hr</span>
+                </div>
+                <p className="text-[10px] text-muted-foreground">
+                  {hourlyDerivedPay != null && calc
+                    ? `${calc.hoursWorked}h × $${hourlyOverrideNum} = ${formatCurrency(hourlyDerivedPay)}. Leave blank to use calculated rates.`
+                    : 'One-off hourly rate for this shift. Leave blank to use calculated rates.'}
+                </p>
+              </div>
+            )}
+
             {/* Client */}
             {clients.length > 0 && (
               <div className="space-y-1.5">
