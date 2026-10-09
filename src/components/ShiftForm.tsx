@@ -250,9 +250,13 @@ const ShiftForm = ({
     setSubmitError(null);
     setSubmitting(true);
     try {
+      const hourlyNum = hourlyOverride !== '' ? parseFloat(hourlyOverride) : null;
+      const hourlyDerivedFee = !isSleepover && hourlyNum != null && hourlyNum > 0 && calc
+        ? +(hourlyNum * calc.hoursWorked).toFixed(2)
+        : null;
       const finalFeeOverride = isPhSleepover && (feeOverrideNum == null || feeOverrideNum <= 0)
         ? phSleepoverRate
-        : (feeOverrideNum != null && feeOverrideNum > 0 ? feeOverrideNum : null);
+        : (hourlyDerivedFee ?? (feeOverrideNum != null && feeOverrideNum > 0 ? feeOverrideNum : null));
 
       await onSubmit({
         date,
