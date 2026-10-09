@@ -83,6 +83,14 @@ const ShiftForm = ({
       ? String(initialValues.fee_override)
       : ''
   );
+  // Hourly rate override for non-sleepover shifts — stored as fee_override = rate × hours
+  const [hourlyOverride, setHourlyOverride] = useState<string>(() => {
+    const fee = initialValues?.fee_override;
+    if (initialValues?.is_sleepover || fee == null || fee <= 0) return '';
+    const hours = Number((initialValues as { hours_worked?: number } | undefined)?.hours_worked ?? 0);
+    if (hours > 0) return String(+(fee / hours).toFixed(2));
+    return '';
+  });
 
   // Resolve effective rates based on selected client (field-by-field fallback)
   const selectedClient = clientId ? clients.find(c => c.id === clientId) ?? null : null;
@@ -226,11 +234,15 @@ const ShiftForm = ({
       : null;
 
   const feeOverrideNum = feeOverride !== '' ? parseFloat(feeOverride) : null;
-  const effectivePay = feeOverrideNum != null && feeOverrideNum > 0
+  const hourlyOverrideNum = hourlyOverride !== '' ? parseFloat(hourlyOverride) : null;
+  const hourlyDerivedPay = !isSleepover && hourlyOverrideNum != null && hourlyOverrideNum > 0 && calc
+    ? +(hourlyOverrideNum * calc.hoursWorked).toFixed(2)
+    : null;
+  const effectivePay = hourlyDerivedPay ?? (feeOverrideNum != null && feeOverrideNum > 0
     ? feeOverrideNum
     : isPhSleepover
     ? phSleepoverRate
-    : calc?.grossPay ?? 0;
+    : calc?.grossPay ?? 0);
 
   const phActive = isPublicHoliday && !isSleepover && !isOvertime;
   const otActive = isOvertime && !isPhSleepover;
@@ -242,9 +254,13 @@ const ShiftForm = ({
     setSubmitError(null);
     setSubmitting(true);
     try {
+      const hourlyNum = hourlyOverride !== '' ? parseFloat(hourlyOverride) : null;
+      const hourlyDerivedFee = !isSleepover && hourlyNum != null && hourlyNum > 0 && calc
+        ? +(hourlyNum * calc.hoursWorked).toFixed(2)
+        : null;
       const finalFeeOverride = isPhSleepover && (feeOverrideNum == null || feeOverrideNum <= 0)
         ? phSleepoverRate
-        : (feeOverrideNum != null && feeOverrideNum > 0 ? feeOverrideNum : null);
+        : (hourlyDerivedFee ?? (feeOverrideNum != null && feeOverrideNum > 0 ? feeOverrideNum : null));
 
       await onSubmit({
         date,
@@ -559,6 +575,35 @@ const ShiftForm = ({
                     ? `PH Sleepover flat fee. Default: $${phSleepoverRate}.`
                     : `One-off override. Leave blank to use calculated rate (${calc ? formatCurrency(calc.grossPay) : '—'}).`
                   }
+                </p>
+              </div>
+            )}
+
+            {/* Hourly rate override (non-sleepover shifts) */}
+            {!isSleepover && (
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
+                  <DollarSign className="w-3 h-3" /> Override Hourly Rate
+                  <span className="normal-case font-normal text-muted-foreground">(optional)</span>
+                </label>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-muted-foreground shrink-0">$</span>
+                  <input
+                    type="number"
+                    min={0}
+                    step={0.01}
+                    value={hourlyOverride}
+                    onChange={e => setHourlyOverride(e.target.value)}
+                    placeholder={calc && calc.hoursWorked > 0 ? String(+(calc.grossPay / calc.hoursWorked).toFixed(2)) : ''}
+                    className="glass-input flex-1 text-foreground"
+                    style={{ minHeight: 44, width: '100%', boxSizing: 'border-box' }}
+                  />
+                  <span className="text-sm text-muted-foreground shrink-0">/hr</span>
+                </div>
+                <p className="text-[10px] text-muted-foreground">
+                  {hourlyDerivedPay != null && calc
+                    ? `${calc.hoursWorked}h × $${hourlyOverrideNum} = ${formatCurrency(hourlyDerivedPay)}. Leave blank to use calculated rates.`
+                    : 'One-off hourly rate for this shift. Leave blank to use calculated rates.'}
                 </p>
               </div>
             )}
