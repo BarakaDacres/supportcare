@@ -234,11 +234,15 @@ const ShiftForm = ({
       : null;
 
   const feeOverrideNum = feeOverride !== '' ? parseFloat(feeOverride) : null;
-  const effectivePay = feeOverrideNum != null && feeOverrideNum > 0
+  const hourlyOverrideNum = hourlyOverride !== '' ? parseFloat(hourlyOverride) : null;
+  const hourlyDerivedPay = !isSleepover && hourlyOverrideNum != null && hourlyOverrideNum > 0 && calc
+    ? +(hourlyOverrideNum * calc.hoursWorked).toFixed(2)
+    : null;
+  const effectivePay = hourlyDerivedPay ?? (feeOverrideNum != null && feeOverrideNum > 0
     ? feeOverrideNum
     : isPhSleepover
     ? phSleepoverRate
-    : calc?.grossPay ?? 0;
+    : calc?.grossPay ?? 0);
 
   const phActive = isPublicHoliday && !isSleepover && !isOvertime;
   const otActive = isOvertime && !isPhSleepover;
