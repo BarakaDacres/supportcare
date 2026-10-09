@@ -83,6 +83,14 @@ const ShiftForm = ({
       ? String(initialValues.fee_override)
       : ''
   );
+  // Hourly rate override for non-sleepover shifts — stored as fee_override = rate × hours
+  const [hourlyOverride, setHourlyOverride] = useState<string>(() => {
+    const fee = initialValues?.fee_override;
+    if (initialValues?.is_sleepover || fee == null || fee <= 0) return '';
+    const hours = Number((initialValues as { hours_worked?: number } | undefined)?.hours_worked ?? 0);
+    if (hours > 0) return String(+(fee / hours).toFixed(2));
+    return '';
+  });
 
   // Resolve effective rates based on selected client (field-by-field fallback)
   const selectedClient = clientId ? clients.find(c => c.id === clientId) ?? null : null;
