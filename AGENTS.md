@@ -1,3 +1,4 @@
 # Project Architecture Rules
 
 - Batch invoice downloads use client-side JSZip with one vector PDF per invoice so records remain individually shareable.
+- Weekly card batch exports split selected dates by the preferred week start and client, and reuse the weekly receipt vector PDF renderer so single and batch documents stay consistent.
