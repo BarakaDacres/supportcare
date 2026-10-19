@@ -48,6 +48,8 @@ import {
 } from 'lucide-react';
 import { printWeeklyReceipt, downloadWeeklyReceiptPDF, buildWeeklyReceiptHTML, fmtDateShort, RECEIPT_SERVICE_LABELS, type ReceiptServiceRow } from '@/lib/printWeeklyReceipt';
 import { groupShiftsForInvoice } from '@/lib/invoiceGrouping';
+import WeeklyInvoiceDownload from '@/components/WeeklyInvoiceDownload';
+import { Button } from '@/components/ui/button';
 import { getEffectiveRates } from '@/lib/rateResolver';
 import { formatCurrency } from '@/lib/formatUtils';
 import type { Shift } from '@/hooks/useShifts';
@@ -1579,6 +1581,7 @@ const OverviewPanel = ({
   } | null>(null);
   const printDateFromRef = useRef<HTMLInputElement>(null);
   const printDateToRef = useRef<HTMLInputElement>(null);
+  const [weeklyDownload, setWeeklyDownload] = useState<{ from: string; to: string } | null>(null);
 
   const formatDatePretty = (iso: string) => {
     if (!iso) return '—';
@@ -1624,10 +1627,10 @@ const OverviewPanel = ({
   };
 
   // Compute receipt payload (itemised service rows + totals) for a date range.
-  const buildReceiptPayload = (startISO: string, endISO: string) => {
+  const buildReceiptPayload = (startISO: string, endISO: string, sourceShifts: Shift[] = shifts) => {
     const ws = parseDate(startISO);
     const we = parseDate(endISO);
-    const filtered = shifts
+    const filtered = sourceShifts
       .filter(s => {
         const d = parseDate(s.date);
         return d >= ws && d <= we;
@@ -1889,6 +1892,19 @@ const OverviewPanel = ({
                       <p className="text-[10px] text-muted-foreground/70 mt-0.5">{rangeLabel}</p>
                     </div>
                     <div className="flex items-center gap-2">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-11 w-11 rounded-full bg-muted/50 active:scale-95"
+                        aria-label="Download all weekly invoices"
+                        title="Download all weekly invoices"
+                        onClick={e => {
+                          e.stopPropagation();
+                          setWeeklyDownload({ from: formatDateISO(weekStat.weekStart), to: formatDateISO(weekStat.weekEnd) });
+                        }}
+                      >
+                        <Download />
+                      </Button>
                       <button
                         type="button"
                         onClick={(e) => {
@@ -2352,6 +2368,29 @@ const OverviewPanel = ({
         onAddFromTemplate={onAddFromTemplate}
       />
 
+
+      {weeklyDownload && (
+        <WeeklyInvoiceDownload
+          shifts={shifts}
+          initialFrom={weeklyDownload.from}
+          initialTo={weeklyDownload.to}
+          weekStartDay={readWeekStartPref()}
+          onClose={() => setWeeklyDownload(null)}
+          buildInvoice={batch => {
+            const p = buildReceiptPayload(batch.startISO, batch.endISO, batch.shifts);
+            const client = clients.find(c => c.id === batch.clientId);
+            const name = client?.name || batch.clientName;
+            return {
+              weekStart: p.ws, weekEnd: p.we, serviceRows: p.rows,
+              totalHours: p.totalHours, totalShifts: p.totalShifts,
+              totalSleepovers: p.totalSleepovers, totalGross: p.totalGross,
+              settings, recipientName: name,
+              recipientAddress: client ? getEffectiveBillingAddress(client) : null,
+              invoiceNumber: deriveInvoiceNumber(name, p.ws),
+            };
+          }}
+        />
+      )}
 
       {/* Weekly receipt print dialog */}
       {printDialog?.open && (
