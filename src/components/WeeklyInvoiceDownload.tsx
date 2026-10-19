@@ -65,7 +65,7 @@ export default function WeeklyInvoiceDownload({ shifts, initialFrom, initialTo, 
     <Dialog open onOpenChange={open => { if (!open && !busy) onClose(); }}>
       <DialogContent className="max-w-[calc(100%-2rem)] sm:max-w-md rounded-3xl bg-card p-5 max-h-[90dvh] overflow-y-auto" aria-describedby="weekly-download-summary">
         <DialogTitle className="pr-8">Weekly invoices</DialogTitle>
-        <DialogDescription id="weekly-download-summary">{batches.length} invoices · {new Set(batches.map(b => b.clientId ?? b.clientName)).size} clients</DialogDescription>
+        <DialogDescription id="weekly-download-summary">{batches.length} {batches.length === 1 ? 'invoice' : 'invoices'} · {new Set(batches.map(b => b.clientId ?? b.clientName)).size} {new Set(batches.map(b => b.clientId ?? b.clientName)).size === 1 ? 'client' : 'clients'}</DialogDescription>
         <div className="grid grid-cols-2 gap-3 min-w-0">
           <label className="min-w-0 text-xs text-muted-foreground">From
             <Input aria-label="Weekly invoices from" type="date" value={from} max={to || undefined} disabled={busy} className="mt-1 min-w-0 h-11" onChange={e => { setFrom(e.target.value); setReady(null); setError(''); }} />
