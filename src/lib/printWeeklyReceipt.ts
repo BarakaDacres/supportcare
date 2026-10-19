@@ -471,7 +471,7 @@ function hexToRgb(hex: string): [number, number, number] {
  * is no rasterization step. Text is embedded as fonts, lines as PDF vectors.
  * Output: 80mm wide thermal-receipt format with auto-computed height.
  */
-export async function downloadWeeklyReceiptPDF(opts: PrintWeeklyReceiptOptions) {
+export async function buildWeeklyReceiptPDF(opts: PrintWeeklyReceiptOptions): Promise<Blob> {
   const { jsPDF } = await import('jspdf');
 
   const [interReg, interSemi] = await Promise.all([
@@ -707,8 +707,20 @@ export async function downloadWeeklyReceiptPDF(opts: PrintWeeklyReceiptOptions) 
   const doc = new jsPDF({ unit: 'mm', format: [W, finalH], orientation: 'portrait', compress: true });
   render(doc, true);
 
+  return doc.output('blob');
+}
+
+export async function downloadWeeklyReceiptPDF(opts: PrintWeeklyReceiptOptions) {
+  const blob = await buildWeeklyReceiptPDF(opts);
   const filename = `invoice-${(opts.invoiceNumber || 'WK').replace(/[^\w-]+/g, '')}.pdf`;
-  doc.save(filename);
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 30_000);
 }
 
 function escape(s: string): string {
