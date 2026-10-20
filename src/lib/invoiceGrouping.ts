@@ -193,7 +193,19 @@ interface Bucket {
   shifts: Set<Shift>;
   hours: number;
   count: number;
-  overrideAdjustment: number; // delta added to (qty × rate) to honour fee_override
+  rate: number; // effective rate for every shift in this bucket
+}
+
+/**
+ * Effective per-segment rates for a shift, derived from the pay stored on the
+ * shift at save time (gross_pay / fee_override) rather than today's settings
+ * rates. A uniform scale factor vs the current-rate standard preserves the
+ * category split while honouring the originally assigned rates.
+ */
+function shiftRateScale(standard: number, shift: Shift): number {
+  if (standard <= 0) return 1;
+  const scale = effectiveGrossPay(shift) / standard;
+  return Math.abs(scale - 1) < 1e-6 ? 1 : scale;
 }
 
 export function groupShiftsForInvoice(
@@ -203,44 +215,36 @@ export function groupShiftsForInvoice(
 ): InvoiceLineGroup[] {
   const merged: NdisItemCodes = { ...DEFAULT_NDIS_CODES, ...codes };
 
-  const buckets = new Map<InvoiceCategory, Bucket>();
-  const ensure = (c: InvoiceCategory): Bucket => {
-    let b = buckets.get(c);
-    if (!b) { b = { shifts: new Set(), hours: 0, count: 0, overrideAdjustment: 0 }; buckets.set(c, b); }
+  // Keyed by category + effective rate so QTY × RATE = SUBTOTAL stays exact
+  // even when shifts carry different historically-assigned rates.
+  const buckets = new Map<string, Bucket>();
+  const ensure = (c: InvoiceCategory, rate: number): Bucket => {
+    const key = `${c}|${rate}`;
+    let b = buckets.get(key);
+    if (!b) { b = { shifts: new Set(), hours: 0, count: 0, rate }; buckets.set(key, b); }
     return b;
   };
 
   for (const shift of shifts) {
-    const hasOverride = shift.fee_override != null && shift.fee_override > 0;
-
     if (shift.is_sleepover) {
       const cat = getSleepoverCategory(shift);
-      const b = ensure(cat);
+      const catRate = getCategoryRate(cat, rates);
+      const scale = shiftRateScale(catRate, shift);
+      const rate = scale === 1 ? catRate : +(catRate * scale).toFixed(2);
+      const b = ensure(cat, rate);
       b.shifts.add(shift);
       b.count += 1;
-      if (hasOverride) {
-        b.overrideAdjustment += effectiveGrossPay(shift) - getCategoryRate(cat, rates);
-      }
       continue;
     }
 
     const segs = segmentShift(shift);
-    if (hasOverride) {
-      // Attribute override delta to the dominant segment's category to keep
-      // SUBTOTAL = sum of (qty × rate) + adjustments. Hours still bucket normally.
-      const primary = segs.reduce((acc, s) => s.hours > acc.hours ? s : acc, segs[0] ?? { category: 'daily' as InvoiceCategory, hours: 0 });
-      for (const seg of segs) {
-        const b = ensure(seg.category);
-        b.shifts.add(shift);
-        b.hours += seg.hours;
-      }
-      const standard = segs.reduce((s, x) => s + x.hours * getCategoryRate(x.category, rates), 0);
-      ensure(primary.category).overrideAdjustment += effectiveGrossPay(shift) - standard;
-      continue;
-    }
+    const standard = segs.reduce((s, x) => s + x.hours * getCategoryRate(x.category, rates), 0);
+    const scale = shiftRateScale(standard, shift);
 
     for (const seg of segs) {
-      const b = ensure(seg.category);
+      const catRate = getCategoryRate(seg.category, rates);
+      const rate = scale === 1 ? catRate : +(catRate * scale).toFixed(2);
+      const b = ensure(seg.category, rate);
       b.shifts.add(shift);
       b.hours += seg.hours;
     }
@@ -250,45 +254,49 @@ export function groupShiftsForInvoice(
     'daily', 'evening', 'saturday', 'sunday',
     'weekday_sleepover', 'saturday_sleepover', 'sunday_sleepover',
     'public_holiday', 'public_holiday_sleepover',
+    'overtime', 'overtime_sleepover',
   ];
 
   const groups: InvoiceLineGroup[] = [];
 
   for (const cat of ORDER) {
-    const b = buckets.get(cat);
-    if (!b) continue;
     const isSleepover = cat.includes('sleepover');
-    const rate = getCategoryRate(cat, rates);
+    const catBuckets = Array.from(buckets.entries())
+      .filter(([key]) => key.startsWith(`${cat}|`))
+      .map(([, b]) => b)
+      .sort((a, b) => a.rate - b.rate);
 
-    if (isSleepover) {
-      if (b.count === 0) continue;
-      const subtotal = +(b.count * rate + b.overrideAdjustment).toFixed(2);
-      groups.push({
-        category: cat,
-        label: CATEGORY_LABELS[cat],
-        ndisCode: merged[cat],
-        shifts: Array.from(b.shifts),
-        totalHours: 0,
-        quantity: b.count,
-        rate,
-        subtotal,
-        isSleepover: true,
-      });
-    } else {
-      if (b.hours === 0) continue;
-      const qty = +b.hours.toFixed(2);
-      const subtotal = +(qty * rate + b.overrideAdjustment).toFixed(2);
-      groups.push({
-        category: cat,
-        label: CATEGORY_LABELS[cat],
-        ndisCode: merged[cat],
-        shifts: Array.from(b.shifts),
-        totalHours: qty,
-        quantity: qty,
-        rate,
-        subtotal,
-        isSleepover: false,
-      });
+    for (const b of catBuckets) {
+      if (isSleepover) {
+        if (b.count === 0) continue;
+        const subtotal = +(b.count * b.rate).toFixed(2);
+        groups.push({
+          category: cat,
+          label: CATEGORY_LABELS[cat],
+          ndisCode: merged[cat],
+          shifts: Array.from(b.shifts),
+          totalHours: 0,
+          quantity: b.count,
+          rate: b.rate,
+          subtotal,
+          isSleepover: true,
+        });
+      } else {
+        if (b.hours === 0) continue;
+        const qty = +b.hours.toFixed(2);
+        const subtotal = +(qty * b.rate).toFixed(2);
+        groups.push({
+          category: cat,
+          label: CATEGORY_LABELS[cat],
+          ndisCode: merged[cat],
+          shifts: Array.from(b.shifts),
+          totalHours: qty,
+          quantity: qty,
+          rate: b.rate,
+          subtotal,
+          isSleepover: false,
+        });
+      }
     }
   }
 
