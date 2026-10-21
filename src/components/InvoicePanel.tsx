@@ -730,19 +730,28 @@ const InvoicePanel = ({
   const [batchExporting, setBatchExporting] = useState(false);
   const [batchExportError, setBatchExportError] = useState<string | null>(null);
 
-  const [frequency, setFrequency] = useState<InvoiceFrequency>('fortnightly');
+  const [frequency, setFrequency] = useState<InvoiceFrequency | 'custom'>('fortnightly');
+  const todayISO = new Date().toLocaleDateString('en-CA');
+  const [customFrom, setCustomFrom] = useState(todayISO);
+  const [customTo, setCustomTo] = useState(todayISO);
   const [weekStartDay] = useState(() => {
     try {
       const value = Number(localStorage.getItem('pref_week_start_day'));
       return Number.isInteger(value) && value >= 0 && value <= 6 ? value : 1;
     } catch { return 1; }
   });
-  const periods = useMemo(() => getInvoicePeriodsForYear(selectedYear, frequency, weekStartDay), [selectedYear, frequency, weekStartDay]);
+  const periods = useMemo(() => {
+    if (frequency !== 'custom') return getInvoicePeriodsForYear(selectedYear, frequency, weekStartDay);
+    const parse = (v: string) => { const [y, m, d] = v.split('-').map(Number); return new Date(y, m - 1, d); };
+    const start = parse(customFrom), end = parse(customTo);
+    if (!customFrom || !customTo || isNaN(start.getTime()) || isNaN(end.getTime()) || start > end) return [];
+    return [{ start, end, fnNumber: 1, label: 'Custom range' }];
+  }, [selectedYear, frequency, weekStartDay, customFrom, customTo]);
   const [selectedFnIdx, setSelectedFnIdx] = useState(() => getCurrentInvoicePeriodIdx(getInvoicePeriodsForYear(currentYear, 'fortnightly')));
-  const changePeriodOptions = (year: number, nextFrequency: InvoiceFrequency) => {
+  const changePeriodOptions = (year: number, nextFrequency: InvoiceFrequency | 'custom') => {
     setSelectedYear(year);
     setFrequency(nextFrequency);
-    setSelectedFnIdx(getCurrentInvoicePeriodIdx(getInvoicePeriodsForYear(year, nextFrequency, weekStartDay)));
+    setSelectedFnIdx(nextFrequency === 'custom' ? 0 : getCurrentInvoicePeriodIdx(getInvoicePeriodsForYear(year, nextFrequency, weekStartDay)));
     setPreview(null);
     setGenerateError(null);
     setReloadSuccess(false);
@@ -1052,13 +1061,14 @@ const InvoicePanel = ({
 
     // Sync the period selector when possible so generator stays in context
     const invYear = inv.year ?? new Date(inv.period_start).getFullYear();
-    const invFrequency: InvoiceFrequency = (Date.parse(inv.period_end) - Date.parse(inv.period_start)) / 86_400_000 === 6 ? 'weekly' : 'fortnightly';
+    const invDays = (Date.parse(inv.period_end) - Date.parse(inv.period_start)) / 86_400_000;
+    const invFrequency: InvoiceFrequency = invDays === 6 ? 'weekly' : 'fortnightly';
     const invPeriods = getInvoicePeriodsForYear(invYear, invFrequency, weekStartDay);
     const invPeriodIdx = invPeriods.findIndex(p => matchesInvoicePeriod(inv, p));
 
     setSelectedYear(invYear);
-    setFrequency(invFrequency);
-    if (invPeriodIdx >= 0) setSelectedFnIdx(invPeriodIdx);
+    if (invPeriodIdx >= 0) { setFrequency(invFrequency); setSelectedFnIdx(invPeriodIdx); }
+    else { setFrequency('custom'); setCustomFrom(inv.period_start); setCustomTo(inv.period_end); setSelectedFnIdx(0); }
     setSelectedClientId(inv.client_id ?? '');
 
     setPreview({
@@ -1242,16 +1252,29 @@ const InvoicePanel = ({
               )}
 
               <div className="segmented-control w-full" role="group" aria-label="Invoice frequency">
-                {(['weekly', 'fortnightly'] as const).map(option => (
+                {(['weekly', 'fortnightly', 'custom'] as const).map(option => (
                   <Button key={option} variant="ghost" aria-pressed={frequency === option}
                     onClick={() => changePeriodOptions(selectedYear, option)}
                     className={`flex-1 min-h-11 ${frequency === option ? 'segmented-button-active' : 'segmented-button'}`}>
-                    {option === 'weekly' ? 'Weekly' : 'Fortnightly'}
+                    {option === 'weekly' ? 'Weekly' : option === 'fortnightly' ? 'Fortnightly' : 'Custom'}
                   </Button>
                 ))}
               </div>
 
-              {/* Year + period in a row */}
+              {frequency === 'custom' ? (
+                <div className="grid grid-cols-2 gap-2 min-w-0">
+                  {([['From', customFrom, setCustomFrom], ['To', customTo, setCustomTo]] as const).map(([label, value, set]) => (
+                    <div key={label} className="relative min-w-0">
+                      <label className="absolute left-3 top-1 text-[9px] font-semibold text-muted-foreground uppercase tracking-wider z-10 pointer-events-none">{label}</label>
+                      <input type="date" aria-label={`Invoice range ${label.toLowerCase()}`} value={value}
+                        min={label === 'To' ? customFrom : undefined} max={label === 'From' ? customTo : undefined}
+                        onChange={e => { set(e.target.value); setPreview(null); setGenerateError(null); setReloadSuccess(false); if (e.target.value) setSelectedYear(Number(customFrom.slice(0, 4)) || selectedYear); }}
+                        className="glass-input w-full min-w-0 text-foreground text-sm pt-5 pb-2 px-3 min-h-[54px]" />
+                    </div>
+                  ))}
+                  {periods.length === 0 && <p role="alert" className="col-span-2 text-xs text-destructive">Choose a valid date range.</p>}
+                </div>
+              ) : (
               <div className="flex gap-2">
                 <div className="relative w-[100px] shrink-0">
                   <label className="absolute left-3 top-1 text-[9px] font-semibold text-muted-foreground uppercase tracking-wider z-10 pointer-events-none">
@@ -1284,6 +1307,7 @@ const InvoicePanel = ({
                   <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
                 </div>
               </div>
+              )}
             </div>
 
             {/* Divider */}
