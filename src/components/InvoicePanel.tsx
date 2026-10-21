@@ -1268,7 +1268,7 @@ const InvoicePanel = ({
                       <label className="absolute left-3 top-1 text-[9px] font-semibold text-muted-foreground uppercase tracking-wider z-10 pointer-events-none">{label}</label>
                       <input type="date" aria-label={`Invoice range ${label.toLowerCase()}`} value={value}
                         min={label === 'To' ? customFrom : undefined} max={label === 'From' ? customTo : undefined}
-                        onChange={e => { set(e.target.value); setPreview(null); setGenerateError(null); setReloadSuccess(false); if (e.target.value) setSelectedYear(Number(customFrom.slice(0, 4)) || selectedYear); }}
+                        onChange={e => { set(e.target.value); setPreview(null); setGenerateError(null); setReloadSuccess(false); if (label === 'From' && e.target.value) setSelectedYear(Number(e.target.value.slice(0, 4))); }}
                         className="glass-input w-full min-w-0 text-foreground text-sm pt-5 pb-2 px-3 min-h-[54px]" />
                     </div>
                   ))}
