@@ -1,6 +1,6 @@
 # Roadmap
 
-- [ ] Add weekly alongside fortnightly invoice periods and verify selection, saved identity, and export
+- [x] Add weekly alongside fortnightly invoice periods; verify signed-in selection and boundary/identity tests (no saved shifts available to verify creation/export)
 
 - [x] Replace the paid stamp with understated text near invoice totals in preview and PDF
 - [x] Add multi-select controls to invoice records
