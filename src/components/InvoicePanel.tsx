@@ -23,6 +23,8 @@ import { effectiveGrossPay } from '@/hooks/useShifts';
 import type { UserSettings } from '@/hooks/useUserSettings';
 import type { Client } from '@/hooks/useClients';
 import { MONTH_NAMES } from '@/lib/dateUtils';
+import { Button } from '@/components/ui/button';
+import { getInvoicePeriodsForYear, getCurrentInvoicePeriodIdx, matchesInvoicePeriod, type InvoiceFrequency } from '@/lib/invoicePeriods';
 import { groupShiftsForInvoice, DEFAULT_NDIS_CODES, type NdisItemCodes } from '@/lib/invoiceGrouping';
 import type { PayRates } from '@/lib/shiftCalculator';
 import { DEFAULT_RATES } from '@/lib/shiftCalculator';
@@ -95,40 +97,6 @@ function nextAvailableInvoiceNumber(existing: Array<{ invoice_number: string }>)
   let n = 1;
   while (used.has(n)) n++;
   return n;
-}
-
-function getFortnightPeriodsForYear(year: number) {
-  const jan1 = new Date(year, 0, 1);
-  const dow = jan1.getDay();
-  const daysToMon = dow === 0 ? 6 : dow - 1;
-  const anchor = new Date(year, 0, 1 - daysToMon);
-  const periods: { label: string; start: Date; end: Date; fnNumber: number }[] = [];
-  const pad = (n: number) => String(n).padStart(2, '0');
-  const fmt = (d: Date) => `${d.getDate()} ${MONTH_NAMES[d.getMonth()].slice(0, 3)} ${d.getFullYear()}`;
-  let fn = 1;
-  let cursor = new Date(anchor);
-  while (true) {
-    const start = new Date(cursor);
-    const end = new Date(cursor);
-    end.setDate(end.getDate() + 13);
-    if (start.getFullYear() > year) break;
-    periods.push({ fnNumber: fn, label: `FN${pad(fn)} · ${fmt(start)} – ${fmt(end)}`, start, end });
-    fn++;
-    cursor.setDate(cursor.getDate() + 14);
-    if (cursor.getFullYear() > year) break;
-  }
-  return periods;
-}
-
-function getCurrentFortnightIdx(periods: ReturnType<typeof getFortnightPeriodsForYear>): number {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  for (let i = 0; i < periods.length; i++) {
-    const s = new Date(periods[i].start); s.setHours(0, 0, 0, 0);
-    const e = new Date(periods[i].end);   e.setHours(23, 59, 59, 999);
-    if (today >= s && today <= e) return i;
-  }
-  return periods.length - 1;
 }
 
 function formatDateISO(d: Date): string {
@@ -762,15 +730,23 @@ const InvoicePanel = ({
   const [batchExporting, setBatchExporting] = useState(false);
   const [batchExportError, setBatchExportError] = useState<string | null>(null);
 
-  const periods = useMemo(() => getFortnightPeriodsForYear(selectedYear), [selectedYear]);
-
-  const [selectedFnIdx, setSelectedFnIdx] = useState(() => getCurrentFortnightIdx(getFortnightPeriodsForYear(currentYear)));
-  useEffect(() => {
-    setSelectedFnIdx(getCurrentFortnightIdx(periods));
+  const [frequency, setFrequency] = useState<InvoiceFrequency>('fortnightly');
+  const [weekStartDay] = useState(() => {
+    try {
+      const value = Number(localStorage.getItem('pref_week_start_day'));
+      return Number.isInteger(value) && value >= 0 && value <= 6 ? value : 1;
+    } catch { return 1; }
+  });
+  const periods = useMemo(() => getInvoicePeriodsForYear(selectedYear, frequency, weekStartDay), [selectedYear, frequency, weekStartDay]);
+  const [selectedFnIdx, setSelectedFnIdx] = useState(() => getCurrentInvoicePeriodIdx(getInvoicePeriodsForYear(currentYear, 'fortnightly')));
+  const changePeriodOptions = (year: number, nextFrequency: InvoiceFrequency) => {
+    setSelectedYear(year);
+    setFrequency(nextFrequency);
+    setSelectedFnIdx(getCurrentInvoicePeriodIdx(getInvoicePeriodsForYear(year, nextFrequency, weekStartDay)));
     setPreview(null);
     setGenerateError(null);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedYear]);
+    setReloadSuccess(false);
+  };
 
   // Validate stored client still exists; if not, clear to "All clients"
   useEffect(() => {
@@ -881,9 +857,8 @@ const InvoicePanel = ({
 
   const existingInvoice = useMemo(() => {
     if (!selectedPeriod) return null;
-    const startStr = formatDateISO(selectedPeriod.start);
     return invoices.find(inv =>
-      inv.period_start === startStr &&
+      matchesInvoicePeriod(inv, selectedPeriod) &&
       (selectedClientId ? inv.client_id === selectedClientId : !inv.client_id)
     ) ?? null;
   }, [invoices, selectedPeriod, selectedClientId]);
@@ -909,6 +884,7 @@ const InvoicePanel = ({
   const buildSnapshot = useCallback((
     invoiceId: string, invoiceNumber: string, issueDate: string, dueDate: string,
   ): InvoiceSnapshot => {
+    if (!selectedPeriod) throw new Error('Choose an invoice period.');
     const s   = settings as unknown as Record<string, string | null>;
     const ext = clientExtra(selectedClient);
     const clientNotes  = selectedClient?.invoice_notes ?? null;
@@ -918,10 +894,10 @@ const InvoicePanel = ({
       invoiceId,
       issueDate,
       dueDate,
-      fnNumber:   selectedPeriod!.fnNumber,
+      fnNumber:   selectedPeriod.fnNumber,
       year:       selectedYear,
-      periodStart: formatDateISO(selectedPeriod!.start),
-      periodEnd:   formatDateISO(selectedPeriod!.end),
+      periodStart: formatDateISO(selectedPeriod.start),
+      periodEnd:   formatDateISO(selectedPeriod.end),
       shifts:      periodShifts,
       total,
       issuerName:    settings?.business_name    ?? '',
@@ -1076,12 +1052,12 @@ const InvoicePanel = ({
 
     // Sync the period selector when possible so generator stays in context
     const invYear = inv.year ?? new Date(inv.period_start).getFullYear();
-    const invPeriods = getFortnightPeriodsForYear(invYear);
-    const invPeriodIdx = invPeriods.findIndex(p =>
-      formatDateISO(p.start) === inv.period_start
-    );
+    const invFrequency: InvoiceFrequency = (Date.parse(inv.period_end) - Date.parse(inv.period_start)) / 86_400_000 === 6 ? 'weekly' : 'fortnightly';
+    const invPeriods = getInvoicePeriodsForYear(invYear, invFrequency, weekStartDay);
+    const invPeriodIdx = invPeriods.findIndex(p => matchesInvoicePeriod(inv, p));
 
     setSelectedYear(invYear);
+    setFrequency(invFrequency);
     if (invPeriodIdx >= 0) setSelectedFnIdx(invPeriodIdx);
     setSelectedClientId(inv.client_id ?? '');
 
@@ -1265,15 +1241,26 @@ const InvoicePanel = ({
                 </div>
               )}
 
-              {/* Year + Fortnight in a row */}
+              <div className="segmented-control w-full" role="group" aria-label="Invoice frequency">
+                {(['weekly', 'fortnightly'] as const).map(option => (
+                  <Button key={option} variant="ghost" aria-pressed={frequency === option}
+                    onClick={() => changePeriodOptions(selectedYear, option)}
+                    className={`flex-1 min-h-11 ${frequency === option ? 'segmented-button-active' : 'segmented-button'}`}>
+                    {option === 'weekly' ? 'Weekly' : 'Fortnightly'}
+                  </Button>
+                ))}
+              </div>
+
+              {/* Year + period in a row */}
               <div className="flex gap-2">
                 <div className="relative w-[100px] shrink-0">
                   <label className="absolute left-3 top-1 text-[9px] font-semibold text-muted-foreground uppercase tracking-wider z-10 pointer-events-none">
                     Year
                   </label>
                   <select
+                    aria-label="Invoice year"
                     value={selectedYear}
-                    onChange={e => { setSelectedYear(Number(e.target.value)); setPreview(null); setGenerateError(null); setReloadSuccess(false); }}
+                    onChange={e => changePeriodOptions(Number(e.target.value), frequency)}
                     className="glass-input w-full text-foreground text-sm appearance-none pt-5 pb-2 pr-7 pl-3 min-h-[54px]"
                   >
                     {[currentYear - 1, currentYear, currentYear + 1].map(y => (
@@ -1284,9 +1271,10 @@ const InvoicePanel = ({
                 </div>
                 <div className="relative flex-1 min-w-0">
                   <label className="absolute left-3 top-1 text-[9px] font-semibold text-muted-foreground uppercase tracking-wider z-10 pointer-events-none">
-                    Fortnight
+                    {frequency === 'weekly' ? 'Week' : 'Fortnight'}
                   </label>
                   <select
+                    aria-label={frequency === 'weekly' ? 'Invoice week' : 'Invoice fortnight'}
                     value={selectedFnIdx}
                     onChange={e => { setSelectedFnIdx(Number(e.target.value)); setPreview(null); setGenerateError(null); setReloadSuccess(false); }}
                     className="glass-input w-full text-foreground text-sm appearance-none pt-5 pb-2 pr-8 pl-3 min-h-[54px]"
