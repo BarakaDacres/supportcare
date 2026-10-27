@@ -1,5 +1,5 @@
 import { useState, useMemo, useRef, useCallback, useEffect } from 'react';
-import { Plus, Moon, User, ChevronDown, SortAsc, Lock, Sun, AlertCircle, Star, Sunset, Pencil, Copy, Trash2, CalendarPlus, RefreshCw, Zap } from 'lucide-react';
+import { Plus, Moon, User, ChevronDown, SortAsc, Lock, Sun, AlertCircle, Star, Sunset, Pencil, Copy, Trash2, CalendarPlus, RefreshCw, Zap, Download } from 'lucide-react';
 import type { Shift, NewShift } from '@/hooks/useShifts';
 import { effectiveGrossPay } from '@/hooks/useShifts';
 import type { Client } from '@/hooks/useClients';
@@ -9,6 +9,8 @@ import { formatCurrency } from '@/lib/formatUtils';
 import { MONTH_NAMES } from '@/lib/dateUtils';
 import { downloadBulkICS, checkAutoSync, performAutoSync, markAllSynced, isAutoSyncEnabled, setAutoSyncEnabled, cleanSyncedIds, buildSequenceMap, type CalendarEvent } from '@/lib/calendarExport';
 import ShiftForm from './ShiftForm';
+import DailyEarningsDownload from './DailyEarningsDownload';
+import { Button } from '@/components/ui/button';
 
 interface ShiftListProps {
   shifts: Shift[];
@@ -98,6 +100,7 @@ const ShiftList = ({
   onAdd, onUpdate, onDelete, onDuplicate, onSheetOpenChange,
 }: ShiftListProps) => {
   const [showForm, setShowForm] = useState(false);
+  const [showEarningsDownload, setShowEarningsDownload] = useState(false);
   const [editingShift, setEditingShift] = useState<Shift | null>(null);
   const openSheet = (open: boolean) => onSheetOpenChange?.(open);
 
@@ -309,7 +312,9 @@ const ShiftList = ({
       </div>
 
       {/* Summary chips — gross amount primary */}
+      {showEarningsDownload && <DailyEarningsDownload shifts={shifts} onClose={() => setShowEarningsDownload(false)} />}
       <div className="flex flex-wrap gap-1.5">
+        <Button variant="outline" disabled={loading} className="h-11 text-xs active:scale-95" onClick={() => setShowEarningsDownload(true)}><Download className="h-4 w-4" />Download data</Button>
         <span className="glass-chip py-1 px-2.5">
           <span className="font-bold money-text text-sm">{formatCurrency(totalGross)}</span>
           <span className="text-muted-foreground text-[10px] ml-0.5">gross</span>
