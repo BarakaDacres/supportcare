@@ -1,5 +1,7 @@
 # Roadmap
 
+- [ ] Add date-range JSON/CSV daily client earnings downloads and verify amounts and files
+
 - [x] Add weekly alongside fortnightly invoice periods; verify signed-in selection and boundary/identity tests (no saved shifts available to verify creation/export)
 
 - [x] Replace the paid stamp with understated text near invoice totals in preview and PDF
